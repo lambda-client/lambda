@@ -1,6 +1,7 @@
 package com.lambda.pathing.world.store
 
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.block.BlockState
@@ -30,8 +31,8 @@ internal class StoredTerrain(
 
 	override fun getBottomY(): Int = minY
 
-	fun physics(ignoreHazards: Boolean): Map<Long, ImmutableSnapshotSection> {
-		val sampler = BlockPhysicsSampler(this, ShapeContext.absent(), ignoreHazards)
+	fun physics(hazards: HazardRules): Map<Long, ImmutableSnapshotSection> {
+		val sampler = BlockPhysicsSampler(this, ShapeContext.absent(), hazards)
 		val physics = HashMap<Long, ImmutableSnapshotSection>(sections.size)
 		val keys = sections.keys.iterator()
 		while (keys.hasNext()) {

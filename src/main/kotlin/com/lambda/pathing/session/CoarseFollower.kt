@@ -93,7 +93,7 @@ internal class CoarseFollower(
 		while (coarse.frame(leg) === frame) {
 			val remaining = (deadline - System.nanoTime()) / 1_000_000L
 			if (remaining <= 0L) return false
-			if (world.awaitEvents(since, minOf(remaining, POLL_MILLIS))) return true
+			if (world.awaitEvents(since, minOf(remaining, CoarseService.POLL_MILLIS))) return true
 		}
 		return true
 	}
@@ -217,7 +217,6 @@ internal class CoarseFollower(
 
 	private companion object {
 		const val HANDOFF_WAIT_MILLIS = 4_000L
-		const val POLL_MILLIS = 25L
 		const val BREATH_EXPANSIONS = 200_000
 	}
 }

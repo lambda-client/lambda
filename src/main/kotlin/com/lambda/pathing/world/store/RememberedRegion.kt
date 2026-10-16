@@ -40,7 +40,9 @@ internal class RememberedRegion(
 
 		const val SOLID = 3
 
-		const val REGION_CHUNKS = 32 * 32
+		const val REGION_WIDTH = 32
+
+		const val REGION_CHUNKS = REGION_WIDTH * REGION_WIDTH
 
 		fun pack(x: Int, yIndex: Int, z: Int): Int = x or (z shl 4) or (yIndex shl 8)
 

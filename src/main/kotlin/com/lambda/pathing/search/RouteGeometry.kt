@@ -96,13 +96,9 @@ internal fun ValueField.floatsAt(state: MovementSimulationState, level: Int): Bo
 
 internal fun pressesCell(state: MovementSimulationState, cell: Stance): Boolean {
 	if (!state.onGround) return true
-	val reach = PLATE_HALF_EXTENT + Vanilla.PLAYER_HALF_WIDTH - PLATE_MARGIN
-	return abs(state.position.x - cell.x - 0.5) < reach && abs(state.position.z - cell.z - 0.5) < reach && state.position.y < cell.y + PLATE_HEIGHT
+	val reach = Vanilla.PRESSURE_PLATE_HALF_WIDTH + Vanilla.PLAYER_HALF_WIDTH - PLATE_MARGIN
+	return abs(state.position.x - cell.x - 0.5) < reach && abs(state.position.z - cell.z - 0.5) < reach && state.position.y < cell.y + Vanilla.PRESSURE_PLATE_HEIGHT
 }
-
-private const val PLATE_HALF_EXTENT = 0.4375
-
-private const val PLATE_HEIGHT = 0.25
 
 private const val PLATE_MARGIN = 0.05
 

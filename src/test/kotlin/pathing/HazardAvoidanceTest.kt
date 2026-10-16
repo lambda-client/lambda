@@ -17,6 +17,7 @@ import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -163,21 +164,36 @@ class HazardAvoidanceTest {
 	}
 
 	@Test
+	fun `each hazard category is switched on its own`() {
+		MinecraftBootstrap.ensure()
+		val burns = HazardRules(avoidFire = false, avoidCacti = true, sneakOnMagma = true)
+		assertNull(captured(Blocks.FIRE.defaultState, burns).unsupportedPhysics, "fire is passable once its burn is accepted")
+		assertEquals(UnsupportedPhysicsKind.CACTUS, captured(Blocks.CACTUS.defaultState, burns).unsupportedPhysics?.kind, "cacti stay avoided")
+		assertTrue(captured(Blocks.MAGMA_BLOCK.defaultState, burns).hotFloor, "magma is still sneaked")
+		val pricks = HazardRules(avoidFire = true, avoidCacti = false, sneakOnMagma = true)
+		assertNull(captured(Blocks.CACTUS.defaultState, pricks).unsupportedPhysics, "cacti are floors once their pricks are accepted")
+		assertEquals(UnsupportedPhysicsKind.FIRE, captured(Blocks.CAMPFIRE.defaultState, pricks).unsupportedPhysics?.kind, "a lit campfire is fire")
+		val walksMagma = HazardRules(avoidFire = true, avoidCacti = true, sneakOnMagma = false)
+		assertFalse(captured(Blocks.MAGMA_BLOCK.defaultState, walksMagma).hotFloor, "magma is a plain floor")
+		assertEquals(UnsupportedPhysicsKind.FIRE, captured(Blocks.SOUL_FIRE.defaultState, walksMagma).unsupportedPhysics?.kind, "soul fire is fire")
+	}
+
+	@Test
 	fun `ignored hazards are captured as the blocks they are`() {
 		MinecraftBootstrap.ensure()
 		for (state in listOf(Blocks.FIRE.defaultState, Blocks.SOUL_FIRE.defaultState)) {
-			val fire = captured(state, ignoreHazards = true)
+			val fire = captured(state, HazardRules.IGNORE_ALL)
 			assertNull(fire.unsupportedPhysics, "$state")
 			assertTrue(fire.coarseVoxel.fullyPassable, "$state has no collision box")
 		}
-		assertNull(captured(Blocks.CAMPFIRE.defaultState, ignoreHazards = true).unsupportedPhysics, "a lit campfire is a slab to stand on")
+		assertNull(captured(Blocks.CAMPFIRE.defaultState, HazardRules.IGNORE_ALL).unsupportedPhysics, "a lit campfire is a slab to stand on")
 		assertTrue(captured(Blocks.MAGMA_BLOCK.defaultState).hotFloor, "magma burns feet that do not sneak")
-		assertFalse(captured(Blocks.MAGMA_BLOCK.defaultState, ignoreHazards = true).hotFloor, "magma is a plain floor when its burn is accepted")
-		val cactus = captured(Blocks.CACTUS.defaultState, ignoreHazards = true)
+		assertFalse(captured(Blocks.MAGMA_BLOCK.defaultState, HazardRules.IGNORE_ALL).hotFloor, "magma is a plain floor when its burn is accepted")
+		val cactus = captured(Blocks.CACTUS.defaultState, HazardRules.IGNORE_ALL)
 		assertNull(cactus.unsupportedPhysics)
 		assertEquals(15.0 / 16.0, assertNotNull(cactus.coarseVoxel.standingSurface, "a cactus is a floor"), 1e-9)
 		assertEquals(
-			UnsupportedPhysicsKind.SWEET_BERRY_BUSH, captured(Blocks.SWEET_BERRY_BUSH.defaultState, ignoreHazards = true).unsupportedPhysics?.kind,
+			UnsupportedPhysicsKind.SWEET_BERRY_BUSH, captured(Blocks.SWEET_BERRY_BUSH.defaultState, HazardRules.IGNORE_ALL).unsupportedPhysics?.kind,
 			"a berry bush also slows the body, which the simulator does not model",
 		)
 	}
@@ -200,7 +216,7 @@ class HazardAvoidanceTest {
 		val start = Stance(-4, 64, 0)
 		val goal = Stance(8, 64, 0)
 		fun environment(ignoreHazards: Boolean): SnapshotSimulationEnvironment {
-			val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), ignoreHazards)
+			val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), rules(ignoreHazards))
 			return SnapshotSimulationEnvironment.synthetic(
 				SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
 				states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -212,7 +228,7 @@ class HazardAvoidanceTest {
 		assertNull(avoided.routePlan(0L), "the cactus is the only way across and it is a hazard")
 
 		val ignoring = environment(ignoreHazards = true)
-		val moves = moveLibrary(SimpleMoveOptions(ignoreHazards = true))
+		val moves = moveLibrary(SimpleMoveOptions(hazards = HazardRules.IGNORE_ALL))
 		val planner = CoarsePlanner(ignoring, moves, start, goal)
 		assertTrue(planner.repair().converged, "the chasm must converge")
 		planner.expandSearchField()
@@ -257,13 +273,13 @@ class HazardAvoidanceTest {
 		val states = HashMap<BlockPos, BlockState>()
 		for (x in -4..8) for (z in -1..1) states[BlockPos(x, 63, z)] = if (x in 1..4) Blocks.MAGMA_BLOCK.defaultState else Blocks.STONE.defaultState
 		for (z in listOf(-2, 2)) for (x in -4..8) for (y in 64..65) states[BlockPos(x, y, z)] = Blocks.STONE.defaultState
-		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), ignoreHazards)
+		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), rules(ignoreHazards))
 		val environment = SnapshotSimulationEnvironment.synthetic(
 			SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
 			states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
 		)
 		val goal = Stance(6, 64, 0)
-		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions(ignoreHazards = ignoreHazards)), Stance(-2, 64, 0), goal)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions(hazards = rules(ignoreHazards))), Stance(-2, 64, 0), goal)
 		assertTrue(planner.repair().converged, "the magma corridor must converge")
 		planner.expandSearchField()
 		val route = assertNotNull(planner.routePlan(0L), "magma is still a floor to cross")
@@ -333,8 +349,10 @@ class HazardAvoidanceTest {
 		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
 	}
 
-	private fun captured(state: BlockState, ignoreHazards: Boolean = false) =
-		BlockPhysicsCapture.capture(state, StatesView(mapOf(BlockPos.ORIGIN to state)), BlockPos.ORIGIN, ShapeContext.absent(), ignoreHazards)
+	private fun captured(state: BlockState, hazards: HazardRules = HazardRules.AVOID_ALL) =
+		BlockPhysicsCapture.capture(state, StatesView(mapOf(BlockPos.ORIGIN to state)), BlockPos.ORIGIN, ShapeContext.absent(), hazards)
+
+	private fun rules(ignoreHazards: Boolean) = if (ignoreHazards) HazardRules.IGNORE_ALL else HazardRules.AVOID_ALL
 
 	private class StatesView(private val states: Map<BlockPos, BlockState>) : BlockView {
 		override fun getBlockState(pos: BlockPos): BlockState = states[pos] ?: Blocks.AIR.defaultState

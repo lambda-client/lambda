@@ -76,7 +76,7 @@ object FallMovement : Movement {
 	private fun waterCells(context: DecisionContext): Int {
 		val to = context.edge.to
 		var cells = 0
-		while (cells < MAX_WATER_CELLS && context.view.medium(to.x, to.y - cells, to.z) == Medium.WATER) cells++
+		while (cells < FallReach.MAX_WATER_CELLS && context.view.medium(to.x, to.y - cells, to.z) == Medium.WATER) cells++
 		return cells
 	}
 
@@ -106,8 +106,6 @@ object FallMovement : Movement {
 		val fall = decision as TrajectoryDecision.Fall
 		return fall.solution.airTicks + fall.plungeTicks + APPROACH_FRAMES
 	}
-
-	private const val MAX_WATER_CELLS = 5
 
 	private const val LANDING_SLACK = 1
 

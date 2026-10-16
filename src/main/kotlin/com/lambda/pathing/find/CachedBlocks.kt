@@ -1,6 +1,7 @@
 package com.lambda.pathing.find
 
 import com.lambda.pathing.core.PLANNER_THREAD_PRIORITY
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.store.BaritoneCache
 import com.lambda.pathing.world.store.RememberedRegion
@@ -77,11 +78,11 @@ internal class CachedBlocks(
 		}
 	}
 
-	fun section(sectionKey: Long, ignoreHazards: Boolean): ImmutableSnapshotSection? {
+	fun section(sectionKey: Long, hazards: HazardRules): ImmutableSnapshotSection? {
 		if (stored(sectionKey)) {
 			val states = decoded(sectionKey) ?: return null
 			val terrain = StoredTerrain(Long2ObjectOpenHashMap<PalettedContainer<BlockState>>().apply { put(sectionKey, states) }, minY, maxY)
-			return terrain.physics(ignoreHazards)[sectionKey]
+			return terrain.physics(hazards)[sectionKey]
 		}
 		return baritone?.section(sectionKey)
 	}
@@ -163,7 +164,7 @@ internal class CachedBlocks(
 	}
 
 	private companion object {
-		const val REGION_SPAN = 16 * 32
+		const val REGION_SPAN = 16 * RememberedRegion.REGION_WIDTH
 
 		const val CACHED_TILES = 32
 

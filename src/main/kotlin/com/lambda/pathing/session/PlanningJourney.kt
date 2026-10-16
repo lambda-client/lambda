@@ -3,6 +3,7 @@ package com.lambda.pathing.session
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.store.BaritoneCache
 import com.lambda.pathing.world.store.TerrainRecorder
 import com.lambda.pathing.world.store.TerrainStores
@@ -18,7 +19,7 @@ internal class PlanningJourney private constructor(
 ) {
 	val goal: Stance get() = origin.finalGoal
 
-	val ignoresHazards: Boolean get() = origin.moveOptions.ignoreHazards
+	val hazards: HazardRules get() = origin.moveOptions.hazards
 
 	private val coarseView = world.snapshot.pinned()
 
@@ -57,7 +58,7 @@ internal class PlanningJourney private constructor(
 	companion object {
 		fun open(preparation: PlanningPreparation, player: ClientPlayerEntity): PlanningJourney {
 			val terrain = preparation.dumpDirectory?.let { TerrainRecorder(player.entityWorld, TerrainStores.of(player.entityWorld)) }
-			val world = PathingWorld(preparation.bounds, MinecraftCaptureSource(player.entityWorld, player, preparation.moveOptions.ignoreHazards, preparation.moveOptions.avoidMobs), terrain)
+			val world = PathingWorld(preparation.bounds, MinecraftCaptureSource(player.entityWorld, player, preparation.moveOptions.hazards, preparation.moveOptions.avoidMobs, preparation.moveOptions.mobLingerTicks), terrain)
 			InterestPrimer.primeBody(world, player.blockPos)
 			InterestPrimer.primeJourney(world, preparation.start, preparation.finalGoal, preparation.waypoints)
 			val remembered = if (preparation.useBaritoneCache) BaritoneCache.of(player.entityWorld) else null

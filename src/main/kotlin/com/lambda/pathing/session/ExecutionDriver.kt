@@ -15,6 +15,7 @@ import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.Companion.TREAD_WATER_INPUT
 import com.lambda.pathing.session.PathingSession.State
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.util.CommunicationUtils.info
 import net.minecraft.util.math.MathHelper
 import kotlin.math.abs
@@ -214,7 +215,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		afterInput: Boolean,
 	) {
 		val journey = walk.journey
-		val report = executionRejectionReport(path, frame, deviation, observed, afterInput, journey?.world?.snapshot, journey?.ignoresHazards == true)
+		val report = executionRejectionReport(path, frame, deviation, observed, afterInput, journey?.world?.snapshot, journey?.hazards ?: HazardRules.AVOID_ALL)
 		val history = walk.replay?.takeIf { it.path === path }?.observedHistory?.toList().orEmpty()
 		walk.dumpEvent("divergence", report, PlanDump.ExecutionTrace.of(path.plan, frame, afterInput, observed, history))
 		val replay = walk.replay

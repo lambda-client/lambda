@@ -3,6 +3,7 @@ package com.lambda.pathing.world
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.FallRule
+import com.lambda.pathing.physics.Vanilla
 import kotlin.math.floor
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
@@ -29,11 +30,10 @@ enum class CollisionClass {
 			val boxes = shape.boundingBoxes
 			if (boxes.size != 1) return false
 			val box = boxes[0]
-			return box.minX <= EPSILON && box.minY <= EPSILON && box.minZ <= EPSILON &&
-					box.maxX >= 1.0 - EPSILON && box.maxY >= 1.0 - EPSILON && box.maxZ >= 1.0 - EPSILON
+			return box.minX <= Vanilla.COLLISION_EPSILON && box.minY <= Vanilla.COLLISION_EPSILON && box.minZ <= Vanilla.COLLISION_EPSILON &&
+					box.maxX >= 1.0 - Vanilla.COLLISION_EPSILON && box.maxY >= 1.0 - Vanilla.COLLISION_EPSILON && box.maxZ >= 1.0 - Vanilla.COLLISION_EPSILON
 		}
 
-		private const val EPSILON = 1.0E-7
 	}
 }
 

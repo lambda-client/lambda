@@ -9,6 +9,7 @@ import com.lambda.pathing.find.BlockQuery
 import com.lambda.pathing.find.BlockSource
 import com.lambda.pathing.find.CachedBlocks
 import com.lambda.pathing.find.NearestBlocks
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -239,7 +240,7 @@ class BlockFinderTest {
 		val nearest = NearestBlocks(origin, 8, emptySet())
 		blocks.scan(query, nearest) { false }
 		for (found in nearest.sorted()) {
-			val view = AccessStances.view(found.pos, MIN_Y, MIN_Y + HEIGHT - 1) { blocks.section(it, ignoreHazards = false) }
+			val view = AccessStances.view(found.pos, MIN_Y, MIN_Y + HEIGHT - 1) { blocks.section(it, HazardRules.AVOID_ALL) }
 			val stance = AccessStances.choose(view, found.pos, origin) ?: continue
 			assertEquals(if (baritone == null) BlockSource.STORE else BlockSource.BARITONE, found.source)
 			return found.pos to stance

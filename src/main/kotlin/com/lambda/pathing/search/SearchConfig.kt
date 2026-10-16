@@ -35,10 +35,10 @@ data class SearchConfig(
 		fun horizon(
 			runwayFrames: Int = RUNWAY_FRAMES,
 			commitFrames: Int = COMMIT_FRAMES,
-			maxExpansions: Int = EXPANSIONS,
+			windowExpansions: Int = WINDOW_EXPANSIONS,
 			bootstrapDelayMillis: Long = BOOTSTRAP_DELAY_MILLIS,
 		) = SearchConfig(
-			maxExpansions = minOf(maxExpansions, WINDOW_EXPANSIONS),
+			maxExpansions = windowExpansions,
 			safePrefixDelayMillis = bootstrapDelayMillis,
 			horizonCommitFrames = commitFrames,
 			horizonRunwayFrames = runwayFrames,
@@ -47,14 +47,13 @@ data class SearchConfig(
 			maxFinalCommitFrames = commitFrames * FINAL_COMMITS,
 		)
 
-		private const val RUNWAY_FRAMES = 20
-		private const val COMMIT_FRAMES = 20
-		private const val EXPANSIONS = 2_000_000
-		private const val BOOTSTRAP_DELAY_MILLIS = 200L
+		const val RUNWAY_FRAMES = 20
+		const val COMMIT_FRAMES = 20
+		const val WINDOW_EXPANSIONS = 120_000
+		const val BOOTSTRAP_DELAY_MILLIS = 200L
 
 		private const val WINDOW_COMMITS = 3
 		private const val FINAL_COMMITS = 2
-		private const val WINDOW_EXPANSIONS = 120_000
 		private const val MIN_COMMIT_EXPANSIONS = 400
 		private const val CLIMB_WINDOW_FRAMES = 10
 	}

@@ -1,6 +1,7 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.execution.ImprovementArbiter
+import com.lambda.pathing.physics.Vanilla
 
 internal class VirtualPacing(private val microsPerExpansion: Long) : SearchClock, ExecutionFeedback {
 	private class Offer(val visibleAt: Int, val path: PublishedPath)
@@ -81,7 +82,7 @@ internal class VirtualPacing(private val microsPerExpansion: Long) : SearchClock
 	}
 
 	private companion object {
-		const val MILLIS_PER_TICK = 50L
+		const val MILLIS_PER_TICK = 1000L / Vanilla.TICKS_PER_SECOND
 
 		const val ADOPTION_LATENCY_TICKS = 1
 	}

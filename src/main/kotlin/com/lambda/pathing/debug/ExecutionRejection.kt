@@ -7,6 +7,7 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.block.ShapeContext
 import net.minecraft.entity.LivingEntity
@@ -22,7 +23,7 @@ internal fun executionRejectionReport(
 	observed: MovementSimulationState,
 	afterInput: Boolean,
 	snapshot: SnapshotSimulationEnvironment?,
-	ignoreHazards: Boolean,
+	hazards: HazardRules,
 ): String {
 	val splice = when {
 		frame in path.spliceFrames -> " at predicted splice"
@@ -72,7 +73,7 @@ internal fun executionRejectionReport(
 		)
 	}.orEmpty()
 	val worldDetail = if (deviation is ExecutionDeviation.WorldChanged || snapshot == null) "" else {
-		snapshotDifferences(snapshot, listOfNotNull(before?.boundingBox, expected?.boundingBox, observed.boundingBox), ignoreHazards)
+		snapshotDifferences(snapshot, listOfNotNull(before?.boundingBox, expected?.boundingBox, observed.boundingBox), hazards)
 	}
 	return "frame $frame $phase$splice: $deviation$inputDetail$previousInputDetail" +
 			"$liveInputDetail$stateDetail${ServerCorrections.recent()}${rotationDetail()}$ledgeDetail$worldDetail${touchingEntities()}"
@@ -95,7 +96,7 @@ private fun touchingEntities(): String {
 	return "; touching " + touching.take(MAX_REPORTED_ENTITIES).joinToString(", ") { "${it.type.untranslatedName} at ${it.pos.short()}" }
 }
 
-private fun snapshotDifferences(snapshot: SnapshotSimulationEnvironment, boxes: List<Box>, ignoreHazards: Boolean): String {
+private fun snapshotDifferences(snapshot: SnapshotSimulationEnvironment, boxes: List<Box>, hazards: HazardRules): String {
 	val player = mc.player ?: return ""
 	val world = mc.world ?: return ""
 	val around = boxes.reduce(Box::union).expand(1.0)
@@ -106,7 +107,7 @@ private fun snapshotDifferences(snapshot: SnapshotSimulationEnvironment, boxes: 
 		for (y in MathHelper.floor(around.minY)..MathHelper.floor(around.maxY)) {
 			for (z in MathHelper.floor(around.minZ)..MathHelper.floor(around.maxZ)) {
 				val state = world.getBlockState(cell.set(x, y, z))
-				val live = BlockPhysicsCapture.capture(state, world, cell, context, ignoreHazards)
+				val live = BlockPhysicsCapture.capture(state, world, cell, context, hazards)
 				val captured = snapshot.installedBlock(x, y, z)
 				if (captured == live) continue
 				differences += "($x,$y,$z) live ${state.block.translationKey.substringAfterLast('.')} ${live.collisionShape.boundingBoxes.map { it.short() }}" +

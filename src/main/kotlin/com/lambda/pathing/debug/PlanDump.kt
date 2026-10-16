@@ -15,12 +15,14 @@ import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.world.store.StoredTerrain
 import com.lambda.pathing.world.store.TerrainStore
+import com.lambda.pathing.world.streaming.EntityObstacles
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -208,7 +210,7 @@ internal object PlanDump {
 		val box = checkNotNull(bounds) { "dump has no bounds" }
 		return Loaded(
 			bounds = box,
-			sections = terrain?.let { StoredTerrain.load(it, sectionKeys.toLongArray(), terrainAt, box.minY, box.maxY).physics(moveOptions.ignoreHazards) }
+			sections = terrain?.let { StoredTerrain.load(it, sectionKeys.toLongArray(), terrainAt, box.minY, box.maxY).physics(moveOptions.hazards) }
 				?: ImmutableSnapshotSection.sectionsOf(blocks),
 			start = checkNotNull(start) { "dump has no start" },
 			goal = checkNotNull(goal) { "dump has no goal" },
@@ -225,7 +227,6 @@ internal object PlanDump {
 	}
 
 	private const val PREDICTED_BEFORE = 3
-
 
 	private fun MovementSimulationInput.dump(): String = listOf(
 		"i", forward, strafe, jump, sneak, sprint, useItemSlowdown, rotation?.yaw ?: "-", rotation?.pitch ?: "-",
@@ -244,6 +245,8 @@ internal object PlanDump {
 	private const val FALL_LIMIT_OPTION = 15
 
 	private const val SEARCH_FALL_LIMITS = 8
+
+	private const val OPTIONS_HAZARDS = 22
 
 	private fun PlayerPhysicsProfile.dump(): String = listOf(
 		"profile", movementSpeed, sneakSpeedModifier, gravity, jumpStrength, stepHeight,
@@ -272,7 +275,8 @@ internal object PlanDump {
 		allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
 		allowDeepDropJumps, allowSwimming, allowDeepFalls,
 		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
-		ignoreHazards, allowDiving, avoidMobs, allowNeoJumps,
+		hazards == HazardRules.IGNORE_ALL, allowDiving, avoidMobs, allowNeoJumps,
+		hazards.avoidFire, hazards.avoidCacti, hazards.sneakOnMagma, airReserve, mobLingerTicks,
 	).joinToString(" ")
 
 	private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -294,17 +298,25 @@ internal object PlanDump {
 			val damage = accepted.toIntOrNull() ?: FallLimits.acceptingFallsOf(accepted.toDouble()).acceptedDamage
 			FallLimits(damage, parts[16].toDouble(), parts[17].toDouble())
 		} ?: FallLimits(),
-		ignoreHazards = parts.getOrNull(18)?.toBoolean() ?: false,
+		hazards = if (parts.size > OPTIONS_HAZARDS + 2) {
+			HazardRules(parts[OPTIONS_HAZARDS].toBoolean(), parts[OPTIONS_HAZARDS + 1].toBoolean(), parts[OPTIONS_HAZARDS + 2].toBoolean())
+		} else if (parts.getOrNull(18)?.toBoolean() == true) {
+			HazardRules.IGNORE_ALL
+		} else {
+			HazardRules.AVOID_ALL
+		},
 		allowDiving = parts.getOrNull(19)?.toBoolean() ?: true,
 		avoidMobs = parts.getOrNull(20)?.toBoolean() ?: false,
 		allowNeoJumps = parts.getOrNull(21)?.toBoolean() ?: false,
+		airReserve = parts.getOrNull(OPTIONS_HAZARDS + 3)?.toInt() ?: SimpleMoveOptions.DEFAULT_AIR_RESERVE,
+		mobLingerTicks = parts.getOrNull(OPTIONS_HAZARDS + 4)?.toLong() ?: EntityObstacles.LINGER_TICKS,
 	)
 
 	private fun MotionConstraints.dump(): String = listOf(
 		"search", maxFrames, maxYawDegreesPerFrame, goalRadius,
 		sprintModes.joinToString(",").ifEmpty { "-" },
 		touchArrival, touchRestRadius, maxSafeFallDistance,
-		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier, avoidLavaEdges,
+		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier, avoidLavaEdges, airReserve,
 	).joinToString(" ")
 
 	private fun readSearchConfig(parts: List<String>) = MotionConstraints(
@@ -313,13 +325,14 @@ internal object PlanDump {
 		goalRadius = parts[3].toDouble(),
 		sprintModes = if (parts[4] == "-") emptyList() else parts[4].split(',').map { it.toBoolean() },
 		touchArrival = parts.getOrNull(5)?.toBoolean() ?: false,
-		touchRestRadius = parts.getOrNull(6)?.toDouble() ?: 1.6,
+		touchRestRadius = parts.getOrNull(6)?.toDouble() ?: MotionConstraints.DEFAULT_TOUCH_REST_RADIUS,
 		fallLimits = if (parts.size > SEARCH_FALL_LIMITS + 2) {
 			FallLimits(parts[SEARCH_FALL_LIMITS].toInt(), parts[SEARCH_FALL_LIMITS + 1].toDouble(), parts[SEARCH_FALL_LIMITS + 2].toDouble())
 		} else {
 			FallLimits.acceptingFallsOf(parts.getOrNull(7)?.toDouble() ?: FallLimits.DEFAULT_SAFE_FALL_DISTANCE)
 		},
 		avoidLavaEdges = parts.getOrNull(SEARCH_FALL_LIMITS + 3)?.let { it == "true" || (it.toDoubleOrNull() ?: 0.0) > 0.0 } ?: false,
+		airReserve = parts.getOrNull(SEARCH_FALL_LIMITS + 4)?.toInt() ?: SimpleMoveOptions.DEFAULT_AIR_RESERVE,
 	)
 
 	private fun MovementSimulationState.dump(keyword: String = "state"): String = listOf(

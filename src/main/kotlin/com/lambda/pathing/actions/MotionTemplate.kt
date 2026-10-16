@@ -291,7 +291,7 @@ class MotionTemplate internal constructor(
 		}
 	}
 
-	private companion object {
+	internal companion object {
 
 		const val IN_CELL_RUN_UP = 0.7
 

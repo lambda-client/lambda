@@ -1,6 +1,7 @@
 package com.lambda.pathing.world.streaming
 
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
@@ -17,11 +18,12 @@ import net.minecraft.world.World
 class MinecraftCaptureSource(
 	private val world: World,
 	private val player: ClientPlayerEntity,
-	ignoreHazards: Boolean,
+	hazards: HazardRules,
 	private val avoidMobs: Boolean = false,
+	mobLingerTicks: Long = EntityObstacles.LINGER_TICKS,
 ) : CaptureSource {
-	private val sampler = BlockPhysicsSampler(world, ShapeContext.of(player), ignoreHazards)
-	private val obstacles = EntityObstacles()
+	private val sampler = BlockPhysicsSampler(world, ShapeContext.of(player), hazards)
+	private val obstacles = EntityObstacles(mobLingerTicks)
 	private val occupied = LongOpenHashSet()
 	private val changed = LongArrayList()
 

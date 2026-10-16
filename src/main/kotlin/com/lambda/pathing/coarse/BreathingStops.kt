@@ -19,13 +19,15 @@ internal object BreathingStops {
 	): List<Stance> {
 		if (route.size < 2) return emptyList()
 		var last = 0
-		var budget = if (!underwater(view, route[0])) USABLE_AIR else if (startAir >= Vanilla.SAFE_AIR) startAir - Vanilla.SAFE_AIR else startAir
+		val reserve = moves.catalog.options.airReserve
+		val usableAir = moves.usableAir
+		var budget = if (!underwater(view, route[0])) usableAir else if (startAir >= reserve) startAir - reserve else startAir
 		var spent = 0
 		for (index in 1 until route.size) {
 			val node = route[index]
 			if (!underwater(view, node)) {
 				last = index
-				budget = USABLE_AIR
+				budget = usableAir
 				spent = 0
 				continue
 			}
@@ -47,6 +49,7 @@ internal object BreathingStops {
 	}
 
 	private fun search(view: CoarseVoxelView, moves: SimpleMoveLibrary, stretch: List<Stance>, firstBudget: Int): List<Stance> {
+		val usableAir = moves.usableAir
 		val start = stretch.first()
 		val goal = stretch.last()
 		val minX = stretch.minOf { it.x } - REACH
@@ -80,9 +83,9 @@ internal object BreathingStops {
 				if (edge.movement !in MovementId.AQUATIC) continue
 				val next = edge.to
 				if (next != goal && (next.x !in minX..maxX || next.y !in minY..maxY || next.z !in minZ..maxZ)) continue
-				val air = if (underwater(view, next)) label.air - airTicks(label.stance, next) else USABLE_AIR
+				val air = if (underwater(view, next)) label.air - airTicks(label.stance, next) else usableAir
 				if (air < 0) continue
-				val refill = if (wet && air == USABLE_AIR) (USABLE_AIR - label.air).toDouble() / Vanilla.AIR_REFILL_PER_TICK else 0.0
+				val refill = if (wet && air == usableAir) (usableAir - label.air).toDouble() / Vanilla.AIR_REFILL_PER_TICK else 0.0
 				offer(Label(next, label.cost + edge.lowerBoundTicks + refill, air, label))
 			}
 		}
@@ -109,7 +112,7 @@ internal object BreathingStops {
 		return ceil(sqrt(dx * dx + dy * dy + dz * dz) * AIR_TICKS_PER_BLOCK).toInt()
 	}
 
-	private const val USABLE_AIR = Vanilla.MAX_AIR - Vanilla.SAFE_AIR
+	private val SimpleMoveLibrary.usableAir: Int get() = Vanilla.MAX_AIR - catalog.options.airReserve
 
 	private const val AIR_TICKS_PER_BLOCK = 7.0
 

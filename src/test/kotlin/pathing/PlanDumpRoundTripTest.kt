@@ -18,6 +18,7 @@ import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -170,9 +171,10 @@ class PlanDumpRoundTripTest {
             stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false, width = 0.6, height = 1.8,
         )
         val initial = MovementSimulationState.synthetic(profile, Vec3d(0.5, 65.0, 0.5), Rotation(37.5, 12.0), onGround = true)
+        val options = SimpleMoveOptions(hazards = HazardRules(avoidFire = true, avoidCacti = false, sneakOnMagma = false), airReserve = 80, mobLingerTicks = 40)
         val path = PlanDump.write(
             directory.resolve("dumps"), store, sections.toLongArray(), bounds, Stance(0, 65, 0), Stance(7, 65, 3), initial, profile,
-            SimpleMoveOptions(ignoreHazards = true), MotionConstraints(), "terrain round trip",
+            options, MotionConstraints(airReserve = 80), "terrain round trip",
         )
         store.close()
 
@@ -180,9 +182,12 @@ class PlanDumpRoundTripTest {
         assertEquals(bounds, loaded.bounds)
         assertEquals(initial, loaded.initialState)
         assertEquals(sections.toSet(), loaded.sections.keys)
-        assertTrue(loaded.moveOptions.ignoreHazards, "the hazard policy is part of the move options")
+        assertEquals(options.hazards, loaded.moveOptions.hazards, "the hazard policy is part of the move options")
+        assertEquals(options.airReserve, loaded.moveOptions.airReserve)
+        assertEquals(options.mobLingerTicks, loaded.moveOptions.mobLingerTicks)
+        assertEquals(80, loaded.searchConfig.airReserve)
         val environment = loaded.environment()
-        val live = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), ignoreHazards = true)
+        val live = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), options.hazards)
         for (pos in states.keys + listOf(BlockPos(0, 65, 0), BlockPos(9, 64, 0))) {
             val expected = live.physicsAt(pos.x, pos.y, pos.z)
             assertEquals(expected, environment.installedBlock(pos.x, pos.y, pos.z), "derived physics at $pos")

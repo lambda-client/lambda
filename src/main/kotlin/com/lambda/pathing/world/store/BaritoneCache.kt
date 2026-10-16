@@ -69,8 +69,8 @@ internal class BaritoneCache(private val directory: Path, private val minY: Int,
 			DataInputStream(GZIPInputStream(Files.newInputStream(path), READ_BUFFER_BYTES)).use { input ->
 				if (input.readInt() != MAGIC) return null
 				val bytes = ByteArray(chunkBytes)
-				val words = arrayOfNulls<LongArray>(REGION_CHUNKS)
-				for (index in 0 until REGION_CHUNKS) {
+				val words = arrayOfNulls<LongArray>(RememberedRegion.REGION_CHUNKS)
+				for (index in 0 until RememberedRegion.REGION_CHUNKS) {
 					when (input.read()) {
 						CHUNK_PRESENT -> {
 							input.readFully(bytes)
@@ -95,7 +95,7 @@ internal class BaritoneCache(private val directory: Path, private val minY: Int,
 						}
 					}
 				}
-				val chunks = arrayOfNulls<RememberedRegion.Chunk>(REGION_CHUNKS)
+				val chunks = arrayOfNulls<RememberedRegion.Chunk>(RememberedRegion.REGION_CHUNKS)
 				for (index in present) chunks[index] = RememberedRegion.Chunk(words[index]!!, overviews.getValue(index), tracked.getValue(index), input.readLong())
 				RememberedRegion(regionX, regionZ, minY, height, chunks)
 			}
@@ -115,7 +115,7 @@ internal class BaritoneCache(private val directory: Path, private val minY: Int,
 			DataInputStream(GZIPInputStream(Files.newInputStream(path), READ_BUFFER_BYTES)).use { input ->
 				if (input.readInt() != MAGIC) return null
 				val bytes = ByteArray(chunkBytes)
-				Array(REGION_CHUNKS) {
+				Array(RememberedRegion.REGION_CHUNKS) {
 					when (input.read()) {
 						CHUNK_PRESENT -> {
 							input.readFully(bytes)
@@ -149,7 +149,6 @@ internal class BaritoneCache(private val directory: Path, private val minY: Int,
 		private const val MAGIC = 456022911
 		private const val CHUNK_ABSENT = 0
 		private const val CHUNK_PRESENT = 1
-		private const val REGION_CHUNKS = 32 * 32
 		private const val CHUNK_COLUMN_BYTES_PER_LAYER = 16 * 16 * 2 / 8
 		private const val SECTION_WORDS = 16 * 16 * 16 * 2 / 64
 		private const val UNIFORM_PATTERN = 0x5555555555555555L

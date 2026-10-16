@@ -1,6 +1,7 @@
 package com.lambda.pathing.world.streaming
 
 import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.physics.Vanilla
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlin.math.abs
 
@@ -13,8 +14,8 @@ class TrustedChunks(private val source: CaptureSource) {
 
 	fun isTrusted(chunkX: Int, chunkZ: Int): Boolean {
 		val viewDistance = source.viewDistance
-		val dx = maxOf(0, abs(chunkX - source.playerChunkX) - CHUNK_FILTER_EDGE_MARGIN).toLong()
-		val dz = maxOf(0, abs(chunkZ - source.playerChunkZ) - CHUNK_FILTER_EDGE_MARGIN).toLong()
+		val dx = maxOf(0, abs(chunkX - source.playerChunkX) - Vanilla.CHUNK_FILTER_EDGE_MARGIN).toLong()
+		val dz = maxOf(0, abs(chunkZ - source.playerChunkZ) - Vanilla.CHUNK_FILTER_EDGE_MARGIN).toLong()
 		return dx * dx + dz * dz < viewDistance.toLong() * viewDistance && source.isChunkLoaded(chunkX, chunkZ)
 	}
 
@@ -27,7 +28,7 @@ class TrustedChunks(private val source: CaptureSource) {
 		val centerZ = source.playerChunkZ
 		val view = source.viewDistance
 		val fresh = LongOpenHashSet()
-		val reach = view + CHUNK_FILTER_EDGE_MARGIN
+		val reach = view + Vanilla.CHUNK_FILTER_EDGE_MARGIN
 		for (cx in (centerX - reach)..(centerX + reach)) {
 			for (cz in (centerZ - reach)..(centerZ + reach)) {
 				if (isTrusted(cx, cz)) fresh += PathingChunk.key(cx, cz)
@@ -37,7 +38,6 @@ class TrustedChunks(private val source: CaptureSource) {
 	}
 
 	companion object {
-		const val CHUNK_FILTER_EDGE_MARGIN = 2
 		const val TRUSTED_REFRESH_TICKS = 4
 	}
 }

@@ -365,13 +365,13 @@ internal class NeoPilot(
 
 		private const val HEIGHT = Vanilla.PLAYER_HEIGHT.toDouble()
 
+		private const val EPSILON = Vanilla.COLLISION_EPSILON
+
 		private const val COLLISION_TOLERANCE = 1.0E-5
 
 		private const val SOFT_COLLISION_MIN_SQUARED = Vanilla.SOFT_COLLISION_MIN_SQUARED.toDouble()
 
 		private const val SOFT_COLLISION_MAX_ANGLE = Vanilla.SOFT_COLLISION_MAX_ANGLE.toDouble()
-
-		private const val EPSILON = 1.0E-7
 
 		private const val NO_TOP = Int.MIN_VALUE
 

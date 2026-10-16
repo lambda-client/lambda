@@ -10,6 +10,7 @@ import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.FallLimits
 import com.lambda.pathing.physics.FallRule
+import com.lambda.pathing.physics.fallRule
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
@@ -20,12 +21,15 @@ import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import minecraft.MinecraftBootstrap
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
+import net.minecraft.block.PointedDripstoneBlock
 import net.minecraft.block.ShapeContext
 import net.minecraft.block.SlabBlock
 import net.minecraft.block.entity.BlockEntity
+import net.minecraft.block.enums.Thickness
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.BlockView
 import pathing.ProbeScenarios.moveLibrary
@@ -53,6 +57,20 @@ class DeepFallTest {
 		assertTrue(halfHeart.maxFallOnto(FallRule.NORMAL) in 4.99..5.0, "half a heart is a five block fall onto stone: ${halfHeart.maxFallOnto(FallRule.NORMAL)}")
 		assertTrue(halfHeart.maxFallOnto(FallRule.HAY) in 12.99..13.0, "and a thirteen block fall onto hay: ${halfHeart.maxFallOnto(FallRule.HAY)}")
 		assertEquals(Double.POSITIVE_INFINITY, FallLimits.IMMUNE.maxFallOnto(FallRule.NORMAL), "flight and Slow Falling take any fall")
+	}
+
+	@Test
+	fun `an upward dripstone tip hurts from a one block fall`() {
+		MinecraftBootstrap.ensure()
+		val tip = Blocks.POINTED_DRIPSTONE.defaultState
+			.with(PointedDripstoneBlock.VERTICAL_DIRECTION, Direction.UP)
+			.with(PointedDripstoneBlock.THICKNESS, Thickness.TIP)
+		assertEquals(FallRule.STALAGMITE, tip.fallRule())
+		assertEquals(FallRule.NORMAL, tip.with(PointedDripstoneBlock.VERTICAL_DIRECTION, Direction.DOWN).fallRule(), "a hanging tip is no stalagmite")
+		assertEquals(FallRule.NORMAL, tip.with(PointedDripstoneBlock.THICKNESS, Thickness.BASE).fallRule(), "only the tip pierces")
+		val limit = FallLimits().maxFallOnto(FallRule.STALAGMITE)
+		assertTrue(limit in 0.99..1.0, "vanilla adds 2.5 blocks to the fall and doubles the damage: $limit")
+		assertTrue(!FallRule.STALAGMITE.cushions, "a stalagmite is no soft landing")
 	}
 
 	@Test

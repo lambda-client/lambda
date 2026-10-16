@@ -90,7 +90,7 @@ internal class BounceChains(
 	}
 
 	fun from(origin: Stance): List<ChainEdge> {
-		if (!view.mayBounceWithin(origin.x - FIRST_REACH, origin.y - maxDrop - 1, origin.z - FIRST_REACH, origin.x + FIRST_REACH, origin.y - MIN_DROP - 1, origin.z + FIRST_REACH)) return NO_EDGES
+		if (!view.mayBounceWithin(origin.x - FIRST_REACH, origin.y - maxDrop - 1, origin.z - FIRST_REACH, origin.x + FIRST_REACH, origin.y - SlimeBounceMovement.MIN_DROP - 1, origin.z + FIRST_REACH)) return NO_EDGES
 		discover(origin)
 		return outgoing.get(key(origin)) ?: NO_EDGES
 	}
@@ -133,7 +133,7 @@ internal class BounceChains(
 			val padZ = BlockPos.unpackLongZ(pad)
 			for (x in padX - FIRST_REACH..padX + FIRST_REACH) for (z in padZ - FIRST_REACH..padZ + FIRST_REACH) {
 				if (hypot((x - padX).toDouble(), (z - padZ).toDouble()) > FIRST_REACH) continue
-				for (y in padY + 1 + MIN_DROP..padY + 1 + maxDrop) {
+				for (y in padY + 1 + SlimeBounceMovement.MIN_DROP..padY + 1 + maxDrop) {
 					val origin = Stance(x, y, z)
 					if (standable.isStance(origin)) discover(origin)
 				}
@@ -154,10 +154,10 @@ internal class BounceChains(
 		val bent = HashMap<Stance, Bent>()
 		val bearings = LongOpenHashSet()
 		for (sectionX in ((origin.x - CHAIN_REACH) shr 4)..((origin.x + CHAIN_REACH) shr 4)) {
-			for (sectionY in ((origin.y - maxDrop - 1) shr 4)..((origin.y - MIN_DROP - 1) shr 4)) for (sectionZ in ((origin.z - CHAIN_REACH) shr 4)..((origin.z + CHAIN_REACH) shr 4)) {
+			for (sectionY in ((origin.y - maxDrop - 1) shr 4)..((origin.y - SlimeBounceMovement.MIN_DROP - 1) shr 4)) for (sectionZ in ((origin.z - CHAIN_REACH) shr 4)..((origin.z + CHAIN_REACH) shr 4)) {
 				for (pad in pads.padsIn(sectionX, sectionY, sectionZ)) {
 					val padY = BlockPos.unpackLongY(pad)
-					if (origin.y - padY - 1 !in MIN_DROP..maxDrop) continue
+					if (origin.y - padY - 1 !in SlimeBounceMovement.MIN_DROP..maxDrop) continue
 					val aimX = BlockPos.unpackLongX(pad) - origin.x.toDouble()
 					val aimZ = BlockPos.unpackLongZ(pad) - origin.z.toDouble()
 					val length = hypot(aimX, aimZ)
@@ -206,7 +206,7 @@ internal class BounceChains(
 				return
 			}
 			val level = hit.y - 1
-			if (levels.isEmpty() && origin.y - level - 1 < MIN_DROP) return
+			if (levels.isEmpty() && origin.y - level - 1 < SlimeBounceMovement.MIN_DROP) return
 			if (levels.size == MAX_CONTACTS) return
 			depths += launchHeight - hit.surface
 			levels += level
@@ -228,7 +228,7 @@ internal class BounceChains(
 		if (!tried.add(Attempt(target, levels.toList()))) return
 		val dx = target.x - origin.x
 		val dz = target.z - origin.z
-		if (templated && levels.size <= TEMPLATED_CONTACTS && (dx == 0 || dz == 0 || abs(dx) == abs(dz))) return
+		if (templated && levels.size <= SlimeBounceMovement.DOUBLE_BOUNCES && (dx == 0 || dz == 0 || abs(dx) == abs(dz))) return
 		val probed = BounceArcProbe.probe(
 			view, origin, dx, dz, drop, target.y - origin.y, launchHeight,
 			bounces = levels.size, reboundHeadroom = ceiling, levels = if (level) null else levels,
@@ -361,8 +361,8 @@ internal class BounceChains(
 		val top = feet + Vanilla.PLAYER_HEIGHT
 		var allowed = delta
 		for (cell in floor(minOf(lead, lead + delta)).toInt()..floor(maxOf(lead, lead + delta)).toInt()) {
-			for (side in floor(minSide + COLLISION_EPSILON).toInt()..floor(maxSide - COLLISION_EPSILON).toInt()) {
-				for (y in floor(feet + COLLISION_EPSILON).toInt()..floor(top - COLLISION_EPSILON).toInt()) {
+			for (side in floor(minSide + Vanilla.COLLISION_EPSILON).toInt()..floor(maxSide - Vanilla.COLLISION_EPSILON).toInt()) {
+				for (y in floor(feet + Vanilla.COLLISION_EPSILON).toInt()..floor(top - Vanilla.COLLISION_EPSILON).toInt()) {
 					val cx = if (alongX) cell else side
 					val cz = if (alongX) side else cell
 					val boxes = when (view.collisionClass(cx, y, cz)) {
@@ -372,14 +372,14 @@ internal class BounceChains(
 					}
 					for (box in 0 until boxes.size / 6) {
 						val b = 6 * box
-						if (y + boxes[b + 4] <= feet + COLLISION_EPSILON || y + boxes[b + 1] >= top - COLLISION_EPSILON) continue
+						if (y + boxes[b + 4] <= feet + Vanilla.COLLISION_EPSILON || y + boxes[b + 1] >= top - Vanilla.COLLISION_EPSILON) continue
 						val sideMin = (if (alongX) cz else cx) + boxes[b + if (alongX) 2 else 0]
 						val sideMax = (if (alongX) cz else cx) + boxes[b + if (alongX) 5 else 3]
-						if (sideMax <= minSide + COLLISION_EPSILON || sideMin >= maxSide - COLLISION_EPSILON) continue
+						if (sideMax <= minSide + Vanilla.COLLISION_EPSILON || sideMin >= maxSide - Vanilla.COLLISION_EPSILON) continue
 						val faceMin = cell + boxes[b + if (alongX) 0 else 2]
 						val faceMax = cell + boxes[b + if (alongX) 3 else 5]
-						if (delta > 0.0 && faceMin >= lead - COLLISION_EPSILON) allowed = minOf(allowed, faceMin - lead)
-						if (delta < 0.0 && faceMax <= lead + COLLISION_EPSILON) allowed = maxOf(allowed, faceMax - lead)
+						if (delta > 0.0 && faceMin >= lead - Vanilla.COLLISION_EPSILON) allowed = minOf(allowed, faceMin - lead)
+						if (delta < 0.0 && faceMax <= lead + Vanilla.COLLISION_EPSILON) allowed = maxOf(allowed, faceMax - lead)
 					}
 				}
 			}
@@ -399,8 +399,8 @@ internal class BounceChains(
 			var landedY = 0
 			var landedZ = 0
 			var landed = Double.NEGATIVE_INFINITY
-			for (x in floor(centerX - half + COLLISION_EPSILON).toInt()..floor(centerX + half - COLLISION_EPSILON).toInt()) {
-				for (z in floor(centerZ - half + COLLISION_EPSILON).toInt()..floor(centerZ + half - COLLISION_EPSILON).toInt()) {
+			for (x in floor(centerX - half + Vanilla.COLLISION_EPSILON).toInt()..floor(centerX + half - Vanilla.COLLISION_EPSILON).toInt()) {
+				for (z in floor(centerZ - half + Vanilla.COLLISION_EPSILON).toInt()..floor(centerZ + half - Vanilla.COLLISION_EPSILON).toInt()) {
 					for (y in floor(above).toInt() + 1 downTo floor(below).toInt()) {
 						reads?.add(BlockPos.asLong(x, y - 1, z))
 						val surface = view.standingSurface(x, y - 1, z) ?: continue
@@ -522,8 +522,6 @@ internal class BounceChains(
 
 		val STYLES = listOf(true to true, true to false, false to true, false to false)
 
-		const val MIN_DROP = 2
-
 		const val FIRST_REACH = 10
 
 		const val MIN_FIRST_REACH = 0.5
@@ -533,8 +531,6 @@ internal class BounceChains(
 		const val MIN_CONTACTS = 2
 
 		const val MAX_CONTACTS = 4
-
-		const val TEMPLATED_CONTACTS = 2
 
 		const val SPEED_STEPS = 8
 
@@ -561,8 +557,6 @@ internal class BounceChains(
 		const val MIN_BENT_RISE = 0.5
 
 		const val LANDING_EPSILON = 1.0E-6
-
-		const val COLLISION_EPSILON = 1.0E-7
 
 		val FULL_BOX = doubleArrayOf(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
 

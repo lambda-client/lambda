@@ -305,7 +305,7 @@ class PathingSession internal constructor(
 	internal fun SafeContext.liveProfile(): PlayerPhysicsProfile {
 		val cached = liveProfileCache
 		if (cached != null && liveProfileAge == player.age) return cached
-		return PlayerPhysicsProfile.capture(player).also {
+		return PlayerPhysicsProfile.capture(player).planned(request.pathingConfig).also {
 			liveProfileCache = it
 			liveProfileAge = player.age
 		}

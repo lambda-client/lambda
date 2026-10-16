@@ -330,7 +330,7 @@ class MovementSimulator(
 		var drag = if (isSprinting) Vanilla.SPRINT_WATER_DRAG else Vanilla.WATER_DRAG
 		var acceleration = Vanilla.WATER_ACCELERATION
 		var efficiency = profile.waterMovementEfficiency.toFloat()
-		if (!onGround) efficiency *= 0.5F
+		if (!onGround) efficiency *= Vanilla.AIRBORNE_WATER_EFFICIENCY
 		if (efficiency > 0.0F) {
 			drag += (Vanilla.DEPTH_STRIDER_WATER_DRAG - drag) * efficiency
 			acceleration += (movementSpeed() - acceleration) * efficiency
@@ -405,13 +405,14 @@ class MovementSimulator(
 		val requested = adjustMovementForSneaking(velocity)
 		val movement = adjustMovementForCollisions(requested)
 
-		if (movement.lengthSquared() > Vanilla.MIN_MOVEMENT_SQUARED) {
+		val moved = movement.lengthSquared()
+		if (moved > Vanilla.MIN_MOVEMENT_SQUARED || requested.lengthSquared() - moved < Vanilla.MIN_MOVEMENT_SQUARED) {
 			position += movement
 		}
 		lastMovementY = movement.y
 
 		val xCollide = !MathHelper.approximatelyEquals(movement.x, requested.x)
-		val yCollide = !MathHelper.approximatelyEquals(movement.y, requested.y)
+		val yCollide = movement.y != requested.y
 		val zCollide = !MathHelper.approximatelyEquals(movement.z, requested.z)
 
 		horizontalCollision = xCollide || zCollide
@@ -491,7 +492,7 @@ class MovementSimulator(
 	private fun postGravityFall(velocityY: Double): Double = (velocityY - Vanilla.HONEY_GRAVITY) * Vanilla.HONEY_DRAG
 
 	private fun dampenSlimeStep() {
-		if (!onGround) return
+		if (!onGround || isSneaking) return
 		val vertical = abs(velocity.y)
 		if (vertical >= Vanilla.SLIME_STEP_MAX_VERTICAL_SPEED) return
 		if (!environment.dampensSteppingSpeed(posWithYOffset(Vanilla.LANDING_POS_OFFSET.toDouble()))) return

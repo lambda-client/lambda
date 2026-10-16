@@ -36,6 +36,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import pathing.ProbeScenarios.PROFILE
+import pathing.of
 
 class MovementSimulatorTest {
     @Test
@@ -54,6 +55,21 @@ class MovementSimulatorTest {
         first.zip(replay).forEachIndexed { index, (expected, actual) ->
             assertStateEquals(expected, actual, "frame $index")
         }
+    }
+
+    @Test
+    fun `sneaking on slime skips its step slowdown`() {
+        val slime = SnapshotBlockPhysics.of(VoxelShapes.fullCube(), bounceFactor = 1.0, dampensSteppingSpeed = true)
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-8, -8, -8, 8, 8, 8),
+            buildMap { for (x in -4..4) for (z in -4..4) put(BlockPos(x, -1, z), slime) },
+        )
+        fun speedAfterStep(sneaking: Boolean): Double {
+            val initial = groundedState(sneaking).copy(position = Vec3d(0.5, 0.0, 0.5), velocity = Vec3d(0.0, -0.0784, 0.1))
+            val simulator = MovementSimulator(profile = PROFILE, environment = environment, initialState = initial)
+            return simulator.tickMovement(MovementSimulationInput(sneak = sneaking)).velocity.horizontalLength()
+        }
+        assertTrue(speedAfterStep(sneaking = true) > speedAfterStep(sneaking = false) * 1.5, "vanilla's slime slowdown skips a sneaking body")
     }
 
     @Test

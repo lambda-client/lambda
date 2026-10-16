@@ -3,6 +3,8 @@ package com.lambda.pathing.launch
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.Vanilla
+import com.lambda.pathing.world.Footing
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -20,7 +22,7 @@ enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
 
 	companion object {
 
-		const val MAX_JUMP_RISE = 1.25
+		const val MAX_JUMP_RISE = Footing.JUMP_RISE
 
 		const val MAX_JUMP_STEP = 2
 	}
@@ -176,7 +178,7 @@ data class BallisticProfile(
 		sprint: Boolean = false,
 		jump: Boolean = false,
 		holdTicks: Int = Int.MAX_VALUE,
-		bounceFactor: Double = 1.0,
+		bounceFactor: Double = Vanilla.SLIME_BOUNCE_FACTOR,
 		bounces: Int = 1,
 		maxTicks: Int = MAX_BOUNCE_TICKS * bounces,
 		headroom: Double = Double.POSITIVE_INFINITY,
@@ -306,7 +308,7 @@ data class BallisticProfile(
 		holdTicks: Int,
 		maxTicks: Int,
 		drop: Double = Double.NaN,
-		bounceFactor: Double = 1.0,
+		bounceFactor: Double = Vanilla.SLIME_BOUNCE_FACTOR,
 		headroom: Double = Double.POSITIVE_INFINITY,
 		bounces: Int = 1,
 		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
@@ -447,10 +449,8 @@ data class BallisticProfile(
 		const val WALK_AIR_ACCELERATION = INPUT_DAMPING * Vanilla.AIR_ACCELERATION
 		const val SPRINT_AIR_ACCELERATION = INPUT_DAMPING * Vanilla.SPRINT_AIR_ACCELERATION
 
-		private const val DEFAULT_SLIPPERINESS = Vanilla.DEFAULT_SLIPPERINESS.toDouble()
-
 		val VANILLA: BallisticProfile = PlayerPhysicsProfile.VANILLA.let { profile ->
-			val slip = DEFAULT_SLIPPERINESS.toFloat()
+			val slip = SnapshotBlockPhysics.DEFAULT_SLIPPERINESS.toFloat()
 			val scale = Vanilla.GROUND_ACCELERATION_SCALE / (slip * slip * slip)
 			fun acceleration(speed: Double): Double = INPUT_DAMPING * (speed.toFloat() * scale)
 			BallisticProfile(
@@ -458,7 +458,7 @@ data class BallisticProfile(
 				jumpVelocity = (profile.jumpStrength.toFloat() + profile.jumpBoostVelocityModifier.toFloat()).toDouble(),
 				walkGroundAcceleration = acceleration(profile.movementSpeed),
 				sprintGroundAcceleration = acceleration(profile.movementSpeed * Vanilla.SPRINT_SPEED_MULTIPLIER),
-				slipperiness = DEFAULT_SLIPPERINESS,
+				slipperiness = SnapshotBlockPhysics.DEFAULT_SLIPPERINESS,
 			)
 		}
 	}

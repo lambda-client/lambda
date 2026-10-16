@@ -208,7 +208,7 @@ object DiveMovement : Movement {
 			holding += maxOf(abs(node.x - previous.x), abs(node.y - previous.y), abs(node.z - previous.z), 1)
 			previous = node
 		}
-		if (body.state.air >= Vanilla.SAFE_AIR + holding * AIR_TICKS_PER_NODE) return null
+		if (body.state.air >= context.constraints.airReserve + holding * AIR_TICKS_PER_NODE) return null
 		val here = body.stance
 		if (breathable(view, here.x, here.y, here.z)) {
 			return if (leading.movement == id) TrajectoryDecision.Dive(leading.to, breathe = true) else null

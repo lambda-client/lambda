@@ -2,6 +2,7 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CoarseMoveRates
+import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.MotionTemplateId
 import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.CellBox
@@ -345,7 +346,7 @@ internal class FallEdges(
 
 	private fun waterCells(x: Int, top: Int, z: Int): Int {
 		var cells = 0
-		while (cells < MAX_WATER_CELLS && view.medium(x, top - cells, z) == Medium.WATER) cells++
+		while (cells < FallReach.MAX_WATER_CELLS && view.medium(x, top - cells, z) == Medium.WATER) cells++
 		return cells
 	}
 
@@ -448,8 +449,6 @@ internal class FallEdges(
 
 		private const val FLOOR_SETTLE_TICKS = 2.0
 
-		private const val MAX_WATER_CELLS = 5
-
 		private const val CHORD_STEP = 0.5
 
 		private const val LANDING_PROBE_DEPTH = 0.2
@@ -479,10 +478,8 @@ internal class FallEdges(
 		private val MOMENTUM_SPEED = BallisticProfile.VANILLA.momentumSpeed(sprint = true)
 
 		private val STANDING_SPEED = BallisticProfile.VANILLA.let {
-			it.runUpSpeed(0.0, it.groundRunUpTicks(0.0, STANDING_RUN_UP, sprint = true, maxTicks = 24), sprint = true)
+			it.runUpSpeed(0.0, it.groundRunUpTicks(0.0, MotionTemplate.IN_CELL_RUN_UP, sprint = true, maxTicks = MotionTemplate.STANDING_RUN_UP_TICKS), sprint = true)
 		}
-
-		private const val STANDING_RUN_UP = 0.7
 
 		private val SIDE_DX = intArrayOf(1, 1, 0, -1, -1, -1, 0, 1)
 

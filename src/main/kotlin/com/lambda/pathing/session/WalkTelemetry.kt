@@ -1,5 +1,6 @@
 package com.lambda.pathing.session
 
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.search.PublishedPath
 import net.minecraft.util.math.Vec3d
 
@@ -118,12 +119,11 @@ internal class WalkTelemetry {
 		if (adopted == 0) return "no adoptions"
 		val millis = adoptionMillis.coerceAtLeast(1L)
 		"%d adoption(s) added %d frames over %d ms (%.1f frames/s produced vs %d consumed)"
-			.format(adopted, adoptedFrames, millis, adoptedFrames * 1000.0 / millis, TICKS_PER_SECOND)
+			.format(adopted, adoptedFrames, millis, adoptedFrames * 1000.0 / millis, Vanilla.TICKS_PER_SECOND)
 	}
 
 	companion object {
 		const val MAX_RETAINED_TRAIL_POINTS = 4_096
 
-		private const val TICKS_PER_SECOND = 20
 	}
 }

@@ -16,19 +16,21 @@ fun ClientPlayerEntity.fallLimits(acceptedDamage: Int): FallLimits {
 	)
 }
 
-data class FallRule(val distanceScale: Double, val damagePerDistance: Double, val tramples: Boolean = false) {
-	val cushions: Boolean get() = distanceScale != NORMAL.distanceScale || damagePerDistance != NORMAL.damagePerDistance
+data class FallRule(val distanceScale: Double, val damagePerDistance: Double, val tramples: Boolean = false, val addedDistance: Double = 0.0) {
+	val cushions: Boolean get() = addedDistance <= 0.0 && (distanceScale < NORMAL.distanceScale || damagePerDistance < NORMAL.damagePerDistance)
 
 	companion object {
 		val NORMAL = FallRule(1.0, 1.0)
 
-		val HAY = FallRule(1.0, 0.2)
+		val HAY = FallRule(1.0, 0.2F.toDouble())
 
 		val BED = FallRule(0.5, 1.0)
 
 		val NONE = FallRule(1.0, 0.0)
 
 		val FARMLAND = FallRule(1.0, 1.0, tramples = true)
+
+		val STALAGMITE = FallRule(1.0, 2.0, addedDistance = 2.5)
 
 		const val TRAMPLE_FALL_DISTANCE = 0.5
 	}
@@ -65,20 +67,19 @@ data class FallLimits(
 	fun maxFallOnto(rule: FallRule): Double {
 		val perDistance = rule.damagePerDistance * fallDamageMultiplier
 		if (perDistance <= 0.0) return Double.POSITIVE_INFINITY
-		return (safeFallDistance + (acceptedDamage + 1) / perDistance - VANILLA_FALL_EPSILON) / rule.distanceScale - FALL_DISTANCE_TOLERANCE
+		return (safeFallDistance + (acceptedDamage + 1) / perDistance - Vanilla.UNSAFE_FALL_EPSILON - rule.addedDistance) / rule.distanceScale - FALL_DISTANCE_TOLERANCE
 	}
 
 	val maxSafeFallDistance: Double get() = maxFallOnto(FallRule.NORMAL)
 
 	companion object {
-		const val DEFAULT_SAFE_FALL_DISTANCE = 3.0
+		const val DEFAULT_SAFE_FALL_DISTANCE = Vanilla.SAFE_FALL_DISTANCE
 
 		val IMMUNE = FallLimits(fallDamageMultiplier = 0.0)
 
 		fun acceptingFallsOf(distance: Double): FallLimits =
 			if (distance.isInfinite()) IMMUNE
-			else FallLimits(acceptedDamage = floor(distance + VANILLA_FALL_EPSILON - DEFAULT_SAFE_FALL_DISTANCE).toInt().coerceAtLeast(0))
+			else FallLimits(acceptedDamage = floor(distance + Vanilla.UNSAFE_FALL_EPSILON - DEFAULT_SAFE_FALL_DISTANCE).toInt().coerceAtLeast(0))
 
-		private const val VANILLA_FALL_EPSILON = 1.0E-6
 	}
 }

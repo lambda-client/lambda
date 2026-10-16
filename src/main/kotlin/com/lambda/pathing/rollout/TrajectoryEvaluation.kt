@@ -34,7 +34,7 @@ internal class RolloutEvaluator(
 ) {
 	private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
 
-	private val airFloor = if (initialState.air >= Vanilla.SAFE_AIR) Vanilla.SAFE_AIR else 0
+	private val airFloor = if (initialState.air >= config.airReserve) config.airReserve else 0
 
 	private var previous = initialState
 	private var apex = initialState.position.y

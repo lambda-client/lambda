@@ -356,7 +356,7 @@ internal class CoarseService(
 		published.signalAll()
 	}
 
-	private companion object {
+	internal companion object {
 		const val FULL_ROUTE_WAIT_MILLIS = 8_000L
 		const val PRIMED_CAPTURE_WAIT_MILLIS = 3_000L
 		const val HOPELESS_MILLIS = 1_000L

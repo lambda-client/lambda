@@ -25,6 +25,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.render.movementColor
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchExit
@@ -122,7 +123,7 @@ object PathingHud : HudModule(
         val best = history.lastOrNull()?.frames
         val spine = history.firstOrNull()?.frames
         row(
-            Cell("best", best?.let { "$it  %.2f s".format(it / TICKS_PER_SECOND) } ?: "-", Palette.OK),
+            Cell("best", best?.let { "$it  %.2f s".format(it / Vanilla.TICKS_PER_SECOND.toDouble()) } ?: "-", Palette.OK),
             Cell("gain", if (best != null && spine != null) "%.1f%%".format(100.0 * (spine - best) / spine) else "-"),
         )
         row(Cell("spine", spine?.toString() ?: "-"), Cell("improved", (history.size - 1).coerceAtLeast(0)))
@@ -366,7 +367,6 @@ object PathingHud : HudModule(
     private const val SPARK_HEIGHT = 18f
     private const val SPARK_ROUNDS = 20
     private const val BAR_FILL = 0.7f
-    private const val TICKS_PER_SECOND = 20.0
     private const val COLUMN_GAP = 14f
     private const val VALUE_GAP = 10f
     private const val SECTION_GAP = 4f

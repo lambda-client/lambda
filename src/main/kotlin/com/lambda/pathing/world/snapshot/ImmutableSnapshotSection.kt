@@ -1,5 +1,6 @@
 package com.lambda.pathing.world.snapshot
 
+import com.lambda.pathing.world.SECTION_CELL_COUNT
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 
@@ -26,10 +27,10 @@ internal class ImmutableSnapshotSection private constructor(
 
 	fun forEachDifference(other: ImmutableSnapshotSection, action: (Int) -> Unit) {
 		if (palette.size == 1 && other.palette.size == 1) {
-			if (palette[0] != other.palette[0]) for (index in 0 until SECTION_CELLS) action(index)
+			if (palette[0] != other.palette[0]) for (index in 0 until SECTION_CELL_COUNT) action(index)
 			return
 		}
-		for (index in 0 until SECTION_CELLS) if (cell(index) != other.cell(index)) action(index)
+		for (index in 0 until SECTION_CELL_COUNT) if (cell(index) != other.cell(index)) action(index)
 	}
 
 	private fun cell(index: Int): SnapshotBlockPhysics {
@@ -44,19 +45,19 @@ internal class ImmutableSnapshotSection private constructor(
 		val classes = Array(palette.size) { palette[it].cellClass }
 		val bytes = byteIndices
 		if (bytes != null) {
-			for (index in 0 until SECTION_CELLS) classes[bytes[index].toInt() and 0xff].mark(planes, index)
+			for (index in 0 until SECTION_CELL_COUNT) classes[bytes[index].toInt() and 0xff].mark(planes, index)
 			return
 		}
 		val shorts = shortIndices ?: error("Non-uniform snapshot section has no indices")
-		for (index in 0 until SECTION_CELLS) classes[shorts[index].toInt() and 0xffff].mark(planes, index)
+		for (index in 0 until SECTION_CELL_COUNT) classes[shorts[index].toInt() and 0xffff].mark(planes, index)
 	}
 
 	class Builder() {
-		private val cells = Array(SECTION_CELLS) { SnapshotBlockPhysics.AIR }
+		private val cells = Array(SECTION_CELL_COUNT) { SnapshotBlockPhysics.AIR }
 		private var writes = 0
 
 		internal constructor(source: ImmutableSnapshotSection) : this() {
-			for (index in 0 until SECTION_CELLS) cells[index] = source.cell(index)
+			for (index in 0 until SECTION_CELL_COUNT) cells[index] = source.cell(index)
 		}
 
 		fun set(x: Int, y: Int, z: Int, physics: SnapshotBlockPhysics) {
@@ -70,7 +71,7 @@ internal class ImmutableSnapshotSection private constructor(
 
 		fun fill(physics: SnapshotBlockPhysics) {
 			cells.fill(physics)
-			writes = SECTION_CELLS
+			writes = SECTION_CELL_COUNT
 		}
 
 		fun build(expectedWrites: Int? = null): ImmutableSnapshotSection {
@@ -80,7 +81,7 @@ internal class ImmutableSnapshotSection private constructor(
 
 			val palette = ArrayList<SnapshotBlockPhysics>()
 			val paletteIndices = HashMap<SnapshotBlockPhysics, Int>()
-			val indices = IntArray(SECTION_CELLS)
+			val indices = IntArray(SECTION_CELL_COUNT)
 			cells.forEachIndexed { cellIndex, physics ->
 				indices[cellIndex] = paletteIndices.getOrPut(physics) {
 					palette.add(physics)
@@ -94,14 +95,14 @@ internal class ImmutableSnapshotSection private constructor(
 			if (palette.size <= 256) {
 				return ImmutableSnapshotSection(
 					palette.toTypedArray(),
-					ByteArray(SECTION_CELLS) { indices[it].toByte() },
+					ByteArray(SECTION_CELL_COUNT) { indices[it].toByte() },
 					null,
 				)
 			}
 			return ImmutableSnapshotSection(
 				palette.toTypedArray(),
 				null,
-				ShortArray(SECTION_CELLS) { indices[it].toShort() },
+				ShortArray(SECTION_CELL_COUNT) { indices[it].toShort() },
 			)
 		}
 	}
@@ -118,4 +119,3 @@ internal class ImmutableSnapshotSection private constructor(
 	}
 }
 
-internal const val SECTION_CELLS = 16 * 16 * 16

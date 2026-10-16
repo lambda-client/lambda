@@ -27,21 +27,17 @@ import net.minecraft.command.argument.BlockPredicateArgumentType
 /**
  * The one pathing command.
  *
- * - `path go` walks the staged goal; `path go <x> <y> <z> [<x> <y> <z> ...]`
- *   walks the given waypoints directly, in order. Intermediate waypoints are passed
- *   at speed as one continuous tape (Pathing setting "Waypoint Arrival"); the last rests.
- * - `path goal <x> <y> <z> [...]` stages a goal without walking; bare
- *   `path goal` shows it, `path goal clear` forgets it.
- * - `path plan [<x> <y> <z> ...]` rehearses the staged or given waypoints without moving: the
- *   search walks them in simulation, round after round at varied search tempos, and keeps the
- *   shortest complete tape; `path go` then walks it from the first frame.
+ * - `path go <x> <y> <z> [<x> <y> <z> ...]` walks the waypoints in order. Intermediate waypoints are
+ *   passed at speed as one continuous tape (Pathing setting "Waypoint Arrival"); the last rests. A bare
+ *   `path go` walks the last waypoints again, or the plan `path plan` rehearsed for them.
+ * - `path plan [<x> <y> <z> ...]` rehearses the waypoints (or the last ones) without moving: the search
+ *   walks them in simulation and keeps refining the shortest tape; `path go` then walks it from the first frame.
  * - `path find <block>` walks next to the nearest block by path matching a block id, `#tag` or
  *   `[state]` filter: it collects the closest matches from loaded chunks, Lambda's terrain cache
  *   and Baritone's cache, compares them with one coarse search toward all of them, and walks to
  *   the one the cheapest route ends at; a remembered block is checked again once its chunk loads,
  *   and an unreachable one gives way to the next nearest. Bare `path find` shows the search.
- * - `path cancel` (or `path c`) stops the walk and drops queued waypoints.
- * - `path clear` additionally wipes the published path and telemetry.
+ * - `path cancel` (or `path c`, `path stop`) stops the walk; `path clear` also wipes the published path and telemetry.
  *
  * Coordinates accept `~` and `~n` relative to the player's stance. The command
  * owns no planning or execution: it hands the route to [PathingService] and the
@@ -49,72 +45,41 @@ import net.minecraft.command.argument.BlockPredicateArgumentType
  */
 object PathCommand : LambdaCommand(
     name = "path",
-    usage = "path <go|goal|plan|find|cancel> -- go [<x> <y> <z> ...] | goal [<x> <y> <z> ...|clear] | plan [<x> <y> <z> ...] | find <block> | cancel",
-    description = "Walks to staged or given waypoints, or next to the nearest block of a type by path, along simulated, certified trajectories",
-    examples = listOf("path go 10 100 20", "path goal 10 64 20 40 70 -30", "path plan", "path go", "path find chest", "path find #beds", "path cancel"),
+    usage = "path <go|plan|find|cancel|clear> -- go [<x> <y> <z> ...] | plan [<x> <y> <z> ...] | find <block> | cancel | clear",
+    description = "Walks to waypoints, or next to the nearest block of a type by path, along simulated, certified trajectories",
+    examples = listOf("path go 10 100 20", "path go 10 64 20 40 70 -30", "path go ~ ~ ~20", "path plan 10 64 20", "path go", "path find chest", "path find #beds", "path cancel"),
 ) {
     override fun CommandBuilder.create() {
         required(literal("go")) {
             execute {
-                val pending = PathingWaypoints.pending
-                if (pending.isEmpty()) {
-                    info("No goal staged. `path goal <x> <y> <z> [...]` stages one, or `path go <x> <y> <z> [...]` walks directly.")
+                val last = PathingWaypoints.last
+                if (last.isEmpty()) {
+                    info("Nothing to walk yet. `path go <x> <y> <z> [...]` walks waypoints; `path plan <x> <y> <z> [...]` rehearses them first.")
                     return@execute
                 }
-                PathingService.route(AutomationConfig.DEFAULT, pending)
-                info(PathingWaypoints.describe("Pathing", pending) + "...")
+                walk(last)
             }
             required(greedyString("waypoints")) { waypoints ->
                 execute {
                     val parsed = parse(waypoints().value()) ?: return@execute
-                    PathingService.route(AutomationConfig.DEFAULT, parsed)
-                    info(PathingWaypoints.describe("Pathing", parsed) + "...")
-                }
-            }
-        }
-
-        required(literal("goal")) {
-            execute {
-                val pending = PathingWaypoints.pending
-                if (pending.isEmpty()) {
-                    info("No goal staged. `path goal <x> <y> <z> [...]` stages one; `path go` walks it.")
-                } else {
-                    info(PathingWaypoints.describe("Staged goal:", pending))
-                }
-            }
-            for (word in listOf("clear", "reset", "none")) {
-                required(literal(word)) {
-                    execute {
-                        PathingWaypoints.pending = emptyList()
-                        info("Goal cleared.")
-                    }
-                }
-            }
-            required(greedyString("waypoints")) { waypoints ->
-                execute {
-                    val parsed = parse(waypoints().value()) ?: return@execute
-                    PathingWaypoints.pending = parsed
-                    info(PathingWaypoints.describe("Goal staged:", parsed) + " -- `path go` walks it.")
+                    walk(parsed)
                 }
             }
         }
 
         required(literal("plan")) {
             execute {
-                val pending = PathingWaypoints.pending
-                if (pending.isEmpty()) {
-                    info("No goal staged. `path plan <x> <y> <z> [...]` rehearses waypoints, or `path goal` stages them first.")
+                val last = PathingWaypoints.last
+                if (last.isEmpty()) {
+                    info("Nothing to plan yet. `path plan <x> <y> <z> [...]` rehearses waypoints without moving.")
                     return@execute
                 }
-                PathingService.rehearse(AutomationConfig.DEFAULT, pending)
-                info(PathingWaypoints.describe("Rehearsing", pending) + " -- `path go` walks the best plan so far.")
+                rehearse(last)
             }
             required(greedyString("waypoints")) { waypoints ->
                 execute {
                     val parsed = parse(waypoints().value()) ?: return@execute
-                    PathingWaypoints.pending = parsed
-                    PathingService.rehearse(AutomationConfig.DEFAULT, parsed)
-                    info(PathingWaypoints.describe("Rehearsing", parsed) + " -- `path go` walks the best plan so far.")
+                    rehearse(parsed)
                 }
             }
         }
@@ -154,6 +119,18 @@ object PathCommand : LambdaCommand(
                 info("Cleared the published path.")
             }
         }
+    }
+
+    private fun walk(waypoints: List<Stance>) {
+        PathingWaypoints.last = waypoints
+        PathingService.route(AutomationConfig.DEFAULT, waypoints)
+        info(PathingWaypoints.describe("Pathing", waypoints) + "...")
+    }
+
+    private fun rehearse(waypoints: List<Stance>) {
+        PathingWaypoints.last = waypoints
+        PathingService.rehearse(AutomationConfig.DEFAULT, waypoints)
+        info(PathingWaypoints.describe("Rehearsing", waypoints) + " -- `path go` walks the best plan so far.")
     }
 
     /** Parses waypoint triples against the player's stance; reports on failure. */

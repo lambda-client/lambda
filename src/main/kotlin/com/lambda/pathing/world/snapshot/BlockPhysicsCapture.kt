@@ -70,9 +70,9 @@ object BlockPhysicsCapture {
 		)
 	}
 
-	fun capture(state: BlockState, world: BlockView, pos: BlockPos, shapeContext: ShapeContext, ignoreHazards: Boolean = false): SnapshotBlockPhysics {
+	fun capture(state: BlockState, world: BlockView, pos: BlockPos, shapeContext: ShapeContext, hazards: HazardRules = HazardRules.AVOID_ALL): SnapshotBlockPhysics {
 		val shape = if (state.isOf(Blocks.POWDER_SNOW)) VoxelShapes.empty() else state.getCollisionShape(world, pos, shapeContext)
-		val unsupported = unsupportedPhysics(state, ignoreHazards)
+		val unsupported = unsupportedPhysics(state, hazards)
 		val slime = state.isOf(Blocks.SLIME_BLOCK)
 		val coarseVoxel = when {
 			unsupported != null -> CoarseVoxel.UNKNOWN
@@ -94,7 +94,7 @@ object BlockPhysicsCapture {
 			water = state.fluidState.takeIf { it.isIn(FluidTags.WATER) }?.let {
 				WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos), state.bubbles())
 			},
-			hotFloor = !ignoreHazards && state.isOf(Blocks.MAGMA_BLOCK),
+			hotFloor = hazards.sneakOnMagma && state.isOf(Blocks.MAGMA_BLOCK),
 			fallRule = if (cushionedByWater(state, shape, world, pos)) FallRule.NONE else state.fallRule(),
 			honey = state.isOf(Blocks.HONEY_BLOCK),
 			exceedsCube = state.exceedsCube(),
@@ -107,14 +107,13 @@ object BlockPhysicsCapture {
 		return shape.getMax(Direction.Axis.Y) < fluid.getHeight(world, pos)
 	}
 
-	private fun unsupportedPhysics(state: BlockState, ignoreHazards: Boolean): UnsupportedPhysics? = when {
+	private fun unsupportedPhysics(state: BlockState, hazards: HazardRules): UnsupportedPhysics? = when {
 		!state.fluidState.isEmpty && (!state.fluidState.isIn(FluidTags.WATER) || state.isIn(BlockTags.CLIMBABLE)) -> UnsupportedPhysicsKind.FLUID
 		state.isOf(Blocks.COBWEB) -> UnsupportedPhysicsKind.COBWEB
 		state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
 		state.isOf(Blocks.SWEET_BERRY_BUSH) -> UnsupportedPhysicsKind.SWEET_BERRY_BUSH
-		ignoreHazards -> null
-		state.isIn(BlockTags.FIRE) || CampfireBlock.isLitCampfire(state) -> UnsupportedPhysicsKind.FIRE
-		state.isOf(Blocks.CACTUS) -> UnsupportedPhysicsKind.CACTUS
+		hazards.avoidFire && (state.isIn(BlockTags.FIRE) || CampfireBlock.isLitCampfire(state)) -> UnsupportedPhysicsKind.FIRE
+		hazards.avoidCacti && state.isOf(Blocks.CACTUS) -> UnsupportedPhysicsKind.CACTUS
 		else -> null
 	}?.let { kind ->
 		UnsupportedPhysics(

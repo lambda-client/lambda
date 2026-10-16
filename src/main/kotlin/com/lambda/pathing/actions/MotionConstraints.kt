@@ -4,17 +4,18 @@ import com.lambda.pathing.physics.FallLimits
 import com.lambda.pathing.physics.FallRule
 
 data class MotionConstraints(
-	val maxFrames: Int = 160,
+	val maxFrames: Int = DEFAULT_MAX_FRAMES,
 	val maxYawDegreesPerFrame: Double = 30.0,
 	val goalRadius: Double = 0.20,
 	val stableStopFrames: Int = 3,
 	val brakeDistances: List<Double> = listOf(0.25, 0.35, 0.45, 0.55, 0.70, 0.90, 1.15),
 	val sprintModes: List<Boolean> = listOf(true, false),
 	val touchArrival: Boolean = false,
-	val touchRestRadius: Double = 1.6,
+	val touchRestRadius: Double = DEFAULT_TOUCH_REST_RADIUS,
 	val fallLimits: FallLimits = FallLimits(),
 	val jumpPenaltyTicks: Double = 0.0,
 	val avoidLavaEdges: Boolean = false,
+	val airReserve: Int = SimpleMoveOptions.DEFAULT_AIR_RESERVE,
 ) {
 	init {
 		require(maxFrames > 0)
@@ -24,6 +25,7 @@ data class MotionConstraints(
 		require(brakeDistances.isNotEmpty() && brakeDistances.all { it > 0.0 && it.isFinite() })
 		require(sprintModes.isNotEmpty())
 		require(touchRestRadius > 0.0 && touchRestRadius.isFinite())
+		require(airReserve >= 0)
 	}
 
 	val maxSafeFallDistance: Double = fallLimits.maxSafeFallDistance
@@ -32,6 +34,10 @@ data class MotionConstraints(
 
 	companion object {
 		const val STOPPED_SPEED = 0.012
+
+		const val DEFAULT_TOUCH_REST_RADIUS = 1.6
+
+		const val DEFAULT_MAX_FRAMES = 160
 	}
 }
 

@@ -85,7 +85,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	private fun waitForMobs(reason: String): Boolean {
 		val now = System.currentTimeMillis()
 		if (mobPatienceSince == 0L) mobPatienceSince = now
-		if (now - mobPatienceSince > MOB_PATIENCE_MILLIS) return false
+		if (now - mobPatienceSince > (walk.request.pathingConfig.mobWaitSeconds * MILLIS_PER_SECOND).toLong()) return false
 		current = null
 		mobWaitSince = now
 		mobCells = walk.journey?.world?.obstacleCells
@@ -357,6 +357,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 		const val MOB_RETRY_MAX_MILLIS = 3_000L
 
-		const val MOB_PATIENCE_MILLIS = 30_000L
+		const val MILLIS_PER_SECOND = 1000.0
 	}
 }

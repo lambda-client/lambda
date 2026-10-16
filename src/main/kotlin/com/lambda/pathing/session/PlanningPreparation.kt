@@ -1,5 +1,6 @@
 package com.lambda.pathing.session
 
+import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
@@ -7,6 +8,7 @@ import com.lambda.pathing.actions.families.NeoMovement
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.fallLimits
 import com.lambda.pathing.search.SearchConfig
 import com.lambda.pathing.search.stanceOf
@@ -20,6 +22,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.nio.file.Path
+import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 internal sealed interface PlanningPreparationResult {
 	data class Ready(val preparation: PlanningPreparation) : PlanningPreparationResult
@@ -58,6 +62,13 @@ internal fun resolveGoalStance(player: ClientPlayerEntity, goal: Stance): Stance
 	} else goal
 }
 
+/** Health a landing may cost under Unlimited Fall Damage: more than any player has, so every fall is admitted. */
+private const val UNLIMITED_FALL_DAMAGE = 100_000
+
+/** The profile the planner simulates: under Unlimited Air the body never runs out of air, so no breathing is planned. */
+internal fun PlayerPhysicsProfile.planned(config: PathingConfig): PlayerPhysicsProfile =
+	if (config.unlimitedAir && canDrown) copy(canDrown = false) else this
+
 internal fun preparePlanning(
 	player: ClientPlayerEntity,
 	request: PathingRequest,
@@ -72,8 +83,14 @@ internal fun preparePlanning(
 	@Suppress("NAME_SHADOWING")
 	val goal = resolveGoalStance(player, goal)
 	val resolvedWaypoints = waypoints.map { resolveGoalStance(player, it) }
-	val fallLimits = player.fallLimits(acceptedDamage = (config.maxFallDamage * HEALTH_PER_HEART).toInt())
-	val profile = PlayerPhysicsProfile.capture(player)
+	val acceptedFallDamage = when {
+		!config.allowFallDamage -> 0
+		config.unlimitedFallDamage -> UNLIMITED_FALL_DAMAGE
+		else -> (config.maxFallDamage * Vanilla.HEALTH_PER_HEART).toInt()
+	}
+	val fallLimits = player.fallLimits(acceptedDamage = acceptedFallDamage)
+	val airReserve = (Vanilla.MAX_AIR - (config.diveSeconds * Vanilla.TICKS_PER_SECOND).roundToInt()).coerceIn(0, Vanilla.MAX_AIR - 1)
+	val profile = PlayerPhysicsProfile.capture(player).planned(config)
 	val sprints = config.allowSprint && !config.saveFood && profile.canSprint
 	val moveOptions = SimpleMoveOptions(
 		allowDiagonal = config.allowDiagonal,
@@ -93,8 +110,10 @@ internal fun preparePlanning(
 		allowDeepFalls = config.allowDeepFalls,
 		allowNeoJumps = config.allowNeoJumps && sprints && turnSpeed >= NeoMovement.MIN_TURN_DEGREES_PER_FRAME,
 		fallLimits = fallLimits,
-		ignoreHazards = config.ignoreHazards,
+		hazards = config.hazards,
 		avoidMobs = config.avoidMobs,
+		mobLingerTicks = (config.mobLingerSeconds * Vanilla.TICKS_PER_SECOND).roundToLong(),
+		airReserve = airReserve,
 		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
 		frontierTicksPerBlock = config.frontierTicksPerBlock,
 	)
@@ -103,10 +122,12 @@ internal fun preparePlanning(
 		maxYawDegreesPerFrame = turnSpeed,
 		goalRadius = config.goalRadius,
 		touchArrival = config.touchArrival,
+		touchRestRadius = config.touchRestRadius,
 		fallLimits = fallLimits,
 		sprintModes = if (sprints) listOf(true, false) else listOf(false),
 		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
 		avoidLavaEdges = config.avoidLavaEdges,
+		airReserve = airReserve,
 	)
 	val initial = initialOverride ?: MovementSimulationState.from(player)
 	val start = supportedStanceOf(initial) ?: footing(player, initial) ?: stanceOf(initial)
@@ -152,7 +173,7 @@ internal fun preparePlanning(
 			searchConfig = SearchConfig.horizon(
 				runwayFrames = config.horizonRunwayFrames,
 				commitFrames = config.horizonCommitFrames,
-				maxExpansions = config.trajectoryExpansionBudget,
+				windowExpansions = config.windowExpansionBudget,
 				bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
 			),
 			coarseExpansionBudget = config.coarseExpansionBudget,
@@ -170,8 +191,6 @@ private fun plannableEntry(velocity: Vec3d): Boolean =
 			velocity.y in -MAX_ENTRY_DESCENT_SPEED..MAX_ENTRY_ASCENT_SPEED
 
 private const val MAX_ENTRY_HORIZONTAL_SPEED = 0.6
-
-private const val HEALTH_PER_HEART = 2.0
 
 private const val MAX_ENTRY_ASCENT_SPEED = 0.5
 

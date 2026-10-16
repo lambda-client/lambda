@@ -1,7 +1,7 @@
 package com.lambda.pathing.world.streaming
 
+import com.lambda.pathing.world.SECTION_CELL_COUNT
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
-import com.lambda.pathing.world.snapshot.SECTION_CELLS
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 
 internal class SectionCapture {
@@ -26,18 +26,18 @@ internal class SectionCapture {
 
 	fun fill(physics: SnapshotBlockPhysics) {
 		checkNotNull(builder) { "SectionCapture.fill without begin" }.fill(physics)
-		cursor = SECTION_CELLS
+		cursor = SECTION_CELL_COUNT
 	}
 
 	fun writeNext(physics: SnapshotBlockPhysics): Boolean {
 		val target = checkNotNull(builder) { "SectionCapture.writeNext without begin" }
 		target.set(localX, localY, localZ, physics)
-		return ++cursor == SECTION_CELLS
+		return ++cursor == SECTION_CELL_COUNT
 	}
 
 	fun build(): ImmutableSnapshotSection {
 		val frozen = checkNotNull(builder) { "SectionCapture.build without begin" }
-			.build(expectedWrites = SECTION_CELLS)
+			.build(expectedWrites = SECTION_CELL_COUNT)
 		abandon()
 		return frozen
 	}

@@ -11,6 +11,7 @@ import com.lambda.pathing.core.plus
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.math.hypot
@@ -36,7 +37,7 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 			airborne = true
 			flightTicks++
 		} else if (airborne) {
-			if (observed.velocity.y <= REBOUND_SPEED) landed = true else if (!grounded) contacts++
+			if (observed.velocity.y <= Vanilla.SLIME_STEP_MAX_VERTICAL_SPEED) landed = true else if (!grounded) contacts++
 		}
 		grounded = observed.onGround
 		val target = if (contacts == 0) approach else aim
@@ -114,8 +115,6 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 	}
 
 	private companion object {
-
-		const val REBOUND_SPEED = 0.1
 
 		const val LATERAL_DEADBAND = 0.05
 

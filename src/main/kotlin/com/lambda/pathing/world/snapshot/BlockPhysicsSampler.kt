@@ -12,7 +12,7 @@ import java.util.IdentityHashMap
 class BlockPhysicsSampler(
 	private val view: BlockView,
 	private val shapeContext: ShapeContext,
-	private val ignoreHazards: Boolean = false,
+	private val hazards: HazardRules = HazardRules.AVOID_ALL,
 ) {
 	private val mutablePos = BlockPos.Mutable()
 	private val physicsByState = IdentityHashMap<BlockState, SnapshotBlockPhysics>()
@@ -21,10 +21,10 @@ class BlockPhysicsSampler(
 	fun physicsAt(x: Int, y: Int, z: Int): SnapshotBlockPhysics {
 		val pos = mutablePos.set(x, y, z)
 		val state = view.getBlockState(pos)
-		if (state.block.hasDynamicBounds()) return BlockPhysicsCapture.capture(state, view, pos, shapeContext, ignoreHazards)
+		if (state.block.hasDynamicBounds()) return BlockPhysicsCapture.capture(state, view, pos, shapeContext, hazards)
 		val fluid = state.fluidState
-		if (!fluid.isIn(FluidTags.WATER)) return physicsByState.getOrPut(state) { BlockPhysicsCapture.capture(state, view, pos, shapeContext, ignoreHazards) }
+		if (!fluid.isIn(FluidTags.WATER)) return physicsByState.getOrPut(state) { BlockPhysicsCapture.capture(state, view, pos, shapeContext, hazards) }
 		val water = WaterPhysics(fluid.getHeight(view, pos), fluid.getVelocity(view, pos), state.bubbles())
-		return physicsByWater.getOrPut(state to water) { BlockPhysicsCapture.capture(state, view, pos, shapeContext, ignoreHazards) }
+		return physicsByWater.getOrPut(state to water) { BlockPhysicsCapture.capture(state, view, pos, shapeContext, hazards) }
 	}
 }

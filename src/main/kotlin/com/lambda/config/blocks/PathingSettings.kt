@@ -12,24 +12,24 @@ package com.lambda.config.blocks
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.config.Group
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.core.ArrivalMode
+import com.lambda.pathing.physics.Vanilla
+import com.lambda.pathing.search.SearchConfig
 
 class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(MOVES_GROUP)
-    override val allowDiagonal by c.setting("Diagonal Moves", true, "Allow 45-degree coarse edges.")
+    override val allowDiagonal by c.setting(
+        "Diagonal Moves", true,
+        "Allow moves that are not straight along an axis: diagonal walks and steps, and diagonal or off-axis jumps and drops.",
+    )
 
     @Group(MOVES_GROUP)
     override val allowStepUp by c.setting("Step Up", true, "Allow one-block rises. They are jumped, not walked.")
 
     @Group(MOVES_GROUP)
-    override val allowSprint by c.setting("Allow Sprint", true, "Let the seed search try sprinting gaits.")
-
-    @Group(SEARCH_GROUP)
-    override val frontierTicksPerBlock by c.setting(
-        "Frontier Directness", com.lambda.pathing.actions.SimpleMoveOptions.DEFAULT_FRONTIER_TICKS_PER_BLOCK, 3.0..30.0, 0.5,
-        "Ticks a far goal charges per block of unloaded terrain. Low values follow cheap known ground (coasts, ridges) " +
-            "sideways; high values head straight for the edge of the loaded world toward the goal, swimming if needed.",
-        unit = " ticks",
-    )
+    override val allowSprint by c.setting("Allow Sprint", true, "Sprint wherever it is faster. Off, the walk never sprints.")
 
     @Group(MOVES_GROUP)
     override val saveFood by c.setting(
@@ -40,7 +40,7 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(MOVES_GROUP)
     override val maxWalkOffDepth by c.setting(
         "Max Walk Off Depth", 3, 0..8, 1,
-        "Deepest drop the coarse layer may propose. The trajectory layer still refuses landings that would hurt.",
+        "Deepest walk-off treated as an ordinary drop; deeper drops are Deep Falls. Landings that would hurt are still refused.",
         unit = " blocks",
     )
 
@@ -53,12 +53,7 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(MOVES_GROUP)
-    override val allowClimbing by c.setting(
-        "Ladders", false,
-        "Route up and down ladders and vines. Off by default because climb edges are cheap " +
-            "per block, which weakens the search's distance estimate everywhere -- including " +
-            "routes with no ladder anywhere near them.",
-    )
+    override val allowClimbing by c.setting("Ladders", true, "Climb ladders and vines, and catch them from jumps.")
 
     @Group(MOVES_GROUP)
     override val allowSwimming by c.setting(
@@ -75,25 +70,37 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     ) { allowSwimming }
 
     @Group(MOVES_GROUP)
+    override val unlimitedAir by c.setting(
+        "Unlimited Air", false,
+        "Never plan for air: no breathing stops at air pockets or the surface, dives as long as the route needs. " +
+            "For servers or modes where the player cannot drown.",
+    ) { allowSwimming && allowDiving }
+
+    @Group(MOVES_GROUP)
+    override val diveSeconds by c.setting(
+        "Dive Time", (Vanilla.MAX_AIR - SimpleMoveOptions.DEFAULT_AIR_RESERVE).toDouble() / Vanilla.TICKS_PER_SECOND, 1.0..15.0, 0.5,
+        "Longest stretch under water per breath: the walk breathes at an air pocket or the surface before it has " +
+            "spent this much of its 15 s of air.",
+        unit = " s",
+    ) { allowSwimming && allowDiving && !unlimitedAir }
+
+    @Group(MOVES_GROUP)
     override val allowJumpCandidates by c.setting(
         "Gap Jumps", true,
-        "Let the coarse layer propose gap jumps. Each still needs a simulated launch before it is walked.",
+        "Jump gaps and onto higher blocks, and slide down honey walls. Every jump is simulated before it is walked.",
     )
 
     @Group(MOVES_GROUP)
     override val maxJumpSpan by c.setting(
         "Max Jump Span", 5, 2..5, 1,
-        "Per-axis cap on candidate jumps. Reach itself is bounded by what a standing " +
-            "start provably clears -- descending jumps reach further, up to a four-cell " +
-            "air gap with half a block of real drop; each candidate still needs a " +
-            "simulated launch.",
+        "Longest jump considered, in blocks along each axis. Deep Drop Jumps may reach one block further when they land lower.",
         unit = " blocks",
     ) { allowJumpCandidates }
 
     @Group(MOVES_GROUP)
     override val maxJumpDrop by c.setting(
         "Max Jump Drop", 2, 0..3, 1,
-        "Deepest lower landing a gap jump may target. Lets the coarse layer take a straight " +
+        "Deepest lower landing a gap jump may target. Lets the planner take a straight " +
             "descending parkour line instead of weaving around drops. Unsafe arcs are still " +
             "refused by simulation.",
         unit = " blocks",
@@ -102,10 +109,9 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(MOVES_GROUP)
     override val allowOffAxisJumps by c.setting(
         "Off-Axis Jumps", true,
-        "Offer jumps that land off the eight compass directions -- three across and one to " +
-            "the side, which has no cardinal or diagonal template -- and slime bounces at any " +
-            "heading. Roughly doubles the graph's fan-out on open ground.",
-    ) { allowJumpCandidates }
+        "Offer jumps, drops and ladder catches that land off the eight compass directions, like three across and one " +
+            "to the side, and slime bounces at any heading. Roughly doubles the graph's fan-out on open ground.",
+    )
 
     @Group(MOVES_GROUP)
     override val allowDeepDropJumps by c.setting(
@@ -113,17 +119,21 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
         "Offer descending jumps beyond the flat standing reach: a four-cell air gap " +
             "with half a block of real drop, wide diagonals with a full block and a straight " +
             "five-cell gap with a block and three quarters, taken only with momentum and only where " +
-            "nothing easier leads on (solver-measured). Route lengths are unchanged on ordinary " +
-            "terrain; turn it off only to keep the planner to flat-reach jumps.",
+            "nothing easier leads on.",
+    ) { allowJumpCandidates }
+
+    @Group(MOVES_GROUP)
+    override val allowNeoJumps by c.setting(
+        "Neo Jumps", true,
+        "Jump around the side of a wall that blocks a straight jump: run out past the wall's edge, " +
+            "jump beside it and steer back around it in the air. Needs sprinting and a turn speed of at least 90 degrees a tick.",
     ) { allowJumpCandidates }
 
     @Group(MOVES_GROUP)
     override val allowSlimeBounces by c.setting(
-        "Slime Bounces", false,
-        "Cross gaps by falling onto slime and riding the rebound. Reaches ground no jump " +
-            "does, because the fall supplies the impulse. Off by default: the arcs are around " +
-            "thirty ticks long, so every one the search tries is expensive, and terrain that " +
-            "rewards them is rare.",
+        "Slime Bounces", true,
+        "Cross gaps by falling onto slime and riding the rebound. Reaches ground no jump does; " +
+            "it only costs planning time where slime is near the route.",
     )
 
     @Group(MOVES_GROUP)
@@ -135,56 +145,119 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     ) { allowSlimeBounces }
 
     @Group(MOVES_GROUP)
-    override val allowNeoJumps by c.setting(
-        "Neo Jumps", true,
-        "Jump around the side of a wall that blocks a straight jump: run out past the wall's edge, " +
-            "jump beside it and steer back around it in the air. Needs sprinting and a turn speed of at least 90 degrees a tick.",
-    ) { allowJumpCandidates }
-
-    @Group(MOVES_GROUP)
     override val allowDeepFalls by c.setting(
         "Deep Falls", true,
-        "Fall from any height into water, onto hay bales and beds, or onto any floor Max Safe Fall " +
-            "accepts, steering toward the landing on the way down.",
+        "Fall from any height into water, onto hay bales, beds and slime, or onto any floor the fall damage " +
+            "settings accept, steering toward the landing on the way down.",
     )
 
-    @Group(SEARCH_GROUP)
-    override val maxFrames by c.setting(
-        "Max Frames", 160, 40..600, 10,
-        "Longest tape the seed search may certify.", unit = " ticks",
+    @Group(HAZARDS_GROUP)
+    override val avoidFire by c.setting(
+        "Avoid Fire", true,
+        "Keep out of fire, soul fire and lit campfires. Off, the walk passes through them and burns, " +
+            "and the server's knockback makes it replan.",
     )
 
-    @Group(SEARCH_GROUP)
-    override val snapshotCaptureBudgetMillis by c.setting(
-        "Snapshot Tick Budget", 3.0, 0.25..10.0, 0.25,
-        "Maximum client-thread time used to copy world physics per tick. Larger values " +
-            "finish planning sooner but can make rendering less smooth.",
-        unit = " ms",
+    @Group(HAZARDS_GROUP)
+    override val avoidCacti by c.setting(
+        "Avoid Cacti", true,
+        "Keep clear of cacti. Off, the walk stands on and brushes past them, and every prick makes it replan.",
     )
 
-    @Group(SEARCH_GROUP)
+    @Group(HAZARDS_GROUP)
+    override val sneakOnMagma by c.setting(
+        "Sneak On Magma", true,
+        "Hold sneak while standing on magma blocks, from the tick before landing on one, so they never burn. " +
+            "Off, magma is walked like any floor.",
+    )
+
+    @Group(HAZARDS_GROUP)
+    override val avoidLavaEdges by c.setting(
+        "Avoid Lava Edges", false,
+        "Never land from a jump or a fall with any part of the feet over lava, nor a low hop with the centre over it. " +
+            "Vanilla allows it, but parkour servers reset players who land on a lava edge; walking past lava stays allowed.",
+    )
+
+    @Group(HAZARDS_GROUP)
+    override val avoidMobs by c.setting(
+        "Avoid Mobs", true,
+        "Plan around nearby mobs, animals and other players instead of through them, and wait for them to move " +
+            "when they block the only way. Off, entities are ignored and every push makes the walk replan.",
+    )
+
+    @Group(HAZARDS_GROUP)
+    override val mobLingerSeconds by c.setting(
+        "Mob Linger", 3.0, 0.0..10.0, 0.5,
+        "How long a cell stays closed after the entity standing in it leaves.",
+        unit = " s",
+    ) { avoidMobs }
+
+    @Group(HAZARDS_GROUP)
+    override val mobWaitSeconds by c.setting(
+        "Mob Wait", 30.0, 0.0..120.0, 5.0,
+        "How long a walk whose only way is blocked by entities waits for them to move before it gives up.",
+        unit = " s",
+    ) { avoidMobs }
+
+    @Group(HAZARDS_GROUP)
+    override val allowFallDamage by c.setting(
+        "Fall Damage", false,
+        "Let landings cost health. Off, the walk only takes falls the player survives unhurt: into water, onto " +
+            "hay bales, beds and slime, and within its safe fall distance, fall damage multiplier, flight or Slow Falling.",
+    )
+
+    @Group(HAZARDS_GROUP)
+    override val maxFallDamage by c.setting(
+        "Max Fall Damage", 2.0, 0.5..10.0, 0.5,
+        "Health one landing may cost. Half a heart opens drops like nine blocks onto hay. A damaging landing " +
+            "makes the server correct the velocity, so the walk replans after it.",
+        unit = " hearts",
+    ) { allowFallDamage && !unlimitedFallDamage }
+
+    @Group(HAZARDS_GROUP)
+    override val unlimitedFallDamage by c.setting(
+        "Unlimited Fall Damage", false,
+        "Take any fall however much it costs, even one the player would not survive. For servers or modes without fall damage.",
+    ) { allowFallDamage }
+
+    @Group(ARRIVAL_GROUP)
     override val goalRadius by c.setting(
         "Goal Radius", 0.20, 0.05..1.0, 0.01,
         "How close to the goal centre the walk must stop.", unit = " blocks",
     )
 
-    @Group(SEARCH_GROUP)
+    @Group(ARRIVAL_GROUP)
     override val touchArrival by c.setting(
         "Arrive On Touch", true,
         "Entering the goal block is arriving: the walk brakes wherever that landing rests. " +
             "Off, it must come to rest inside Goal Radius, and a fast landing has to circle back.",
     )
 
-    @Group(SEARCH_GROUP)
+    @Group(ARRIVAL_GROUP)
+    override val touchRestRadius by c.setting(
+        "Touch Rest Radius", MotionConstraints.DEFAULT_TOUCH_REST_RADIUS, 0.5..3.0, 0.1,
+        "How far from the goal centre the body may come to rest after touching the goal block.",
+        unit = " blocks",
+    ) { touchArrival }
+
+    @Group(ARRIVAL_GROUP)
     override val waypointArrival by c.setting(
-        "Waypoint Arrival", com.lambda.pathing.core.ArrivalMode.WALK_THROUGH,
+        "Waypoint Arrival", ArrivalMode.WALK_THROUGH,
         "Walk Through: a route's intermediate waypoints are checkpoints passed at speed, one " +
             "continuous tape. Stand Still: the body rests at each waypoint before the next leg.",
     )
 
     @Group(SEARCH_GROUP)
+    override val frontierTicksPerBlock by c.setting(
+        "Frontier Directness", SimpleMoveOptions.DEFAULT_FRONTIER_TICKS_PER_BLOCK, 4.0..30.0, 0.5,
+        "Ticks a far goal charges per block of unloaded terrain. Low values follow cheap known ground (coasts, ridges) " +
+            "sideways; high values head straight for the edge of the loaded world toward the goal, swimming if needed.",
+        unit = " ticks",
+    )
+
+    @Group(SEARCH_GROUP)
     override val horizonRunwayFrames by c.setting(
-        "Horizon Runway", 20, 5..300, 5,
+        "Horizon Runway", SearchConfig.RUNWAY_FRAMES, 5..300, 5,
         "Committed motion kept ahead of the body. Smaller leaves decisions later, so the " +
             "search has longer to improve them; too small and the body catches its brake.",
         unit = " frames",
@@ -192,44 +265,10 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
 
     @Group(SEARCH_GROUP)
     override val horizonCommitFrames by c.setting(
-        "Horizon Commit", 20, 5..120, 5,
+        "Horizon Commit", SearchConfig.COMMIT_FRAMES, 5..120, 5,
         "How much motion each step commits. Smaller keeps more of the walk open to be " +
             "replanned; too small and the search cannot keep ahead of the body.",
         unit = " frames",
-    )
-
-    @Group(MOVES_GROUP)
-    override val maxFallDamage by c.setting(
-        "Max Fall Damage", 0.0, 0.0..10.0, 0.5,
-        "Fall damage the planner may take on one landing. At 0 it never gets hurt; falls the player " +
-            "takes unhurt are always used: into water of any depth, onto hay bales and beds within " +
-            "their cushion, and within its safe fall distance, fall damage multiplier, flight or " +
-            "Slow Falling. Half a heart opens drops like nine blocks onto hay. A damaging landing " +
-            "makes the server correct the velocity, so the walk replans after it.",
-        unit = " hearts",
-    )
-
-    @Group(MOVES_GROUP)
-    override val ignoreHazards by c.setting(
-        "Ignore Hazards", false,
-        "Plan through fire, lit campfires and cacti as if they were harmless: walk through flames " +
-            "and stand on or brush past cacti. Every hit hurts and makes the server correct the " +
-            "velocity, so the walk replans after it. Off, those cells are kept out of entirely.",
-    )
-
-    @Group(MOVES_GROUP)
-    override val avoidLavaEdges by c.setting(
-        "Avoid Lava Edges", false,
-        "Never land from a jump or a fall with any part of the feet over lava, nor a low hop with the centre over it. " +
-            "Vanilla allows it, but parkour servers reset players who land on a lava edge; walking past lava stays allowed.",
-    )
-
-    @Group(MOVES_GROUP)
-    override val avoidMobs by c.setting(
-        "Avoid Mobs", true,
-        "Plan around nearby mobs, animals and other players instead of through them: the cells they " +
-            "stand in stay closed for three seconds after they leave, so a walk is not pushed off its " +
-            "tape. Off, entities are ignored and every push makes the walk replan.",
     )
 
     @Group(SEARCH_GROUP)
@@ -240,16 +279,16 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
-    override val trajectoryExpansionBudget by c.setting(
-        "Trajectory Budget", 2_000_000, 10_000..5_000_000, 10_000,
-        "Hard cap on trajectory-search expansions per leg before the search gives up.",
+    override val windowExpansionBudget by c.setting(
+        "Window Budget", SearchConfig.WINDOW_EXPANSIONS, 10_000..1_000_000, 10_000,
+        "Trajectory-search expansions per planning window before the search commits its best tape. " +
+            "Higher finds better tapes on hard terrain but reacts slower.",
         unit = " nodes",
     )
 
-
     @Group(SEARCH_GROUP)
     override val bootstrapDelayMillis by c.setting(
-        "Bootstrap Delay", 200, 0..2000, 25,
+        "Bootstrap Delay", SearchConfig.BOOTSTRAP_DELAY_MILLIS.toInt(), 0..2000, 25,
         "Minimum wall time before the first partial tape is published. Longer waits " +
             "publish better-optimized openings; shorter starts walking sooner.",
         unit = " ms",
@@ -264,34 +303,44 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
         unit = " threads",
     )
 
-    @Group(SEARCH_GROUP)
+    @Group(WORLD_GROUP)
+    override val snapshotCaptureBudgetMillis by c.setting(
+        "Snapshot Tick Budget", 3.0, 0.25..10.0, 0.25,
+        "Client-thread time per tick for copying world physics while a tape is walked. Planning and large " +
+            "capture backlogs take more, up to 15 ms a tick, so routes arrive sooner.",
+        unit = " ms",
+    )
+
+    @Group(WORLD_GROUP)
     override val captureRetries by c.setting(
         "Capture Retries", 4, 0..16, 1,
         "Retries while the exact world capture catches up to a body standing at the " +
             "streamed frontier before the walk is failed.",
     )
 
-    @Group(SEARCH_GROUP)
+    @Group(WORLD_GROUP)
     override val captureRetryMillis by c.setting(
         "Capture Retry Wait", 400, 50..2000, 50,
-        "Wait between those capture retries.", unit = " ms",
+        "Shortest wait between those retries; while terrain is still loading the wait stretches up to 20 s.",
+        unit = " ms",
     ) { captureRetries > 0 }
 
-    @Group(SEARCH_GROUP)
+    @Group(WORLD_GROUP)
     override val useBaritoneCache by c.setting(
         "Baritone Cache", true,
-        "Plan beyond loaded chunks through the terrain Baritone's cache remembers. Read only; " +
-            "every loaded chunk replaces what the cache remembered of it.",
+        "Plan beyond loaded chunks, and find blocks with path find, through the terrain Baritone's cache remembers. " +
+            "Read only; every loaded chunk replaces what the cache remembered of it.",
     )
 
-    @Group(SEARCH_GROUP)
+    @Group(DEBUG_GROUP)
     override val dumpFailedPlans by c.setting(
         "Dump Failed Plans", false,
-        "On a refusal, replan, hold, stop or cancel, write the endpoints, entry state and the executed tape to " +
-            "lambda/pathing-dumps and the captured terrain to lambda/cache/terrain, so the failure can be replayed and fixed offline.",
+        "On every refusal, replan, hold, stop, cancel and arrival (at most one every 2 s), write the endpoints, entry " +
+            "state and the executed tape to lambda/pathing-dumps and the captured terrain to lambda/cache/terrain, so " +
+            "the walk can be replayed and fixed offline.",
     )
 
-    @Group(SEARCH_GROUP)
+    @Group(DEBUG_GROUP)
     override val dumpAllPlans by c.setting(
         "Dump All Plans", false,
         "Write the endpoints and entry state of every planned leg to lambda/pathing-dumps " +
@@ -301,6 +350,10 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
 
     private companion object {
         const val MOVES_GROUP = "Moves"
+        const val HAZARDS_GROUP = "Hazards"
+        const val ARRIVAL_GROUP = "Arrival"
         const val SEARCH_GROUP = "Search"
+        const val WORLD_GROUP = "World"
+        const val DEBUG_GROUP = "Debug"
     }
 }

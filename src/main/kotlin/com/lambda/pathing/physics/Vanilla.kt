@@ -4,13 +4,32 @@ import net.minecraft.block.BedBlock
 import net.minecraft.block.BubbleColumnBlock
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
+import net.minecraft.block.PointedDripstoneBlock
+import net.minecraft.block.enums.Thickness
+import net.minecraft.util.math.Direction
 
 object Vanilla {
+	const val TICKS_PER_SECOND = 20
+
+	const val SAFE_FALL_DISTANCE = 3.0
+
+	const val UNSAFE_FALL_EPSILON = 1.0E-6
+
+	const val CHUNK_FILTER_EDGE_MARGIN = 2
+
+	const val CHUNK_MAP_MARGIN = 3
+
+	const val PRESSURE_PLATE_HALF_WIDTH = 0.4375
+
+	const val PRESSURE_PLATE_HEIGHT = 0.25
+
+	const val AIRBORNE_WATER_EFFICIENCY = 0.5F
+
+	const val HEALTH_PER_HEART = 2.0
+
 	const val MAX_AIR = 300
 
 	const val AIR_REFILL_PER_TICK = 4
-
-	const val SAFE_AIR = 60
 
 	const val GRAVITY = 0.08
 	const val SLOW_FALLING_MAX_GRAVITY = 0.01
@@ -140,5 +159,7 @@ internal fun BlockState.fallRule(): FallRule = when {
 	block is BedBlock -> FallRule.BED
 	isOf(Blocks.SLIME_BLOCK) -> FallRule.NONE
 	isOf(Blocks.FARMLAND) -> FallRule.FARMLAND
+	isOf(Blocks.POINTED_DRIPSTONE) && get(PointedDripstoneBlock.VERTICAL_DIRECTION) == Direction.UP &&
+		get(PointedDripstoneBlock.THICKNESS) == Thickness.TIP -> FallRule.STALAGMITE
 	else -> FallRule.NORMAL
 }

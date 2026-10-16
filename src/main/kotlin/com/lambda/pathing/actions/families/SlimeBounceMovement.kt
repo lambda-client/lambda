@@ -15,6 +15,7 @@ import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceSolver
+import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -101,7 +102,7 @@ object SlimeBounceMovement : Movement {
 
 	override fun completed(context: CompletionContext): Boolean {
 		if (!context.airborne || !context.observed.onGround) return false
-		if (context.observed.velocity.y > SETTLED_VERTICAL_SPEED) return false
+		if (context.observed.velocity.y > Vanilla.SLIME_STEP_MAX_VERTICAL_SPEED) return false
 		val step = context.decision.step
 
 		return context.stance.y == step.y &&
@@ -111,15 +112,13 @@ object SlimeBounceMovement : Movement {
 
 	private const val TRANSITION_MARGIN_FRAMES = 20
 
-	private const val SETTLED_VERTICAL_SPEED = 0.1
-
 	private const val MAX_SPAN = 12
 
 	private const val MAX_DOUBLE_SPAN = 24
 
-	private const val DOUBLE_BOUNCES = 2
+	internal const val DOUBLE_BOUNCES = 2
 
-	private const val MIN_DROP = 2
+	internal const val MIN_DROP = 2
 
 	const val TEMPLATE_MAX_DROP = 12
 

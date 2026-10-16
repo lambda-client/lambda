@@ -92,7 +92,9 @@ internal object FallReach {
 
 	private const val WATER_DRAG = 0.8
 
-	private const val WATER_GRAVITY = Vanilla.GRAVITY / 16.0
+	private const val WATER_GRAVITY = Vanilla.GRAVITY / Vanilla.WATER_GRAVITY_DIVISOR
+
+	const val MAX_WATER_CELLS = 5
 
 	private const val KEY_STEPS = 64.0
 

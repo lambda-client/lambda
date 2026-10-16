@@ -12,16 +12,16 @@ package com.lambda.command.commands
 import com.lambda.pathing.core.Stance
 
 /**
- * Shared ground between the pathing commands: the goal staged by `goal` (walked by
- * a bare `path`), and the coordinate parsing they all use.
+ * Shared ground between the pathing commands: the waypoints last given to `path go` or
+ * `path plan` (what a bare `path go` or `path plan` acts on), and the coordinate parsing.
  *
  * Coordinates follow the familiar `~` convention: `~` alone is the player's own
  * coordinate, `~n` an offset from it, a bare integer absolute. Any number of
  * whole triples makes a route walked in order.
  */
 object PathingWaypoints {
-    /** Waypoints staged by `goal`, walked in order by a bare `path`. */
-    var pending: List<Stance> = emptyList()
+    /** Waypoints last given to `path go` or `path plan`. */
+    var last: List<Stance> = emptyList()
 
     /** Parses whitespace-separated coordinate triples; null when the text is not
      *  a positive multiple of three valid coordinates. */

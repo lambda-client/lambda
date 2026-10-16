@@ -50,7 +50,7 @@ class DivePlanningTest {
 		val path = certified(environment, Stance(-2, 64, 0), Stance(32, 64, 0), resting(Vec3d(-1.5, 64.0, 0.5), -90.0))
 		val frames = path.plan.frames
 		assertTrue(frames.any { it.state.eyeInWater }, "the tunnel must be dived")
-		assertTrue(frames.all { it.state.air >= Vanilla.SAFE_AIR }, "the dive must keep a safe air margin")
+		assertTrue(frames.all { it.state.air >= SimpleMoveOptions.DEFAULT_AIR_RESERVE }, "the dive must keep a safe air margin")
 		assertEquals(Stance(32, 64, 0), Stance.of(frames.last().state.position, onGround = true))
 	}
 
@@ -88,7 +88,7 @@ class DivePlanningTest {
 		val frames = path.plan.frames
 		println("[dive] sunken passage frames=${frames.size} min air=${frames.minOf { it.state.air }} deepest=${frames.minOf { it.state.position.y }}")
 		assertTrue(frames.any { it.state.position.y < 56.0 }, "the passage at y 55 must be dived")
-		assertTrue(frames.all { it.state.air >= Vanilla.SAFE_AIR }, "the dive must keep a safe air margin")
+		assertTrue(frames.all { it.state.air >= SimpleMoveOptions.DEFAULT_AIR_RESERVE }, "the dive must keep a safe air margin")
 		assertEquals(Stance(19, 64, 0), Stance.of(frames.last().state.position, onGround = true))
 	}
 
@@ -106,7 +106,7 @@ class DivePlanningTest {
 		val path = certified(environment, Stance(-2, 64, 0), Stance(length + 2, 64, 0), resting(Vec3d(-1.5, 64.0, 0.5), -90.0))
 		val frames = path.plan.frames
 		println("[dive] pocket tunnel frames=${frames.size} min air=${frames.minOf { it.state.air }}")
-		assertTrue(frames.all { it.state.air >= Vanilla.SAFE_AIR }, "the dive must keep a safe air margin")
+		assertTrue(frames.all { it.state.air >= SimpleMoveOptions.DEFAULT_AIR_RESERVE }, "the dive must keep a safe air margin")
 		assertEquals(Stance(length + 2, 64, 0), Stance.of(frames.last().state.position, onGround = true))
 	}
 
@@ -133,7 +133,7 @@ class DivePlanningTest {
 		val frames = path.plan.frames
 		println("[dive] alcove passage frames=${frames.size} min air=${frames.minOf { it.state.air }}")
 		assertTrue(frames.any { it.state.position.z > 1.0 && it.state.position.x in (length / 2).toDouble()..(length / 2 + 1).toDouble() }, "the dive must turn into the alcove")
-		assertTrue(frames.all { it.state.air >= Vanilla.SAFE_AIR }, "the dive must keep a safe air margin")
+		assertTrue(frames.all { it.state.air >= SimpleMoveOptions.DEFAULT_AIR_RESERVE }, "the dive must keep a safe air margin")
 		assertEquals(Stance(length + 2, 64, 0), Stance.of(frames.last().state.position, onGround = true))
 	}
 
@@ -174,7 +174,7 @@ class DivePlanningTest {
 		val frames = path.plan.frames
 		println("[dive] side pocket breath frames=${frames.size} min air=${frames.minOf { it.state.air }}")
 		assertTrue(frames.any { it.state.position.z > SIDE_POCKET_DEPTH - 0.5 && !it.state.eyeInWater }, "the walk must breathe in the side pocket")
-		assertTrue(frames.all { it.state.air >= Vanilla.SAFE_AIR }, "the dive must keep a safe air margin")
+		assertTrue(frames.all { it.state.air >= SimpleMoveOptions.DEFAULT_AIR_RESERVE }, "the dive must keep a safe air margin")
 		assertEquals(goal, Stance.of(frames.last().state.position, onGround = true))
 	}
 
@@ -247,7 +247,7 @@ class DivePlanningTest {
 		val path = certified(environment, Stance(6, 56, 6), Stance(14, 64, 6), start, dives = false)
 		val frames = path.plan.frames
 		println("[dive] sunk start frames=${frames.size} min air=${frames.minOf { it.state.air }}")
-		assertTrue(frames.all { it.state.air >= Vanilla.SAFE_AIR }, "the ascent must keep a safe air margin")
+		assertTrue(frames.all { it.state.air >= SimpleMoveOptions.DEFAULT_AIR_RESERVE }, "the ascent must keep a safe air margin")
 		assertEquals(Stance(14, 64, 6), Stance.of(frames.last().state.position, onGround = true))
 	}
 

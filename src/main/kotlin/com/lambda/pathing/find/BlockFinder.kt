@@ -8,6 +8,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.session.CoarseService
 import com.lambda.pathing.session.InterestPrimer
 import com.lambda.pathing.session.PathingManager
@@ -21,6 +22,7 @@ import com.lambda.pathing.session.preparePlanning
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.store.BaritoneCache
 import com.lambda.pathing.world.store.TerrainStores
@@ -100,12 +102,13 @@ object BlockFinder : Loadable {
 			choice = null
 			request = null
 			val origin = player.pos
-			val ignoreHazards = AutomationConfig.DEFAULT.pathingConfig.ignoreHazards
+			val config = AutomationConfig.DEFAULT.pathingConfig
+			val hazards = config.hazards
 			val minY = world.bottomY
 			val maxY = world.bottomY + world.height - 1
-			val loaded = loadedChoices(ignoreHazards, minY, maxY)
+			val loaded = loadedChoices(hazards, minY, maxY)
 			val store = TerrainStores.directoryOf(world)
-			val baritone = BaritoneCache.of(world)
+			val baritone = if (config.useBaritoneCache) BaritoneCache.of(world) else null
 			val chunks = loadedChunks()
 			val skipped = HashSet(excluded)
 			val bound = if (loaded.size < COMPARED_TARGETS) Double.POSITIVE_INFINITY else loaded.last().block.distanceSquared
@@ -118,7 +121,7 @@ object BlockFinder : Loadable {
 					TerrainStores.sync(store)
 					val cache = CachedBlocks(store, baritone, chunks, minY, maxY)
 					choose(origin, skipped, bound, { nearest -> cache.scan(query, nearest) { cancelled } }) { target ->
-						AccessStances.view(target, minY, maxY) { cache.section(it, ignoreHazards) }
+						AccessStances.view(target, minY, maxY) { cache.section(it, hazards) }
 					}
 				}.getOrDefault(emptyList())
 				val nearest = (loaded + cached).sortedBy { it.block.distanceSquared }.take(COMPARED_TARGETS)
@@ -126,10 +129,10 @@ object BlockFinder : Loadable {
 			}
 		}
 
-		private fun SafeContext.loadedChoices(ignoreHazards: Boolean, minY: Int, maxY: Int): List<Choice> {
-			val sampler = BlockPhysicsSampler(world, ShapeContext.absent(), ignoreHazards)
+		private fun SafeContext.loadedChoices(hazards: HazardRules, minY: Int, maxY: Int): List<Choice> {
+			val sampler = BlockPhysicsSampler(world, ShapeContext.absent(), hazards)
 			val sections = HashMap<Long, ImmutableSnapshotSection?>()
-			val radius = MinecraftClient.getInstance().options.clampedViewDistance + LOADED_MARGIN_CHUNKS
+			val radius = MinecraftClient.getInstance().options.clampedViewDistance + Vanilla.CHUNK_MAP_MARGIN
 			return choose(player.pos, HashSet(excluded), Double.POSITIVE_INFINITY, { nearest -> LoadedBlocks.scan(world, player.pos, radius, query, nearest) }) { target ->
 				AccessStances.view(target, minY, maxY) { key -> if (key in sections) sections[key] else sample(sampler, key).also { sections[key] = it } }
 			}
@@ -168,7 +171,7 @@ object BlockFinder : Loadable {
 		}
 
 		private fun SafeContext.nearestUnloaded(origin: Vec3d, loaded: LongOpenHashSet): Double {
-			val radius = MinecraftClient.getInstance().options.clampedViewDistance + LOADED_MARGIN_CHUNKS + 1
+			val radius = MinecraftClient.getInstance().options.clampedViewDistance + Vanilla.CHUNK_MAP_MARGIN + 1
 			var nearest = Double.POSITIVE_INFINITY
 			for (chunkX in player.chunkPos.x - radius..player.chunkPos.x + radius) for (chunkZ in player.chunkPos.z - radius..player.chunkPos.z + radius) {
 				if (ChunkPos.toLong(chunkX, chunkZ) in loaded) continue
@@ -180,7 +183,7 @@ object BlockFinder : Loadable {
 		}
 
 		private fun SafeContext.loadedChunks(): LongOpenHashSet {
-			val radius = MinecraftClient.getInstance().options.clampedViewDistance + LOADED_MARGIN_CHUNKS
+			val radius = MinecraftClient.getInstance().options.clampedViewDistance + Vanilla.CHUNK_MAP_MARGIN
 			val centreX = player.chunkPos.x
 			val centreZ = player.chunkPos.z
 			val chunks = LongOpenHashSet()
@@ -232,7 +235,7 @@ object BlockFinder : Loadable {
 			val end = frame?.route?.goal
 			val nearest = done.choices.firstOrNull { it.stance == end }
 			if (frame == null || nearest == null) walk(done.choices.first(), "the nearest by distance; no path compared")
-			else walk(nearest, "the nearest by path of the ${done.choices.size} closest, about ${(frame.route.lowerBoundTicks / TICKS_PER_SECOND).toInt()} s away")
+			else walk(nearest, "the nearest by path of the ${done.choices.size} closest, about ${(frame.route.lowerBoundTicks / Vanilla.TICKS_PER_SECOND).toInt()} s away")
 		}
 
 		private fun SafeContext.walk(next: Choice, why: String) {
@@ -261,7 +264,7 @@ object BlockFinder : Loadable {
 				if (!query.matches(world.getBlockState(target))) return retry(current, "is gone")
 				if (!verified && AccessStances.loaded(target, world.chunkManager::isChunkLoaded)) {
 					verified = true
-					val sampler = BlockPhysicsSampler(world, ShapeContext.absent(), AutomationConfig.DEFAULT.pathingConfig.ignoreHazards)
+					val sampler = BlockPhysicsSampler(world, ShapeContext.absent(), AutomationConfig.DEFAULT.pathingConfig.hazards)
 					val view = AccessStances.view(target, world.bottomY, world.bottomY + world.height - 1) { sample(sampler, it) }
 					if (!Footing.standsAt(view, current.stance)) {
 						val stance = AccessStances.choose(view, target, player.pos) ?: return retry(current, "has no place to stand beside it")
@@ -294,13 +297,10 @@ object BlockFinder : Loadable {
 		}
 	}
 
-	private const val LOADED_MARGIN_CHUNKS = 3
-
 	private const val COMPARED_TARGETS = 16
 
 	private const val CANDIDATE_BATCHES = 4
 
 	private const val MAX_TARGETS = 5
 
-	private const val TICKS_PER_SECOND = 20.0
 }
