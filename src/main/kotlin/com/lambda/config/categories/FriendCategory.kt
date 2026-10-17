@@ -18,7 +18,7 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
-import com.lambda.interaction.handlers.FriendHandler
+import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.threading.runIO
 import com.lambda.util.FolderRegistry
 import java.io.File

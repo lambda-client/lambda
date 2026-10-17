@@ -19,7 +19,7 @@ package com.lambda.module.modules.world
 
 import com.lambda.Lambda.mc
 import com.lambda.config.Group
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.withEdits
@@ -32,11 +32,11 @@ import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.interacting.InteractRequest
-import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
+import com.lambda.interaction.manager.managers.interacting.InteractRequest
+import com.lambda.interaction.manager.managers.interacting.interactRequest
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode

@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.config.settings
 
 import com.lambda.brigadier.argument.greedyString
@@ -44,7 +46,6 @@ class StringSetting(
     var multiline: Boolean = false,
     var flags: Int = ImGuiInputTextFlags.None,
 ) : Setting<String>(name, description, defaultValue, layer, config, visibility) {
-
     override fun ImGuiBuilder.buildLayout() {
         if (multiline) {
             inputTextMultiline(name, ::value, flags = flags)

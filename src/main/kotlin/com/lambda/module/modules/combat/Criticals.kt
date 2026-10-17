@@ -20,10 +20,10 @@ package com.lambda.module.modules.combat
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.manager.managers.rotating.Rotation
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.component1

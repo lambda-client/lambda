@@ -81,6 +81,14 @@ class LimitedDecayQueue<E>(
     }
 
     @Synchronized
+    fun refresh(element: E): Boolean {
+        cleanUp()
+        if (!queue.removeIf { it.first == element }) return false
+        queue.add(element to Instant.now())
+        return true
+    }
+
+    @Synchronized
     override fun removeAll(elements: Collection<E>): Boolean {
         cleanUp()
         return queue.removeIf { it.first in elements }

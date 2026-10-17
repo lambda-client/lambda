@@ -18,12 +18,12 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.Group
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.BreakConfig.SwingMode
 import com.lambda.config.editSetting
 import com.lambda.config.editTypedSettings
-import com.lambda.config.entries.Setting.Companion.disabled
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.disabled
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
@@ -37,9 +37,9 @@ import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
+import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState

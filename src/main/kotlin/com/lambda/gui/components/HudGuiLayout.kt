@@ -123,9 +123,11 @@ object HudGuiLayout : Loadable, Config(
 
 	                if (!isLocked) {
 		                activeDragHudName?.let { drag ->
-			                if (mouseDown) updateDragAndSnapping(
-				                drag, lastBounds[drag]!!, dragOffsetX, dragOffsetY, pendingPositions, snapOverlays
-			                )
+			                lastBounds[drag]?.let { bounds ->
+				                if (mouseDown) updateDragAndSnapping(
+					                drag, bounds, dragOffsetX, dragOffsetY, pendingPositions, snapOverlays
+				                )
+			                }
 			                drawDragGrid()
 		                }
 	                }

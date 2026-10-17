@@ -44,9 +44,24 @@ import net.minecraft.util.math.Vec3d
 context(automatedSafeContext: AutomatedSafeContext)
 fun Structure.sim(
 	pov: Vec3d = automatedSafeContext.player.eyePos
-) = BuildSimulator.sim(this, pov)
+) = sim(this, pov)
 
-class BuildSimulator private constructor(
+@JvmName("simExt")
+@SimDsl
+context(automatedSafeContext: AutomatedSafeContext)
+fun sim(
+	structure: Structure,
+	pov: Vec3d = automatedSafeContext.player.eyePos
+): Set<BuildResult> =
+	with(automatedSafeContext) {
+		runBlocking(Dispatchers.Default) {
+			val results = ConcurrentSet<BuildResult>()
+			with(BuildSimulator(structure, pov, results)) { sim() }
+			results
+		}
+	}
+
+class BuildSimulator internal constructor(
 	private val structure: Structure,
 	private val pov: Vec3d,
 	private val resultsCollection: MutableSet<BuildResult>
@@ -65,21 +80,5 @@ class BuildSimulator private constructor(
 				}
 			}
 		}
-	}
-
-	companion object {
-		@SimDsl
-		context(automatedSafeContext: AutomatedSafeContext)
-		internal fun sim(
-			structure: Structure,
-			pov: Vec3d = automatedSafeContext.player.eyePos
-		): Set<BuildResult> =
-			with(automatedSafeContext) {
-				runBlocking(Dispatchers.Default) {
-					val results = ConcurrentSet<BuildResult>()
-					with(BuildSimulator(structure, pov, results)) { sim() }
-					results
-				}
-			}
 	}
 }

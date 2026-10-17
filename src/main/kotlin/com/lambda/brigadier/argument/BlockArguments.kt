@@ -37,9 +37,8 @@ import java.util.function.Predicate
  * @see BlockPredicateArgumentType.getBlockPredicate
  */
 @BrigadierDsl
-fun DefaultArgumentReader<BlockPredicateArgumentType>.value(): Predicate<CachedBlockPosition> {
-    return BlockPredicateArgumentType.getBlockPredicate(context.assumeSourceNotUsed(), name)
-}
+fun DefaultArgumentReader<BlockPredicateArgumentType>.value(): Predicate<CachedBlockPosition> =
+    BlockPredicateArgumentType.getBlockPredicate(context.assumeSourceNotUsed(), name)
 
 /**
  * Reads the [BlockStateArgument] value of the argument in
@@ -48,9 +47,8 @@ fun DefaultArgumentReader<BlockPredicateArgumentType>.value(): Predicate<CachedB
  * @see BlockStateArgumentType.getBlockState
  */
 @BrigadierDsl
-fun DefaultArgumentReader<BlockStateArgumentType>.value(): BlockStateArgument {
-    return BlockStateArgumentType.getBlockState(context.assumeSourceNotUsed(), name)
-}
+fun DefaultArgumentReader<BlockStateArgumentType>.value(): BlockStateArgument =
+    BlockStateArgumentType.getBlockState(context.assumeSourceNotUsed(), name)
 
 /**
  * Creates a block predicate argument with [name] as the parameter name.
@@ -62,9 +60,8 @@ fun DefaultArgumentReader<BlockStateArgumentType>.value(): BlockStateArgument {
 fun <S> blockPredicate(
     name: String,
     registryAccess: CommandRegistryAccess,
-): DefaultArgumentConstructor<S, BlockPredicateArgumentType> {
-    return argument(name, BlockPredicateArgumentType.blockPredicate(registryAccess))
-}
+): DefaultArgumentConstructor<S, BlockPredicateArgumentType> =
+    argument(name, BlockPredicateArgumentType.blockPredicate(registryAccess))
 
 /**
  * Creates a block state argument with [name] as the parameter name.
@@ -76,6 +73,5 @@ fun <S> blockPredicate(
 fun <S> blockState(
     name: String,
     registryAccess: CommandRegistryAccess,
-): DefaultArgumentConstructor<S, BlockStateArgumentType> {
-    return argument(name, BlockStateArgumentType.blockState(registryAccess))
-}
+): DefaultArgumentConstructor<S, BlockStateArgumentType> =
+    argument(name, BlockStateArgumentType.blockState(registryAccess))

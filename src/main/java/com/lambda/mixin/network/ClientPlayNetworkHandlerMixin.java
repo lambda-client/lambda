@@ -23,8 +23,8 @@ import com.lambda.event.events.ChatEvent;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.WorldEvent;
-import com.lambda.interaction.managers.inventory.InventoryManager;
-import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.interaction.manager.managers.inventory.InventoryManager;
+import com.lambda.interaction.manager.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -132,6 +132,11 @@ public class ClientPlayNetworkHandlerMixin {
     @WrapMethod(method = "onInventory")
     private void wrapOnInventory(InventoryS2CPacket packet, Operation<Void> original) {
         InventoryManager.onInventoryUpdate(packet, original);
+    }
+
+    @WrapMethod(method = "onSetCursorItem")
+    private void wrapOnSetCursorItem(SetCursorItemS2CPacket packet, Operation<Void> original) {
+        InventoryManager.onCursorUpdate(packet, original);
     }
 
     @WrapMethod(method = "sendChatMessage(Ljava/lang/String;)V")

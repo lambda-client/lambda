@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.config.settings.complex
 
 import com.fasterxml.jackson.annotation.JsonIncludeProperties
@@ -218,26 +220,23 @@ class KeybindSetting(
         }
     }
 
-    @Suppress("unused")
-    companion object {
-        @ConfigEntryDsl
-        fun KeybindSetting.onPress(block: SafeContext.(ButtonEvent) -> Unit) = apply { pressListeners.add(block) }
+    @ConfigEntryDsl
+    fun onPress(block: SafeContext.(ButtonEvent) -> Unit) = apply { pressListeners.add(block) }
 
-        @ConfigEntryDsl
-        fun KeybindSetting.onPressUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafePressListeners.add(block) }
+    @ConfigEntryDsl
+    fun onPressUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafePressListeners.add(block) }
 
-        @ConfigEntryDsl
-        fun KeybindSetting.onRepeat(block: SafeContext.(ButtonEvent) -> Unit) = apply { repeatListeners.add(block) }
+    @ConfigEntryDsl
+    fun onRepeat(block: SafeContext.(ButtonEvent) -> Unit) = apply { repeatListeners.add(block) }
 
-        @ConfigEntryDsl
-        fun KeybindSetting.onRepeatUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafeRepeatListeners.add(block) }
+    @ConfigEntryDsl
+    fun onRepeatUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafeRepeatListeners.add(block) }
 
-        @ConfigEntryDsl
-        fun KeybindSetting.onRelease(block: SafeContext.(ButtonEvent) -> Unit) = apply { releaseListeners.add(block) }
+    @ConfigEntryDsl
+    fun onRelease(block: SafeContext.(ButtonEvent) -> Unit) = apply { releaseListeners.add(block) }
 
-        @ConfigEntryDsl
-        fun KeybindSetting.onReleaseUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafeReleaseListeners.add(block) }
-    }
+    @ConfigEntryDsl
+    fun onReleaseUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafeReleaseListeners.add(block) }
 }
 
 @Suppress("unused")

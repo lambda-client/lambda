@@ -17,12 +17,12 @@
 
 package com.lambda.module.modules.chat
 
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.FriendHandler
+import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.text.MessageType
@@ -41,7 +41,11 @@ object FriendHighlight : Module(
 ) {
 	private var color: Formatting by setting("Color", Formatting.GREEN)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
-	private val javaColor: Color get() = Color(color.colorValue!! and 16777215)
+	private val javaColor: Color
+		get() {
+			val rgb = color.colorValue ?: return Color.GREEN
+			return Color(rgb and 16777215)
+		}
 
 	private val bold by setting("Bold", true)
 	private val italic by setting("Italic", false)

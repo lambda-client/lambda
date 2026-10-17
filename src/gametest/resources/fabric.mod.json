@@ -9,6 +9,30 @@
       {
         "adapter": "kotlin",
         "value": "com.lambda.LambdaTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.ContainerTransferGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.ShulkerPickupGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.TaskLifecycleGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.CollectDropsGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.SlotIdentityGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.BuildPreTickGameTest"
       }
     ]
   }

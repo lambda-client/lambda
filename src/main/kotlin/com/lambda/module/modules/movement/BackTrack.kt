@@ -27,8 +27,8 @@ import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRend
 import com.lambda.graphics.util.DynamicAABB
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
+import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.KillAura
-import com.lambda.module.tag.ModuleTag
 import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently

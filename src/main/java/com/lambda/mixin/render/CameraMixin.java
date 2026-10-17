@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.interaction.manager.managers.rotating.RotationManager;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.FreeLook;
 import com.lambda.module.modules.render.Freecam;

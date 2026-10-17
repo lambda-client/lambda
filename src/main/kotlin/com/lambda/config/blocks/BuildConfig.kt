@@ -17,8 +17,8 @@
 
 package com.lambda.config.blocks
 
-import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
-import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.dist
+import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq

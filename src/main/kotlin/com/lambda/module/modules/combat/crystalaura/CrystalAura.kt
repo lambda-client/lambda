@@ -18,7 +18,7 @@
 package com.lambda.module.modules.combat.crystalaura
 
 import com.lambda.config.Tab
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.TargetingSettings
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.forEachSetting
@@ -31,9 +31,9 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.module.Module
+import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraExploding.explodeInternal
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraPlacing.placeInternal
-import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
@@ -44,8 +44,8 @@ import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
+import com.lambda.util.math.blockPos
 import com.lambda.util.math.distSq
-import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.getHitVec
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus
@@ -87,7 +87,7 @@ object CrystalAura : Module(
     @Tab(PLACEMENT_TAB) private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks")
     @Tab(PLACEMENT_TAB) val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
     @Tab(PLACEMENT_TAB) val swap by setting("Swap", true, "Swaps to crystals")
-    @Tab(PLACEMENT_TAB) val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
+    @Tab(PLACEMENT_TAB) val swapHand: Hand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
     @Tab(PLACEMENT_TAB) val priorityMode by setting("Crystal Priority", Priority.Damage)
     @Tab(PLACEMENT_TAB) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
     @Tab(PLACEMENT_TAB) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
@@ -508,7 +508,7 @@ object CrystalAura : Module(
     }
 
     private val EndCrystalEntity.baseBlockPos get() =
-        (pos - Vec3d(0.0, 0.5, 0.0)).flooredBlockPos
+        (pos - Vec3d(0.0, 0.5, 0.0)).blockPos
 
     val BlockPos.crystalPosition get() =
         this.getHitVec(Direction.UP)
