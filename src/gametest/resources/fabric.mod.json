@@ -28,6 +28,10 @@
       },
       {
         "adapter": "kotlin",
+        "value": "com.lambda.SlotIdentityGameTest"
+      },
+      {
+        "adapter": "kotlin",
         "value": "com.lambda.BuildPreTickGameTest"
       }
     ]

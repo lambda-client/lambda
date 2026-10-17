@@ -205,7 +205,7 @@ object CollectDropsGameTest : FabricClientGameTest {
         }
         val single = pickups.single()
         if (single.stack.item != item || single.stack.count != count) {
-            fail("$what: expected $count of $item, got ${single.stack} (slot=${single.slot?.id})")
+            fail("$what: expected $count of $item, got ${single.stack} (slot=${single.slot})")
         }
         if (single.slot == null) {
             fail("$what: clean landing recorded with unknown slot")

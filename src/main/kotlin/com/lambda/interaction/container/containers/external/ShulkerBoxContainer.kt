@@ -118,7 +118,7 @@ data class ShulkerBoxContainer(
 				else actionTask { player.closeHandledScreen() }
 			}.then { breakAndCollect(blockPos) }
 				.then { outcome ->
-					val predicted = outcome.pickups
+					val pickedUp = outcome.pickups
 						.asSequence()
 						.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
 						.firstNotNullOfOrNull { it.slot }
@@ -126,7 +126,7 @@ data class ShulkerBoxContainer(
 					stackSelection {
 						isItem(shulkerItem)
 						withName(itemName)
-						predicted?.let { sortedBySlotMatch(it) }
+						if (pickedUp != null) sortedBySlotMatch(pickedUp)
 						sortedByBestContentMatch(stacks)
 						sortedByRecentChange()
 					}.transfer(

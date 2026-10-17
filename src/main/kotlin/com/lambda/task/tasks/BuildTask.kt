@@ -44,6 +44,7 @@ import com.lambda.interaction.construction.simulation.result.results.InteractRes
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
@@ -51,7 +52,6 @@ import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.softFail
-import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
@@ -65,6 +65,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import net.minecraft.block.BlockState
 import net.minecraft.entity.ItemEntity
+import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
@@ -122,13 +123,12 @@ fun breakAndCollect(
 data class BuildOutcome(
 	val structure: Structure,
 	val pickups: List<PickedUpItem>,
+	val pickupTypes: Set<Item>
 )
 
 data class BuildStatus(
-	val pendingInteractions: Int,
-	val collecting: Boolean,
-	val dropsPending: List<ItemStack>,
-	val pickups: List<PickedUpItem>
+	val pickedUpTypes: Set<Item>,
+	val dropsPending: List<ItemStack>
 )
 
 class BuildTask @Ta5kBuilder internal constructor(
@@ -150,9 +150,8 @@ class BuildTask @Ta5kBuilder internal constructor(
 	private var breaks = 0
 	private val dropsToCollect = mutableSetOf<ItemEntity>()
 	private val pickups = mutableListOf<PickedUpItem>()
-	private val preTickCallbacks = mutableListOf<AutomatedSafeContext.(BuildStatus) -> Boolean>()
-	var eatTask: Task<*>? = null
-	var collectDropsTask: Task<*>? = null
+	private val pickupTypes = mutableSetOf<Item>()
+	private val preTickCallbacks = mutableListOf<context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Boolean>()
 
 	private val onItemDrop: ((item: ItemEntity) -> Unit)?
 		get() = if (collectDrops) { item ->
@@ -169,7 +168,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 	}
 
 	@Ta5kBuilder
-	fun onPreTick(callback: AutomatedSafeContext.(BuildStatus) -> Boolean) =
+	fun onPreTick(callback: context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Boolean) =
 		apply { preTickCallbacks.add(callback) }
 
 	init {
@@ -254,16 +253,9 @@ class BuildTask @Ta5kBuilder internal constructor(
 
 	private fun AutomatedSafeContext.preSim(): Boolean {
 		if (runPreTick()) return true
-		when {
-			lifeMaintenance &&
-					eatTask == null &&
-					runSafeAutomated { reasonEating() }.shouldEat() -> {
-				eatTask = eat()
-					.thenAction { eatTask = null }
-					.start()
-				return true
-			}
-			eatTask != null -> return true
+		if (lifeMaintenance && runSafeAutomated { reasonEating() }.shouldEat()) {
+			eat().start()
+			return true
 		}
 
 		if (blueprint is TickingBlueprint) {
@@ -281,10 +273,8 @@ class BuildTask @Ta5kBuilder internal constructor(
 		if (preTickCallbacks.isEmpty()) return false
 		val status =
 			BuildStatus(
-				pendingInteractions = pendingInteractions.size,
-				collecting = collectDropsTask != null,
-				dropsPending = dropsToCollect.map { it.stack.copy() },
-				pickups = pickups.toList()
+				pickedUpTypes = pickupTypes,
+				dropsPending = dropsToCollect.map { it.stack.copy() }
 			)
 		preTickCallbacks.forEach { callback ->
 			val veto = runCatching { callback(status) }
@@ -295,6 +285,15 @@ class BuildTask @Ta5kBuilder internal constructor(
 			if (veto) return true
 		}
 		return false
+	}
+
+	private fun SafeContext.currentPickups(): List<PickedUpItem> {
+		if (pickups.isEmpty()) return emptyList()
+		val latest = LinkedHashMap<SlotIdentity, ItemStack>()
+		pickups.forEach { pickup -> pickup.slot?.let { latest[it] = pickup.stack } }
+		return latest.entries
+			.filter { (slot, stack) -> slot.holds(stack) }
+			.map { (slot, stack) -> PickedUpItem(stack.copy(), slot) }
 	}
 
 	private fun AutomatedSafeContext.simulate() {
@@ -342,7 +341,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 			is PreSimResult.NoPermission,
 			is GenericResult.Ignored -> {
 				if (iteratePropagating()) return
-				if (finishOnDone) success(BuildOutcome(blueprint.structure, pickups.toList()))
+				if (finishOnDone) success(BuildOutcome(blueprint.structure, currentPickups(), pickupTypes))
 			}
 
 			is GenericResult.NotVisible,
@@ -390,7 +389,10 @@ class BuildTask @Ta5kBuilder internal constructor(
 		if (dropsToCollect.isEmpty()) return false
 		if (pendingInteractions.isNotEmpty()) return true
 		collectDrops(dropsToCollect)
-			.onSuccess { pickups.addAll(it) }
+			.onSuccess {
+				pickups.addAll(it)
+				pickupTypes.addAll(it.map { it.stack.item })
+			}
 			.start()
 		return true
 	}

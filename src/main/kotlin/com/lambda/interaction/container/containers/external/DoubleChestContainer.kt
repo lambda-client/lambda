@@ -53,6 +53,8 @@ data class DoubleChestContainer(
 			if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
 			else emptyList()
 
+	override val positions = setOf(leftPos, rightPos)
+
 	override val description =
 		buildText {
 			literal("Double Chest at ")

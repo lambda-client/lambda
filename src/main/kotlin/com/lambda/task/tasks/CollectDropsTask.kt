@@ -23,6 +23,8 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.SlotIdentity
+import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
@@ -44,7 +46,10 @@ import java.util.concurrent.ConcurrentHashMap
 context(automated: Automated)
 fun collectDrops(drops: MutableSet<ItemEntity>) = CollectDropsTask(drops, automated)
 
-data class PickedUpItem(val stack: ItemStack, val slot: Slot?)
+data class PickedUpItem(
+	val stack: ItemStack,
+	val slot: SlotIdentity?
+)
 
 class CollectDropsTask @Ta5kBuilder internal constructor(
 	private val drops: MutableSet<ItemEntity>,
@@ -144,7 +149,9 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 
 	private fun stackOf(drop: ItemEntity): ItemStack {
 		val live = drop.stack
-		if (!live.isEmpty && dropStacks[drop]?.let { !ItemStack.areItemsAndComponentsEqual(live, it) } != false) {
+		val snap = dropStacks[drop]
+		if (live.isEmpty) return snap ?: ItemStack.EMPTY
+		if (snap == null || !ItemStack.areItemsAndComponentsEqual(live, snap) || live.count > snap.count) {
 			dropStacks[drop] = live.copy()
 		}
 		return dropStacks[drop] ?: ItemStack.EMPTY
@@ -181,7 +188,7 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 		if (!matchesDrop(stack, stackOf(drop))) return 0
 		val take = minOf(left, remainderOf(drop))
 		if (take <= 0) return 0
-		pickups += PickedUpItem(stack.copyWithCount(take), slot)
+		pickups += PickedUpItem(stack.copyWithCount(take), slot.identity())
 		attributed[drop] = (attributed[drop] ?: 0) + take
 		if (remainderOf(drop) <= 0) closingAge.remove(drop)
 		return take

@@ -23,4 +23,5 @@ import net.minecraft.util.math.BlockPos
 abstract class PlacedContainer(type: ContainerType) : Container(type), ExternalContainer {
 	abstract val pos: BlockPos
 	abstract val stash: StashContainer?
+	open val positions: Set<BlockPos> = setOf(pos)
 }

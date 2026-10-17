@@ -22,6 +22,8 @@ package com.lambda.interaction.container.selection
 import com.lambda.Lambda.mc
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerDslMarker
+import com.lambda.interaction.container.SlotIdentity
+import com.lambda.interaction.container.identity
 import com.lambda.interaction.manager.managers.inventory.InventoryManager
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
@@ -58,8 +60,8 @@ fun StackSelection.mutate(
 
 class StackSelection @ContainerDslMarker internal constructor(
 	val count: Int = 1,
-	val whitelistedSlots: Collection<Slot> = emptyList(),
-	val blacklistedSlots: Collection<Slot> = emptyList(),
+	val whitelistedSlots: Collection<SlotIdentity> = emptyList(),
+	val blacklistedSlots: Collection<SlotIdentity> = emptyList(),
 	val item: Item? = null,
 	val itemStack: ItemStack? = null,
 	val shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.Both,
@@ -136,12 +138,10 @@ class StackSelection @ContainerDslMarker internal constructor(
 	) = slots
 		.let { slots ->
 			if (whitelistedSlots.isNotEmpty()) {
-				whitelistedSlots
-					.asSequence()
-					.filter { it in slots }
-			} else slots.asSequence()
+				slots.filter { it.identity() in whitelistedSlots }
+			} else slots
 		}
-		.filter { it !in blacklistedSlots }
+		.filter { it.identity() !in blacklistedSlots }
 		.filter(::matches)
 		.let {
 			if (sorted)
@@ -160,10 +160,10 @@ class StackSelection @ContainerDslMarker internal constructor(
 	) = stackAndSlots
 		.asSequence()
 		.let { stackAndSlots ->
-			if (whitelistedSlots.isNotEmpty()) stackAndSlots.filter { it.slot in whitelistedSlots }
+			if (whitelistedSlots.isNotEmpty()) stackAndSlots.filter { it.slot?.identity() in whitelistedSlots }
 			else stackAndSlots
 		}
-		.filter { it.slot !in blacklistedSlots }
+		.filter { it.slot?.identity() !in blacklistedSlots }
 		.filter(::matches)
 		.let {
 			if (sorted) it.sortedWith(comparator)
@@ -214,8 +214,8 @@ class StackSelection @ContainerDslMarker internal constructor(
 class StackSelectionBuilder @ContainerDslMarker internal constructor(
 	private var count: Int = 1
 ) {
-	private val whitelistedSlots = mutableListOf<Slot>()
-	private val blacklistedSlots = mutableListOf<Slot>()
+	private val whitelistedSlots = mutableListOf<SlotIdentity>()
+	private val blacklistedSlots = mutableListOf<SlotIdentity>()
 	private var selector: (ItemStack, Slot?) -> Boolean = { _, _ -> true }
 	private var item: Item? = null
 	private var itemStack: ItemStack? = null
@@ -525,20 +525,18 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		)
 	}
 
-	fun sortedBySlotMatch(slot: Slot) {
+	fun sortedBySlotMatch(slot: SlotIdentity) {
 		sortedWith {
 			compareByDescending {
-				it.slot?.inventory === slot.inventory &&
-						it.slot.index == slot.index
+				it.slot?.identity() == slot
 			}
 		}
 	}
 
-	fun sortedBySlotMismatch(slot: Slot) {
+	fun sortedBySlotMismatch(slot: SlotIdentity) {
 		sortedWith {
 			compareBy {
-				it.slot?.inventory === slot.inventory &&
-						it.slot.index == slot.index
+				it.slot?.identity() == slot
 			}
 		}
 	}
