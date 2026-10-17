@@ -26,6 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
@@ -118,7 +119,9 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 
 		val emptySlotAvailable =
 			stacksAvailable(
-				stackSelection(0) { isEmpty() },
+				stackSelection(StackSelection.UNBOUNDED) {
+					isEmpty()
+				},
 				ContainerSelection.HOTBAR_AND_INVENTORY
 			)
 		if (!emptySlotAvailable) {

@@ -87,7 +87,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 ) : Task<TransferResult>(), Automated by automated {
 	override val name = "Transferring $fromStack"
 
-	private val unlimited = fromStack.count < 0
+	private val unlimited = fromStack.isUnbounded
 
 	private var transferred = 0
 	private val remaining
@@ -355,7 +355,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 			val currentSelection =
 				fromSelection.mutate(
-					if (limit == Int.MAX_VALUE) 0
+					if (limit == Int.MAX_VALUE) StackSelection.UNBOUNDED
 					else minOf(currentLimit, fromSelection.count.coerceAtLeast(1))
 				) { notEmpty() }
 
@@ -390,7 +390,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				}
 			) ?: toContainer.findReplaceSlot(
 				stack,
-				stackSelection(0) {
+				stackSelection(StackSelection.UNBOUNDED) {
 					isEmpty()
 					sortedWith(baseToSelection.comparator)
 				}

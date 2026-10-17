@@ -170,7 +170,7 @@ object ContainerHandler : Loadable {
 	) = findContainers(containerSelection, false)
 		.flatMap { it.slots }
 		.let { stackSelection.filter(it, sorted) }
-		.takeIf { it.count >= stackSelection.count || stackSelection.count < 0 }
+		.takeIf { (stackSelection.isUnbounded && it.isNotEmpty()) || it.count >= stackSelection.count }
 		?.takeUpTo(stackSelection.count) { it.stack.count }
 
 	@ContainerDslMarker
@@ -199,7 +199,7 @@ object ContainerHandler : Loadable {
 	) = findContainers(containerSelection, false)
 		.flatMap { it.stacks }
 		.let { stackSelection.filter(it, sorted) }
-		.takeIf { it.count >= stackSelection.count || stackSelection.count < 0 }
+		.takeIf { (stackSelection.isUnbounded && it.isNotEmpty()) || it.count >= stackSelection.count }
 		?.takeUpTo(stackSelection.count) { it.count }
 
 	@ContainerDslMarker

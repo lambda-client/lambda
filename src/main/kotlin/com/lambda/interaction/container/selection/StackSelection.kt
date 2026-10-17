@@ -70,6 +70,8 @@ class StackSelection @ContainerDslMarker internal constructor(
 ) {
 	val optimalStack = itemStack ?: item?.let { ItemStack(it, count) }
 
+	val isUnbounded: Boolean get() = count <= 0
+
 	@ContainerDslMarker
 	fun bestMatch(stacks: Iterable<ItemStack>) = filter(stacks).firstOrNull()
 
@@ -205,7 +207,9 @@ class StackSelection @ContainerDslMarker internal constructor(
 		slots.count { it.stack.isEmpty && canInsert(it) }
 
 	companion object {
-		val ANYTHING = StackSelection(0) { _, _ -> true }
+		const val UNBOUNDED = 0
+
+		val ANYTHING = StackSelection(UNBOUNDED) { _, _ -> true }
 		val NOTHING = StackSelection { _, _ -> false }
 	}
 }

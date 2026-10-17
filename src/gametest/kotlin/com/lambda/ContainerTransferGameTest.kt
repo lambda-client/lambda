@@ -541,7 +541,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 
 		scenario("a count of zero moves everything matching and nothing else") {
 			chest("A", stone(64), dirt(64), stone(64), stone(5))
-			val outcome = transfer(STONE.select(0), chests("A"), player)
+			val outcome = transfer(STONE.select(StackSelection.UNBOUNDED), chests("A"), player)
 			expectSuccess(outcome)
 			val after = expectClean()
 			expectEquals(133, after.player(STONE), "stone with the player")
@@ -607,7 +607,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			fullChest("A", stone(64))
 			fullChest("C", stone(64))
 			doubleChest()
-			val outcome = transfer(STONE.select(0), chests("A", "C"), chests("E"))
+			val outcome = transfer(STONE.select(StackSelection.UNBOUNDED), chests("A", "C"), chests("E"))
 			expectSuccess(outcome)
 			val after = expectClean()
 			expectEquals(54 * 64, after.chest("E", STONE), "stone in the double chest")
@@ -642,7 +642,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			chest("A", stone(64))
 			chest("B")
 			hotbar(0, stone(5))
-			val outcome = transfer(STONE.select(0), chests("A"), chests("B"))
+			val outcome = transfer(STONE.select(StackSelection.UNBOUNDED), chests("A"), chests("B"))
 			expectSuccess(outcome)
 			val after = expectClean()
 			expectEquals(64, after.chest("B", STONE), "stone in B")
@@ -813,7 +813,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			// Move everything from A except cobblestone. Player already holds some gravel.
 			chest("A", stone(64), cobble(64), dirt(64), sand(32))
 			hotbar(0, gravel(15))
-			val selection = stackSelection(0) { notItem(COBBLE) }
+			val selection = stackSelection(StackSelection.UNBOUNDED) { notItem(COBBLE) }
 			val outcome = transfer(selection, chests("A"), player)
 			expectSuccess(outcome)
 			val after = expectClean()
@@ -923,7 +923,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			chest("B")
 			hotbar(0, sand(10))
 			inventory(0, sand(5))
-			val outcome = transfer(stackSelection(0) { notItem(SAND) }, chests("A"), chests("B"))
+			val outcome = transfer(stackSelection(StackSelection.UNBOUNDED) { notItem(SAND) }, chests("A"), chests("B"))
 			expectSuccess(outcome)
 			val after = expectClean()
 			expectEquals(64, after.chest("A", SAND), "sand must stay in A")

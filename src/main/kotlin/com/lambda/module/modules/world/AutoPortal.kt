@@ -35,6 +35,7 @@ import com.lambda.graphics.util.DirectionMask
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
@@ -343,7 +344,7 @@ object AutoPortal : Module(
 			}
 			val hotbarSlotToSwapWith =
 				findSlot(
-					stackSelection(0) { isEmpty() },
+					stackSelection(StackSelection.UNBOUNDED) { isEmpty() },
 					HotbarContainer.select()
 				)?.index ?: 8
 
