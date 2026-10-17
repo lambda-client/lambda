@@ -29,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(SodiumWorldRenderer.class)
 public class SodiumWorldRendererMixin {
     @Unique
-    private final FogParameters NO_FOG = new FogParameters(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f);
+    private final FogParameters NO_FOG = new FogParameters(0f, 0f, 0f, 0f, Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
 
     @ModifyExpressionValue(method = "drawChunkLayer(Lnet/minecraft/client/render/BlockRenderLayerGroup;Lnet/caffeinemc/mods/sodium/client/render/chunk/ChunkRenderMatrices;DDDLnet/minecraft/client/gl/GpuSampler;)V", at = @At(value = "FIELD", target = "Lnet/caffeinemc/mods/sodium/client/render/SodiumWorldRenderer;lastFogParameters:Lnet/caffeinemc/mods/sodium/client/util/FogParameters;", opcode = Opcodes.GETFIELD))
     private FogParameters modifyFogParameters(FogParameters original) {
