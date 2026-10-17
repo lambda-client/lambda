@@ -26,6 +26,7 @@ import com.lambda.util.BlockUtils.matches
 import com.lambda.util.ReflectionUtils.getInstances
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.tag.BlockTags
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 import java.util.*
@@ -156,7 +157,7 @@ object ProcessorRegistry : Loadable {
 			}
 			if (!omitInteraction) {
 				if (state.block != expectedState.block) {
-					if (state.isReplaceable)  {
+					if (state.canBeReplacedBy(expectedState)) {
 						propertyPreProcessors.forEach { processor ->
 							if (processor.acceptsState(state, expectedState)) {
 								with(processor) { preProcess(state, expectedState, pos) }
@@ -174,6 +175,12 @@ object ProcessorRegistry : Loadable {
 			}
 			complete()
 		}
+
+	private fun BlockState.canBeReplacedBy(expectedState: BlockState) = when {
+		!isReplaceable -> false
+		expectedState.isIn(BlockTags.CROPS) -> isAir || !fluidState.isEmpty
+		else -> true
+	}
 }
 
 data class PreProcessingData(val info: PreProcessingInfo, val pos: BlockPos)
