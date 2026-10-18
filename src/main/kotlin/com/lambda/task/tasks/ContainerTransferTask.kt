@@ -45,6 +45,7 @@ import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
 import com.lambda.task.tasks.wrappers.thenOrNull
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.item.ItemStackUtils.hasSpace
 import com.lambda.util.item.StackMovePlanner
@@ -191,10 +192,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			.start()
 	}
 
-	private fun canReceive(container: Container) =
-		container.spaceLeft(fromStack.mutate(1)) > 0 ||
-			container.count(toStack.mutate { notEmpty(); withoutSelection(fromStack) }) > 0
-
 	private fun buildResult() =
 		TransferResult(
 			fromStack.mutate {
@@ -301,6 +298,10 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			}
 	}
 
+	private fun canReceive(container: Container) =
+		container.spaceLeft(fromStack.mutate(1)) > 0 ||
+				container.count(toStack.mutate { notEmpty(); withoutSelection(fromStack) }) > 0
+
 	private data class SlotPair(
 		val fromContainer: Container,
 		val fromSlot: Slot,
@@ -325,6 +326,9 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	) : Task<Int>() {
 		override val name get() = "Moving ${this@MoveTask.fromSelection}"
 		private var moved = 0
+
+		private val countsAir = fromSelection.countEmptyAsOne
+		private val wholeStacks = fromSelection.alwaysWholeStacks
 
 		private val baseToSelection = toSelection
 
@@ -355,9 +359,9 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 			val currentSelection =
 				fromSelection.mutate(
-					if (limit == Int.MAX_VALUE) StackSelection.UNBOUNDED
+					if (wholeStacks || limit == Int.MAX_VALUE) StackSelection.UNBOUNDED
 					else minOf(currentLimit, fromSelection.count.coerceAtLeast(1))
-				) { notEmpty() }
+				) { if (!countsAir) notEmpty() }
 
 			val pair =
 				fromContainers.firstNotNullOfOrNull { fromContainer ->
@@ -377,7 +381,11 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				return true
 			}
 
-			return move(pair, atMost = currentLimit)
+			return move(
+				pair,
+				if (wholeStacks) pair.fromSlot.stack.count(countsAir)
+				else currentLimit
+			)
 		}
 
 		private fun AutomatedSafeContext.findToSlot(fromSlot: Slot, toContainer: Container): Slot? {
@@ -404,21 +412,27 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 		private fun AutomatedSafeContext.move(pair: SlotPair, atMost: Int): Boolean {
 			val stack = pair.fromSlot.stack
-			val count = minOf(stack.count, atMost)
+			val size = stack.count(countsAir)
+			val count = minOf(size, atMost)
 			val cursor = CursorContainer.stacks.firstOrNull() ?: ItemStack.EMPTY
 			if (pair.toSlot.stack.isForeignTo(stack)) {
-				if (count != stack.count) {
+				if (count != size) {
 					finish()
 					return true
 				}
 				return swapOut(pair)
 			}
+			if (stack.isEmpty) {
+				recordMoved(size)
+				finish()
+				return true
+			}
 			return when (count) {
-				stack.count if cursor.isEmpty &&
+				size if cursor.isEmpty &&
 						allowQuickMove &&
 						quickMoveStaysInside(pair.fromContainer, stack) -> quickMoveWhole(pair)
 
-				stack.count if cursor.isEmpty &&
+				size if cursor.isEmpty &&
 						pair.toSlot.stack.isEmpty -> swapOut(pair)
 
 				else -> clickThrough(pair, count)
@@ -426,7 +440,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		}
 
 		private fun AutomatedSafeContext.swapOut(pair: SlotPair): Boolean {
-			val count = pair.fromSlot.stack.count
+			val count = pair.fromSlot.stack.count(countsAir)
 			val request = pair.fromContainer.swapRequest(pair.fromSlot, pair.toSlot, pair.toContainer)?.submit()
 			return when {
 				request == null -> {
@@ -466,8 +480,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				return true
 			}
 
-			val left = pair.fromSlot.stack.takeIf { it.sameItemAs(before) }?.count ?: 0
-			val count = before.count - left
+			val left = pair.fromSlot.stack.takeIf { it.sameItemAs(before) }?.count(countsAir) ?: 0
+			val count = before.count(countsAir) - left
 			if (count <= 0) {
 				finish()
 				return true

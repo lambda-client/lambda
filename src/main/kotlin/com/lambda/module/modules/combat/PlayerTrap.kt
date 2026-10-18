@@ -79,7 +79,7 @@ object PlayerTrap : Module(
 						}
 					}
 
-				val block = findStack(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
+				val block = findStack(selection, ContainerSelection.HOTBAR_AND_INVENTORY, sorted = false)
 					?.item?.block
 					?: return@tickingBlueprint emptyMap()
 

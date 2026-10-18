@@ -54,6 +54,7 @@ import com.lambda.util.FolderRegistry
 import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.extension.containerStacks
 import com.lambda.util.item.ItemStackUtils.count
+import com.lambda.util.item.ItemStackUtils.countMatching
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.player.SlotUtils.typeSafe
@@ -167,11 +168,11 @@ object ContainerHandler : Loadable {
 		stackSelection: StackSelection = StackSelection.ANYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
-	) = findContainers(containerSelection, false)
+) = findContainers(containerSelection, false)
 		.flatMap { it.slots }
 		.let { stackSelection.filter(it, sorted) }
-		.takeIf { (stackSelection.isUnbounded && it.isNotEmpty()) || it.count >= stackSelection.count }
-		?.takeUpTo(stackSelection.count) { it.stack.count }
+		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.countMatching(stackSelection.countEmptyAsOne) >= stackSelection.count) }
+		?.takeUpTo(stackSelection.count) { it.stack.count(stackSelection.countEmptyAsOne) }
 
 	@ContainerDslMarker
 	context(_: Automated)
@@ -196,11 +197,11 @@ object ContainerHandler : Loadable {
 		stackSelection: StackSelection = StackSelection.ANYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
-	) = findContainers(containerSelection, false)
+) = findContainers(containerSelection, false)
 		.flatMap { it.stacks }
 		.let { stackSelection.filter(it, sorted) }
-		.takeIf { (stackSelection.isUnbounded && it.isNotEmpty()) || it.count >= stackSelection.count }
-		?.takeUpTo(stackSelection.count) { it.count }
+		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.countMatching(stackSelection.countEmptyAsOne) >= stackSelection.count) }
+		?.takeUpTo(stackSelection.count) { it.count(stackSelection.countEmptyAsOne) }
 
 	@ContainerDslMarker
 	context(_: Automated)

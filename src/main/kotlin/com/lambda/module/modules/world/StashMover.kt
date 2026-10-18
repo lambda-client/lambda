@@ -42,6 +42,7 @@ import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
@@ -568,7 +569,7 @@ object StashMover : Module(
 			}
 			val move =
 				moveFromContainerToContainer(
-					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
+					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY, sorted = false)
 						.orEmpty()
 						.toList(),
 					screenHandler.containerStacks
@@ -612,7 +613,7 @@ object StashMover : Module(
 			if (!rotationRequest.done || rotation dist RotationManager.serverRotation > 0.001) return
 			val throwSlots =
 				findSlots(
-					stackSelection { notEmpty() },
+					stackSelection(StackSelection.UNBOUNDED) { notEmpty() },
 					ContainerSelection.HOTBAR_AND_INVENTORY
 				).orEmpty()
 					.toList()
@@ -634,7 +635,7 @@ object StashMover : Module(
 			}
 			val move =
 				moveFromContainerToContainer(
-					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
+					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY, sorted = false)
 						.orEmpty()
 						.toList(),
 					screenHandler.containerStacks
@@ -676,7 +677,7 @@ object StashMover : Module(
 			}
 			if (BaritoneHandler.isActive) return
 			if (HotbarContainer.stacks.none { it.isEmpty }) {
-				val firstSlot = findSlot(containerSelection = HotbarContainer.select())
+				val firstSlot = findSlot(containerSelection = HotbarContainer.select(), sorted = false)
 					?: run {
 						failWithLog("No first slot? This shouldn't occur.", ::failure)
 						return

@@ -139,7 +139,9 @@ class BreakSim internal constructor(simInfo: SimInfo)
 
 	private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
 		val stackSelection =
-			stackSelection(0) {
+			stackSelection(1) {
+				countEmptyAsOne()
+				alwaysWholeStacks()
 				if (breakConfig.efficientOnly) isEfficientForBreaking(state)
 				if (breakConfig.suitableToolsOnly) isSuitableForBreaking(state)
 				if (breakConfig.forceSilkTouch) withEnchantment(Enchantments.SILK_TOUCH)

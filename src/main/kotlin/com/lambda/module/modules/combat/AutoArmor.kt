@@ -27,6 +27,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackAndSlot
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
@@ -125,16 +126,15 @@ object AutoArmor : Module(
 			?.toList()
 			?: return
 		
-		val swappable =
+val swappable =
 			findSlots(
-				stackSelection {
+				stackSelection(StackSelection.UNBOUNDED) {
 					predicate { stack, _ -> stack.isEquipable(armorSlots) }
 					if (ignoreBinding) withoutEnchantment(Enchantments.BINDING_CURSE)
 					sortedWith(SORTER)
 				},
 				ContainerSelection.HOTBAR_AND_INVENTORY
-			)
-			?.distinctBy { it.stack.armorSlot }
+			)?.distinctBy { it.stack.armorSlot }
 				?: return
 
 		val swaps = mutableListOf<Pair<Slot, Slot>>()

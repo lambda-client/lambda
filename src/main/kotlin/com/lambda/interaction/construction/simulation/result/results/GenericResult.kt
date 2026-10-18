@@ -100,8 +100,7 @@ sealed class GenericResult : BuildResult() {
 
         context(_: Automated)
         override fun resolve() =
-            neededSelection
-                .transfer(toSelection = HotbarContainer.select())
+            neededSelection.transfer(toSelection = HotbarContainer.select())
 
         override fun RenderBuilder.render() {
             val center = pos.toCenterPos()

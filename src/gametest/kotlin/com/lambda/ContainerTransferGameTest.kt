@@ -24,6 +24,7 @@ import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.BuildConfig
 import com.lambda.config.blocks.InventoryConfig
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerSerializer
 import com.lambda.interaction.container.ContainerType
@@ -34,8 +35,10 @@ import com.lambda.interaction.container.containers.external.DoubleChestContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.containerSelection
+import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.task.RootTask
 import com.lambda.task.Task
@@ -331,6 +334,13 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			}
 		}
 
+		/** Runs [block] on the client with an automated context, for reading selections directly. */
+		fun <R> clientQuery(block: context(Automated) SafeContext.() -> R): R? {
+			var result: R? = null
+			onClient { runSafe { result = with(automated) { block() } } }
+			return result
+		}
+
 		fun transfer(
 			fromStack: StackSelection,
 			fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
@@ -579,6 +589,201 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			expectEquals(64, after.chest("A", STONE), "stone in A")
 			expectEquals(26 * 64, after.chest("A", DIRT), "dirt in A")
 			expectEquals(64, after.player(DIRT), "dirt with the player")
+		},
+
+		scenario("alwaysWholeStacks swaps a whole stack into a full inventory") {
+			// The hotbar and the main inventory are both completely full of items that do not match,
+			// so the only way the stack can arrive is a swap. Swapping cannot split, so the whole
+			// stack moves even though only one was asked for.
+			chest("A", stone(64))
+			repeat(9) { hotbar(it, bricks(64)) }
+			repeat(27) { inventory(it, gravel(64)) }
+			val outcome = transfer(
+				stackSelection(1) {
+					isItem(STONE)
+					alwaysWholeStacks()
+				},
+				chests("A"),
+				player
+			)
+			expectSuccess(outcome)
+			val after = expectClean()
+			expectEquals(64, after.player(STONE), "the whole stone stack with the player")
+			expectEquals(0, after.chest("A", STONE), "no stone left in A")
+			expectEquals(64, after.chests["A"].orEmpty().sumOf { it.count }, "the displaced stack went back into A")
+			expectEquals(
+				36 * 64 - 64,
+				after.player(BRICKS) + after.player(GRAVEL),
+				"exactly one of the player's own stacks made room for it"
+			)
+		},
+
+		scenario("alwaysWholeStacks reads the count as a minimum instead of splitting") {
+			// 20 of a 64 stack were asked for, but whole stacks only means the stack moves as it is.
+			chest("A", stone(64))
+			val outcome = transfer(
+				stackSelection(20) {
+					isItem(STONE)
+					alwaysWholeStacks()
+				},
+				chests("A"),
+				player
+			)
+			expectSuccess(outcome)
+			val after = expectClean()
+			expectEquals(64, after.player(STONE), "the whole stack moved rather than a partial count")
+			expectEquals(0, after.chest("A", STONE), "nothing left in A")
+		},
+
+		scenario("countEmptyAsOne lets the empty hand satisfy a search for one item") {
+			// Nothing but empty slots matches. By default that is zero items, so a search for one
+			// finds nothing; with countEmptyAsOne the matching empty slots count as one each.
+			server.runCommand("/clear $PLAYER")
+			chest("A")
+			val plain = stackSelection(1) { predicate { stack, _ -> stack.isEmpty } }
+			val plainFound =
+				clientQuery { findSlots(plain, ContainerSelection.HOTBAR_AND_INVENTORY).orEmpty().isNotEmpty() }
+			val emptyAsOneFound =
+				clientQuery {
+					findSlots(plain.mutate { countEmptyAsOne() }, ContainerSelection.HOTBAR_AND_INVENTORY)
+						.orEmpty()
+						.isNotEmpty()
+				}
+			expect(plainFound == false) { "an empty hand should not satisfy a search for one item by default" }
+			expect(emptyAsOneFound == true) { "countEmptyAsOne should let empty slots count as one item" }
+			expectClean()
+		},
+
+		scenario("countEmptyAsOne moves the empty hand into a full hotbar") {
+			// The hotbar is full of items the selection does not match and the main inventory has
+			// empty slots. Air counts as one item, so an empty slot is a valid source and the swap
+			// leaves the hotbar slot empty while its stack lands in the inventory.
+			repeat(9) { hotbar(it, bricks(64)) }
+			val outcome = transfer(
+				stackSelection(1) {
+					predicate { stack, _ -> stack.isEmpty }
+					countEmptyAsOne()
+					alwaysWholeStacks()
+				},
+				InventoryContainer.select(),
+				HotbarContainer.select()
+			)
+			expectSuccess(outcome)
+			val after = expectClean()
+			expectEquals(8 * 64, after.hotbar(BRICKS), "one hotbar stack made room for the empty hand")
+			expectEquals(64, after.inventory(BRICKS), "the displaced stack went to the main inventory")
+		},
+
+		scenario("alwaysWholeStacks keeps what a destination cannot take") {
+			// The destination has no empty slot and its one stone slot only has room for 54 more,
+			// so a whole stack cannot fit: what does not fit stays where it was rather than being
+			// dropped on the floor or left on the cursor.
+			chest("A", stone(64))
+			chest("B", stone(10), *Array(26) { dirt(64) })
+			val outcome = transfer(
+				stackSelection(20) {
+					isItem(STONE)
+					alwaysWholeStacks()
+				},
+				chests("A"),
+				chests("B")
+			)
+			expectSuccess(outcome)
+			val after = expectClean()
+			expectEquals(64, after.chest("B", STONE), "the destination slot is filled to its maximum")
+			expectEquals(26 * 64, after.chest("B", DIRT), "the rest of the destination is untouched")
+			expectEquals(10, after.player(STONE), "the remainder stayed with the source")
+			expectEquals(0, after.chest("A", STONE), "and nothing is left behind in A")
+		},
+
+		scenario("countEmptyAsOne is satisfied by an empty destination without moving anything") {
+			// The source is air and the destination is empty too, so there is nothing to click: the
+			// item is accounted for and the pre-existing stack is left alone.
+			chest("A")
+			hotbar(0, stone(10))
+			val outcome = transfer(
+				stackSelection(1) {
+					predicate { stack, _ -> stack.isEmpty }
+					countEmptyAsOne()
+					alwaysWholeStacks()
+				},
+				InventoryContainer.select(),
+				chests("A")
+			)
+			expectSuccess(outcome)
+			val after = expectClean()
+			expectEquals(10, after.hotbar(STONE), "the stone in the hotbar is untouched")
+			expectEquals(0, after.chest("A", STONE), "nothing was put into the empty chest")
+		},
+
+		scenario("countEmptyAsOne clears a chest slot by swapping air into it") {
+			// The chest is full, so there is no empty slot to be satisfied by and the only way for the
+			// air to arrive is a swap: one chest slot becomes empty and its stack comes over.
+			fullChest("A", stone(64))
+			val outcome = transfer(
+				stackSelection(1) {
+					predicate { stack, _ -> stack.isEmpty }
+					countEmptyAsOne()
+				},
+				InventoryContainer.select(),
+				chests("A")
+			)
+			expectSuccess(outcome)
+			val after = expectClean()
+			expectEquals(26 * 64, after.chest("A", STONE), "one chest slot is empty now")
+			expectEquals(64, after.inventory(STONE), "its stack came to the main inventory")
+		},
+
+		scenario("countEmptyAsOne caps how many empty slots a search returns") {
+			// 36 empty slots each count as one item, so a search for five returns five of them and
+			// not every empty slot the player has.
+			server.runCommand("/clear $PLAYER")
+			val found =
+				clientQuery {
+					findSlots(
+						stackSelection(5) {
+							predicate { stack, _ -> stack.isEmpty }
+							countEmptyAsOne()
+						},
+						ContainerSelection.HOTBAR_AND_INVENTORY
+					).orEmpty().size
+				}
+			expectEquals(5, found, "the count caps the empty slots a search returns")
+			expectClean()
+		},
+
+		scenario("a count of zero still moves nothing even when empty slots count as one") {
+			// Zero is a quantity: the transfer is complete before it starts, the flag does not
+			// turn it into "move one air".
+			chest("A", stone(64))
+			val outcome = transfer(
+				stackSelection(0) {
+					isItem(STONE)
+					countEmptyAsOne()
+				},
+				chests("A"),
+				player
+			)
+			expectSuccess(outcome)
+			val after = expectClean()
+			expectEquals(64, after.chest("A", STONE), "the chest is untouched")
+			expectEquals(0, after.player(STONE), "and nothing came out")
+		},
+
+		scenario("alwaysWholeStacks with no count takes every matching slot whole") {
+			chest("A", stone(64), stone(64))
+			val outcome = transfer(
+				stackSelection(StackSelection.UNBOUNDED) {
+					isItem(STONE)
+					alwaysWholeStacks()
+				},
+				chests("A"),
+				player
+			)
+			expectSuccess(outcome)
+			val after = expectClean()
+			expectEquals(128, after.player(STONE), "both whole stacks came over")
+			expectEquals(0, after.chest("A", STONE), "nothing left in A")
 		},
 
 		scenario("move a stack between two chests through the player inventory") {

@@ -163,7 +163,7 @@ object BetterFirework : Module(
 	fun SafeContext.startFirework(inventory: Boolean) {
 		val selection = Items.FIREWORK_ROCKET.select(1)
 
-		val hotbarMatch = selection.bestMatch(HotbarContainer.slots)
+		val hotbarMatch = findSlot(selection, HotbarContainer.select(), sorted = false)
 		if (hotbarMatch != null) {
 			swapAndFirework(hotbarMatch.index)
 			return
@@ -171,11 +171,12 @@ object BetterFirework : Module(
 
 		if (!inventory) return
 
-		val inventoryMatch = findSlot(containerSelection = InventoryContainer.select()) ?: return
+		val inventoryMatch = findSlot(selection, InventoryContainer.select(), sorted = false) ?: return
 		val hotbarSlot =
 			findSlot(
 				stackSelection { isEmpty() },
-				HotbarContainer.select()
+				HotbarContainer.select(),
+				sorted = false
 			)?.index
 				?: 8
 

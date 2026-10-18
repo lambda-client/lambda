@@ -15,20 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.module.modules.hud
 
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runSafe
+import com.lambda.task.RootTask
 
 @Suppress("unused")
-object AccountName : HudModule(
-    name = "AccountName",
-    description = "Displays the current accounts name",
-    tag = ModuleTag.HUD
+object TaskFlowHud : HudModule(
+    name = "TaskFlowHud",
+    tag = ModuleTag.HUD,
 ) {
     override fun ImGuiBuilder.buildLayout() {
-        runSafe { text(player.name.string) }
+        text(RootTask.toString())
     }
 }

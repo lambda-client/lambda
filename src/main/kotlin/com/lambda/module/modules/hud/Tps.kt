@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.module.modules.hud
 
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImVec2

@@ -22,6 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.ContainerHandler.slotsAvailable
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
@@ -45,6 +46,10 @@ class AcquireStackTask @Ta5kBuilder internal constructor(
 
     override fun SafeContext.onStart() {
         runSafeAutomated {
+            if (slotsAvailable(selection, HotbarContainer.select())) {
+                success(selection)
+                return@runSafeAutomated
+            }
             selection.transfer(toSelection = HotbarContainer.select())
                 .onSuccess { result -> success(result.stackSelection) }
                 .start()

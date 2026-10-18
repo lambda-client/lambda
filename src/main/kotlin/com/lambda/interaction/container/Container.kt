@@ -32,7 +32,7 @@ import com.lambda.interaction.manager.managers.inventory.InventoryRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.util.Nameable
-import com.lambda.util.item.ItemStackUtils.count
+import com.lambda.util.item.ItemStackUtils.countMatching
 import com.lambda.util.item.ItemStackUtils.emptySpace
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemStackUtils.spaceLeft
@@ -127,12 +127,12 @@ abstract class Container(
     context(automated: Automated)
     open fun access(): OpenContainerTask<*>? = null
 
-    open fun count(selection: StackSelection) =
-        slots
-            .takeUnless { it.isEmpty() }
-            ?.let {
-                selection.filter(it, false).count
-            } ?: selection.filter(stacks, false).count
+open fun count(selection: StackSelection) =
+		slots
+			.takeUnless { it.isEmpty() }
+			?.let {
+				selection.filter(it, false).countMatching(selection.countEmptyAsOne)
+			} ?: selection.filter(stacks, false).countMatching(selection.countEmptyAsOne)
 
     open fun spaceLeft(selection: StackSelection) =
         slots

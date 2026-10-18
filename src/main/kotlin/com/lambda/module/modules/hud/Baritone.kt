@@ -15,26 +15,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.module.modules.hud
 
-import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImGui
+import com.lambda.interaction.construction.simulation.BuildGoal
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 
 @Suppress("unused")
-object Watermark : HudModule(
-    name = "Watermark",
+object Baritone : HudModule(
+    name = "Baritone",
+    description = "Look inside of Baritones head",
     tag = ModuleTag.HUD,
-    enabledByDefault = true,
 ) {
-    private val texture = upload("textures/lambda.png")
-    private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
-
     override fun ImGuiBuilder.buildLayout() {
-        val width = texture.width * scale
-        val height = texture.height * scale
-        ImGui.image(texture.id.toLong(), width, height)
+        if (!BaritoneHandler.baritoneAvailable) {
+            text("Baritone is not loaded")
+            return
+        }
+
+        BaritoneHandler.primary?.customGoalProcess?.goal?.let {
+            when(it) {
+                is BuildGoal -> text("Lambda Simulation: ${it.sim}")
+                else -> text("Baritone: $it")
+            }
+        } ?: text("No Baritone Process Running")
     }
 }

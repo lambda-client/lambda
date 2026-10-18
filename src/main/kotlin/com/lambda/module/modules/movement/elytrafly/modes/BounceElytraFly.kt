@@ -29,7 +29,7 @@ import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.GlideHandler
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
-import com.lambda.module.hud.Speedometer
+import com.lambda.module.modules.hud.Speedometer
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.module.modules.movement.elytrafly.ObstaclePassingMode

@@ -26,6 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffhandContainer
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
@@ -68,7 +69,7 @@ object StackReplenish : Module(
 
 		val replenishSlots =
 			findSlots(
-				stackSelection {
+				stackSelection(StackSelection.UNBOUNDED) {
 					predicate { s, _ -> ItemStack.areItemsAndComponentsEqual(s, stack) }
 				},
 				InventoryContainer.select()

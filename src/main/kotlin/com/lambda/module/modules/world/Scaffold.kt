@@ -82,7 +82,7 @@ object Scaffold : Module(
 				}
 			}
 			val stack = player.mainHandStack.takeIf { selection.matches(it) }
-				?: findStack(containerSelection = HotbarContainer.select()) ?: return@listen
+				?: findStack(selection, HotbarContainer.select(), sorted = false) ?: return@listen
 			val playerSupport = player.blockPos.down()
 			val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
 			if (alreadySupported) return@listen

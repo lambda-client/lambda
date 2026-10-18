@@ -15,19 +15,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.module.modules.hud
 
+import com.lambda.config.blocks.FormatterSettings
+import com.lambda.config.editSetting
+import com.lambda.config.withEdits
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
-import com.lambda.task.RootTask
+import com.lambda.threading.runSafe
+import com.lambda.util.FormattingUtils.format
 
 @Suppress("unused")
-object TaskFlowHud : HudModule(
-    name = "TaskFlowHud",
-    tag = ModuleTag.HUD,
+object Rotation : HudModule(
+	name = "Rotation",
+	description = "Show your rotation",
+	tag = ModuleTag.HUD,
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        text(RootTask.toString())
-    }
+	private val formatter by configBlock(FormatterSettings(this))
+		.withEdits {
+			::timeFormat.editSetting { hide() }
+		}
+
+	override fun ImGuiBuilder.buildLayout() {
+		runSafe {
+			val rotation = player.rotationClient.format(formatter)
+			textCopyable(rotation)
+		}
+	}
 }

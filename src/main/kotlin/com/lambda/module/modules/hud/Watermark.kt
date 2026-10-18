@@ -15,41 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.module.modules.hud
 
+import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.imgui.ImGui
 import com.lambda.module.HudModule
-import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleTag
-import java.awt.Color
 
 @Suppress("unused")
-object ModuleList : HudModule(
-    name = "ModuleList",
+object Watermark : HudModule(
+    name = "Watermark",
     tag = ModuleTag.HUD,
+    enabledByDefault = true,
 ) {
-	val onlyBound by setting("Only Bound", false, "Only displays modules with a keybind")
-	val showKeybind by setting("Show Keybind", true, "Display keybind next to a module")
-
-    init {
-        drawSetting.value = false
-    }
+    private val texture = upload("textures/lambda.png")
+    private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
 
     override fun ImGuiBuilder.buildLayout() {
-        val enabled = ModuleRegistry.modules.filter { it.isEnabled && it.draw }
-
-        enabled.forEach {
-            val bound = it.keybind.key != 0 || it.keybind.mouse != -1
-            if (onlyBound && !bound) return@forEach
-            text(it.name)
-
-	        if (showKeybind) {
-		        val color = if (!bound) Color.RED else Color.GREEN
-
-		        sameLine()
-		        withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
-	        }
-        }
+        val width = texture.width * scale
+        val height = texture.height * scale
+        ImGui.image(texture.id.toLong(), width, height)
     }
 }

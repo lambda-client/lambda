@@ -15,31 +15,41 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.module.modules.hud
 
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.interaction.construction.simulation.BuildGoal
-import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.module.HudModule
+import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleTag
+import java.awt.Color
 
 @Suppress("unused")
-object Baritone : HudModule(
-    name = "Baritone",
-    description = "Look inside of Baritones head",
+object ModuleList : HudModule(
+    name = "ModuleList",
     tag = ModuleTag.HUD,
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        if (!BaritoneHandler.baritoneAvailable) {
-            text("Baritone is not loaded")
-            return
-        }
+	val onlyBound by setting("Only Bound", false, "Only displays modules with a keybind")
+	val showKeybind by setting("Show Keybind", true, "Display keybind next to a module")
 
-        BaritoneHandler.primary?.customGoalProcess?.goal?.let {
-            when(it) {
-                is BuildGoal -> text("Lambda Simulation: ${it.sim}")
-                else -> text("Baritone: $it")
-            }
-        } ?: text("No Baritone Process Running")
+    init {
+        drawSetting.value = false
+    }
+
+    override fun ImGuiBuilder.buildLayout() {
+        val enabled = ModuleRegistry.modules.filter { it.isEnabled && it.draw }
+
+        enabled.forEach {
+            val bound = it.keybind.key != 0 || it.keybind.mouse != -1
+            if (onlyBound && !bound) return@forEach
+            text(it.name)
+
+	        if (showKeybind) {
+		        val color = if (!bound) Color.RED else Color.GREEN
+
+		        sameLine()
+		        withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
+	        }
+        }
     }
 }

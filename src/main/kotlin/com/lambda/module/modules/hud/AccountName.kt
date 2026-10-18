@@ -15,32 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.module.modules.hud
 
-import com.lambda.config.blocks.FormatterSettings
-import com.lambda.config.editSetting
-import com.lambda.config.withEdits
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.FormattingUtils.format
 
 @Suppress("unused")
-object Rotation : HudModule(
-	name = "Rotation",
-	description = "Show your rotation",
-	tag = ModuleTag.HUD,
+object AccountName : HudModule(
+    name = "AccountName",
+    description = "Displays the current accounts name",
+    tag = ModuleTag.HUD
 ) {
-	private val formatter by configBlock(FormatterSettings(this))
-		.withEdits {
-			::timeFormat.editSetting { hide() }
-		}
-
-	override fun ImGuiBuilder.buildLayout() {
-		runSafe {
-			val rotation = player.rotationClient.format(formatter)
-			textCopyable(rotation)
-		}
-	}
+    override fun ImGuiBuilder.buildLayout() {
+        runSafe { text(player.name.string) }
+    }
 }

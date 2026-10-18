@@ -64,7 +64,7 @@ object AutoElytraSwap : Module(
 	}
 
 	private fun swapWithChestplate(swapSlot: Slot): Boolean {
-		val chestplateSlot = findSlots(containerSelection = ArmorContainer.select())
+		val chestplateSlot = findSlots(containerSelection = ArmorContainer.select(), sorted = false)
 			.orEmpty()
 			.toList()
 			.getOrNull(1)

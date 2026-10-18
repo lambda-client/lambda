@@ -38,7 +38,6 @@ import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
 import com.lambda.util.PlaceDirection
-import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.minus
@@ -59,7 +58,6 @@ import net.minecraft.entity.Entity
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
-import net.minecraft.item.Items
 import net.minecraft.screen.slot.Slot
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
@@ -206,9 +204,11 @@ class InteractSim internal constructor(simInfo: InteractSimInfo)
 		}
 
 		val stackSelection =
-			stackSelection(if (item == Items.AIR) 0 else 1) {
+			stackSelection(1) {
+				countEmptyAsOne()
+				alwaysWholeStacks()
 				item?.let { isItem(it) }
-				sortedWith { compareByDescending { it.stack.inventoryIndex == player.inventory.selectedSlot } }
+				sortedWith { compareByDescending { it.slot?.index == player.inventory.selectedSlot } }
 			}
 
 		return findSlot(stackSelection, HotbarContainer.select())

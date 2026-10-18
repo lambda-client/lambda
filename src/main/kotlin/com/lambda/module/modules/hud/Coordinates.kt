@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.module.modules.hud
 
 import com.lambda.config.Tab
 import com.lambda.config.blocks.FormatterSettings

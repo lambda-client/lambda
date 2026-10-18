@@ -25,6 +25,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
@@ -54,7 +55,7 @@ object ToolSaver : Module(
 		listen<TickEvent.Pre> {
 			val endangeredSlots =
 				findSlots(
-					stackSelection { predicate { stack, _ -> stack.isEndangered } },
+					stackSelection(StackSelection.UNBOUNDED) { predicate { stack, _ -> stack.isEndangered } },
 					HotbarContainer.select()
 				)
 

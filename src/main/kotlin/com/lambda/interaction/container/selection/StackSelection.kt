@@ -26,6 +26,7 @@ import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.container.identity
 import com.lambda.interaction.manager.managers.inventory.InventoryManager
 import com.lambda.util.EnchantmentUtils.getEnchantment
+import com.lambda.util.item.ItemStackUtils.orZero
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils
 import net.minecraft.block.Block
@@ -65,12 +66,14 @@ class StackSelection @ContainerDslMarker internal constructor(
 	val item: Item? = null,
 	val itemStack: ItemStack? = null,
 	val shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.Both,
+	val countEmptyAsOne: Boolean = false,
+	val alwaysWholeStacks: Boolean = false,
 	val comparator: Comparator<StackAndSlot<*>> = compareBy { it.stack.count },
 	val selector: (ItemStack, Slot?) -> Boolean,
 ) {
 	val optimalStack = itemStack ?: item?.let { ItemStack(it, count) }
 
-	val isUnbounded: Boolean get() = count <= 0
+	val isUnbounded: Boolean get() = count < 0
 
 	@ContainerDslMarker
 	fun bestMatch(stacks: Iterable<ItemStack>) = filter(stacks).firstOrNull()
@@ -177,14 +180,13 @@ class StackSelection @ContainerDslMarker internal constructor(
 	infix fun isIn(container: Container) =
 		container.count(this) >= count
 
-	// Container.count() reports -1 for "no matching slot", which must not eat into the other containers' totals.
 	@ContainerDslMarker
 	fun isIn(vararg containers: Container) =
-		containers.sumOf { it.count(this).coerceAtLeast(0) } >= count
+		containers.sumOf { it.count(this).orZero } >= count
 
 	@ContainerDslMarker
 	infix fun isIn(containers: Iterable<Container>) =
-		containers.sumOf { it.count(this).coerceAtLeast(0) } >= count
+		containers.sumOf { it.count(this).orZero } >= count
 
 	@ContainerDslMarker
 	infix fun spaceIn(container: Container) =
@@ -207,7 +209,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 		slots.count { it.stack.isEmpty && canInsert(it) }
 
 	companion object {
-		const val UNBOUNDED = 0
+		const val UNBOUNDED = -1
 
 		val ANYTHING = StackSelection(UNBOUNDED) { _, _ -> true }
 		val NOTHING = StackSelection { _, _ -> false }
@@ -225,6 +227,8 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 	private var itemStack: ItemStack? = null
 	private var comparator: Comparator<StackAndSlot<*>>? = null
 	private var shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.NotInShulkerBox
+	private var countEmptyAsOne = false
+	private var alwaysWholeStacks = false
 
 	@ContainerDslMarker
 	internal constructor(
@@ -238,6 +242,8 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		this.itemStack = selection.itemStack
 		this.comparator = selection.comparator
 		this.shulkerBoxScope = selection.shulkerBoxScope
+		this.countEmptyAsOne = selection.countEmptyAsOne
+		this.alwaysWholeStacks = selection.alwaysWholeStacks
 	}
 
 	fun withSelection(stackSelection: StackSelection) {
@@ -427,6 +433,14 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		appendSelector { stack, _ -> stack.isEmpty }
 	}
 
+	fun countEmptyAsOne() {
+		this.countEmptyAsOne = true
+	}
+
+	fun alwaysWholeStacks() {
+		this.alwaysWholeStacks = true
+	}
+
 	fun notEmpty() {
 		appendSelector { stack, _ -> !stack.isEmpty }
 	}
@@ -587,6 +601,8 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 			item,
 			itemStack,
 			shulkerBoxScope,
+			countEmptyAsOne,
+			alwaysWholeStacks,
 			comparator ?: compareBy { it.stack.count },
 			selector
 		)
