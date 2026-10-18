@@ -8,6 +8,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.find.AccessStances.liveSection
+import com.lambda.pathing.find.AccessStances.liveView
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.session.CoarseService
 import com.lambda.pathing.session.InterestPrimer
@@ -136,7 +138,7 @@ object BlockFinder : Loadable {
 			val sections = HashMap<Long, ImmutableSnapshotSection?>()
 			val radius = MinecraftClient.getInstance().options.clampedViewDistance + Vanilla.CHUNK_MAP_MARGIN
 			return choose(player.pos, HashSet(excluded), Double.POSITIVE_INFINITY, { nearest -> LoadedBlocks.scan(world, player.pos, radius, query, nearest) }) { target ->
-				AccessStances.view(target, minY, maxY) { key -> if (key in sections) sections[key] else sample(sampler, key).also { sections[key] = it } }
+				AccessStances.view(target, minY, maxY) { key -> if (key in sections) sections[key] else liveSection(sampler, key).also { sections[key] = it } }
 			}
 		}
 
@@ -160,16 +162,6 @@ object BlockFinder : Loadable {
 				}
 			}
 			return chosen
-		}
-
-		private fun SafeContext.sample(sampler: BlockPhysicsSampler, sectionKey: Long): ImmutableSnapshotSection? {
-			if (!world.chunkManager.isChunkLoaded(ChunkSectionPos.unpackX(sectionKey), ChunkSectionPos.unpackZ(sectionKey))) return null
-			val baseX = ChunkSectionPos.unpackX(sectionKey) shl 4
-			val baseY = ChunkSectionPos.unpackY(sectionKey) shl 4
-			val baseZ = ChunkSectionPos.unpackZ(sectionKey) shl 4
-			val builder = ImmutableSnapshotSection.Builder()
-			for (y in baseY until baseY + 16) for (z in baseZ until baseZ + 16) for (x in baseX until baseX + 16) builder.set(x, y, z, sampler.physicsAt(x, y, z))
-			return builder.build()
 		}
 
 		private fun SafeContext.nearestUnloaded(origin: Vec3d, loaded: LongOpenHashSet): Double {
@@ -267,8 +259,7 @@ object BlockFinder : Loadable {
 				if (!query.matches(world.getBlockState(target))) return retry(current, "is gone")
 				if (!verified && AccessStances.loaded(target, world.chunkManager::isChunkLoaded)) {
 					verified = true
-					val sampler = BlockPhysicsSampler(world, ShapeContext.absent(), AutomationConfig.DEFAULT.pathingConfig.hazards)
-					val view = AccessStances.view(target, world.bottomY, world.bottomY + world.height - 1) { sample(sampler, it) }
+					val view = liveView(target)
 					if (!Footing.standsAt(view, current.stance)) {
 						val stance = AccessStances.choose(view, target, player.pos, on = follow) ?: return retry(current, "has no place to stand beside it")
 						route(Choice(current.block, stance))

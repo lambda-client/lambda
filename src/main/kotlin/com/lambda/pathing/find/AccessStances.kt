@@ -1,11 +1,15 @@
 package com.lambda.pathing.find
 
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.context.SafeContext
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
+import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import net.minecraft.block.ShapeContext
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
@@ -32,6 +36,26 @@ internal object AccessStances {
 				?.let { return it }
 		}
 		return null
+	}
+
+	fun clicked(view: CoarseVoxelView, target: BlockPos, player: Vec3d): Stance? =
+		listOf(Stance(target.x, target.y, target.z), Stance(target.x, target.y + 1, target.z))
+			.firstOrNull { it.y in view.simulableStanceY && Footing.standsAt(view, it) }
+			?: choose(view, target, player)
+
+	fun SafeContext.liveView(target: BlockPos): CoarseVoxelView {
+		val sampler = BlockPhysicsSampler(world, ShapeContext.absent(), AutomationConfig.DEFAULT.pathingConfig.hazards)
+		return view(target, world.bottomY, world.bottomY + world.height - 1) { liveSection(sampler, it) }
+	}
+
+	fun SafeContext.liveSection(sampler: BlockPhysicsSampler, sectionKey: Long): ImmutableSnapshotSection? {
+		if (!world.chunkManager.isChunkLoaded(ChunkSectionPos.unpackX(sectionKey), ChunkSectionPos.unpackZ(sectionKey))) return null
+		val baseX = ChunkSectionPos.unpackX(sectionKey) shl 4
+		val baseY = ChunkSectionPos.unpackY(sectionKey) shl 4
+		val baseZ = ChunkSectionPos.unpackZ(sectionKey) shl 4
+		val builder = ImmutableSnapshotSection.Builder()
+		for (y in baseY until baseY + 16) for (z in baseZ until baseZ + 16) for (x in baseX until baseX + 16) builder.set(x, y, z, sampler.physicsAt(x, y, z))
+		return builder.build()
 	}
 
 	fun view(target: BlockPos, minY: Int, maxY: Int, section: (Long) -> ImmutableSnapshotSection?): CoarseVoxelView {

@@ -22,6 +22,8 @@ import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomat
 import com.lambda.config.editSetting
 import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
@@ -36,7 +38,9 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.pathing.api.PathingService.walkTo
 import com.lambda.threading.runSafe
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.rotation
@@ -67,6 +71,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.GameMode
+import org.lwjgl.glfw.GLFW
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -84,6 +89,8 @@ object Freecam : Module(
 	private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
 	private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode").onValueChange { _, it -> if (it == FreecamRotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
 	private val relative by setting("Relative", false, "Moves freecam relative to player position") { mode == Mode.Free }.onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
+	private val pathBind: Bind by setting("Path Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Walk to the block under the crosshair")
+		.onPress { if (pathToTarget()) it.cancel() }
 	private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement") { mode == Mode.Free && relative }
 
 	// Follow Player settings
@@ -125,6 +132,8 @@ object Freecam : Module(
 	 * @see net.minecraft.entity.Entity.changeLookDirection
 	 */
 	private const val SENSITIVITY_FACTOR = 0.15
+
+	private const val PATH_REACH = 256.0
 
 	init {
 		setDefaultAutomationConfig()
@@ -234,6 +243,16 @@ object Freecam : Module(
 		listenUnsafe<PacketEvent.Receive.Pre> { event ->
 			if (event.packet is PlayerRespawnS2CPacket) disable()
 		}
+	}
+
+	private fun SafeContext.pathToTarget(): Boolean {
+		if (!isEnabled) return false
+		val hit = rotation.rayCast(PATH_REACH, lerpPos) as? BlockHitResult ?: return false
+		if (hit.type != HitResult.Type.BLOCK) return false
+		val stance = walkTo(hit.blockPos)
+		if (stance == null) info("No place to stand at ${hit.blockPos.toShortString()}.")
+		else info("Pathing to ${stance.x}, ${stance.y}, ${stance.z}.")
+		return true
 	}
 
 	private fun SafeContext.findFollowTarget(): PlayerEntity? {

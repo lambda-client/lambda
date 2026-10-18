@@ -37,6 +37,7 @@ import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.chunk.PaletteProvider
 import net.minecraft.world.chunk.PalettedContainer
 import java.io.DataOutputStream
@@ -227,6 +228,22 @@ class BlockFinderTest {
 		assertNull(search(query("chest"), store = store, baritone = baritone), "the store recorded the section after the chest was gone")
 		val loaded = LongOpenHashSet().apply { for (chunkX in 0..1) for (chunkZ in 0..1) add(ChunkPos.toLong(chunkX, chunkZ)) }
 		assertNull(search(query("stone"), store = store, loaded = loaded), "a loaded chunk is searched live, never from the caches")
+	}
+
+	@Test
+	fun `a clicked block or carpet is walked onto, a clicked plate is walked into`() {
+		MinecraftBootstrap.ensure()
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -2..8) for (z in -2..2) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
+		blocks[BlockPos(2, 64, 0)] = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.0625, 1.0))
+		blocks[BlockPos(4, 64, 0)] = SnapshotBlockPhysics.of(VoxelShapes.empty())
+		blocks[BlockPos(6, 64, 0)] = SnapshotBlockPhysics.FULL_CUBE
+		val view = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-8, 56, -8, 16, 80, 8), blocks)
+		val origin = Vec3d(0.5, 64.0, 0.5)
+		assertEquals(Stance(0, 64, 0), AccessStances.clicked(view, BlockPos(0, 63, 0), origin))
+		assertEquals(Stance(2, 65, 0), AccessStances.clicked(view, BlockPos(2, 64, 0), origin))
+		assertEquals(Stance(4, 64, 0), AccessStances.clicked(view, BlockPos(4, 64, 0), origin))
+		assertEquals(Stance(6, 65, 0), AccessStances.clicked(view, BlockPos(6, 64, 0), origin))
 	}
 
 	private fun search(

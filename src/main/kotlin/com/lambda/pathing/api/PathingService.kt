@@ -1,8 +1,11 @@
 package com.lambda.pathing.api
 
+import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
+import com.lambda.pathing.find.AccessStances
+import com.lambda.pathing.find.AccessStances.liveView
 import com.lambda.pathing.find.BlockFinder
 import com.lambda.pathing.find.EntityFollower
 import net.minecraft.entity.Entity
@@ -13,6 +16,7 @@ import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.session.Telemetry
 import com.lambda.pathing.world.streaming.PathingWorld
 import net.minecraft.block.pattern.CachedBlockPosition
+import net.minecraft.util.math.BlockPos
 import java.util.function.Predicate
 
 object PathingService {
@@ -21,6 +25,12 @@ object PathingService {
 		BlockFinder.cancel()
 		EntityFollower.cancel()
 		return PathingManager.route(automated, waypoints)
+	}
+
+	fun SafeContext.walkTo(block: BlockPos): Stance? {
+		val stance = AccessStances.clicked(liveView(block), block, player.pos) ?: return null
+		route(AutomationConfig.DEFAULT, listOf(stance))
+		return stance
 	}
 
 	fun rehearse(automated: Automated, waypoints: List<Stance>): PathingRequest? {
