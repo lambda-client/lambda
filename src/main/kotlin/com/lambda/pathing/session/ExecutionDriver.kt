@@ -117,7 +117,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		walk.replay = null
 		walk.tickInput = null
 		walk.state = State.Complete(path.plan.tape.frameCount, walk.leg)
-		walk.release()
+		walk.release(park = true)
 		val telemetry = walk.telemetry
 		info(
 			"Reached ${path.finalGoal}: ${path.plan.tape.frameCount} frames, " +

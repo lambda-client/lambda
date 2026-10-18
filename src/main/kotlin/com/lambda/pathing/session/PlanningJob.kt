@@ -144,10 +144,6 @@ internal class PlanningJob(
 		return improve(spine, legs, began, live = false)
 	}
 
-	/**
-	 * Keeps improving a live walk's complete tape ahead of the body while it walks, like a performing rehearsal. A
-	 * partial tape (far goal, horizon still extending) is left to the search itself.
-	 */
 	private fun improveLive(outcome: PathPlanResult, follower: CoarseFollower): PathPlanResult {
 		if (!preparation.liveImprover || cancelled()) return outcome
 		val path = (outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial } ?: return outcome

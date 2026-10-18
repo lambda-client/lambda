@@ -116,7 +116,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		)
 
 		val preparation = when (val prepared = preparePlanning(
-			player, request, request.goal, walk.remainingWaypoints(),
+			player, request, walk.goal, walk.remainingWaypoints(),
 		)) {
 			is PlanningPreparationResult.Ready -> prepared.preparation
 			is PlanningPreparationResult.Failed -> return with(walk) { fail(prepared.reason) }
@@ -276,6 +276,13 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		}
 	}
 
+	fun SafeContext.retargeted() {
+		successor?.cancel()
+		successor = null
+		successorPath = null
+		if (current == null && walk.replay != null) planSuccessor()
+	}
+
 	fun SafeContext.planSuccessor() {
 		if (successor != null || successorPath != null) return
 		val running = walk.replay?.path ?: return
@@ -284,7 +291,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 		val preparation = when (
 			val prepared = preparePlanning(
-				player, request, request.goal, walk.remainingWaypoints(), initialOverride = terminal,
+				player, request, walk.goal, walk.remainingWaypoints(), initialOverride = terminal,
 			)
 		) {
 			is PlanningPreparationResult.Ready -> prepared.preparation

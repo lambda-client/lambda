@@ -3,7 +3,6 @@ package com.lambda.pathing.search
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MeasuredMotion
 
-/** The startup loss a stored velocity along the route has already paid, at the measured rate of a sprint at cruise. */
 internal fun momentumCredit(speed: Double, alignment: Double): Double {
 	val aligned = speed * alignment.coerceIn(-1.0, 1.0)
 	if (aligned <= 0.0) return 0.0

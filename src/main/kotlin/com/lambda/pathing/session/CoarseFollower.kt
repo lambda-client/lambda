@@ -51,10 +51,6 @@ internal class CoarseFollower(
 	private var checkedRoute: CoarseRoutePlan? = null
 	private val hopeless = HashSet<Pair<Stance, Stance>>()
 
-	/**
-	 * The frames each walked leg was planned on. Later frames re-root at the walker and label only the band around
-	 * their own route, so [planLegs] unites them; without [keepsWalkedFrames] only the entry frame is kept.
-	 */
 	private val walked = HashMap<Int, MutableList<CoarseService.Frame>>()
 
 	val field = SwitchableValueField(edges.field(first.goal, first.labels, first.sequence))
@@ -108,6 +104,8 @@ internal class CoarseFollower(
 	}
 
 	override fun capturable(sectionX: Int, sectionZ: Int): Boolean = world?.chunkCapturable(sectionX, sectionZ) ?: true
+
+	override val finalGoal: Stance get() = coarse.goal(coarse.legCount - 1)
 
 	override fun hasNext(): Boolean {
 		val active = breath
@@ -232,7 +230,6 @@ internal class CoarseFollower(
 	}
 
 	private companion object {
-		/** Frames kept per walked leg: its entry frame and the latest ones, so long walks do not hoard labels. */
 		const val MAX_WALKED_FRAMES = 16
 	}
 }

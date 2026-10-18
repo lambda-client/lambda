@@ -47,6 +47,7 @@ internal fun walkHorizon(
 
 	fun stamp(seed: MotionPlanResult.Success, partial: Boolean, sequence: Int): PublishedPath {
 		val planMillis = System.currentTimeMillis() - started
+		val finalGoal = legs?.finalGoal ?: finalGoal
 		return PublishedPath(
 			route = seed.sourceRoute,
 			plan = seed.plan,

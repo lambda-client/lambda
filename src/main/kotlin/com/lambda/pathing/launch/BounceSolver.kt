@@ -200,7 +200,6 @@ object BounceSolver {
 		return if (floor <= ceiling) floor..ceiling else null
 	}
 
-	/** Ticks of the quickest bounce, walked off or jumped, whose arc carries [distance] from the take-off stance centre. */
 	fun ticks(drop: Int, rise: Int, distance: Double, bounces: Int = 1, ledgeDepth: Double = 0.0): Int? {
 		val depth = drop.toDouble()
 		val height = rise - ledgeDepth

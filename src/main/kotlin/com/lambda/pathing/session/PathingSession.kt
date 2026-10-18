@@ -48,6 +48,9 @@ class PathingSession internal constructor(
 
 	internal var leg = 0
 
+	internal var goal: Stance = request.goal
+		private set
+
 	internal var passedWaypoints = 0
 
 	internal fun remainingWaypoints(): List<Stance> = request.waypoints.drop(passedWaypoints)
@@ -149,11 +152,24 @@ class PathingSession internal constructor(
 		journey?.world?.onChunkEvent(chunkX, chunkZ)
 	}
 
-	internal fun release() {
+	internal fun release(park: Boolean = false) {
 		launcher.cancel()
 		active = false
-		journey?.cancel()
+		val parked = journey?.takeIf { park && request.waypoints.isEmpty() && rehearsal == null }
+		if (parked != null) PathingManager.park(parked) else journey?.cancel()
 		journey = null
+	}
+
+	internal fun SafeContext.retarget(goal: Stance): Boolean {
+		if (!active || rehearsal != null || request.waypoints.isNotEmpty()) return false
+		if (state is State.Complete || state is State.Failed) return false
+		val resolved = resolveGoalStance(player, goal)
+		if (resolved == this@PathingSession.goal) return true
+		val journey = journey
+		if (journey != null && !journey.retarget(resolved)) return false
+		this@PathingSession.goal = resolved
+		with(launcher) { retargeted() }
+		return true
 	}
 
 	internal fun face(target: Double, pitch: Double? = null) {
@@ -252,7 +268,7 @@ class PathingSession internal constructor(
 
 	internal fun SafeContext.fail(reason: String) {
 		if (active) dumpEvent("stopped", reason)
-		val goal = if (active) request.goal else telemetry.published?.finalGoal
+		val goal = if (active) this@PathingSession.goal else telemetry.published?.finalGoal
 		val position = player.blockPos.let { "(${it.x}, ${it.y}, ${it.z})" }
 		val destination = goal?.let { " toward $it" } ?: ""
 		val walked = if (active) leg else 0
@@ -297,7 +313,7 @@ class PathingSession internal constructor(
 		waypointRoute.continueNext()
 	}
 
-	internal fun goalLabel(): String = request.goal.toString()
+	internal fun goalLabel(): String = goal.toString()
 
 	private var liveProfileAge = Int.MIN_VALUE
 	private var liveProfileCache: PlayerPhysicsProfile? = null

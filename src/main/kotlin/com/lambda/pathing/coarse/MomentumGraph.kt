@@ -145,7 +145,6 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 
 		private val STOPPED_ARRIVALS = STOPPED_DEPARTURES + setOf(MovementId.STEP_UP, MovementId.LADDER_CATCH, MovementId.ENTER_WATER)
 
-		/** The speed class [edge] leaves the body in: falls into water and the stopped-arrival moves settle, the rest keep moving. */
 		fun arrival(edge: CoarseEdge, view: CoarseVoxelView): SpeedClass = when {
 			edge.movement in STOPPED_ARRIVALS -> SpeedClass.STOPPED
 			edge.movement == MovementId.FALL && view.medium(edge.to.x, edge.to.y, edge.to.z) == Medium.WATER -> SpeedClass.STOPPED

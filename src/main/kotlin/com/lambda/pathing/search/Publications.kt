@@ -93,6 +93,13 @@ internal class Publications(
 		return newest.anchor.ancestorAt(frame)
 	}
 
+	fun retargetCut(): ValueAnchor? {
+		val newest = newest ?: return null
+		val lead = maxOf(observedCursor, 0) + DIVERGENCE_MARGIN_FRAMES
+		val frame = newest.plan.plan.segments.firstOrNull { it.exit.onGround && it.endFrame >= lead }?.endFrame ?: return null
+		return newest.anchor.ancestorAt(frame)
+	}
+
 	companion object {
 		const val DIVERGENCE_MARGIN_FRAMES = 3
 

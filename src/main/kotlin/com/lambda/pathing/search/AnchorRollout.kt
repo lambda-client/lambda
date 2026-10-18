@@ -86,7 +86,6 @@ internal class AnchorRollout(
 		internal var eventStance: Stance = anchor.stance
 	}
 
-	/** [chain] replays a recorded decision along the stances it first steered by; otherwise the field's chain. */
 	fun prepare(anchor: ValueAnchor, action: TrajectoryDecision, chain: List<Stance>? = null): PreparedRollout? {
 		@Suppress("NAME_SHADOWING")
 		val chain = chain ?: field.chain(anchor.stance, action.step, SteeringField.PURSUIT_CHAIN_LENGTH)

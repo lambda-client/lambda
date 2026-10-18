@@ -44,10 +44,10 @@ import kotlin.math.sqrt
 object BlockFinder : Loadable {
 	private var job: FindJob? = null
 
-	fun find(description: String, predicate: Predicate<CachedBlockPosition>) {
+	fun find(description: String, predicate: Predicate<CachedBlockPosition>, follow: Boolean = false) {
 		cancel()
 		runSafe {
-			val next = FindJob(BlockQuery(description, world, predicate))
+			val next = FindJob(BlockQuery(description, world, predicate), follow)
 			job = next
 			with(next) { search() }
 		}
@@ -72,13 +72,14 @@ object BlockFinder : Loadable {
 
 	private class Probe(val journey: PlanningJourney, val choices: List<Choice>, val start: Stance)
 
-	private class FindJob(private val query: BlockQuery) {
+	private class FindJob(private val query: BlockQuery, private val follow: Boolean) {
 		private val excluded = HashSet<BlockPos>()
 		private var failures = 0
 		private var searching = false
 		private var choice: Choice? = null
 		private var request: PathingRequest? = null
 		private var verified = false
+		private var reached = 0
 
 		@Volatile
 		private var cancelled = false
@@ -94,6 +95,7 @@ object BlockFinder : Loadable {
 		fun status(): String {
 			probe?.let { return "Comparing the paths to the ${it.choices.size} nearest ${query.description}..." }
 			val current = choice ?: return "Searching for ${query.description}..."
+			if (follow) return "Following ${query.description}: $reached reached, walking onto the one at ${current.block.pos.toShortString()}."
 			return "Walking to the ${query.description} at ${current.block.pos.toShortString()} (${current.block.source.label}), standing at ${current.stance}."
 		}
 
@@ -152,7 +154,7 @@ object BlockFinder : Loadable {
 				val found = nearest.sorted().takeWhile { it.distanceSquared < bound }
 				if (found.isEmpty() || cancelled) return chosen
 				for (block in found) {
-					AccessStances.choose(view(block.pos), block.pos, origin)?.let { chosen += Choice(block, it) }
+					AccessStances.choose(view(block.pos), block.pos, origin, on = follow)?.let { chosen += Choice(block, it) }
 					skipped += block.pos
 					if (chosen.size == COMPARED_TARGETS) return chosen
 				}
@@ -197,7 +199,8 @@ object BlockFinder : Loadable {
 			if (cancelled) return
 			searching = false
 			if (nearest.isEmpty()) {
-				info("Found no ${query.description} to stand next to in loaded chunks, Lambda's terrain cache or Baritone's cache.", PATHING_SOURCE)
+				if (follow && reached > 0) info("Reached $reached ${query.description}; no unvisited one is left.", PATHING_SOURCE)
+				else info("Found no ${query.description} to stand next to in loaded chunks, Lambda's terrain cache or Baritone's cache.", PATHING_SOURCE)
 				cancelled = true
 				return
 			}
@@ -240,7 +243,7 @@ object BlockFinder : Loadable {
 
 		private fun SafeContext.walk(next: Choice, why: String) {
 			val distance = sqrt(next.block.distanceSquared).toInt()
-			info("Found ${query.description} at ${next.block.pos.toShortString()} in ${next.block.source.label}, $distance blocks away ($why); walking next to it.", PATHING_SOURCE)
+			info("Found ${query.description} at ${next.block.pos.toShortString()} in ${next.block.source.label}, $distance blocks away ($why); walking ${if (next.stance == Stance(next.block.pos.x, next.block.pos.y, next.block.pos.z)) "onto" else "next to"} it.", PATHING_SOURCE)
 			route(next)
 		}
 
@@ -267,7 +270,7 @@ object BlockFinder : Loadable {
 					val sampler = BlockPhysicsSampler(world, ShapeContext.absent(), AutomationConfig.DEFAULT.pathingConfig.hazards)
 					val view = AccessStances.view(target, world.bottomY, world.bottomY + world.height - 1) { sample(sampler, it) }
 					if (!Footing.standsAt(view, current.stance)) {
-						val stance = AccessStances.choose(view, target, player.pos) ?: return retry(current, "has no place to stand beside it")
+						val stance = AccessStances.choose(view, target, player.pos, on = follow) ?: return retry(current, "has no place to stand beside it")
 						route(Choice(current.block, stance))
 						return true
 					}
@@ -277,8 +280,15 @@ object BlockFinder : Loadable {
 			return when (val state = PathingManager.stateOf(request)) {
 				null, State.Idle -> false
 				is State.Complete -> {
-					info("Next to the ${query.description} at ${target.toShortString()}.", PATHING_SOURCE)
-					false
+					if (!follow) {
+						info("Next to the ${query.description} at ${target.toShortString()}.", PATHING_SOURCE)
+						return false
+					}
+					excluded += target
+					reached++
+					failures = 0
+					search()
+					true
 				}
 				is State.Failed -> retry(current, "is out of reach (${state.reason})")
 				else -> true

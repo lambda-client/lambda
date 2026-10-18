@@ -298,7 +298,6 @@ data class BallisticProfile(
 		val reboundHeadroom: Double,
 		val floors: List<Double>?,
 	) {
-		/** Mixed so keys differing only in a few round doubles do not pile into one bucket. */
 		override fun hashCode(): Int {
 			var hash = 0L
 			fun add(bits: Long) {

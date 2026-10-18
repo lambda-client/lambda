@@ -14,10 +14,6 @@ internal sealed interface SpineStep {
 	class Replay(val inputs: List<MovementSimulationInput>, override val leg: Int) : SpineStep
 }
 
-/**
- * One old decision's re-run, kept across refinements: re-running a decision from the same body, stance and last
- * input under the same labels lands the same way, and planting the whole old suffix was a third of every try.
- */
 internal class PlantMemo {
 	private var from: ValueAnchor? = null
 	private var landed: ValueAnchor? = null
@@ -71,7 +67,6 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 
 	private var rooted = false
 
-	/** Why [plant] could not reproduce the spine, for the refiner's outcome log. */
 	var plantFailure: String? = null
 		private set
 

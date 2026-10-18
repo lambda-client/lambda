@@ -17,7 +17,8 @@ internal class PlanningJourney private constructor(
 	val terrain: TerrainRecorder?,
 	remembered: BaritoneCache?,
 ) {
-	val goal: Stance get() = origin.finalGoal
+	var goal: Stance = origin.finalGoal
+		private set
 
 	val hazards: HazardRules get() = origin.moveOptions.hazards
 
@@ -39,6 +40,15 @@ internal class PlanningJourney private constructor(
 		pinCurrent = { coarseView.pinnedTo(world.snapshot) },
 		expandsField = !origin.routeOnly,
 	).also { it.start() }
+
+	fun retarget(goal: Stance): Boolean {
+		if (origin.waypoints.isNotEmpty()) return false
+		if (goal == this.goal) return true
+		this.goal = goal
+		InterestPrimer.primeGoal(world, goal)
+		coarse.retarget(goals.lastIndex, goal)
+		return true
+	}
 
 	fun cancel() {
 		coarse.close()

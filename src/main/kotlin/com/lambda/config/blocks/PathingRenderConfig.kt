@@ -39,7 +39,6 @@ interface PathingRenderConfig {
     val renderTrail: Boolean
     val renderGoal: Boolean
 
-    /** Every plan improvement's dropped stretches in red, older ones paler; the latest one's new stretch in green. */
     val renderImprovements: Boolean
 
     /** Live planning view: the coarse route as it lands and every rollout as the search tries it. */

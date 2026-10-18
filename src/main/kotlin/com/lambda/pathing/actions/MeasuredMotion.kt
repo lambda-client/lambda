@@ -39,7 +39,6 @@ internal object MeasuredMotion {
 
 	private val sprinting by lazy { run(lane, rest(0.5), SPRINT_TICKS) { _, _ -> sprint } }
 
-	/** The stored horizontal velocity of a sprint at cruise: what the search reads as an anchor's speed. */
 	val cruiseVelocity: Double by lazy { sprinting[SPRINT_TICKS - 1].velocity.horizontalLength() }
 
 	val startupLossTicks: Double by lazy {
@@ -48,7 +47,6 @@ internal object MeasuredMotion {
 		reached - STARTUP_DISTANCE / cruise
 	}
 
-	/** Ticks a sprint loses letting go until it stands still, net of the ground it slides meanwhile. */
 	val stopTicks: Double by lazy {
 		val cruising = sprinting[SPRINT_TICKS / 2]
 		val cruise = cruising.position.x - sprinting[SPRINT_TICKS / 2 - 1].position.x

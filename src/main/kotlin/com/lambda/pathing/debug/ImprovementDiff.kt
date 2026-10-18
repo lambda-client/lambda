@@ -5,11 +5,6 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.Vec3d
 import kotlin.math.floor
 
-/**
- * What one plan improvement changed: the stretches of the old tape it dropped and of the new tape it added.
- * Both tapes share their prefix up to the junction frame by frame; after it, a point counts as kept while the
- * other tape passes within [NEAR] blocks, so a suffix that rejoins the old line shows only the detour.
- */
 class ImprovementDiff(val removed: List<List<Vec3d>>, val added: List<List<Vec3d>>, val gainedFrames: Int) {
 	companion object {
 		private const val NEAR = 0.3
@@ -43,7 +38,6 @@ class ImprovementDiff(val removed: List<List<Vec3d>>, val added: List<List<Vec3d
 			return false
 		}
 
-		/** Runs of [points] after [from] that the other tape does not pass, each widened by one point to touch the kept line. */
 		private fun stretchesOff(points: List<Vec3d>, from: Int, other: LongOpenHashSet): List<List<Vec3d>> {
 			val stretches = ArrayList<List<Vec3d>>()
 			var start = -1

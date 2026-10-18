@@ -16,7 +16,6 @@ internal object ServerCorrections {
 
 	private val positionPackets = AtomicInteger()
 
-	/** How many times the server has set the player's position; a change between two ticks is a teleport or setback. */
 	val teleports: Int get() = positionPackets.get()
 
 	fun record(packet: Packet<*>, playerId: Int?) {

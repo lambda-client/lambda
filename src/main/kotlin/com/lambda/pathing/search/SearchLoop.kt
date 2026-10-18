@@ -480,6 +480,8 @@ internal class SearchLoop(
 		}
 	}
 
+	private var retargetedGoal: Stance? = legs?.finalGoal
+
 	private fun syncWorld() {
 		val root = frontier.root ?: return
 		val result = world?.sync(route.plan, root) ?: return
@@ -498,7 +500,12 @@ internal class SearchLoop(
 				finisher.resetSweeps()
 				publisher.forgetRefusedCommit()
 				val next = result.route
-				if (next != null && (next.nodes != route.plan.nodes || next.goal != route.plan.goal)) {
+				val goal = legs?.finalGoal
+				if (next != null && goal != null && goal != retargetedGoal && next.goal == goal) {
+					retargetedGoal = goal
+					route.replace(next)
+					retarget()
+				} else if (next != null && (next.nodes != route.plan.nodes || next.goal != route.plan.goal)) {
 					if (next.goal != route.plan.goal) incumbent.clear()
 					route.replace(next)
 					frontier.updateRoute(route.index)
@@ -508,6 +515,19 @@ internal class SearchLoop(
 				frontier.wakeBlocked()
 			}
 		}
+	}
+
+	private fun retarget() {
+		incumbent.clear()
+		publisher.abandonTip()
+		val cut = publications.retargetCut()
+		if (cut != null) {
+			frontier.dropDescendants(cut)
+			frontier.reRoot(cut)
+			rewindLegs()
+			restartWindow(cut.stance)
+		}
+		frontier.updateRoute(route.index)
 	}
 
 	private fun repairFor(mutations: Set<VoxelPos>, chunks: Set<PathingChunk>) {
@@ -586,7 +606,7 @@ internal class SearchLoop(
 		}
 	}
 
-	private fun routeReachesFinalGoal(): Boolean = finalGoal == null || route.goal == finalGoal
+	private fun routeReachesFinalGoal(): Boolean = (legs?.finalGoal ?: finalGoal).let { it == null || route.goal == it }
 
 	private fun hasNextLeg(): Boolean = legs?.hasNext() == true
 

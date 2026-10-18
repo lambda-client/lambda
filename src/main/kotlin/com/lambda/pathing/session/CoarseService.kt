@@ -24,7 +24,7 @@ private val LOG = LogManager.getLogger(Lambda.SYMBOL)
 
 internal class CoarseService(
 	private val world: PathingWorld?,
-	private val goals: List<Stance>,
+	goals: List<Stance>,
 	private val buildLegs: () -> List<CoarsePlanningState>,
 	starts: List<Stance>,
 	val expansionBudget: Int,
@@ -55,6 +55,10 @@ internal class CoarseService(
 	private class Request(val leg: Int, val stance: Stance, val speed: SpeedClass)
 
 	private class Failure(val start: Stance, val reason: String, val final: Boolean)
+
+	private val goals = goals.toTypedArray()
+
+	private val retargets = HashMap<Int, Stance>()
 
 	private val lock = ReentrantLock()
 	private val published = lock.newCondition()
@@ -91,7 +95,15 @@ internal class CoarseService(
 
 	val moves: SimpleMoveLibrary get() = legs.first().planner.moves
 
-	fun goal(leg: Int): Stance = goals[leg]
+	fun goal(leg: Int): Stance = lock.withLock { goals[leg] }
+
+	fun retarget(leg: Int, goal: Stance) = lock.withLock {
+		if (goals[leg] == goal) return@withLock
+		goals[leg] = goal
+		retargets[leg] = goal
+		failures[leg] = null
+		published.signalAll()
+	}
 
 	fun planner(leg: Int): CoarsePlanner = legs[leg].planner
 
@@ -145,7 +157,6 @@ internal class CoarseService(
 
 	private fun standing(leg: Int): Frame? = frames[leg]?.takeUnless { failures[leg]?.start == it.start }
 
-	/** Waits for [leg]'s frame for as long as the coarse thread is still working on it: until it is published, fails for good, or the service closes. */
 	fun awaitLeg(leg: Int): Frame? = lock.withLock {
 		var frame = standing(leg)
 		while (frame == null && !closed && failures[leg]?.let { it.final && it.start == starts[leg] } != true) {
@@ -222,13 +233,18 @@ internal class CoarseService(
 		val until = System.nanoTime() + IDLE_MILLIS * 1_000_000L
 		while (!closed && System.nanoTime() < until) {
 			if (world.awaitEvents(seen, POLL_MILLIS)) return
-			if (lock.withLock { request } !== wanted) return
+			if (lock.withLock { request !== wanted || retargets.isNotEmpty() }) return
 		}
 	}
 
 	private fun advance(): Boolean {
 		val batch = events?.drain()
 		repin()
+		val moved = lock.withLock { HashMap(retargets).also { retargets.clear() } }
+		for ((leg, goal) in moved) {
+			legs[leg].retarget(goal, starts[leg], speeds[leg])
+			dirty[leg] = true
+		}
 		if (batch != null && !batch.isEmpty) {
 			revision = batch.revision
 			for (leg in legs.indices) {

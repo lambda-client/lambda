@@ -12,7 +12,9 @@ import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.Via
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.physics.Vanilla
@@ -89,9 +91,27 @@ object SlimeBounceMovement : Movement {
 		val solution = context.edge.bounce ?: return emptyList()
 		if (!context.constraints.sprintModes.contains(solution.sprint)) return emptyList()
 		val standing = TrajectoryDecision.Bounce(context.edge.to, solution)
-		if (!solution.pressesWall) return listOf(standing)
+		val variants = buildList {
+			add(standing)
+			for (late in LATE_LAUNCHES) for (bend in BENDS) {
+				if (late == 0.0 && bend == 0.0) continue
+				val via = solution.via?.let { bent(it, context.edge.to.x - context.edge.from.x, context.edge.to.z - context.edge.from.z, bend) }
+				if (bend != 0.0 && via == null) continue
+				add(TrajectoryDecision.Bounce(context.edge.to, solution.copy(launchOffset = solution.launchOffset + late, via = via ?: solution.via)))
+			}
+		}
+		if (!solution.pressesWall) return variants
 		val running = solution.copy(speed = BallisticProfile.VANILLA.momentumSpeed(solution.sprint), speedSlack = 0.0)
-		return listOf(TrajectoryDecision.Bounce(context.edge.to, running), standing)
+		return listOf(TrajectoryDecision.Bounce(context.edge.to, running)) + variants
+	}
+
+	private fun bent(via: Via, dx: Int, dz: Int, bend: Double): Via? {
+		val length = hypot(via.x, via.z)
+		if (length < DEGENERATE_LENGTH) return null
+		val side = via.x * dz - via.z * dx
+		if (abs(side) < DEGENERATE_LENGTH) return null
+		val sign = if (side > 0) 1.0 else -1.0
+		return Via(via.x - sign * via.z / length * bend, via.z + sign * via.x / length * bend)
 	}
 
 	override fun descentAllowance(decision: TrajectoryDecision): Double =
@@ -114,6 +134,10 @@ object SlimeBounceMovement : Movement {
 	}
 
 	private const val TRANSITION_MARGIN_FRAMES = 20
+
+	private val LATE_LAUNCHES = doubleArrayOf(0.0, 0.4, 0.7)
+
+	private val BENDS = doubleArrayOf(0.0, 0.5)
 
 	private const val MAX_SPAN = 12
 

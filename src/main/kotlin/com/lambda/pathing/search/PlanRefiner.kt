@@ -34,7 +34,6 @@ internal class PlanRefiner(
 	var grafts = 0L
 		private set
 
-	/** How each refinement ended, for the rehearsal log: search exit, no gain, same plan, touches changed, or the gain. */
 	val outcomes = HashMap<String, Int>()
 
 	private val memos = IdentityHashMap<PlanSegment, PlantMemo>()
@@ -45,11 +44,6 @@ internal class PlanRefiner(
 		return null
 	}
 
-	/**
-	 * Re-plans the course from segment [index]. The old suffix is replayed only up to its last decision and the
-	 * finisher rebuilds the stop, so an unchanged replay reproduces the plan frame for frame: replaying the old stop
-	 * and then finishing again added three stable-stop frames and hid every gain of up to three frames.
-	 */
 	fun refineAt(plan: Plan, index: Int, level: Level, exploration: Exploration? = null, allowance: Int = 0): Plan? {
 		val junction = plan.segments.getOrNull(index) as? PlanSegment.Move ?: return null
 		val offset = junction.startFrame
@@ -97,10 +91,6 @@ internal class PlanRefiner(
 		return Plan(plan.segments.subList(0, index) + suffix, touches)
 	}
 
-	/**
-	 * The touches of the legs' waypoints, in order. The walk also roots a leg at each breathing stop, which is no leg
-	 * here: counting those shifted every later segment onto the wrong leg's field.
-	 */
 	private fun waypointTouches(touches: List<LegTouch>): List<LegTouch> {
 		var next = 0
 		return touches.filter { touch -> (next < legs.size && touch.waypoint == legs[next].route.goal).also { if (it) next++ } }
@@ -129,16 +119,10 @@ internal class PlanRefiner(
 	}
 
 	companion object {
-		/** Plans' worth of plant memos kept before the ones of replaced segments are dropped. */
 		private const val MEMO_PLANS = 2
 
 		fun of(result: MotionPlanResult.Success): Plan = Plan(result.plan.segments, result.legTouches)
 
-		/**
-		 * Search sizes a refinement draws from. Gains come from grafts near the junction, so many small searches beat
-		 * few large ones: 3k/6k expansions reached 6416 frames on the dimension parkour in 90 s where 20k-80k reached
-		 * 6432-6452 and 1.5k/3k 6446.
-		 */
 		val LEVELS = listOf(
 			Level(budget = 3_000, stall = 800, beam = 3, lastResort = false),
 			Level(budget = 6_000, stall = 1_500, beam = 6, lastResort = true),

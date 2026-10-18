@@ -89,6 +89,7 @@ internal class Publisher(
 		} else {
 			if (!publications.upToDate) return refuse(Refusal.UNJUDGED)
 			if (anchor.elapsed < tip.elapsed + searchConfig.horizonCommitFrames) return refuse(Refusal.SHORT)
+			if (incumbent.best == null && field.guideFor(tip) - field.guideFor(anchor) < MIN_COMMIT_PROGRESS_TICKS) return refuse(Refusal.NO_PROGRESS)
 			if (budget.count - expansionsAtPublish < searchConfig.minCommitExpansions) return refuse(Refusal.TEMPO)
 			val executing = cursor ?: return
 			if (tip.elapsed - executing > searchConfig.horizonRunwayFrames) return

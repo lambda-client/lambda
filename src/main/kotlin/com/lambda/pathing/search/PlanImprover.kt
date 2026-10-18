@@ -21,7 +21,6 @@ internal class PlanImprover(
 		private set
 
 	private var current = initial
-	/** Frames a candidate may be worse by and still be accepted with probability 1/e. */
 	var temperature = START_TEMPERATURE
 		private set
 	private var sinceBest = 0

@@ -14,14 +14,22 @@ internal class CoarsePlanningState(
 	private val view: CoarseVoxelView,
 	moveOptions: SimpleMoveOptions,
 	start: Stance,
-	val goal: Stance,
+	goal: Stance,
 	private val memory: RememberedTerrain? = null,
 	private val alternatives: List<Stance> = emptyList(),
 ) {
 	private val moves = libraryFor(moveOptions)
 
+	var goal: Stance = goal
+		private set
+
 	var planner = CoarsePlanner(view, moves, start, goal, alternatives)
 		private set
+
+	fun retarget(goal: Stance, from: Stance, speed: SpeedClass) {
+		this.goal = goal
+		planner = CoarsePlanner(view, moves, from, goal, alternatives, reuse = planner).apply { updateStart(from, speed) }
+	}
 
 	fun repairFrom(start: Stance) {
 		planner.updateStart(start)

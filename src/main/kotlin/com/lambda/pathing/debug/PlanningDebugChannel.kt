@@ -82,7 +82,6 @@ object PlanningDebugChannel : SearchProbe {
 	var candidateLines: List<CandidatePath> = emptyList()
 		private set
 
-	/** Every plan improvement of the session, oldest first, the last [MAX_IMPROVEMENTS] of them. */
 	@Volatile
 	var improvements: List<ImprovementDiff> = emptyList()
 		private set

@@ -5,7 +5,6 @@ import com.lambda.pathing.search.PublishedPath
 
 data class RehearsalPoint(val millis: Long, val frames: Int, val label: String)
 
-/** [temperature] is the improver's annealing temperature in frames, null while greedy (performing) or not improving yet. */
 data class RehearsalView(val history: List<RehearsalPoint>, val progress: String, val finished: Boolean, val temperature: Double? = null)
 
 internal class Rehearsal(val waypoints: List<Stance>) {

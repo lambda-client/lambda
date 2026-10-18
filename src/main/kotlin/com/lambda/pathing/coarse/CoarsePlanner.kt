@@ -25,6 +25,7 @@ class CoarsePlanner(
 	start: Stance,
 	val goalStance: Stance,
 	alternatives: Collection<Stance> = emptyList(),
+	reuse: CoarsePlanner? = null,
 ) {
 	private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
 
@@ -32,9 +33,12 @@ class CoarsePlanner(
 		for (alternative in alternatives) if (alternative != goalStance) add(PackedStance.pack(alternative, SpeedClass.STOPPED))
 	}
 
-	private val unknownDrops = LongOpenHashSet()
+	private val unknownDrops: LongOpenHashSet = reuse?.unknownDrops ?: LongOpenHashSet()
 
-	private val edgeCache = CoarseEdgeCache(view.cursor(), moves, listOf(goalStance), unknownDrops)
+	private val edgeCache: CoarseEdgeCache = reuse?.edgeCache?.takeIf { !goalColumn(reuse.goalStance) && !goalColumn(goalStance) }
+		?: CoarseEdgeCache(view.cursor(), moves, listOf(goalStance), unknownDrops)
+
+	private fun goalColumn(goal: Stance): Boolean = view.medium(goal.x, goal.y, goal.z) == Medium.WATER
 
 	private val momentum = MomentumRules(moves.templates)
 

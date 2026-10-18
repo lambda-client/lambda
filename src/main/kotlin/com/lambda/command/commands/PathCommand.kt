@@ -14,6 +14,7 @@ import com.lambda.brigadier.argument.blockPredicate
 import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
@@ -22,7 +23,11 @@ import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.core.Stance
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandSource.suggestMatching
 import net.minecraft.command.argument.BlockPredicateArgumentType
+import net.minecraft.registry.Registries
+import net.minecraft.util.Identifier
+import java.util.UUID
 
 /**
  * The one pathing command.
@@ -45,9 +50,9 @@ import net.minecraft.command.argument.BlockPredicateArgumentType
  */
 object PathCommand : LambdaCommand(
     name = "path",
-    usage = "path <go|plan|find|cancel|clear> -- go [<x> <y> <z> ...] | plan [<x> <y> <z> ...] | find <block> | cancel | clear",
+    usage = "path <go|plan|find|follow|cancel|clear> -- go [<x> <y> <z> ...] | plan [<x> <y> <z> ...] | find <block> | follow <block|player|entity> <value> | cancel | clear",
     description = "Walks to waypoints, or next to the nearest block of a type by path, along simulated, certified trajectories",
-    examples = listOf("path go 10 100 20", "path go 10 64 20 40 70 -30", "path go ~ ~ ~20", "path plan 10 64 20", "path go", "path find chest", "path find #beds", "path cancel"),
+    examples = listOf("path go 10 100 20", "path go 10 64 20 40 70 -30", "path go ~ ~ ~20", "path plan 10 64 20", "path go", "path find chest", "path find #beds", "path follow block #pressure_plates", "path follow player Steve", "path follow entity cow", "path cancel"),
 ) {
     override fun CommandBuilder.create() {
         required(literal("go")) {
@@ -103,6 +108,70 @@ object PathCommand : LambdaCommand(
             }
         }
 
+        required(literal("follow")) {
+            execute {
+                info(PathingService.findStatus)
+            }
+            required(literal("player")) {
+                required(word("name")) { name ->
+                    suggests { _, builder ->
+                        val self = mc.player
+                        suggestMatching(mc.world?.players?.filter { it !== self }?.map { it.gameProfile.name }.orEmpty(), builder)
+                    }
+                    execute {
+                        val wanted = name().value()
+                        PathingService.follow(wanted) { world.players.firstOrNull { it !== player && it.gameProfile.name.equals(wanted, ignoreCase = true) } }
+                        info("Following $wanted...")
+                    }
+                }
+            }
+            required(literal("entity")) {
+                required(word("type or uuid")) { type ->
+                    suggests { _, builder ->
+                        val self = mc.player
+                        val entities = mc.world?.entities?.filter { it !== self && it.isAlive }.orEmpty()
+                        val types = entities.map { Registries.ENTITY_TYPE.getId(it.type).path }.distinct()
+                        val nearest = self?.let { player -> entities.sortedBy { it.squaredDistanceTo(player) } }.orEmpty().take(MAX_UUID_SUGGESTIONS)
+                        suggestMatching(types + nearest.map { it.uuidAsString }, builder)
+                    }
+                    execute {
+                        val id = type().value()
+                        val uuid = runCatching { UUID.fromString(id) }.getOrNull()
+                        if (uuid != null) {
+                            val named = mc.world?.entities?.firstOrNull { it.uuid == uuid }?.let { "${it.name.string} ($id)" } ?: id
+                            PathingService.follow(named) { world.entities.firstOrNull { it.uuid == uuid && it.isAlive } }
+                            info("Following $named...")
+                            return@execute
+                        }
+                        val entityType = Identifier.tryParse(id)?.let { Registries.ENTITY_TYPE.getOptionalValue(it).orElse(null) }
+                        if (entityType == null) {
+                            info("Unknown entity type or uuid $id.")
+                            return@execute
+                        }
+                        PathingService.follow("the nearest $id") {
+                            world.entities.filter { it.type == entityType && it !== player && it.isAlive }.minByOrNull { it.squaredDistanceTo(player) }
+                        }
+                        info("Following the nearest $id...")
+                    }
+                }
+            }
+            required(literal("block")) {
+                required(blockPredicate("block", gameRegistry)) { block ->
+                    execute {
+                        val predicate = block().value()
+                        if ((predicate as? BlockPredicateArgumentType.BlockPredicate)?.hasNbt() == true) {
+                            info("Block data filters ({...}) can't be checked against cached terrain; leave them out.")
+                            return@execute
+                        }
+                        val context = block().context
+                        val description = context.nodes.last().range.get(context.input)
+                        PathingService.find(description, predicate, follow = true)
+                        info("Following $description...")
+                    }
+                }
+            }
+        }
+
         for (word in listOf("cancel", "c", "stop")) {
             required(literal(word)) {
                 execute {
@@ -120,6 +189,8 @@ object PathCommand : LambdaCommand(
             }
         }
     }
+
+    private const val MAX_UUID_SUGGESTIONS = 16
 
     private fun walk(waypoints: List<Stance>) {
         PathingWaypoints.last = waypoints

@@ -5,6 +5,7 @@ import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
@@ -40,6 +41,29 @@ object PathingManager : Manager<PathingRequest>(0) {
 
 	private val waypointRoute = WaypointRoute()
 
+	private var parked: PlanningJourney? = null
+
+	private var parkedAt = 0L
+
+	internal fun park(journey: PlanningJourney) {
+		parked?.cancel()
+		parked = journey
+		parkedAt = System.currentTimeMillis()
+	}
+
+	private fun takeParked(): PlanningJourney? {
+		val journey = parked ?: return null
+		parked = null
+		if (System.currentTimeMillis() - parkedAt <= PARKED_JOURNEY_MILLIS) return journey
+		journey.cancel()
+		return null
+	}
+
+	fun SafeContext.retarget(request: PathingRequest, goal: Stance): Boolean {
+		val walk = session?.takeIf { it.request === request } ?: return false
+		return with(walk) { retarget(goal) }
+	}
+
 	val world: PathingWorld? get() = session?.journey?.world
 
 	fun isFinished(request: PathingRequest): Boolean = queuedRequest !== request && session?.isFinished(request) ?: true
@@ -67,6 +91,8 @@ object PathingManager : Manager<PathingRequest>(0) {
 	}
 
 	fun clear() {
+		parked?.cancel()
+		parked = null
 		waypointRoute.drop()
 		session?.release()
 		session = null
@@ -83,7 +109,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 		var journey = previous?.takeJourney()
 		if (previous?.active != true) {
 			journey?.cancel()
-			journey = null
+			journey = takeParked()
 		}
 
 		waypointRoute.adoptWarmJourney(goal)?.let { warmed ->
@@ -93,7 +119,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
 		previous?.takeIf { it.active }?.dumpEvent("superseded", "a new request toward $goal replaced the session")
 		previous?.release()
-		if (journey?.goal != goal) {
+		if (journey != null && journey?.goal != goal && journey?.retarget(goal) != true) {
 			journey?.cancel()
 			journey = null
 		}
@@ -117,6 +143,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 				!ChunkPacketLoadContext.isActive()
 			) {
 				session?.onBlockChanged(event.pos)
+				parked?.world?.onBlockChanged(event.pos)
 				waypointRoute.onBlockChanged(event.pos)
 			}
 		}
@@ -125,6 +152,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 		}
 		listenUnsafe<WorldEvent.ChunkEvent.Load> { event ->
 			session?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
+			parked?.world?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
 			waypointRoute.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
 		}
 		listen<TickEvent.Pre> {
@@ -144,4 +172,6 @@ object PathingManager : Manager<PathingRequest>(0) {
 			)
 		}
 	}
+
+	private const val PARKED_JOURNEY_MILLIS = 30_000L
 }

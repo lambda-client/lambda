@@ -16,14 +16,16 @@ internal object AccessStances {
 
 	private val GROUPS = listOf(BESIDE, listOf(Vec3i(0, 1, 0)), listOf(Vec3i(0, -2, 0)))
 
+	private val ON_GROUPS = listOf(listOf(Vec3i.ZERO)) + GROUPS
+
 	private const val READ_REACH = 2
 
 	private const val READ_BELOW = 4
 
 	private const val READ_ABOVE = 3
 
-	fun choose(view: CoarseVoxelView, target: BlockPos, player: Vec3d): Stance? {
-		for (group in GROUPS) {
+	fun choose(view: CoarseVoxelView, target: BlockPos, player: Vec3d, on: Boolean = false): Stance? {
+		for (group in if (on) ON_GROUPS else GROUPS) {
 			group.map { Stance(target.x + it.x, target.y + it.y, target.z + it.z) }
 				.filter { it.y in view.simulableStanceY && Footing.standsAt(view, it) }
 				.minByOrNull { player.squaredDistanceTo(it.x + 0.5, it.y.toDouble(), it.z + 0.5) }

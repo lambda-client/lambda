@@ -18,7 +18,6 @@ internal class Solution(
 
 	val score: Int get() = frames
 
-	/** Fewer frames wins; wall contacts only break a tie. */
 	fun beats(other: Solution): Boolean = frames < other.frames || frames == other.frames && collisionEvents < other.collisionEvents
 
 	companion object {

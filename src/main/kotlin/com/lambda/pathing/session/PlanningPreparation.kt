@@ -63,10 +63,8 @@ internal fun resolveGoalStance(player: ClientPlayerEntity, goal: Stance): Stance
 	} else goal
 }
 
-/** Health a landing may cost under Unlimited Fall Damage: more than any player has, so every fall is admitted. */
 private const val UNLIMITED_FALL_DAMAGE = 100_000
 
-/** The profile the planner simulates: under Unlimited Air the body never runs out of air, so no breathing is planned. */
 internal fun PlayerPhysicsProfile.planned(config: PathingConfig): PlayerPhysicsProfile =
 	if (config.unlimitedAir && canDrown) copy(canDrown = false) else this
 

@@ -118,7 +118,6 @@ internal object JumpTemplates {
 
 	private const val WIDE_DROP_RISE = -1.75
 
-	/** Not a time: without it the search runs straight at a momentum-only drop and dead-ends short of it (dimension parkour leg 4). */
 	private const val WIDE_DROP_RISK_TICKS = 24.0
 
 	private const val HALF_DROP_RISE = -0.25

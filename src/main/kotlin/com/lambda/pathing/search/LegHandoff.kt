@@ -9,6 +9,8 @@ interface LegSource {
 	fun handoff(touched: Stance): CoarseRoutePlan?
 
 	fun rewind(): CoarseRoutePlan
+
+	val finalGoal: Stance? get() = null
 }
 
 data class LegTouch(val frame: Int, val waypoint: Stance)
