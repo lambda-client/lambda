@@ -83,7 +83,7 @@ object BounceArcProbe {
 			val arcs = ArcSweep(view, from, dx, dz, reads)
 			val seed = seedContactOffset()
 
-			for ((jump, sprint) in STANDING_STYLES) {
+			for (offset in standingOffsets(launchReach)) for ((jump, sprint) in STANDING_STYLES) {
 				refined(seed) { contactDepth ->
 					BounceSolver.solveStanding(
 						horizontalDistance = length,
@@ -91,7 +91,7 @@ object BounceArcProbe {
 						contactDepth = contactDepth, riseHeight = riseHeight,
 						contactPenalty = { _, reach -> contactPenalty(reach) },
 						headroom = headroom,
-						launchReach = launchReach,
+						launchReach = offset,
 						bounces = bounces,
 						reboundHeadroom = reboundHeadroom,
 					)
@@ -132,7 +132,7 @@ object BounceArcProbe {
 						arcs.sweep(solution.arc, solution.launchOffset, launchHeight) == Sweep.Clear
 			}
 
-			for ((jump, sprint) in STANDING_STYLES) {
+			for (offset in standingOffsets(launchReach)) for ((jump, sprint) in STANDING_STYLES) {
 				refinedLevels(levels, seeds) { depths ->
 					BounceSolver.solveStanding(
 						horizontalDistance = length,
@@ -140,7 +140,7 @@ object BounceArcProbe {
 						contactDepth = depths.max(), riseHeight = riseHeight,
 						contactPenalty = { contact, reach -> if (contact < levels.size) contactPenalty(reach, levels[contact]) else Double.POSITIVE_INFINITY },
 						headroom = headroom,
-						launchReach = launchReach,
+						launchReach = offset,
 						reboundHeadroom = reboundHeadroom,
 						contactDepths = depths,
 					)
@@ -333,6 +333,9 @@ object BounceArcProbe {
 		}
 	}
 
+	private fun standingOffsets(launchReach: Double): List<Double> =
+		listOf(launchReach) + STANDING_LAUNCH_OFFSETS.filter { it < launchReach }
+
 	private class Ledge(val along: Double, val height: Double)
 
 	private data class LaunchCombo(
@@ -348,6 +351,8 @@ object BounceArcProbe {
 		true to true,
 		false to true,
 	)
+
+	private val STANDING_LAUNCH_OFFSETS = listOf(0.4, 0.0)
 
 	private val PARTIAL_HOLDS = intArrayOf(20, 16, 12, 8, 5, 3, 2)
 

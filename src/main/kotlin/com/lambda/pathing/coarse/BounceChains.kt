@@ -208,7 +208,9 @@ internal class BounceChains(
 			val level = hit.y - 1
 			if (levels.isEmpty() && origin.y - level - 1 < SlimeBounceMovement.MIN_DROP) return
 			if (levels.size == MAX_CONTACTS) return
-			depths += launchHeight - hit.surface
+			val depth = launchHeight - hit.surface
+			if (depth <= 0.0) return
+			depths += depth
 			levels += level
 		}
 	}
