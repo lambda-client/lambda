@@ -72,6 +72,7 @@ interface PathingConfig {
 
     val dumpFailedPlans: Boolean
     val dumpAllPlans: Boolean
+    val liveImprover: Boolean
 
     val maxFrames: Int get() = MotionConstraints.DEFAULT_MAX_FRAMES
 

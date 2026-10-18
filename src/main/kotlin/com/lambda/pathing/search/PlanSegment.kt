@@ -1,5 +1,6 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
@@ -28,6 +29,8 @@ sealed interface PlanSegment {
 		override val exit: MovementSimulationState,
 		override val inputs: List<MovementSimulationInput>,
 		override val startFrame: Int,
+		/** The stances the decision steered by, so a replay of it does not depend on the labels of the moment. */
+		val chain: List<Stance> = emptyList(),
 	) : PlanSegment {
 		override val movement: MovementId get() = decision.movement
 	}

@@ -44,6 +44,7 @@ internal data class PlanningPreparation(
 	val plannerThreads: Int,
 	val dumpDirectory: Path?,
 	val dumpAllPlans: Boolean,
+	val liveImprover: Boolean,
 	val useBaritoneCache: Boolean,
 	val startedMillis: Long,
 	val alternatives: List<Stance> = emptyList(),
@@ -180,6 +181,7 @@ internal fun preparePlanning(
 			plannerThreads = config.plannerThreads,
 			dumpDirectory = dumpDirectory,
 			dumpAllPlans = config.dumpAllPlans,
+			liveImprover = config.liveImprover,
 			useBaritoneCache = config.useBaritoneCache,
 			startedMillis = started,
 		)

@@ -23,6 +23,8 @@ internal class ValueAnchor(
 	val decision: TrajectoryDecision? = null,
 	val trace: List<Vec3d> = emptyList(),
 	val jumps: Int = 0,
+	/** The coarse stances [decision] steered along: re-running it with them lands the same way under any labels. */
+	val chain: List<Stance> = emptyList(),
 ) : BodyState {
 	override val speed: Double = state.velocity.horizontalLength()
 

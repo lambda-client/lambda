@@ -47,6 +47,7 @@ object PathingRenderer : Loadable {
 				if (config.renderPlanGraph) renderPlanGraph(path.plan)
 				if (config.renderTrajectory) renderTrajectory(path)
 			}
+			if (config.renderImprovements) renderImprovement()
 			if (config.renderTrail) renderLiveTrail()
 			if (config.renderGoal) renderGoal(path)
 		}
@@ -210,6 +211,18 @@ object PathingRenderer : Loadable {
 		val ey = from.y + dy * t - point.y
 		val ez = from.z + dz * t - point.z
 		return kotlin.math.sqrt(ex * ex + ey * ey + ez * ez)
+	}
+
+	private fun RenderBuilder.renderImprovement() {
+		val diffs = PlanningDebugChannel.improvements
+		if (diffs.isEmpty()) return
+		val width = px(config.trajectoryWidth + 2)
+		diffs.forEachIndexed { index, diff ->
+			val age = if (diffs.size > 1) 1.0 - index / (diffs.size - 1).toDouble() else 0.0
+			val color = lerp(age, config.improvementRemovedColor, config.improvementOldestRemovedColor)
+			diff.removed.forEach { polyline(it.map { point -> point.add(0.0, IMPROVEMENT_Y, 0.0) }, color, width) }
+		}
+		diffs.last().added.forEach { polyline(it.map { point -> point.add(0.0, IMPROVEMENT_Y, 0.0) }, config.improvementAddedColor, width) }
 	}
 
 	private fun RenderBuilder.renderLiveTrail() {
@@ -478,6 +491,7 @@ object PathingRenderer : Loadable {
 	private const val PLAN_GRAPH_Y = 0.16
 	private const val TAPE_Y = 0.11
 	private const val TRAIL_Y = 0.13
+	private const val IMPROVEMENT_Y = 0.12
 	private const val GOAL_Y = 0.03
 }
 

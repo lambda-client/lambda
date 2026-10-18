@@ -7,6 +7,7 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.coarse.FieldEdges
+import com.lambda.pathing.coarse.FieldLabels
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.coarse.SwitchableValueField
 import com.lambda.pathing.core.Stance
@@ -30,6 +31,7 @@ internal class CoarseFollower(
 	first: CoarseService.Frame,
 	startAir: Int = Vanilla.MAX_AIR,
 	private val breathes: Boolean = true,
+	private val keepsWalkedFrames: Boolean = false,
 ) : WorldLink, LegSource, AutoCloseable {
 	private val events = world?.subscribe()
 	override val startRevision: Long? = events?.drain()?.revision
@@ -49,9 +51,16 @@ internal class CoarseFollower(
 	private var checkedRoute: CoarseRoutePlan? = null
 	private val hopeless = HashSet<Pair<Stance, Stance>>()
 
+	/**
+	 * The frames each walked leg was planned on. Later frames re-root at the walker and label only the band around
+	 * their own route, so [planLegs] unites them; without [keepsWalkedFrames] only the entry frame is kept.
+	 */
+	private val walked = HashMap<Int, MutableList<CoarseService.Frame>>()
+
 	val field = SwitchableValueField(edges.field(first.goal, first.labels, first.sequence))
 
 	init {
+		walked[leg] = arrayListOf(first)
 		planBreaths(first.route, first.route.nodes.first(), startAir)
 	}
 
@@ -136,6 +145,7 @@ internal class CoarseFollower(
 		breath = null
 		targets = emptyList()
 		leg++
+		walked[leg] = arrayListOf()
 		adopt(next)
 		LOG.info("Leg handoff at {}: next goal {}, route {} nodes, waited {} ms", touched, next.goal, next.route.nodes.size, (System.nanoTime() - began) / 1_000_000L)
 		return next.route
@@ -166,8 +176,9 @@ internal class CoarseFollower(
 	fun planLegs(from: Int): List<PlanLeg>? {
 		if (breath != null || targets.isNotEmpty()) return null
 		return (from until coarse.legCount).map { leg ->
-			val legFrame = coarse.frame(leg) ?: return null
-			PlanLeg(legFrame.route, edges.field(legFrame.goal, legFrame.labels, legFrame.sequence))
+			val frames = walked[leg]?.takeIf { it.isNotEmpty() } ?: listOf(coarse.frame(leg) ?: return null)
+			val entry = frames.first()
+			PlanLeg(entry.route, edges.field(entry.goal, FieldLabels.union(frames.map { it.labels }), frames.last().sequence))
 		}
 	}
 
@@ -210,9 +221,18 @@ internal class CoarseFollower(
 
 	private fun adopt(next: CoarseService.Frame) {
 		frame = next
+		walked[leg]?.let { frames ->
+			if (frames.isNotEmpty() && !keepsWalkedFrames) return@let
+			if (frames.size >= MAX_WALKED_FRAMES) frames.removeAt(1)
+			frames += next
+		}
 		field.current = edges.field(next.goal, next.labels, next.sequence)
 		adopted++
 		PlanningDebugChannel.publishRoute(next.route)
 	}
 
+	private companion object {
+		/** Frames kept per walked leg: its entry frame and the latest ones, so long walks do not hoard labels. */
+		const val MAX_WALKED_FRAMES = 16
+	}
 }

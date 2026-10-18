@@ -71,6 +71,7 @@ internal class AnchorRollout(
 	internal class PreparedRollout(
 		val anchor: ValueAnchor,
 		val action: TrajectoryDecision,
+		internal val chain: List<Stance>,
 		internal val movement: Movement,
 		internal val program: ControlProgram,
 		internal val evaluator: RolloutEvaluator,
@@ -85,8 +86,10 @@ internal class AnchorRollout(
 		internal var eventStance: Stance = anchor.stance
 	}
 
-	fun prepare(anchor: ValueAnchor, action: TrajectoryDecision): PreparedRollout? {
-		val chain = field.chain(anchor.stance, action.step, SteeringField.PURSUIT_CHAIN_LENGTH)
+	/** [chain] replays a recorded decision along the stances it first steered by; otherwise the field's chain. */
+	fun prepare(anchor: ValueAnchor, action: TrajectoryDecision, chain: List<Stance>? = null): PreparedRollout? {
+		@Suppress("NAME_SHADOWING")
+		val chain = chain ?: field.chain(anchor.stance, action.step, SteeringField.PURSUIT_CHAIN_LENGTH)
 		val points = routePoints.of(chain)
 		val movement = movements[action.movement] ?: return null
 
@@ -104,6 +107,7 @@ internal class AnchorRollout(
 		return PreparedRollout(
 			anchor = anchor,
 			action = action,
+			chain = chain,
 			movement = movement,
 			program = program,
 			evaluator = RolloutEvaluator(
@@ -192,8 +196,8 @@ internal class AnchorRollout(
 		}
 	}
 
-	fun transition(anchor: ValueAnchor, action: TrajectoryDecision): Outcome {
-		val prepared = prepare(anchor, action)
+	fun transition(anchor: ValueAnchor, action: TrajectoryDecision, chain: List<Stance>? = null): Outcome {
+		val prepared = prepare(anchor, action, chain)
 			?: return Outcome.Rejected(TrajectoryDiagnostic.NoStop(0, 0.0, anchor.speed))
 		execute(prepared)
 		return complete(prepared)
@@ -261,6 +265,7 @@ internal class AnchorRollout(
 				decision = action,
 				trace = probe.traceOf(frames),
 				jumps = anchor.jumps + groundJumps(anchor.state, frames),
+				chain = prepared.chain,
 			),
 		)
 	}

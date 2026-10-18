@@ -127,6 +127,7 @@ object PathingHud : HudModule(
             Cell("gain", if (best != null && spine != null) "%.1f%%".format(100.0 * (spine - best) / spine) else "-"),
         )
         row(Cell("spine", spine?.toString() ?: "-"), Cell("improved", (history.size - 1).coerceAtLeast(0)))
+        if (!view.finished && spine != null) row(Cell("temperature", view.temperature?.let { "%.2f f".format(it) } ?: "greedy"))
         row(Cell(if (view.finished) "converged" else "refining", if (view.finished) "" else view.progress, if (view.finished) Palette.OK else Palette.TEXT))
         sparkline(history.takeLast(SPARK_ROUNDS).map { it.frames }, best)
     }

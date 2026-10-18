@@ -53,6 +53,12 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     override val renderGoal by c.setting("Goal", true, "A ring at the leg's goal and a beacon at the final one.") { enabled }
 
     @Group(LAYERS_GROUP)
+    override val renderImprovements by c.setting(
+        "Improvements", true,
+        "What the plan improver changed: every dropped stretch in red, older ones paler, and the latest new stretch in green.",
+    ) { enabled }
+
+    @Group(LAYERS_GROUP)
     override val renderPlanning by c.setting(
         "Live Planning", false,
         "The coarse route the moment D* converges and every rollout as the search tries it.",
@@ -171,6 +177,15 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(TAPE_GROUP)
     override val jumpMarkerColor by c.setting("Jump Tick", Color(253, 224, 71, 240)) { enabled && renderJumpMarkers }
+
+    @Group(TAPE_GROUP)
+    override val improvementAddedColor by c.setting("Improvement Added", Color(74, 222, 128, 245)) { enabled && renderImprovements }
+
+    @Group(TAPE_GROUP)
+    override val improvementRemovedColor by c.setting("Improvement Removed", Color(239, 68, 68, 230)) { enabled && renderImprovements }
+
+    @Group(TAPE_GROUP)
+    override val improvementOldestRemovedColor by c.setting("Improvement Removed (Oldest)", Color(254, 202, 202, 110)) { enabled && renderImprovements }
 
     @Group(TAPE_GROUP)
     override val spliceColor by c.setting("Splice Mark", Color(125, 211, 252, 220)) { enabled && renderSplices }

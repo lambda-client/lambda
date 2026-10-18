@@ -3,6 +3,7 @@ package com.lambda.pathing.session
 import com.lambda.Lambda.LOG
 import com.lambda.pathing.core.PLANNER_THREAD_PRIORITY
 import com.lambda.pathing.debug.PlanDump
+import com.lambda.pathing.debug.ImprovementDiff
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.ExecutionFeedback
 import com.lambda.pathing.search.PublishedPath
@@ -91,11 +92,11 @@ internal class PlanningJob(
 			System.currentTimeMillis() - preparation.startedMillis, world.captureLedger(),
 		)
 		if (rehearsal != null) return rehearse(frame).also { enter("finished: ${it::class.simpleName}") }
-		return CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown).use { follower ->
+		return CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown, keepsWalkedFrames = preparation.liveImprover).use { follower ->
 			walk(follower).let { if (it is PathPlanResult.Failed && mobsOnRoute(follower)) it.copy(mobs = true) else it }.also {
 				enter("finished: ${it::class.simpleName}")
 				dumpOutcome(it, follower)
-			}
+			}.let { improveLive(it, follower) }
 		}
 	}
 
@@ -110,7 +111,7 @@ internal class PlanningJob(
 			enter("rehearsing the spine at $micros us per expansion")
 			onRehearsalProgress(if (attempt == 0) "planning the spine" else "planning the spine, attempt ${attempt + 1}")
 			val pacing = VirtualPacing(micros)
-			outcome = CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown).use { follower ->
+			outcome = CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown, keepsWalkedFrames = true).use { follower ->
 				walkHorizon(
 					follower.route, journey.planner(leg), preparation.initial, preparation.profile, snapshot, preparation.seedConfig, pacing,
 					publish = { path, _ -> pacing.offer(path) },
@@ -140,6 +141,23 @@ internal class PlanningJob(
 		LOG.info("Rehearsal spine: {} frames in {} ms, {} hold ticks", spine.plan.tape.frameCount, System.currentTimeMillis() - began, holdTicks)
 		onRehearsal(RehearsalPoint(System.currentTimeMillis() - began, spine.plan.tape.frameCount, "spine"), spine)
 		val legs = planLegs ?: return PathPlanResult.Planned(spine)
+		return improve(spine, legs, began, live = false)
+	}
+
+	/**
+	 * Keeps improving a live walk's complete tape ahead of the body while it walks, like a performing rehearsal. A
+	 * partial tape (far goal, horizon still extending) is left to the search itself.
+	 */
+	private fun improveLive(outcome: PathPlanResult, follower: CoarseFollower): PathPlanResult {
+		if (!preparation.liveImprover || cancelled()) return outcome
+		val path = (outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial } ?: return outcome
+		if (execution.cursorFrame() == null) return outcome
+		val legs = follower.planLegs(leg) ?: return outcome
+		return improve(path, legs, preparation.startedMillis, live = true)
+	}
+
+	private fun improve(spine: PublishedPath, legs: List<PlanLeg>, began: Long, live: Boolean): PathPlanResult {
+		val label = if (live) "Live improver" else "Rehearsal improver"
 		val refiner = PlanRefiner(
 			journey.planner(leg).moves.catalog, legs, preparation.initial, preparation.profile, snapshot, preparation.seedConfig,
 			preparation.plannerThreads, cancelled,
@@ -151,8 +169,9 @@ internal class PlanningJob(
 		val offered = HashSet<Int>()
 		val improver = PlanImprover(refiner, plan, Random(System.nanoTime()))
 		var improvedAt = System.currentTimeMillis()
+		var certifyFailures = 0
 		while (!cancelled()) {
-			val performing = rehearsal?.performing == true
+			val performing = live || rehearsal?.performing == true
 			var minFrame = 0
 			if (performing) {
 				val runningSequence = execution.adoptedSequence().toInt()
@@ -166,27 +185,36 @@ internal class PlanningJob(
 						publish(best, true)
 					}
 				}
-				minFrame = (execution.cursorFrame() ?: 0) + LIVE_REFINE_LEAD_FRAMES
+				minFrame = (execution.cursorFrame() ?: if (live) break else 0) + LIVE_REFINE_LEAD_FRAMES
 				if (plan.segments.none { it is PlanSegment.Move && it.startFrame >= minFrame }) break
 			} else if (System.currentTimeMillis() - improvedAt > IMPROVER_PATIENCE_MILLIS) break
 			val progress = "improving: ${plan.frames} frames after ${improver.iterations} tries"
 			enter(progress)
 			onRehearsalProgress(progress)
-			val improved = improver.step(minFrame, annealing = !performing) ?: continue
+			if (improver.iterations % IMPROVER_LOG_TRIES == 0) {
+				LOG.info("{}: {} frames after {} tries, outcomes {}, certify failures {}, grafts {}", label, plan.frames, improver.iterations, refiner.outcomes, certifyFailures, refiner.grafts)
+			}
+			val improved = improver.step(minFrame, annealing = !performing)
+			rehearsal?.temperature = improver.temperature.takeUnless { performing }
+			if (improved == null) continue
 			val certified = refiner.certify(improved)
 			if (certified == null) {
+				certifyFailures++
+				LOG.info("{}: a {}-frame candidate failed certification", label, improved.frames)
 				improver.reset(plan)
 				continue
 			}
 			plan = improved
+			val previous = best
 			best = stamp(certified, best.publicationSequence + 1)
+			PlanningDebugChannel.publishImprovement(ImprovementDiff.of(previous.plan, best.plan))
 			improvedAt = System.currentTimeMillis()
-			LOG.info("Rehearsal improved to {} frames after {} tries, {} ms", plan.frames, improver.iterations, System.currentTimeMillis() - began)
+			LOG.info("{} improved to {} frames after {} tries, {} ms", label, plan.frames, improver.iterations, System.currentTimeMillis() - began)
 			versions[best.publicationSequence] = plan to best
 			onRehearsal(RehearsalPoint(System.currentTimeMillis() - began, best.plan.tape.frameCount, "try ${improver.iterations}"), best)
 			if (performing && offered.add(best.publicationSequence)) publish(best, true)
 		}
-		LOG.info("Rehearsal finished: {} -> {} frames, {} expansions, {} grafts", spine.plan.tape.frameCount, best.plan.tape.frameCount, refiner.expansions, refiner.grafts)
+		LOG.info("{} finished: {} -> {} frames, {} expansions, {} grafts", label, spine.plan.tape.frameCount, best.plan.tape.frameCount, refiner.expansions, refiner.grafts)
 		return PathPlanResult.Planned(best)
 	}
 
@@ -278,6 +306,8 @@ internal class PlanningJob(
 		val SPINE_MICROS_PER_EXPANSION = longArrayOf(83, 70, 100, 60, 120)
 
 		const val LIVE_REFINE_LEAD_FRAMES = 60
+
+		const val IMPROVER_LOG_TRIES = 100
 
 		const val IMPROVER_PATIENCE_MILLIS = 600_000L
 

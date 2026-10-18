@@ -12,6 +12,7 @@ internal class PlanImprover(
 	private val refiner: PlanRefiner,
 	initial: PlanRefiner.Plan,
 	private val random: Random,
+	private val levels: List<PlanRefiner.Level> = PlanRefiner.LEVELS,
 ) {
 	var best: PlanRefiner.Plan = initial
 		private set
@@ -20,7 +21,9 @@ internal class PlanImprover(
 		private set
 
 	private var current = initial
-	private var temperature = START_TEMPERATURE
+	/** Frames a candidate may be worse by and still be accepted with probability 1/e. */
+	var temperature = START_TEMPERATURE
+		private set
 	private var sinceBest = 0
 	private val tries = HashMap<JunctionKey, Int>()
 
@@ -50,7 +53,7 @@ internal class PlanImprover(
 			seeds = headings(current, index),
 			followDepth = FOLLOW_DEPTH,
 		)
-		val level = PlanRefiner.LEVELS[random.nextInt(PlanRefiner.LEVELS.size)]
+		val level = levels[random.nextInt(levels.size)]
 		val allowance = if (annealing) ceil(temperature).toInt() else 0
 		val candidate = refiner.refineAt(current, index, level, exploration, allowance)
 		temperature = (temperature * COOLING).coerceAtLeast(MIN_TEMPERATURE)

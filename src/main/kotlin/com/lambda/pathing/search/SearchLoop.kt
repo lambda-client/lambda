@@ -411,9 +411,9 @@ internal class SearchLoop(
 		val legActions = ActionSet(movements, plan.field, config, searchConfig.exploration) { leg == legs.lastIndex }
 		val legFinisher = if (leg == legs.lastIndex) Finisher(plan.field, environment, config, RolloutGate(profile, environment, config, legRoute), attempts, legRoute, routePoints) else null
 		GraftContext(
-			step = { anchor, decision ->
+			step = { anchor, decision, chain ->
 				budget.spend()
-				legRollouts.transition(anchor, decision)
+				legRollouts.transition(anchor, decision, chain)
 			},
 			replay = { anchor, inputs -> replayInputs(anchor, inputs, plan.field) },
 			alternative = { anchor -> legActions.next(anchor, searchConfig.maxTemperature, lastResort = false, epoch = 0) },
@@ -650,6 +650,7 @@ internal class SearchLoop(
 		rootStance = frontier.root?.stance,
 		graftAttempts = graft?.attempts ?: 0,
 		grafts = graft?.grafted ?: 0,
+		plantFailure = graft?.plantFailure,
 	)
 
 	private companion object {

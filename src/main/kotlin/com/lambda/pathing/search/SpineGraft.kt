@@ -3,18 +3,52 @@ package com.lambda.pathing.search
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import kotlin.math.roundToInt
 
 internal sealed interface SpineStep {
 	val leg: Int
 
-	class Decide(val decision: TrajectoryDecision, override val leg: Int) : SpineStep
+	class Decide(val decision: TrajectoryDecision, override val leg: Int, val memo: PlantMemo? = null, val chain: List<Stance>? = null) : SpineStep
 
 	class Replay(val inputs: List<MovementSimulationInput>, override val leg: Int) : SpineStep
 }
 
+/**
+ * One old decision's re-run, kept across refinements: re-running a decision from the same body, stance and last
+ * input under the same labels lands the same way, and planting the whole old suffix was a third of every try.
+ */
+internal class PlantMemo {
+	private var from: ValueAnchor? = null
+	private var landed: ValueAnchor? = null
+
+	fun recall(anchor: ValueAnchor): ValueAnchor? {
+		val from = from ?: return null
+		val landed = landed ?: return null
+		if (anchor.state != from.state || anchor.stance != from.stance || anchor.inputs.lastOrNull() != from.inputs.lastOrNull()) return null
+		return ValueAnchor(
+			state = landed.state,
+			stance = landed.stance,
+			elapsed = anchor.elapsed + landed.elapsed - from.elapsed,
+			collisionEvents = anchor.collisionEvents + landed.collisionEvents - from.collisionEvents,
+			inputSwitches = anchor.inputSwitches + landed.inputSwitches - from.inputSwitches,
+			parent = anchor,
+			inputs = landed.inputs,
+			decision = landed.decision,
+			trace = landed.trace,
+			jumps = anchor.jumps + landed.jumps - from.jumps,
+			chain = landed.chain,
+		)
+	}
+
+	fun keep(from: ValueAnchor, landed: ValueAnchor) {
+		this.from = from
+		this.landed = landed
+	}
+}
+
 internal class GraftContext(
-	val step: (ValueAnchor, TrajectoryDecision) -> Outcome,
+	val step: (ValueAnchor, TrajectoryDecision, List<Stance>?) -> Outcome,
 	val replay: (ValueAnchor, List<MovementSimulationInput>) -> ValueAnchor?,
 	val alternative: (ValueAnchor) -> TrajectoryDecision?,
 	val finish: ((ValueAnchor) -> Solution?)?,
@@ -37,26 +71,41 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 
 	private var rooted = false
 
+	/** Why [plant] could not reproduce the spine, for the refiner's outcome log. */
+	var plantFailure: String? = null
+		private set
+
 	fun plant(root: ValueAnchor): Solution? {
 		var anchor = root
 		for ((index, step) in steps.withIndex()) {
 			val next = when (step) {
-				is SpineStep.Decide -> when (val outcome = contextOf(step.leg).step(anchor, step.decision)) {
-					is Outcome.Anchored -> outcome.anchor
+				is SpineStep.Decide -> step.memo?.recall(anchor) ?: when (val outcome = contextOf(step.leg).step(anchor, step.decision, step.chain)) {
+					is Outcome.Anchored -> outcome.anchor.also { step.memo?.keep(anchor, it) }
 					is Outcome.Arrived -> return Solution(anchor, outcome.frames)
-					else -> return null
+					is Outcome.Rejected -> return failPlant("rejected ${rejection(outcome.diagnostic)}", index)
+					is Outcome.Blocked -> return failPlant("blocked", index)
 				}
 
-				is SpineStep.Replay -> contextOf(step.leg).replay(anchor, step.inputs) ?: return null
+				is SpineStep.Replay -> contextOf(step.leg).replay(anchor, step.inputs) ?: return failPlant("replay", index)
 			}
-			if (!markLeg(next, index)) return null
+			if (!markLeg(next, index)) return failPlant("leg", index)
 			anchor = next
 			stances += anchor.stance
 			elapsed += anchor.elapsed
 			if (step is SpineStep.Decide) byStance.getOrPut(anchor.stance) { ArrayList(1) } += index
 		}
 		rooted = true
-		return finish(anchor)
+		return finish(anchor) ?: failPlant("finish", steps.size)
+	}
+
+	private fun rejection(diagnostic: TrajectoryDiagnostic): String = when {
+		diagnostic is TrajectoryDiagnostic.FellBelowRoute -> if (diagnostic.depth > 0.0) "FellBelowRoute floor" else "FellBelowRoute unmapped"
+		else -> diagnostic::class.simpleName.orEmpty()
+	}
+
+	private fun failPlant(reason: String, index: Int): Solution? {
+		plantFailure = "$reason ${if (index * 4 < steps.size) "early" else if (index * 4 >= steps.size * 3) "late" else "mid"}"
+		return null
 	}
 
 	fun lead(anchor: ValueAnchor): Int? = indexOf(anchor) { true }?.let { elapsed[it] - anchor.elapsed }
@@ -75,7 +124,7 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 			val step = steps[k]
 			val context = contextOf(step.leg)
 			val next = when (step) {
-				is SpineStep.Decide -> when (val outcome = advance(anchor, step.decision, stances[k], context)) {
+				is SpineStep.Decide -> when (val outcome = advance(anchor, step, stances[k], context)) {
 					is Outcome.Anchored -> outcome.anchor
 					is Outcome.Arrived -> return Solution(anchor, outcome.frames)
 					else -> return null
@@ -108,15 +157,16 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 		return true
 	}
 
-	private fun advance(anchor: ValueAnchor, decision: TrajectoryDecision, target: Stance, context: GraftContext): Outcome? {
-		val first = context.step(anchor, decision)
+	private fun advance(anchor: ValueAnchor, step: SpineStep.Decide, target: Stance, context: GraftContext): Outcome? {
+		val decision = step.decision
+		val first = context.step(anchor, decision, step.chain)
 		if (first is Outcome.Arrived || first is Outcome.Anchored && first.anchor.stance == target) return first
 		var tried = 0
 		while (tried < MAX_ALTERNATIVES) {
 			val alternative = context.alternative(anchor) ?: return null
 			if (alternative == decision || alternative.step != target) continue
 			tried++
-			val outcome = context.step(anchor, alternative)
+			val outcome = context.step(anchor, alternative, null)
 			if (outcome is Outcome.Arrived || outcome is Outcome.Anchored && outcome.anchor.stance == target) return outcome
 		}
 		return null

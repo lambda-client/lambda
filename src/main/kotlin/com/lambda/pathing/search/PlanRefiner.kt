@@ -6,6 +6,8 @@ import com.lambda.pathing.coarse.SwitchableValueField
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import java.util.Collections
+import java.util.IdentityHashMap
 
 internal class PlanRefiner(
 	private val catalog: MovementCatalog,
@@ -20,8 +22,6 @@ internal class PlanRefiner(
 ) {
 	class Plan(val segments: List<PlanSegment>, val touches: List<LegTouch>) {
 		val frames: Int get() = segments.lastOrNull()?.endFrame ?: 0
-
-		fun legAt(frame: Int): Int = touches.count { it.frame <= frame }
 	}
 
 	class Level(val budget: Int, val stall: Int, val beam: Int, val lastResort: Boolean)
@@ -34,18 +34,42 @@ internal class PlanRefiner(
 	var grafts = 0L
 		private set
 
+	/** How each refinement ended, for the rehearsal log: search exit, no gain, same plan, touches changed, or the gain. */
+	val outcomes = HashMap<String, Int>()
+
+	private val memos = IdentityHashMap<PlanSegment, PlantMemo>()
+	private var memoRevision: Any? = null
+
+	private fun outcome(kind: String): Plan? {
+		outcomes.merge(kind, 1, Int::plus)
+		return null
+	}
+
+	/**
+	 * Re-plans the course from segment [index]. The old suffix is replayed only up to its last decision and the
+	 * finisher rebuilds the stop, so an unchanged replay reproduces the plan frame for frame: replaying the old stop
+	 * and then finishing again added three stable-stop frames and hid every gain of up to three frames.
+	 */
 	fun refineAt(plan: Plan, index: Int, level: Level, exploration: Exploration? = null, allowance: Int = 0): Plan? {
 		val junction = plan.segments.getOrNull(index) as? PlanSegment.Move ?: return null
 		val offset = junction.startFrame
-		val leg = plan.legAt(offset).coerceAtMost(legs.lastIndex)
-		val steps = plan.segments.subList(index, plan.segments.size).map { segment ->
-			val segmentLeg = plan.legAt(segment.startFrame).coerceAtMost(legs.lastIndex)
+		val waypoints = waypointTouches(plan.touches)
+		val leg = waypoints.count { it.frame <= offset }.coerceAtMost(legs.lastIndex)
+		val end = plan.segments.indexOfLast { it is PlanSegment.Move } + 1
+		if (memoRevision !== environment.revision) {
+			memos.clear()
+			memoRevision = environment.revision
+		}
+		if (memos.size > plan.segments.size * MEMO_PLANS) memos.keys.retainAll(Collections.newSetFromMap(IdentityHashMap<PlanSegment, Boolean>()).apply { addAll(plan.segments) })
+		val steps = plan.segments.subList(index, end).map { segment ->
+			val segmentLeg = waypoints.count { it.frame <= segment.startFrame }.coerceAtMost(legs.lastIndex)
 			when (segment) {
-				is PlanSegment.Move -> SpineStep.Decide(segment.decision, segmentLeg)
+				is PlanSegment.Move -> SpineStep.Decide(segment.decision, segmentLeg, memos.getOrPut(segment, ::PlantMemo), segment.chain.takeIf { it.isNotEmpty() })
 				is PlanSegment.Terminal -> SpineStep.Replay(segment.inputs, segmentLeg)
 			}
 		}
 		val field = SwitchableValueField(legs[leg].field)
+		var plantFailure: String? = null
 		val loop = SearchLoop(
 			legs[leg].route, catalog, field, junction.entry, profile, environment, config,
 			SearchConfig(maxExpansions = level.budget, stallExpansions = level.stall, frontierPerKey = level.beam, lastResortFromStart = level.lastResort, exploration = exploration),
@@ -54,20 +78,32 @@ internal class PlanRefiner(
 			onConcluded = { stats ->
 				expansions += stats.expansions
 				grafts += stats.grafts
+				plantFailure = stats.plantFailure
 			},
 			parallelism = parallelism,
 			probe = probe,
 			legs = FixedLegs(legs, leg, field),
 			spine = Spine(steps, legs),
 		)
-		val result = loop.run() as? MotionPlanResult.Success ?: return null
+		val raw = loop.run()
+		val result = raw as? MotionPlanResult.Success ?: return outcome("search ${raw::class.simpleName}${plantFailure?.let { ", plant $it" } ?: ""}")
 		val frames = offset + result.plan.frames.size
-		if (frames >= plan.frames + allowance) return null
-		if (frames == plan.frames && (result.plan.segments.firstOrNull() as? PlanSegment.Move)?.decision == junction.decision) return null
+		if (frames >= plan.frames + allowance) return outcome(if (frames == plan.frames) "same" else "worse")
+		if (frames == plan.frames && (result.plan.segments.firstOrNull() as? PlanSegment.Move)?.decision == junction.decision) return outcome("same")
 		val suffix = result.plan.segments.map { it.shifted(offset) }
 		val touches = plan.touches.filter { it.frame <= offset } + result.legTouches.map { LegTouch(it.frame + offset, it.waypoint) }
-		if (touches.map { it.waypoint } != plan.touches.map { it.waypoint }) return null
+		if (waypointTouches(touches).map { it.waypoint } != waypoints.map { it.waypoint }) return outcome("touches")
+		outcomes.merge("gain", 1, Int::plus)
 		return Plan(plan.segments.subList(0, index) + suffix, touches)
+	}
+
+	/**
+	 * The touches of the legs' waypoints, in order. The walk also roots a leg at each breathing stop, which is no leg
+	 * here: counting those shifted every later segment onto the wrong leg's field.
+	 */
+	private fun waypointTouches(touches: List<LegTouch>): List<LegTouch> {
+		var next = 0
+		return touches.filter { touch -> (next < legs.size && touch.waypoint == legs[next].route.goal).also { if (it) next++ } }
 	}
 
 	fun certify(plan: Plan): MotionPlanResult.Success? {
@@ -84,6 +120,7 @@ internal class PlanRefiner(
 				parent = anchor,
 				inputs = segment.inputs,
 				decision = (segment as? PlanSegment.Move)?.decision,
+				chain = (segment as? PlanSegment.Move)?.chain.orEmpty(),
 			)
 			if (segment.endFrame in touched) anchor.legRoot = true
 		}
@@ -92,17 +129,24 @@ internal class PlanRefiner(
 	}
 
 	companion object {
+		/** Plans' worth of plant memos kept before the ones of replaced segments are dropped. */
+		private const val MEMO_PLANS = 2
+
 		fun of(result: MotionPlanResult.Success): Plan = Plan(result.plan.segments, result.legTouches)
 
+		/**
+		 * Search sizes a refinement draws from. Gains come from grafts near the junction, so many small searches beat
+		 * few large ones: 3k/6k expansions reached 6416 frames on the dimension parkour in 90 s where 20k-80k reached
+		 * 6432-6452 and 1.5k/3k 6446.
+		 */
 		val LEVELS = listOf(
-			Level(budget = 20_000, stall = 3_000, beam = 3, lastResort = false),
-			Level(budget = 40_000, stall = 6_000, beam = 6, lastResort = true),
-			Level(budget = 80_000, stall = 12_000, beam = 12, lastResort = true),
+			Level(budget = 3_000, stall = 800, beam = 3, lastResort = false),
+			Level(budget = 6_000, stall = 1_500, beam = 6, lastResort = true),
 		)
 	}
 }
 
 private fun PlanSegment.shifted(offset: Int): PlanSegment = when (this) {
-	is PlanSegment.Move -> PlanSegment.Move(decision, entry, exit, inputs, startFrame + offset)
+	is PlanSegment.Move -> PlanSegment.Move(decision, entry, exit, inputs, startFrame + offset, chain)
 	is PlanSegment.Terminal -> PlanSegment.Terminal(entry, exit, inputs, startFrame + offset)
 }

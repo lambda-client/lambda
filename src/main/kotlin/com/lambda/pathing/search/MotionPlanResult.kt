@@ -79,6 +79,7 @@ data class SearchStats(
 	val rootStance: Stance? = null,
 	val graftAttempts: Int = 0,
 	val grafts: Int = 0,
+	val plantFailure: String? = null,
 ) {
 	override fun toString(): String = buildString {
 		append("exit=").append(exit)

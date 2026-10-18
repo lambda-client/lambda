@@ -20,6 +20,8 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 object PlanningDebugChannel : SearchProbe {
+	private const val MAX_IMPROVEMENTS = 500
+
 	class Attempt(private val rollout: TrajectoryRollout, val certified: Boolean) {
 		val points: List<Vec3d> by lazy(LazyThreadSafetyMode.PUBLICATION) {
 			val frames = rollout.frames
@@ -79,6 +81,15 @@ object PlanningDebugChannel : SearchProbe {
 	@Volatile
 	var candidateLines: List<CandidatePath> = emptyList()
 		private set
+
+	/** Every plan improvement of the session, oldest first, the last [MAX_IMPROVEMENTS] of them. */
+	@Volatile
+	var improvements: List<ImprovementDiff> = emptyList()
+		private set
+
+	fun publishImprovement(diff: ImprovementDiff) {
+		improvements = (improvements + diff).takeLast(MAX_IMPROVEMENTS)
+	}
 
 	override val candidatesEnabled: Boolean get() = isActive
 
@@ -279,6 +290,7 @@ object PlanningDebugChannel : SearchProbe {
 		lastExhaustionLedger = ""
 		graph = null
 		coarse = null
+		improvements = emptyList()
 		clearSearchViews()
 	}
 

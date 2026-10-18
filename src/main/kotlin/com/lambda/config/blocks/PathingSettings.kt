@@ -279,6 +279,13 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
+    override val liveImprover by c.setting(
+        "Live Improver", true,
+        "Once a walk has a complete tape to the goal, keep improving the part not walked yet while walking, " +
+            "the way Path Plan refines before it walks. Swaps in a faster tape whenever one certifies.",
+    )
+
+    @Group(SEARCH_GROUP)
     override val windowExpansionBudget by c.setting(
         "Window Budget", SearchConfig.WINDOW_EXPANSIONS, 10_000..1_000_000, 10_000,
         "Trajectory-search expansions per planning window before the search commits its best tape. " +

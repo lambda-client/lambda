@@ -27,7 +27,7 @@ internal class Solution(
 			val segments = anchor.lineFrom(null).mapTo(ArrayList()) { child ->
 				val parent = checkNotNull(child.parent)
 				val decision = child.decision
-				if (decision != null) PlanSegment.Move(decision, parent.state, child.state, child.inputs, parent.elapsed)
+				if (decision != null) PlanSegment.Move(decision, parent.state, child.state, child.inputs, parent.elapsed, child.chain)
 				else PlanSegment.Terminal(parent.state, child.state, child.inputs, parent.elapsed)
 			}
 			if (tail.isNotEmpty()) {

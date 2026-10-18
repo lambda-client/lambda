@@ -5,7 +5,8 @@ import com.lambda.pathing.search.PublishedPath
 
 data class RehearsalPoint(val millis: Long, val frames: Int, val label: String)
 
-data class RehearsalView(val history: List<RehearsalPoint>, val progress: String, val finished: Boolean)
+/** [temperature] is the improver's annealing temperature in frames, null while greedy (performing) or not improving yet. */
+data class RehearsalView(val history: List<RehearsalPoint>, val progress: String, val finished: Boolean, val temperature: Double? = null)
 
 internal class Rehearsal(val waypoints: List<Stance>) {
 	@Volatile
@@ -22,6 +23,9 @@ internal class Rehearsal(val waypoints: List<Stance>) {
 	@Volatile
 	var finished = false
 
+	@Volatile
+	var temperature: Double? = null
+
 	var performRequested = false
 
 	@Volatile
@@ -31,7 +35,7 @@ internal class Rehearsal(val waypoints: List<Stance>) {
 
 	val bestFrames: Int? get() = best?.plan?.tape?.frameCount
 
-	fun view(): RehearsalView = RehearsalView(history, progress, finished)
+	fun view(): RehearsalView = RehearsalView(history, progress, finished, temperature)
 
 	fun record(point: RehearsalPoint, path: PublishedPath): Boolean {
 		val current = best
