@@ -4,6 +4,7 @@ import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.RememberedTerrain
 import com.lambda.pathing.world.streaming.WorldEventBatch
 import kotlin.math.abs
@@ -17,25 +18,37 @@ internal class CoarsePlanningState(
 	goal: Stance,
 	private val memory: RememberedTerrain? = null,
 	private val alternatives: List<Stance> = emptyList(),
+	private val shared: SharedEdges? = null,
 ) {
 	private val moves = libraryFor(moveOptions)
+
+	private fun sharing(goal: Stance): SharedEdges? = shared?.takeIf { view.medium(goal.x, goal.y, goal.z) != Medium.WATER }
 
 	var goal: Stance = goal
 		private set
 
-	var planner = CoarsePlanner(view, moves, start, goal, alternatives)
+	var planner = CoarsePlanner(view, moves, start, goal, alternatives, shared = sharing(goal))
 		private set
+
+	val edges: SharedEdges? get() = planner.sharedEdges
 
 	fun retarget(goal: Stance, from: Stance, speed: SpeedClass) {
 		this.goal = goal
-		planner = CoarsePlanner(view, moves, from, goal, alternatives, reuse = planner).apply { updateStart(from, speed) }
+		planner.leaveShared()
+		planner = CoarsePlanner(view, moves, from, goal, alternatives, reuse = planner, shared = sharing(goal)).apply { updateStart(from, speed) }
+	}
+
+	fun rebuild(from: Stance, speed: SpeedClass) {
+		planner.leaveShared()
+		planner = CoarsePlanner(view, moves, from, goal, alternatives, shared = sharing(goal)).apply { updateStart(from, speed) }
 	}
 
 	fun repairFrom(start: Stance) {
 		planner.updateStart(start)
 	}
 
-	fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE) {
+	fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE, applied: MutableSet<SharedEdges>? = null) {
+		edges?.let { if (applied?.add(it) == false) return }
 		val (overRemembered, arrived) = batch.arrived.partition { memory?.remembers(it) == true }
 		val changed = batch.changed + overRemembered
 		if (changed.isNotEmpty()) planner.terrainChanged(changed, maxStances)
@@ -44,7 +57,8 @@ internal class CoarsePlanningState(
 
 	fun forgetMemory(from: Stance, speed: SpeedClass = SpeedClass.STOPPED): Boolean {
 		if (memory?.forget() != true) return false
-		planner = CoarsePlanner(view, moves, from, goal, alternatives).apply { updateStart(from, speed) }
+		edges?.reset()
+		rebuild(from, speed)
 		return true
 	}
 

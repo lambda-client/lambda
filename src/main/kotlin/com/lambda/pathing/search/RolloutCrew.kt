@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.LockSupport
 
 internal class RolloutCrew(workers: Int, private val rollouts: AnchorRollout) {
-	private class Round(val batch: List<AnchorRollout.PreparedRollout>) {
+	class Round(val batch: List<AnchorRollout.PreparedRollout>) {
 		val next = AtomicInteger()
 		val unfinished = AtomicInteger(batch.size)
 	}
@@ -24,10 +24,16 @@ internal class RolloutCrew(workers: Int, private val rollouts: AnchorRollout) {
 		}
 	}
 
-	fun run(batch: List<AnchorRollout.PreparedRollout>) {
+	fun run(batch: List<AnchorRollout.PreparedRollout>) = finish(start(batch))
+
+	fun start(batch: List<AnchorRollout.PreparedRollout>): Round {
 		val current = Round(batch)
 		round = current
 		threads.forEach(LockSupport::unpark)
+		return current
+	}
+
+	fun finish(current: Round) {
 		claim(current)
 		while (current.unfinished.get() > 0) Thread.onSpinWait()
 	}
@@ -71,8 +77,8 @@ internal class RolloutCrew(workers: Int, private val rollouts: AnchorRollout) {
 	private companion object {
 		const val HOT_WORKERS = 3
 
-		const val MIN_SPINS = 250
+		const val MIN_SPINS = 100
 
-		const val MAX_SPINS = 20_000
+		const val MAX_SPINS = 2_000
 	}
 }

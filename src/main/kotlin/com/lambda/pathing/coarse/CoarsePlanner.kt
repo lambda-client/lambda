@@ -26,6 +26,7 @@ class CoarsePlanner(
 	val goalStance: Stance,
 	alternatives: Collection<Stance> = emptyList(),
 	reuse: CoarsePlanner? = null,
+	private val shared: SharedEdges? = null,
 ) {
 	private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
 
@@ -33,9 +34,10 @@ class CoarsePlanner(
 		for (alternative in alternatives) if (alternative != goalStance) add(PackedStance.pack(alternative, SpeedClass.STOPPED))
 	}
 
-	private val unknownDrops: LongOpenHashSet = reuse?.unknownDrops ?: LongOpenHashSet()
+	private val unknownDrops: LongOpenHashSet = shared?.unknownDrops ?: reuse?.unknownDrops ?: LongOpenHashSet()
 
-	private val edgeCache: CoarseEdgeCache = reuse?.edgeCache?.takeIf { !goalColumn(reuse.goalStance) && !goalColumn(goalStance) }
+	private val edgeCache: CoarseEdgeCache = shared?.cache(view, moves)
+		?: reuse?.edgeCache?.takeIf { reuse.shared == null && !goalColumn(reuse.goalStance) && !goalColumn(goalStance) }
 		?: CoarseEdgeCache(view.cursor(), moves, listOf(goalStance), unknownDrops)
 
 	private fun goalColumn(goal: Stance): Boolean = view.medium(goal.x, goal.y, goal.z) == Medium.WATER
@@ -126,6 +128,13 @@ class CoarsePlanner(
 
 	init {
 		anchors.rebuild()
+		shared?.join(this)
+	}
+
+	internal val sharedEdges: SharedEdges? get() = shared
+
+	internal fun leaveShared() {
+		shared?.leave(this)
 	}
 
 	val graphSize: Int get() = search.knownNodeCount
@@ -394,6 +403,7 @@ class CoarsePlanner(
 
 	private fun synchronizeStances(affected: Iterable<Stance>): Boolean {
 		edgeCache.invalidateStances(affected)
+		shared?.stancesInvalidated(affected, this)
 		val lifted = LongArrayList()
 		for (stance in affected) {
 			lifted.add(PackedStance.pack(stance, SpeedClass.MOVING))
@@ -462,6 +472,13 @@ class CoarsePlanner(
 		maxStances: Int = Int.MAX_VALUE,
 		arrivalsOnly: Boolean = false,
 	) {
+		if (shared != null) return shared.terrainChanged(changed, maxStances, arrivalsOnly)
+		collectChanged(changed, arrivalsOnly)
+		edgeCache.invalidate(changed, arrivalsOnly)
+		afterChange(maxStances)
+	}
+
+	internal fun collectChanged(changed: List<CellBox>, arrivalsOnly: Boolean) {
 		updateGoalKnowledge()
 		anchors.refresh(changed)
 		val origins = changed.map(moves::originsReading)
@@ -475,12 +492,21 @@ class CoarsePlanner(
 					CoarseEdgeCache.covers(shafted, key)) pendingSync.add(key)
 			}
 		}
-		edgeCache.invalidate(changed, arrivalsOnly)
+	}
+
+	internal fun afterChange(maxStances: Int) {
 		if (grounded == view.mayBounce) {
 			grounded = !view.mayBounce
 			search.rekey()
 		}
 		continueSync(maxStances)
+	}
+
+	internal fun markForSync(stances: Iterable<Stance>) {
+		for (stance in stances) {
+			val key = PackedStance.stanceKey(PackedStance.pack(stance, SpeedClass.STOPPED))
+			if (search.isKnown(key) || search.isKnown(PackedStance.withSpeed(key, SpeedClass.MOVING))) pendingSync.add(key)
+		}
 	}
 
 	fun continueSync(maxStances: Int = Int.MAX_VALUE): Boolean {

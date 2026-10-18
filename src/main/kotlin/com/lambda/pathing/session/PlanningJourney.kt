@@ -2,6 +2,7 @@ package com.lambda.pathing.session
 
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.coarse.SharedEdges
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.store.BaritoneCache
@@ -28,10 +29,13 @@ internal class PlanningJourney private constructor(
 
 	private val starts = listOf(origin.start) + origin.waypoints
 
-	private fun buildLegs(remembered: BaritoneCache?): List<CoarsePlanningState> = goals.indices.map { index ->
+	private fun buildLegs(remembered: BaritoneCache?): List<CoarsePlanningState> {
 		val memory = remembered?.let { coarseView.remembering(it.sectionsExcept(starts + goals), world::chunkCapturable) }
-		val alternatives = if (index == goals.lastIndex) origin.alternatives else emptyList()
-		CoarsePlanningState(memory ?: coarseView, origin.moveOptions, starts[index], goals[index], memory = memory, alternatives = alternatives)
+		val shared = SharedEdges(goals)
+		return goals.indices.map { index ->
+			val alternatives = if (index == goals.lastIndex) origin.alternatives else emptyList()
+			CoarsePlanningState(memory ?: coarseView, origin.moveOptions, starts[index], goals[index], memory = memory, alternatives = alternatives, shared = shared.takeIf { alternatives.isEmpty() })
+		}
 	}
 
 	val coarse = CoarseService(

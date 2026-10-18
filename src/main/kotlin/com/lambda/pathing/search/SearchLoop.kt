@@ -94,13 +94,15 @@ internal class SearchLoop(
 			if (cancelled()) return MotionPlanResult.Cancelled
 			execution.cursorFrame()?.let { executing -> followCursor(executing)?.let { return it } }
 			followPublication()
-			if (!frontier.hasOpen) {
+			if (!frontier.hasOpen && ahead.isNullOrEmpty()) {
 				val drained = recoverFromDrain() ?: continue
 				return conclude(drained)
 			}
 			periodicMaintenance()
-			val batch = selectBatch() ?: return finish(checkNotNull(incumbent.best))
+			val batch = ahead?.takeIf { it.isNotEmpty() } ?: selectBatch() ?: return finish(checkNotNull(incumbent.best))
+			ahead = null
 			expand(batch)
+			if (finishing) return finish(checkNotNull(incumbent.best))
 		}
 	}
 
@@ -326,9 +328,19 @@ internal class SearchLoop(
 		if (!hasNextLeg()) finisher.sweep(anchor)?.let(incumbent::offer)
 	}
 
+	private var ahead: List<AnchorRollout.PreparedRollout>? = null
+
+	private var finishing = false
+
 	private fun expand(batch: List<AnchorRollout.PreparedRollout>) {
-		if (batch.size > 1 && crew != null) crew.run(batch) else batch.forEach { rollouts.execute(it) }
+		if (batch.size > 1 && crew != null) {
+			val round = crew.start(batch)
+			val next = selectBatch()
+			if (next == null) finishing = true else ahead = next
+			crew.finish(round)
+		} else batch.forEach { rollouts.execute(it) }
 		for (prepared in batch) {
+			if (!frontier.canReach(prepared.anchor)) continue
 			val outcome = rollouts.complete(prepared)
 			applyRollout(prepared.anchor, prepared.action, outcome)
 			reofferOrSpend(prepared.anchor)
@@ -679,7 +691,7 @@ internal class SearchLoop(
 		const val VIEW_INTERVAL_MILLIS = 100L
 		const val ARRIVAL_RETURN_FRAMES = 2
 		const val SPINE_ATTEMPTS_PER_EDGE = 8
-		const val ROLLOUTS_PER_THREAD = 2
+		const val ROLLOUTS_PER_THREAD = 3
 		const val IDLE_PATIENCE_SLICES = 5
 		const val LINE_BEAM = 12
 		const val LINE_BEAM_OFF_SPINE = 4

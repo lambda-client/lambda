@@ -6,6 +6,7 @@ import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FallEdges
 import com.lambda.pathing.coarse.FieldLabels
+import com.lambda.pathing.coarse.SharedEdges
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.PLANNER_THREAD_PRIORITY
@@ -247,8 +248,9 @@ internal class CoarseService(
 		}
 		if (batch != null && !batch.isEmpty) {
 			revision = batch.revision
+			val applied = HashSet<SharedEdges>()
 			for (leg in legs.indices) {
-				legs[leg].applyEvents(batch, maxStances = 0)
+				legs[leg].applyEvents(batch, maxStances = 0, applied = applied)
 				dirty[leg] = true
 			}
 		}
@@ -333,16 +335,21 @@ internal class CoarseService(
 			val stale = !pinCurrent()
 			if (stale) dirty[leg] = true
 			val capturing = world != null && (world.pendingInterest > 0 || stale)
+			val group = state.edges
 			if (!capturing && state.forgetMemory(start, speeds[leg])) {
 				LOG.info("Remembered terrain leaves no coarse route from {} to {}; planning leg {} without it", start, state.goal, leg)
-				dirty[leg] = true
+				for (other in legs.indices) if (other != leg && group != null && legs[other].edges === group) legs[other].rebuild(starts[other], speeds[other])
+				for (other in legs.indices) if (other == leg || group != null && legs[other].edges === state.edges) dirty[other] = true
 				return
 			}
 			val why = planner.unreachableReport ?: planner.routeFailureReport()
 			return fail(leg, start, "no coarse route to the goal: $why", final = !capturing)
 		}
 		publish(leg, start, route, timings)
-		if (timings.measure("recall") { state.recallMemory(route, start) }) dirty[leg] = true
+		if (timings.measure("recall") { state.recallMemory(route, start) }) {
+			val group = state.edges
+			for (other in legs.indices) if (other == leg || group != null && legs[other].edges === group) dirty[other] = true
+		}
 	}
 
 	private fun publish(leg: Int, start: Stance, route: CoarseRoutePlan, timings: PhaseTimings) {
