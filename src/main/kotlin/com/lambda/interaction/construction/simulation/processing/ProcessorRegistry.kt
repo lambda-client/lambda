@@ -177,9 +177,8 @@ object ProcessorRegistry : Loadable {
 		}
 
 	private fun BlockState.canBeReplacedBy(expectedState: BlockState) = when {
-		!isReplaceable -> false
-		expectedState.isIn(BlockTags.CROPS) -> isAir || !fluidState.isEmpty
-		else -> true
+		expectedState.isIn(BlockTags.CROPS) -> isReplaceable && (isAir || !fluidState.isEmpty)
+		else -> isReplaceable
 	}
 }
 
