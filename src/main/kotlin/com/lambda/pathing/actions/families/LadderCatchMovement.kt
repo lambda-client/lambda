@@ -10,6 +10,7 @@ import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.control.SegmentFollowerProgram
+import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.launch.AirPlan
@@ -47,7 +48,7 @@ object LadderCatchMovement : Movement {
 							conditions = listOf(
 								CellCondition(dx, rise, dz, CellPredicate.CLIMBABLE),
 								CellCondition(dx, rise + 1, dz, CellPredicate.CENTER_HEAD),
-							),
+							) + StanceRules.targetCorner(dx, maxOf(0, rise), dz, hop = true),
 							departure = CellPredicate.LAUNCHABLE,
 							arc = MotionTemplate.ArcSpec(),
 						)

@@ -360,12 +360,20 @@ internal class FallEdges(
 		val endHeight = landingHeight + 1.0
 		val span = max(hypot(endX - startX, endZ - startZ), abs(startHeight - endHeight))
 		val steps = max(1, ceil(span / CHORD_STEP).toInt())
+		var lastX = floor(startX).toInt()
+		var lastZ = floor(startZ).toInt()
 		for (step in 1..steps) {
 			val t = step.toDouble() / steps
 			val px = floor(startX + (endX - startX) * t).toInt()
 			val pz = floor(startZ + (endZ - startZ) * t).toInt()
 			val py = startHeight + (endHeight - startHeight) * t
-			for (lift in BODY_SAMPLES) if (occupancy.occupied(px, floor(py + lift).toInt(), pz)) return false
+			for (lift in BODY_SAMPLES) {
+				val y = floor(py + lift).toInt()
+				if (occupancy.occupied(px, y, pz)) return false
+				if (px != lastX && pz != lastZ && occupancy.occupied(px, y, lastZ) && occupancy.occupied(lastX, y, pz)) return false
+			}
+			lastX = px
+			lastZ = pz
 		}
 		return true
 	}

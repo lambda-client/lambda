@@ -121,6 +121,15 @@ fun interface CellPredicate {
 
 		private val CoarseVoxel.splitsCell: Boolean get() = partial && !centerPassable
 
+		fun openCorner(otherDx: Int, otherDz: Int, hop: Boolean) = object : CellPredicate {
+			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
+				fun full(cellX: Int, cellY: Int, cellZ: Int) = view.voxel(cellX, cellY, cellZ).let { it.medium == Medium.SOLID && !it.partial }
+				fun walled(cellX: Int, cellZ: Int) = if (hop) full(cellX, y, cellZ) && full(cellX, y + 1, cellZ) else full(cellX, y, cellZ) || full(cellX, y + 1, cellZ)
+				return !walled(x, z) || !walled(x + otherDx, z + otherDz)
+			}
+			override val extraReads = listOf(VoxelPos(0, 1, 0), VoxelPos(otherDx, 0, otherDz), VoxelPos(otherDx, 1, otherDz))
+		}
+
 		fun walkingIn(side: Int, dy: Int): CellPredicate = WALKING_IN[dy + 1][side]
 
 		fun walkingOut(side: Int, dy: Int): CellPredicate = WALKING_OUT[dy + 1][side]
