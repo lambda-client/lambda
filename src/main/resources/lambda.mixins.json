@@ -2,6 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.lambda.mixin",
+  "plugin": "com.lambda.mixin.OptionalModMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "CrashReportMixin",

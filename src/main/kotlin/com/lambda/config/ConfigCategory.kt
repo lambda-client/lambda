@@ -71,7 +71,7 @@ abstract class ConfigCategory : Loadable {
 
         configCategories.add(this)
 
-        listenUnsafe<ClientEvent.Shutdown>({ Int.MIN_VALUE }) { trySaveToFile() }
+        listenUnsafe<ClientEvent.Shutdown>({ Int.MIN_VALUE }) { internalTrySave(false) }
 
         return super.load()
     }
@@ -118,7 +118,10 @@ abstract class ConfigCategory : Loadable {
     }
 
     private fun loadFromFile(file: File) = runCatching {
-        file.ifNotExists { LOG.warn("No config file found for $name. Creating new file when saving.") }
+        file.ifNotExists {
+            check(!it.exists()) { "${it.name} is empty" }
+            LOG.warn("No config file found for $name. Creating new file when saving.")
+        }
             .ifExists {
                 val parsed = mapper.readTree(it)
                 if (!parsed.isObject) return@ifExists
