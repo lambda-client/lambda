@@ -198,7 +198,7 @@ dependencies {
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
 
 	// DevLogin
-	//modRuntimeOnly("com.ptsmods:devlogin:3.5.1:fabric")
+//	modRuntimeOnly("com.ptsmods:devlogin:3.5.1:fabric")
 
     // Test implementations
     testImplementation(kotlin("test"))
@@ -241,14 +241,14 @@ kotlin {
         freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility", "-Xannotation-default-target=param-property")
     }
 
-    jvmToolchain(25)
+    jvmToolchain(21)
 }
 
 java {
     withSourcesJar()
 
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 publishing {
