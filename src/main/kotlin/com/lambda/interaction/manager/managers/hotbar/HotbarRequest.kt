@@ -24,8 +24,13 @@ import com.lambda.interaction.manager.Request
 private annotation class HotbarRequestMarker
 
 @HotbarRequestMarker
-fun Automated.hotbarRequest(slot: Int, nowOrNothing: Boolean = false, builder: (HotbarRequestBuilder.() -> Unit)? = null) =
-	HotbarRequestBuilder(slot, nowOrNothing, this).apply { builder?.invoke(this) }.build()
+fun Automated.hotbarRequest(
+	slot: Int,
+	nowOrNothing: Boolean = false,
+	builder: (HotbarRequestBuilder.() -> Unit)? = null
+) = HotbarRequestBuilder(slot, nowOrNothing, this)
+	.apply { builder?.invoke(this) }
+	.build()
 
 /**
  * A request to change the hotbar slot.
@@ -43,7 +48,7 @@ class HotbarRequest(
 	val slot: Int,
 	var keepTicks: Int = automated.hotbarConfig.keepTicks,
 	val swapPause: Int = automated.hotbarConfig.swapPause,
-	override val nowOrNothing: Boolean = true,
+	override val nowOrNothing: Boolean = false,
 	automated: Automated
 ) : Request(), Automated by automated {
 	override val requestId = ++requestCount

@@ -32,7 +32,7 @@ import com.lambda.interaction.manager.managers.inventory.InventoryRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.util.Nameable
-import com.lambda.util.item.ItemStackUtils.countMatching
+import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.emptySpace
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemStackUtils.spaceLeft
@@ -49,6 +49,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 import net.minecraft.text.Text
 
+@Suppress("unused")
 abstract class Container(
     val type: ContainerType
 ) : Nameable, Comparable<Container> {
@@ -127,12 +128,12 @@ abstract class Container(
     context(automated: Automated)
     open fun access(): OpenContainerTask<*>? = null
 
-open fun count(selection: StackSelection) =
+    open fun count(selection: StackSelection) =
 		slots
 			.takeUnless { it.isEmpty() }
 			?.let {
-				selection.filter(it, false).countMatching(selection.countEmptyAsOne)
-			} ?: selection.filter(stacks, false).countMatching(selection.countEmptyAsOne)
+				selection.filter(it, false).count(selection.countEmptyAsOne)
+			} ?: selection.filter(stacks, false).count(selection.countEmptyAsOne)
 
     open fun spaceLeft(selection: StackSelection) =
         slots
@@ -165,7 +166,7 @@ open fun count(selection: StackSelection) =
     fun findMoveSlots(
         selection: StackSelection,
         toContainer: Container,
-        toStackSelection: StackSelection = StackSelection.ANYTHING
+        toStackSelection: StackSelection = StackSelection.EVERYTHING
     ): Pair<Slot?, Slot?> {
         if (!canSwapWith(toContainer)) return Pair(null, null)
         val fromSlot = selection.bestMatch(slots)
@@ -184,7 +185,7 @@ open fun count(selection: StackSelection) =
 
     context(_: Automated)
     open fun findReplaceSlot(
-        selection: StackSelection = StackSelection.ANYTHING
+        selection: StackSelection = StackSelection.EVERYTHING
     ) = selection
         .mutate { sortedWith(replaceSorter) }
         .bestMatch(slots)
@@ -192,7 +193,7 @@ open fun count(selection: StackSelection) =
     context(_: Automated)
     open fun findReplaceSlot(
         incomingStack: ItemStack,
-        selection: StackSelection = StackSelection.ANYTHING
+        selection: StackSelection = StackSelection.EVERYTHING
     ) = findReplaceSlot(selection.mutate { canInsert(incomingStack) })
 
     context(automatedSafeContext: AutomatedSafeContext)

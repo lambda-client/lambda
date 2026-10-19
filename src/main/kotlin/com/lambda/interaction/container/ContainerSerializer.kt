@@ -22,6 +22,8 @@ import com.lambda.Lambda.mapper
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.util.FolderRegistry
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkPos
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteIfExists
@@ -31,7 +33,22 @@ import kotlin.io.path.notExists
 object ContainerSerializer {
 	private const val ENDER_CHEST_FILE = "ender_chest.json"
 
-	val serializedContainers: Sequence<PlacedContainer> =
+	private val index = mutableMapOf<ChunkPos, MutableMap<BlockPos, ContainerType>>()
+
+	@Volatile
+	private var indexed = false
+
+	fun prepareIndex() {
+		ensureIndex()
+	}
+
+	fun savedIn(chunk: ChunkPos): Map<BlockPos, ContainerType> {
+		ensureIndex()
+		val positions = index[chunk] ?: return emptyMap()
+		return positions.toMap()
+	}
+
+	val serializedContainers =
 		sequence {
 			val dir = FolderRegistry.containers
 			if (dir.notExists()) return@sequence
@@ -46,8 +63,9 @@ object ContainerSerializer {
 	@Synchronized
 	fun saveContainer(container: PlacedContainer) {
 		val dir = ensureDirectory()
-		val file = dir.resolve(containerFileName(container.pos)).toFile()
+		val file = dir.resolve(containerFileName(container.pos, container.type))
 		mapper.writeValue(file, container)
+		record(container.pos, container.type)
 	}
 
 	private fun readContainer(file: Path): PlacedContainer? =
@@ -60,7 +78,11 @@ object ContainerSerializer {
 	@Synchronized
 	fun removeContainer(pos: BlockPos) {
 		val dir = FolderRegistry.containers
-		dir.resolve(containerFileName(pos)).deleteIfExists()
+		ensureIndex()
+		val chunk = ChunkPos(pos.x shr 4, pos.z shr 4)
+		val type = index[chunk]?.remove(pos) ?: return
+		index[chunk]?.let { if (it.isEmpty()) index.remove(chunk) }
+		dir.resolve(containerFileName(pos, type)).deleteIfExists()
 	}
 
 	fun saveEnderChest() {
@@ -82,9 +104,64 @@ object ContainerSerializer {
 	private fun ensureDirectory() =
 		FolderRegistry.containers.also { if (it.notExists()) it.createDirectories() }
 
-	private fun containerFileName(pos: BlockPos): String {
+	private fun ensureIndex() {
+		if (indexed) return
+		synchronized(this) {
+			if (indexed) return
+			val dir = FolderRegistry.containers
+			if (dir.notExists()) return
+			val files =
+				runCatching {
+					Files.newDirectoryStream(dir, "*.json").use { stream -> stream.toList() }
+				}.onFailure {
+					LOG.warn("Failed to list saved containers", it)
+				}.getOrDefault(emptyList())
+
+			var migrated = 0
+			files.forEach { path ->
+				runCatching {
+					val name = path.fileName.toString()
+					if (name == ENDER_CHEST_FILE) return@runCatching
+					val parts = name.removeSuffix(".json").split('_')
+					val chunkX = parts[0].toIntOrNull() ?: return@runCatching
+					val chunkZ = parts[1].toIntOrNull() ?: return@runCatching
+					val pos = BlockPos(
+						parts.getOrNull(2)?.toIntOrNull() ?: return@runCatching,
+						parts.getOrNull(3)?.toIntOrNull() ?: return@runCatching,
+						parts.getOrNull(4)?.toIntOrNull() ?: return@runCatching
+					)
+					if (chunkX != pos.x shr 4 || chunkZ != pos.z shr 4) return@runCatching
+
+					val named = parts.getOrNull(5)?.let { token -> ContainerType.entries.firstOrNull { it.name == token } }
+					val type =
+						named ?: run {
+							val stored = readContainer(path)
+							if (stored == null) {
+								LOG.warn("Dropping unreadable container file $name")
+								Files.deleteIfExists(path)
+								return@runCatching
+							}
+							Files.move(path, dir.resolve(containerFileName(pos, stored.type)))
+							migrated++
+							stored.type
+						}
+					record(pos, type)
+				}.onFailure {
+					LOG.warn("Failed to index saved container $path", it)
+				}
+			}
+			if (migrated > 0) LOG.info("Named $migrated saved container(s) with their container type")
+			indexed = true
+		}
+	}
+
+	private fun record(pos: BlockPos, type: ContainerType) {
+		index.getOrPut(ChunkPos(pos.x shr 4, pos.z shr 4)) { HashMap() }[pos] = type
+	}
+
+	private fun containerFileName(pos: BlockPos, type: ContainerType): String {
 		val chunkX = pos.x shr 4
 		val chunkZ = pos.z shr 4
-		return "${chunkX}_${chunkZ}_${pos.x}_${pos.y}_${pos.z}.json"
+		return "${chunkX}_${chunkZ}_${pos.x}_${pos.y}_${pos.z}_${type.name}.json"
 	}
 }

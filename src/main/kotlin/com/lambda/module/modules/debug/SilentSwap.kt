@@ -40,7 +40,7 @@ object SilentSwap : Module(
             }
 
         listen<PlayerEvent.Attack.Block> {
-            if (!hotbarRequest(0).submit().done) {
+            if (!hotbarRequest(0, nowOrNothing = true).submit().done) {
                 it.cancel()
                 return@listen
             }

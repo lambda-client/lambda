@@ -59,7 +59,7 @@ fun transfer(
 	fromStack: StackSelection,
 	fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	toSelection: ContainerSelection,
-	toStack: StackSelection = StackSelection.ANYTHING,
+	toStack: StackSelection = StackSelection.EVERYTHING,
 	allowQuickMove: Boolean = true,
 ) = ContainerTransferTask(fromStack, fromSelection, toSelection, toStack, allowQuickMove, automated)
 
@@ -69,7 +69,7 @@ context(automated: Automated)
 fun StackSelection.transfer(
 	fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	toSelection: ContainerSelection,
-	toStack: StackSelection = StackSelection.ANYTHING,
+	toStack: StackSelection = StackSelection.EVERYTHING,
 	allowQuickMove: Boolean = true,
 ) = transfer(this, fromSelection, toSelection, toStack, allowQuickMove)
 
@@ -255,7 +255,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					fromContainers = listOf(from),
 					toContainers = stagingContainers,
 					fromSelection = fromStack,
-					toSelection = StackSelection.ANYTHING,
+					toSelection = StackSelection.EVERYTHING,
 					limit = pullLimit,
 					allowReplace = false,
 					trackResult = false

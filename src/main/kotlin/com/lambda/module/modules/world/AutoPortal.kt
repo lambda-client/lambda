@@ -21,7 +21,6 @@ import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.Group
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.WorldLineSettings
-import com.lambda.config.editSetting
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
 import com.lambda.config.hideBlock
@@ -136,9 +135,6 @@ object AutoPortal : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				hideBlock(::eatConfig)
-				hotbarConfig::tickStageMask.editSetting {
-					defaultValue(mutableSetOf(TickEvent.Pre, TickEvent.Input.Post))
-				}
 			}
 
 		listen<TickEvent.Pre> {

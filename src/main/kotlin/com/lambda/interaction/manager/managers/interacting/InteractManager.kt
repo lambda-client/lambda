@@ -162,7 +162,8 @@ object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 				if (!canInteractThisTick()) break
 				val firstInteraction = potentialInteractions.first()
 				if (player.inventory.selectedSlot != firstInteraction.hotbarIndex) {
-					val hotbarRequest = hotbarRequest(firstInteraction.hotbarIndex).submit(false)
+					val hotbarRequest = hotbarRequest(firstInteraction.hotbarIndex, nowOrNothing = true)
+						.submit(false)
 					if (!hotbarRequest.done) break
 				}
 				var interactResult: InteractResult? = null

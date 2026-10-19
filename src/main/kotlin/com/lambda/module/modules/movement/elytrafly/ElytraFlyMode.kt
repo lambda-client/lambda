@@ -104,7 +104,7 @@ abstract class ElytraFlyMode(
 
 		if (elytraInHotbar) {
 			val hotbarRequest =
-				hotbarRequest(elytraSlot.index) {
+				hotbarRequest(elytraSlot.index, nowOrNothing = true) {
 					keepTicks(0)
 				}.submit()
 			if (!hotbarRequest.done) return false

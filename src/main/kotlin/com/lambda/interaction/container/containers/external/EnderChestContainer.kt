@@ -84,7 +84,7 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 					}
 				},
 				onFailure = {
-					acquireStack(Items.ENDER_CHEST.select(1))
+					acquireStack(Items.ENDER_CHEST.select())
 						.then { placeContainer(findSlot(it, HotbarContainer.select())) }
 						.then { pos ->
 							openContainer(pos).onSuccess {

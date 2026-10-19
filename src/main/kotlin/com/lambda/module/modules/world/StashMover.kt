@@ -549,7 +549,7 @@ object StashMover : Module(
 				if (screenHandler.containerStacks.all { it.isEmpty }) {
 					pullContainers.remove(container)
 					pulledContainers.add(container)
-					if (stacksAvailable(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY)) {
+					if (stacksAvailable(StackSelection.ALL_EMPTY, ContainerSelection.HOTBAR_AND_INVENTORY)) {
 						moverState = MoverState.OpeningPullContainer
 						return
 					}
@@ -711,7 +711,7 @@ object StashMover : Module(
 
 			if (pearlThrown) {
 				if (!player.offHandStack.isEmpty) {
-					if (!stacksAvailable(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY)) {
+					if (!stacksAvailable(StackSelection.ALL_EMPTY, ContainerSelection.HOTBAR_AND_INVENTORY)) {
 						failWithLog("No free slots to return the offhand stack to!", ::failure)
 						return
 					}

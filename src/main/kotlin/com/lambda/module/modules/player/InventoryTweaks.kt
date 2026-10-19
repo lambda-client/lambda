@@ -50,10 +50,10 @@ object InventoryTweaks : Module(
     private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
     private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
 
-    private var openTask: Task<*>? = null
     private val openContexts = LinkedList<OpenedContainerContext>()
     var lastOpenScreen: ScreenHandler? = null
     private var isClosing = false
+    private var task: Task<*>? = null
 
     init {
         setDefaultAutomationConfig()
@@ -85,20 +85,20 @@ object InventoryTweaks : Module(
 
             event.cancel()
 
-            openTask?.cancel()
-            openTask = targetContainer
+            task?.cancel()
+            task = targetContainer
                 .access()
                 ?.onSuccess { ctx ->
                     openContexts.push(ctx)
                     lastOpenScreen = player.currentScreenHandler
                 }
                 ?.onFailure { e -> warn("Failed to open ${stack.name.string}: ${e.message}") }
-                ?.onCompletion { openTask = null }
+                ?.onCompletion { task = null }
                 ?.start()
         }
 
         listen<InventoryEvent.Close> { event ->
-            if (isClosing || openTask != null) return@listen
+            if (isClosing || task != null) return@listen
             if (event.screenHandler != lastOpenScreen || openContexts.isEmpty()) return@listen
 
             isClosing = true
@@ -107,17 +107,18 @@ object InventoryTweaks : Module(
                 contextsToClose.add(openContexts.pop())
             }
 
-            val closeTask =
+            task?.cancel()
+            task =
                 contextsToClose.fold<OpenedContainerContext, Task<*>?>(null) { acc, ctx ->
                     val task = ctx.close() ?: return@fold acc
 	                acc?.then(task) ?: task
-                }
-
-            closeTask
-                ?.onFailure { e -> warn("Failed to close containers: ${e.message}") }
-                ?.onCompletion { isClosing = false }
-                ?.start()
-                ?: run { isClosing = false }
+                }?.onFailure { e -> warn("Failed to close containers: ${e.message}") }
+                    ?.onCompletion { isClosing = false }
+                    ?.start()
+                    ?: run {
+                        isClosing = false
+                        return@listen
+                    }
         }
 
         onDisable {

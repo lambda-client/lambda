@@ -345,7 +345,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			fromStack: StackSelection,
 			fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
 			toSelection: ContainerSelection,
-			toStack: StackSelection = StackSelection.ANYTHING,
+			toStack: StackSelection = StackSelection.EVERYTHING,
 			automated: Automated = this.automated,
 			onTick: (net.minecraft.client.MinecraftClient) -> Unit = {}
 		): Outcome {
@@ -998,7 +998,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			hotbar(0, glass(64))
 			hotbar(3, bricks(30))
 			inventory(5, gravel(20))
-			val outcome = transfer(StackSelection.ANYTHING, chests("A"), player)
+			val outcome = transfer(StackSelection.EVERYTHING, chests("A"), player)
 			expectSuccess(outcome)
 			val after = expectClean()
 			expectEquals(0, after.chest("A", STONE) + after.chest("A", DIRT) + after.chest("A", COBBLE) +
@@ -1102,7 +1102,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			chest("B", cobble(64), planks(64), glass(20))
 			chest("C", gravel(48), bricks(64))
 			doubleChest()
-			val outcome = transfer(StackSelection.ANYTHING, chests("A", "B", "C"), chests("E"))
+			val outcome = transfer(StackSelection.EVERYTHING, chests("A", "B", "C"), chests("E"))
 			expectSuccess(outcome)
 			val after = expectClean()
 			// All three sources should be empty
@@ -1146,7 +1146,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			fullChest("A", stone(64))
 			chest("C", *Array(27) { if (it % 2 == 0) dirt(64) else planks(64) })
 			doubleChest()
-			val outcome = transfer(StackSelection.ANYTHING, chests("A", "C"), chests("E"))
+			val outcome = transfer(StackSelection.EVERYTHING, chests("A", "C"), chests("E"))
 			expectSuccess(outcome)
 			val after = expectClean()
 			expectEquals(27 * 64, after.chest("E", STONE), "stone in the double chest")

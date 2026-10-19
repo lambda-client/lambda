@@ -32,6 +32,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.ContainerSerializer
+import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.container.containers.CursorContainer
@@ -50,11 +51,9 @@ import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
 import com.lambda.util.BlockUtils.blockEntity
-import com.lambda.util.FolderRegistry
 import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.extension.containerStacks
 import com.lambda.util.item.ItemStackUtils.count
-import com.lambda.util.item.ItemStackUtils.countMatching
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.player.SlotUtils.typeSafe
@@ -69,8 +68,6 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.state.property.Properties
-import net.minecraft.util.math.BlockPos
-import java.nio.file.Files
 
 @Suppress("unused")
 object ContainerHandler : Loadable {
@@ -79,9 +76,13 @@ object ContainerHandler : Loadable {
 		internal set
 
 	var lastInteractedBlockEntity: BlockEntity? = null
+		private set
 	var pendingInteractedBlockEntity: BlockEntity? = null
+		private set
+	private var interactedSyncId: Int = 0
 
 	override fun load(): String {
+		ContainerSerializer.prepareIndex()
 		ContainerSerializer.loadEnderChest()
 		return "Loaded ${compileContainers.size} containers"
 	}
@@ -89,27 +90,32 @@ object ContainerHandler : Loadable {
 	init {
 		listen<PacketEvent.Send.Post> { event ->
 			val packet = event.packet as? PlayerInteractBlockC2SPacket ?: return@listen
-			val entity = blockEntity(packet.blockHitResult.blockPos)
-			pendingInteractedBlockEntity = entity
-			lastInteractedBlockEntity = entity
+			pendingInteractedBlockEntity = blockEntity(packet.blockHitResult.blockPos)
 		}
 
 		listen<InventoryEvent.Close> { event ->
 			val sh = event.screenHandler
 			onContainerUpdate(sh)
-			if (sh.syncId != 0 && pendingInteractedBlockEntity == null) {
-				val current = player.currentScreenHandler
-				if (current == null || current.syncId == 0 || current === sh) {
-					lastInteractedBlockEntity = null
-				}
+			if (interactedSyncId == sh.syncId) {
+				lastInteractedBlockEntity = null
+				interactedSyncId = 0
 			}
+			pendingInteractedBlockEntity = null
 			accessedPlacedContainer = null
 		}
 
-		listen<InventoryEvent.Open> {
-			if (it.screenHandler.syncId != 0) {
-				pendingInteractedBlockEntity = null
+		listen<InventoryEvent.Open> { event ->
+			val sh = event.screenHandler
+			if (sh.syncId == 0) return@listen
+			val pending = pendingInteractedBlockEntity
+			if (pending == null) {
+				lastInteractedBlockEntity = null
+				interactedSyncId = 0
+			} else {
+				lastInteractedBlockEntity = pending
+				interactedSyncId = sh.syncId
 			}
+			pendingInteractedBlockEntity = null
 		}
 
 		listen<InventoryEvent.FullUpdate> { onContainerUpdate() }
@@ -126,26 +132,16 @@ object ContainerHandler : Loadable {
 
 		listen<WorldEvent.ChunkEvent.Load> { event ->
 			val chunk = event.chunk
-			val prefix = "${chunk.pos.x}_${chunk.pos.z}_"
-			
 			try {
-				val dir = FolderRegistry.containers
-				if (Files.exists(dir)) {
-					Files.newDirectoryStream(dir, "$prefix*.json").use { stream ->
-						stream.forEach { path ->
-							val parts = path.fileName.toString().removeSuffix(".json").split('_')
-							if (parts.size == 5) {
-								val x = parts[2].toIntOrNull() ?: return@forEach
-								val y = parts[3].toIntOrNull() ?: return@forEach
-								val z = parts[4].toIntOrNull() ?: return@forEach
-								val pos = BlockPos(x, y, z)
-								val entity = chunk.blockEntities[pos]
-								if (entity !is ChestBlockEntity && entity !is ShulkerBoxBlockEntity) {
-									Files.deleteIfExists(path)
-								}
-							}
+				ContainerSerializer.savedIn(chunk.pos).forEach { (pos, type) ->
+					val entity = chunk.blockEntities[pos]
+					val stillThere =
+						when (type) {
+							ContainerType.Chest -> entity is ChestBlockEntity
+							ContainerType.PlacedShulkerBox -> entity is ShulkerBoxBlockEntity
+							else -> entity is ChestBlockEntity || entity is ShulkerBoxBlockEntity
 						}
-					}
+					if (!stillThere) ContainerSerializer.removeContainer(pos)
 				}
 			} catch (e: Exception) {
 				Lambda.LOG.warn("Failed to clean up ghost containers for chunk ${chunk.pos}", e)
@@ -156,7 +152,7 @@ object ContainerHandler : Loadable {
 	@ContainerDslMarker
 	context(_: Automated)
 	fun findSlot(
-		stackSelection: StackSelection = StackSelection.ANYTHING,
+		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
 	) = findSlots(stackSelection, containerSelection, sorted)
@@ -165,19 +161,18 @@ object ContainerHandler : Loadable {
 	@ContainerDslMarker
 	context(_: Automated)
 	fun findSlots(
-		stackSelection: StackSelection = StackSelection.ANYTHING,
+		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
-) = findContainers(containerSelection, false)
-		.flatMap { it.slots }
-		.let { stackSelection.filter(it, sorted) }
-		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.countMatching(stackSelection.countEmptyAsOne) >= stackSelection.count) }
+) = findContainers(containerSelection, sorted)
+		.flatMap { stackSelection.filter(it.slots, sorted) }
+		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.count(stackSelection.countEmptyAsOne) >= stackSelection.count) }
 		?.takeUpTo(stackSelection.count) { it.stack.count(stackSelection.countEmptyAsOne) }
 
 	@ContainerDslMarker
 	context(_: Automated)
 	fun slotsAvailable(
-		stackSelection: StackSelection = StackSelection.ANYTHING,
+		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED
 	) = findSlots(stackSelection, containerSelection, false)
 		?.isNotEmpty() == true
@@ -185,7 +180,7 @@ object ContainerHandler : Loadable {
 	@ContainerDslMarker
 	context(_: Automated)
 	fun findStack(
-		stackSelection: StackSelection = StackSelection.ANYTHING,
+		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
 	) = findStacks(stackSelection, containerSelection, sorted)
@@ -194,19 +189,18 @@ object ContainerHandler : Loadable {
 	@ContainerDslMarker
 	context(_: Automated)
 	fun findStacks(
-		stackSelection: StackSelection = StackSelection.ANYTHING,
+		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
-) = findContainers(containerSelection, false)
-		.flatMap { it.stacks }
-		.let { stackSelection.filter(it, sorted) }
-		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.countMatching(stackSelection.countEmptyAsOne) >= stackSelection.count) }
+) = findContainers(containerSelection, sorted)
+		.flatMap { stackSelection.filter(it.stacks, sorted) }
+		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.count(stackSelection.countEmptyAsOne) >= stackSelection.count) }
 		?.takeUpTo(stackSelection.count) { it.count(stackSelection.countEmptyAsOne) }
 
 	@ContainerDslMarker
 	context(_: Automated)
 	fun stacksAvailable(
-		stackSelection: StackSelection = StackSelection.ANYTHING,
+		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED
 	) = findStacks(stackSelection, containerSelection, false)
 		?.isNotEmpty() == true
@@ -311,7 +305,7 @@ object ContainerHandler : Loadable {
 		OffhandContainer.scanContainerContents()
 		CursorContainer.scanContainerContents()
 		val blockEntity = lastInteractedBlockEntity
-		if (blockEntity != null) {
+		if (blockEntity != null && interactedSyncId == sh.syncId) {
 			updatePlacedContainer(sh, blockEntity)
 			return
 		}
@@ -324,6 +318,7 @@ object ContainerHandler : Loadable {
 		blockEntity: BlockEntity
 	) {
 		val pos = blockEntity.pos
+		if (blockEntity(pos) !== blockEntity) return
 		when (blockEntity) {
 			is EnderChestBlockEntity -> {
 				if (sh.typeSafe != ScreenHandlerType.GENERIC_9X3) return
@@ -417,11 +412,11 @@ context(_: AutomatedSafeContext)
 fun StackSelection.moveStack(
 	fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	toSelection: ContainerSelection = ContainerSelection.ACCESSED,
-	replaceSelection: StackSelection = StackSelection.ANYTHING
+	replaceSelection: StackSelection = StackSelection.EVERYTHING
 ): Boolean {
 	val fromContainer =
 		findContainer(
-			containerSelection {
+			containerSelection(fromSelection.scope) {
 				matches(fromSelection)
 				hasStack(mutate(count.coerceAtMost(64)))
 				isAccessed()
@@ -431,7 +426,7 @@ fun StackSelection.moveStack(
 
 	val toContainer =
 		findContainer(
-			containerSelection {
+			containerSelection(toSelection.scope) {
 				matches(toSelection)
 				hasStack(replaceSelection)
 				isAccessed()

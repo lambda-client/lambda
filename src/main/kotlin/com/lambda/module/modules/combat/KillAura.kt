@@ -100,9 +100,7 @@ object KillAura : Module(
                         ::maxBuildDependencies, ::blockReach
                     )
                 }
-                hotbarConfig.apply {
-                    ::tickStageMask.editSetting { defaultValue(mutableSetOf(TickEvent.Pre)) }
-                }
+                hotbarConfig::tickStageMask.editSetting { defaultValue(mutableSetOf(TickEvent.Pre)) }
             }
 
         listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }

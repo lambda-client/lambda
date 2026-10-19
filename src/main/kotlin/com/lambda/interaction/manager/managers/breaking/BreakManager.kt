@@ -130,7 +130,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 			.lastOrNull {
 				it.breakConfig.doubleBreak || it.type == Secondary
 			}?.context?.itemSelection
-			?: StackSelection.ANYTHING
+			?: StackSelection.EVERYTHING
 
 	override val blockedPositions
 		get() = activeInfos.map { it.context.blockPos } + pendingActions.map { it.context.blockPos }
@@ -439,12 +439,13 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				val minKeepTicks = if (first.swapInfo.longSwap || last.swapInfo.longSwap) 1 else 0
 				val serverSwapTicks = max(first.breakConfig.serverSwapTicks, last.breakConfig.serverSwapTicks)
 
-				hotbarRequest = with(last) {
-					request.hotbarRequest(context.hotbarIndex) {
-						keepTicks(request.hotbarConfig.keepTicks.coerceAtLeast(minKeepTicks))
-						swapPause(request.hotbarConfig.swapPause.coerceAtLeast(serverSwapTicks - 1))
-					}.submit(false)
-				}
+				hotbarRequest =
+					with(last) {
+						request.hotbarRequest(context.hotbarIndex, nowOrNothing = true) {
+							keepTicks(request.hotbarConfig.keepTicks.coerceAtLeast(minKeepTicks))
+							swapPause(request.hotbarConfig.swapPause.coerceAtLeast(serverSwapTicks - 1))
+						}.submit(false)
+					}
 
 				return
 			}

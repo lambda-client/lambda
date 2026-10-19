@@ -30,9 +30,9 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffhandContainer
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.selectContainers
-import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.handler.handlers.GlideHandler
@@ -174,7 +174,7 @@ object BetterFirework : Module(
 		val inventoryMatch = findSlot(selection, InventoryContainer.select(), sorted = false) ?: return
 		val hotbarSlot =
 			findSlot(
-				stackSelection { isEmpty() },
+				StackSelection.ALL_EMPTY,
 				HotbarContainer.select(),
 				sorted = false
 			)?.index

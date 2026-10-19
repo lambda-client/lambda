@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.util.item
 
 import com.lambda.context.SafeContext
@@ -87,12 +89,12 @@ object ItemStackUtils {
 
     fun ItemStack.count(countEmptyAsOne: Boolean): Int = if (isEmpty && countEmptyAsOne) 1 else count
 
-    fun List<ItemStack>.countMatching(countEmptyAsOne: Boolean): Int =
+    fun List<ItemStack>.count(countEmptyAsOne: Boolean): Int =
         if (isEmpty()) NOTHING_MATCHED
         else sumOf { it.count(countEmptyAsOne) }
 
     @JvmName("slotCountMatching")
-    fun List<Slot>.countMatching(countEmptyAsOne: Boolean): Int =
+    fun List<Slot>.count(countEmptyAsOne: Boolean): Int =
         if (isEmpty()) NOTHING_MATCHED
         else sumOf { it.stack.count(countEmptyAsOne) }
 

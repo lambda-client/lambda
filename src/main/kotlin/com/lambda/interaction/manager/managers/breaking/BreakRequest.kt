@@ -81,9 +81,9 @@ fun Automated.breakRequest(
 	pendingInteractions: MutableCollection<BuildContext>,
 	nowOrNothing: Boolean = false,
 	builder: (BreakRequestBuilder.() -> Unit)? = null
-) = BreakRequestBuilder(
-	contexts, pendingInteractions, nowOrNothing, this
-).apply { builder?.invoke(this) }.build()
+) = BreakRequestBuilder(contexts, pendingInteractions, nowOrNothing, this)
+	.apply { builder?.invoke(this) }
+	.build()
 
 /**
  * Contains the information necessary for initializing and continuing breaks within the [BreakManager].

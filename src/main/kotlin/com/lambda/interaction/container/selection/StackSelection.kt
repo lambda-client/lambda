@@ -211,8 +211,9 @@ class StackSelection @ContainerDslMarker internal constructor(
 	companion object {
 		const val UNBOUNDED = -1
 
-		val ANYTHING = StackSelection(UNBOUNDED) { _, _ -> true }
+		val EVERYTHING = StackSelection(UNBOUNDED) { _, _ -> true }
 		val NOTHING = StackSelection { _, _ -> false }
+		val ALL_EMPTY = stackSelection(UNBOUNDED) { isEmpty(); countEmptyAsOne() }
 	}
 }
 
@@ -269,12 +270,12 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 
 	inline fun <reified T : Item> isItem() {
 		val kClass = T::class
-		appendSelector { stack, _ -> stack::class == kClass }
+		appendSelector { stack, _ -> stack.item::class == kClass }
 	}
 
 	inline fun <reified T : Item> notItem() {
 		val kClass = T::class
-		appendSelector { stack, _ -> stack::class != kClass }
+		appendSelector { stack, _ -> stack.item::class != kClass }
 	}
 
 	fun isItemStack(stack: ItemStack) {
