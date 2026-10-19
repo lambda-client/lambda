@@ -18,12 +18,7 @@
 package com.lambda.mixin;
 
 import net.fabricmc.loader.api.FabricLoader;
-import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
-import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
-
-import java.util.List;
-import java.util.Set;
 
 public class OptionalModMixinPlugin implements IMixinConfigPlugin {
     @Override
@@ -31,31 +26,6 @@ public class OptionalModMixinPlugin implements IMixinConfigPlugin {
         if (targetClassName.startsWith("net.caffeinemc.mods.sodium.")) {
             return FabricLoader.getInstance().isModLoaded("sodium");
         }
-        if (targetClassName.startsWith("net.fabricmc.fabric.impl.client.indigo.")) {
-            return FabricLoader.getInstance().isModLoaded("fabric-renderer-indigo");
-        }
         return true;
     }
-
-    @Override
-    public void onLoad(String mixinPackage) {}
-
-    @Override
-    public String getRefMapperConfig() {
-        return null;
-    }
-
-    @Override
-    public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {}
-
-    @Override
-    public List<String> getMixins() {
-        return null;
-    }
-
-    @Override
-    public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}
-
-    @Override
-    public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}
 }
