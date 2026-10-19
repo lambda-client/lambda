@@ -45,8 +45,9 @@ internal class FrontierIndex(
 	internal fun keys() = costs.keys
 
 	fun transitCost(from: Long, to: Long, floor: Double): Double {
-		val realistic = planarLength(
+		val realistic = unknownBlocks(
 			(PackedStance.unpackX(to) - PackedStance.unpackX(from)).toDouble(),
+			PackedStance.unpackY(to) - PackedStance.unpackY(from),
 			(PackedStance.unpackZ(to) - PackedStance.unpackZ(from)).toDouble(),
 		) * unknownTicksPerBlock
 		return maxOf(floor, moves.heuristic(
@@ -129,9 +130,11 @@ internal class FrontierIndex(
 	}
 
 	private fun optimisticCost(anchor: Stance): Double {
-		val realistic = planarLength((goal.x - anchor.x).toDouble(), (goal.z - anchor.z).toDouble()) * unknownTicksPerBlock
+		val realistic = unknownBlocks((goal.x - anchor.x).toDouble(), goal.y - anchor.y, (goal.z - anchor.z).toDouble()) * unknownTicksPerBlock
 		return maxOf(moves.heuristic(anchor, goal), realistic)
 	}
+
+	private fun unknownBlocks(dx: Double, dy: Int, dz: Double): Double = planarLength(dx, dz) + maxOf(dy, 0)
 
 	private companion object {
 		const val REBUILD_SPAN_BLOCKS = 1024
