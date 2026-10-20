@@ -17,13 +17,17 @@
 
 package com.lambda.interaction.container.selection
 
+import com.lambda.Lambda.mc
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.NestedContainer
+import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
+import com.lambda.util.extension.dim
+import com.lambda.util.world.Dimension
 
 @ContainerDslMarker
 fun Container.select(
@@ -59,7 +63,8 @@ class ContainerSelection @ContainerDslMarker internal constructor(
     val loadedContainers: Collection<Container> = emptyList(),
     val containersBlacklist: Collection<Container> = emptyList(),
     val accessScope: AccessScope = AccessScope.Both,
-    val comparator: Comparator<Container> = compareBy { it.type }
+    val comparator: Comparator<Container> = compareBy { it.type },
+    val dimensions: Set<Dimension> = emptySet()
 ) {
     @ContainerDslMarker
     fun bestMatch(containers: Iterable<Container>) = filter(containers).firstOrNull()
@@ -76,7 +81,7 @@ class ContainerSelection @ContainerDslMarker internal constructor(
                 ?.filter { it in containers && (accessScope.accessed?.equals(it.isAccessed) != false) }
                 ?: containers.asSequence()
         }.filter { it !in containersBlacklist }
-            .filter(selector)
+            .filter(::matches)
             .let {
                 if (sorted) it.sortedWith(comparator)
                 else it
@@ -112,6 +117,7 @@ class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
         this.containersBlacklist.addAll(selection.containersBlacklist)
         this.accessScope = selection.accessScope
         this.comparator = selection.comparator
+        this.dimensions.addAll(selection.dimensions)
     }
 
     private var selector: (Container) -> Boolean = { true }
@@ -120,6 +126,7 @@ class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
     private val containersBlacklist = mutableListOf<Container>()
     private var accessScope: AccessScope = AccessScope.Both
     private var comparator: Comparator<Container>? = null
+    private val dimensions = mutableSetOf<Dimension>()
 
     fun withContainers(vararg containers: Container) {
         loadedContainers.addAll(containers)
@@ -165,6 +172,32 @@ class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
 
     fun noneOfType(types: Iterable<ContainerType>) {
         appendSelector { container -> !types.contains(container.type) }
+    }
+
+    fun inAnyDimension(vararg dimensions: Dimension) {
+        appendSelector { it !is PlacedContainer || it.dimension in dimensions }
+    }
+
+    fun inAnyDimension(dimensions: Iterable<Dimension>) {
+        appendSelector { it !is PlacedContainer || it.dimension in dimensions }
+    }
+
+    fun noneOfDimensions(vararg dimensions: Dimension) {
+        appendSelector { it !is PlacedContainer || it.dimension !in dimensions }
+    }
+
+    fun noneOfDimensions(dimensions: Iterable<Dimension>) {
+        appendSelector { it !is PlacedContainer || it.dimension !in dimensions }
+    }
+
+    fun inCurrentDimension() {
+        val dimension = mc.world?.dim ?: Dimension.Unknown
+        appendSelector { it.dimension == dimension }
+    }
+
+    fun notInCurrentDimension() {
+        val dimension = mc.world?.dim ?: Dimension.Unknown
+        appendSelector { it.dimension != dimension }
     }
 
     fun isNested() {
@@ -232,16 +265,17 @@ class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
 
     internal fun build() =
         ContainerSelection(
-            selector,
-            scope,
-            containersWhitelist,
-            loadedContainers,
-            containersBlacklist,
-            accessScope,
-            comparator
+            selector = selector,
+            scope = scope,
+            containersWhitelist = containersWhitelist,
+            loadedContainers = loadedContainers,
+            containersBlacklist = containersBlacklist,
+            accessScope = accessScope,
+            comparator = comparator
                 .takeUnless { it == null }
                 ?.thenBy { it.type }
-                ?: compareBy { it.type }
+                ?: compareBy { it.type },
+            dimensions = dimensions.toSet()
         )
 }
 

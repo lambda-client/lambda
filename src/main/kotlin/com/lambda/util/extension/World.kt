@@ -21,6 +21,7 @@ package com.lambda.util.extension
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
+import com.lambda.util.world.Dimension
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.x
@@ -59,6 +60,13 @@ val SafeContext.worldName: String
 val World?.isOverworld: Boolean get() = this?.registryKey == World.OVERWORLD
 val World?.isNether: Boolean get() = this?.registryKey == World.NETHER
 val World?.isEnd: Boolean get() = this?.registryKey == World.END
+val World.dim: Dimension
+    get() = when {
+        isOverworld -> Dimension.Overworld
+        isNether -> Dimension.Nether
+        isEnd -> Dimension.End
+        else -> Dimension.Unknown
+    }
 val World?.dimensionName: String
     get() = when {
         isOverworld -> "Overworld"

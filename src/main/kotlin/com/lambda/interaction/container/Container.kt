@@ -44,6 +44,7 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import com.lambda.util.text.text
+import com.lambda.util.world.Dimension
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
@@ -59,6 +60,8 @@ abstract class Container(
     abstract val slots: List<Slot>
     abstract var stacks: List<ItemStack>
     val storedContainers = mutableMapOf<Int, NestedContainer>()
+
+    open val dimension = Dimension.Unknown
 
     open val swapMethodPriority = 0
     abstract val description: Text
@@ -229,5 +232,6 @@ abstract class Container(
                 (this is PlacedContainer &&
                         other is PlacedContainer &&
                         this::class == other::class &&
+                        dimension == other.dimension &&
                         pos == other.pos)
 }

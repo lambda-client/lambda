@@ -30,11 +30,13 @@ import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.wrappers.withRecovery
 import com.lambda.util.extension.containerSlots
+import com.lambda.util.extension.dim
 import com.lambda.util.math.distSq
 import com.lambda.util.player.SlotUtils.typeSafe
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
+import com.lambda.util.world.Dimension
 import net.minecraft.block.ChestBlock
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandlerType
@@ -46,8 +48,9 @@ data class DoubleChestContainer(
 	val leftPos: BlockPos,
 	val rightPos: BlockPos,
 	override var stacks: List<ItemStack>,
-	override val stash: StashContainer? = null
-) : PlacedContainer(ContainerType.Chest) {
+	override val stash: StashContainer? = null,
+	override var dimension: Dimension = mc.world?.dim ?: Dimension.Unknown
+) : PlacedContainer(ContainerType.Chest, dimension) {
 	override val slots
 		get(): List<Slot> =
 			if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
@@ -97,5 +100,7 @@ data class DoubleChestContainer(
 	}
 
 	override fun haveMatchingInventories(other: Container) =
-		other is DoubleChestContainer && (other.leftPos == leftPos || other.rightPos == rightPos)
+		other is DoubleChestContainer &&
+				dimension == other.dimension &&
+				(other.leftPos == leftPos || other.rightPos == rightPos)
 }

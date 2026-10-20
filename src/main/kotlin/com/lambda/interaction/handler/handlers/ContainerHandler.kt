@@ -29,6 +29,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.ContainerSerializer
@@ -82,12 +83,23 @@ object ContainerHandler : Loadable {
 	private var interactedSyncId: Int = 0
 
 	override fun load(): String {
-		ContainerSerializer.prepareIndex()
-		ContainerSerializer.loadEnderChest()
 		return "Loaded ${compileContainers.size} containers"
 	}
 
 	init {
+		listen<WorldEvent.Join> {
+			ContainerSerializer.prepareIndex()
+			ContainerSerializer.loadEnderChest()
+		}
+
+		listenUnsafe<WorldEvent.Leave> {
+			ContainerSerializer.reset()
+			lastInteractedBlockEntity = null
+			pendingInteractedBlockEntity = null
+			interactedSyncId = 0
+			accessedPlacedContainer = null
+		}
+
 		listen<PacketEvent.Send.Post> { event ->
 			val packet = event.packet as? PlayerInteractBlockC2SPacket ?: return@listen
 			pendingInteractedBlockEntity = blockEntity(packet.blockHitResult.blockPos)
@@ -164,7 +176,7 @@ object ContainerHandler : Loadable {
 		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
-) = findContainers(containerSelection, sorted)
+	) = findContainers(containerSelection, sorted)
 		.flatMap { stackSelection.filter(it.slots, sorted) }
 		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.count(stackSelection.countEmptyAsOne) >= stackSelection.count) }
 		?.takeUpTo(stackSelection.count) { it.stack.count(stackSelection.countEmptyAsOne) }
@@ -192,7 +204,7 @@ object ContainerHandler : Loadable {
 		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
-) = findContainers(containerSelection, sorted)
+	) = findContainers(containerSelection, sorted)
 		.flatMap { stackSelection.filter(it.stacks, sorted) }
 		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.count(stackSelection.countEmptyAsOne) >= stackSelection.count) }
 		?.takeUpTo(stackSelection.count) { it.count(stackSelection.countEmptyAsOne) }
@@ -254,9 +266,7 @@ object ContainerHandler : Loadable {
 		}
 
 	context(_: Automated)
-	private fun searchContainers(
-		selection: ContainerSelection
-	): Sequence<Container> {
+	private fun searchContainers(selection: ContainerSelection): Sequence<Container> {
 		fun Container.allNested(): Sequence<Container> =
 			sequence {
 				yield(this@allNested)

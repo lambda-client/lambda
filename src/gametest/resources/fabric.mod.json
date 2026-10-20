@@ -33,6 +33,10 @@
       {
         "adapter": "kotlin",
         "value": "com.lambda.BuildPreTickGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.ContainerStorageGameTest"
       }
     ]
   }

@@ -28,7 +28,9 @@ import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.openContainer
+import com.lambda.util.world.Dimension
 import com.lambda.util.extension.containerSlots
+import com.lambda.util.extension.dim
 import com.lambda.util.player.SlotUtils.typeSafe
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
@@ -42,8 +44,9 @@ import net.minecraft.util.math.BlockPos
 data class ChestContainer(
 	override val pos: BlockPos,
 	override var stacks: List<ItemStack>,
-	override val stash: StashContainer? = null
-) : PlacedContainer(ContainerType.Chest) {
+	override val stash: StashContainer? = null,
+	override val dimension: Dimension = mc.world?.dim ?: Dimension.Unknown
+) : PlacedContainer(ContainerType.Chest, dimension) {
     override val slots
         get(): List<Slot> =
             if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()

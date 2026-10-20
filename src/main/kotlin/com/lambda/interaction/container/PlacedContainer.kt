@@ -18,9 +18,13 @@
 package com.lambda.interaction.container
 
 import com.lambda.interaction.container.containers.external.StashContainer
+import com.lambda.util.world.Dimension
 import net.minecraft.util.math.BlockPos
 
-abstract class PlacedContainer(type: ContainerType) : Container(type), ExternalContainer {
+abstract class PlacedContainer(
+	type: ContainerType,
+	override val dimension: Dimension
+) : Container(type), ExternalContainer {
 	abstract val pos: BlockPos
 	abstract val stash: StashContainer?
 	open val positions: Set<BlockPos> = setOf(pos)

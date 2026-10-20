@@ -23,6 +23,8 @@ abstract class NestedContainer(type: ContainerType) : Container(type), ExternalC
 	abstract val containedIn: Container
 	abstract val index: Int
 
+	override val dimension = containedIn.dimension
+
 	context(_: Automated)
 	override val isAccessible: Boolean
 		get() = super.isAccessible && containedIn.isAccessible

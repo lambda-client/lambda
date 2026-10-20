@@ -2,6 +2,7 @@
 
 package com.lambda.config.serializers
 
+import com.lambda.Lambda.mc
 import com.lambda.config.FallbackDeserializer
 import com.lambda.config.FallbackSerializer
 import com.lambda.config.JsonOps
@@ -10,6 +11,8 @@ import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.container.containers.external.ChestContainer
 import com.lambda.interaction.container.containers.external.DoubleChestContainer
 import com.lambda.interaction.container.containers.external.PlacedShulkerBoxContainer
+import com.lambda.util.extension.dim
+import com.lambda.util.world.Dimension
 import net.minecraft.block.Blocks
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.Registries
@@ -26,6 +29,7 @@ object PlacedContainerSerializer : FallbackSerializer<PlacedContainer>(PlacedCon
     override fun serialize(container: PlacedContainer, gen: JsonGenerator, ctxt: SerializationContext) {
         gen.writeStartObject()
         gen.writeStringProperty("Type", container.type.name)
+        gen.writeStringProperty("Dimension", container.dimension.name)
         gen.writePOJOProperty("Pos", BlockPos.CODEC.encodeStart(JsonOps.UNCOMPRESSED, container.pos).orThrow)
         
         when (container) {
@@ -67,6 +71,10 @@ object PlacedContainerDeserializer : FallbackDeserializer<PlacedContainer>(Place
         
         val typeName = root.get("Type")?.asString() ?: return null
         val type = ContainerType.entries.find { it.name == typeName } ?: return null
+        val dimension = root.get("Dimension")?.asString()
+            ?.takeUnless { it.isBlank() }
+            ?.let { name -> Dimension.entries.firstOrNull { it.name == name } }
+            ?: Dimension.Unknown
         
         val posNode = root.get("Pos") ?: return null
         val pos = BlockPos.CODEC.parse(JsonOps.UNCOMPRESSED, posNode)
@@ -97,7 +105,7 @@ object PlacedContainerDeserializer : FallbackDeserializer<PlacedContainer>(Place
                 ContainerType.PlacedShulkerBox -> {
                     val blockId = root.get("Block")?.asString()
                     val block = blockId?.let { Registries.BLOCK.get(Identifier.of(it)) } ?: Blocks.SHULKER_BOX
-                    PlacedShulkerBoxContainer(pos, block, null, padStacks(27))
+                    PlacedShulkerBoxContainer(pos, block, null, padStacks(27), dimension)
                 }
                 ContainerType.Chest -> {
                     if (root.get("Double")?.asBoolean() == true) {
@@ -111,9 +119,9 @@ object PlacedContainerDeserializer : FallbackDeserializer<PlacedContainer>(Place
                             .result()
                             .orElse(null)
                             ?: return null
-                        DoubleChestContainer(pos, leftPos, rightPos, padStacks(54))
+                        DoubleChestContainer(pos, leftPos, rightPos, padStacks(54), dimension = dimension)
                     } else {
-                        ChestContainer(pos, padStacks(27))
+                        ChestContainer(pos, padStacks(27), dimension = dimension)
                     }
                 }
                 else -> return null

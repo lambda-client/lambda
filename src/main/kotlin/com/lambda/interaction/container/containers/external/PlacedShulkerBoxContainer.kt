@@ -28,10 +28,12 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBl
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.openContainer
 import com.lambda.util.extension.containerSlots
+import com.lambda.util.extension.dim
 import com.lambda.util.player.SlotUtils.typeSafe
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
+import com.lambda.util.world.Dimension
 import net.minecraft.block.Block
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandlerType
@@ -42,8 +44,9 @@ class PlacedShulkerBoxContainer(
 	override val pos: BlockPos,
 	val block: Block,
 	override val stash: StashContainer?,
-	override var stacks: List<ItemStack>
-) : PlacedContainer(ContainerType.PlacedShulkerBox) {
+	override var stacks: List<ItemStack>,
+	override var dimension: Dimension = mc.world?.dim ?: Dimension.Unknown
+) : PlacedContainer(ContainerType.PlacedShulkerBox, dimension) {
 	override val slots: List<Slot>
 		get() =
 			if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
