@@ -118,7 +118,7 @@ class SwimPlanningTest {
 			},
 			world = object : WorldLink {
 				override fun await(timeoutMillis: Long) = false
-				override fun capturable(sectionX: Int, sectionZ: Int) = true
+				override fun loadable(chunkX: Int, chunkZ: Int) = true
 				override fun sync(route: CoarseRoutePlan, from: BodyState): WorldSyncResult = WorldSyncResult.Quiet
 			},
 		)

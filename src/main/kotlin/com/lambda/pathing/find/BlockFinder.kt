@@ -12,10 +12,8 @@ import com.lambda.pathing.find.AccessStances.liveSection
 import com.lambda.pathing.find.AccessStances.liveView
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.session.CoarseService
-import com.lambda.pathing.session.InterestPrimer
 import com.lambda.pathing.session.PathingManager
 import com.lambda.pathing.session.PathingRequest
-import com.lambda.pathing.session.PathingSession
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.session.PlanningJourney
@@ -23,7 +21,7 @@ import com.lambda.pathing.session.PlanningPreparationResult
 import com.lambda.pathing.session.preparePlanning
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
-import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import com.lambda.pathing.world.snapshot.BlockPhysicsTable
 import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.store.BaritoneCache
@@ -33,7 +31,6 @@ import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.CommunicationUtils.info
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
-import net.minecraft.block.ShapeContext
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.BlockPos
@@ -134,11 +131,11 @@ object BlockFinder : Loadable {
 		}
 
 		private fun SafeContext.loadedChoices(hazards: HazardRules, minY: Int, maxY: Int): List<Choice> {
-			val sampler = BlockPhysicsSampler(world, ShapeContext.absent(), hazards)
+			val table = BlockPhysicsTable.of(hazards)
 			val sections = HashMap<Long, ImmutableSnapshotSection?>()
 			val radius = MinecraftClient.getInstance().options.clampedViewDistance + Vanilla.CHUNK_MAP_MARGIN
 			return choose(player.pos, HashSet(excluded), Double.POSITIVE_INFINITY, { nearest -> LoadedBlocks.scan(world, player.pos, radius, query, nearest) }) { target ->
-				AccessStances.view(target, minY, maxY) { key -> if (key in sections) sections[key] else liveSection(sampler, key).also { sections[key] = it } }
+				AccessStances.view(target, minY, maxY) { key -> if (key in sections) sections[key] else liveSection(table, key).also { sections[key] = it } }
 			}
 		}
 
@@ -212,7 +209,6 @@ object BlockFinder : Loadable {
 			}
 			val preparation = prepared.preparation.copy(alternatives = nearest.drop(1).map { it.stance }, routeOnly = true)
 			val journey = PlanningJourney.open(preparation, player)
-			for (alternative in preparation.alternatives) InterestPrimer.primeGoal(journey.world, alternative)
 			val started = Probe(journey, nearest, preparation.start)
 			probe = started
 			val targets = nearest.mapTo(HashSet()) { it.stance }
@@ -248,8 +244,7 @@ object BlockFinder : Loadable {
 		fun SafeContext.tick(): Boolean {
 			if (cancelled) return false
 			probe?.let { running ->
-				InterestPrimer.primeBody(running.journey.world, player.blockPos)
-				running.journey.world.advance(maxOf(AutomationConfig.DEFAULT.pathingConfig.snapshotCaptureBudgetMillis, PathingSession.IDLE_CAPTURE_BUDGET_MILLIS))
+				running.journey.world.advance()
 				return true
 			}
 			if (searching) return true

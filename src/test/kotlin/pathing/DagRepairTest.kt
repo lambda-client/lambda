@@ -91,7 +91,7 @@ class DagRepairTest {
             world = object : WorldLink {
                 override fun await(timeoutMillis: Long) = false
 
-                override fun capturable(sectionX: Int, sectionZ: Int) = true
+                override fun loadable(chunkX: Int, chunkZ: Int) = true
 
                 // Once the body is under way and the tape reaches past the wall, drop it.
                 override fun sync(route: CoarseRoutePlan, from: com.lambda.pathing.actions.BodyState): WorldSyncResult =

@@ -190,7 +190,7 @@ object PathingHud : HudModule(
     private fun ImGuiBuilder.world() {
         val world = PathingService.world ?: return
         section("WORLD")
-        row(Cell("sections", compact(world.sectionsCaptured)), Cell("pending", world.pendingInterest))
+        row(Cell("sections", compact(world.sectionsDerived)), Cell("changes", compact(world.blockChanges)))
         row(Cell("revision", compact(world.revision)))
     }
 

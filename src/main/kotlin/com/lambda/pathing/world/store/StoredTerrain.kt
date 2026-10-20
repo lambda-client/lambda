@@ -1,12 +1,12 @@
 package com.lambda.pathing.world.store
 
-import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import com.lambda.pathing.world.snapshot.BlockPhysicsTable
 import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.world.snapshot.SectionDerivation
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
-import net.minecraft.block.ShapeContext
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
@@ -32,19 +32,14 @@ internal class StoredTerrain(
 	override fun getBottomY(): Int = minY
 
 	fun physics(hazards: HazardRules): Map<Long, ImmutableSnapshotSection> {
-		val sampler = BlockPhysicsSampler(this, ShapeContext.absent(), hazards)
+		val table = BlockPhysicsTable.of(hazards)
 		val physics = HashMap<Long, ImmutableSnapshotSection>(sections.size)
-		val keys = sections.keys.iterator()
-		while (keys.hasNext()) {
-			val key = keys.nextLong()
+		for (entry in sections.long2ObjectEntrySet()) {
+			val key = entry.longKey
 			val baseX = ChunkSectionPos.unpackX(key) shl 4
 			val baseY = ChunkSectionPos.unpackY(key) shl 4
 			val baseZ = ChunkSectionPos.unpackZ(key) shl 4
-			val builder = ImmutableSnapshotSection.Builder()
-			for (y in baseY until baseY + 16) for (z in baseZ until baseZ + 16) for (x in baseX until baseX + 16) {
-				builder.set(x, y, z, sampler.physicsAt(x, y, z))
-			}
-			physics[key] = builder.build()
+			physics[key] = SectionDerivation.derive(entry.value, table, baseX, baseY, baseZ, this)
 		}
 		return physics
 	}

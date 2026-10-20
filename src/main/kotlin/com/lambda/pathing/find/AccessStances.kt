@@ -5,15 +5,16 @@ import com.lambda.context.SafeContext
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
-import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import com.lambda.pathing.world.snapshot.BlockPhysicsTable
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.world.snapshot.SectionDerivation
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import net.minecraft.block.ShapeContext
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
+import net.minecraft.world.chunk.ChunkStatus
 
 internal object AccessStances {
 	private val BESIDE = listOf(Vec3i(1, 0, 0), Vec3i(-1, 0, 0), Vec3i(0, 0, 1), Vec3i(0, 0, -1)).flatMap { listOf(it, it.down()) }
@@ -44,18 +45,18 @@ internal object AccessStances {
 			?: choose(view, target, player)
 
 	fun SafeContext.liveView(target: BlockPos): CoarseVoxelView {
-		val sampler = BlockPhysicsSampler(world, ShapeContext.absent(), AutomationConfig.DEFAULT.pathingConfig.hazards)
-		return view(target, world.bottomY, world.bottomY + world.height - 1) { liveSection(sampler, it) }
+		val table = BlockPhysicsTable.of(AutomationConfig.DEFAULT.pathingConfig.hazards)
+		return view(target, world.bottomY, world.bottomY + world.height - 1) { liveSection(table, it) }
 	}
 
-	fun SafeContext.liveSection(sampler: BlockPhysicsSampler, sectionKey: Long): ImmutableSnapshotSection? {
-		if (!world.chunkManager.isChunkLoaded(ChunkSectionPos.unpackX(sectionKey), ChunkSectionPos.unpackZ(sectionKey))) return null
+	fun SafeContext.liveSection(table: BlockPhysicsTable, sectionKey: Long): ImmutableSnapshotSection? {
+		val chunk = world.chunkManager.getChunk(ChunkSectionPos.unpackX(sectionKey), ChunkSectionPos.unpackZ(sectionKey), ChunkStatus.FULL, false) ?: return null
+		val index = world.sectionCoordToIndex(ChunkSectionPos.unpackY(sectionKey))
+		if (index !in 0 until world.countVerticalSections()) return null
 		val baseX = ChunkSectionPos.unpackX(sectionKey) shl 4
 		val baseY = ChunkSectionPos.unpackY(sectionKey) shl 4
 		val baseZ = ChunkSectionPos.unpackZ(sectionKey) shl 4
-		val builder = ImmutableSnapshotSection.Builder()
-		for (y in baseY until baseY + 16) for (z in baseZ until baseZ + 16) for (x in baseX until baseX + 16) builder.set(x, y, z, sampler.physicsAt(x, y, z))
-		return builder.build()
+		return SectionDerivation.derive(chunk.getSection(index).blockStateContainer, table, baseX, baseY, baseZ, world)
 	}
 
 	fun view(target: BlockPos, minY: Int, maxY: Int, section: (Long) -> ImmutableSnapshotSection?): CoarseVoxelView {

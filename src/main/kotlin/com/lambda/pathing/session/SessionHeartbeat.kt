@@ -15,10 +15,11 @@ internal class SessionHeartbeat {
 	private var certifications = 0
 	private var failures = 0
 	private var replayed = 0L
-	private var captured = 0L
+	private var derived = 0
+	private var blockChanges = 0L
 	private var reloads = 0L
-	private var rereads = 0L
-	private var changedRereads = 0L
+	private var changedReloads = 0L
+	private var forgotten = 0L
 	private var misses = 0L
 	private var adopted = 0
 	private var rejected = 0
@@ -102,22 +103,23 @@ internal class SessionHeartbeat {
 	private fun StringBuilder.describeWorld(world: PathingWorld) {
 		if (world !== trackedWorld) {
 			trackedWorld = world
-			captured = 0L
+			derived = 0
+			blockChanges = 0L
 			reloads = 0L
-			rereads = 0L
-			changedRereads = 0L
+			changedReloads = 0L
+			forgotten = 0L
 			misses = 0L
 		}
-		append(" | world +").append(world.sectionsCaptured - captured).append(" sections")
-		append(", reloads +").append(world.chunkReloads - reloads).append(" (re-read +").append(world.sectionsReread - rereads)
-		append(", changed +").append(world.rereadsChanged - changedRereads).append(')')
+		append(" | world +").append(world.sectionsDerived - derived).append(" sections derived")
+		append(", block changes +").append(world.blockChanges - blockChanges)
+		append(", reloads +").append(world.chunkReloads - reloads).append(" (changed +").append(world.reloadsChanged - changedReloads).append(')')
+		append(", forgotten chunks +").append(world.chunksForgotten - forgotten)
 		append(", exact misses +").append(world.exactMisses - misses)
-		append(", interest ").append(world.pendingInterest)
-		append(" (demand ").append(world.pendingDemand).append(", awaiting load ").append(world.awaitingLoad).append(')')
-		captured = world.sectionsCaptured
+		derived = world.sectionsDerived
+		blockChanges = world.blockChanges
 		reloads = world.chunkReloads
-		rereads = world.sectionsReread
-		changedRereads = world.rereadsChanged
+		changedReloads = world.reloadsChanged
+		forgotten = world.chunksForgotten
 		misses = world.exactMisses
 	}
 

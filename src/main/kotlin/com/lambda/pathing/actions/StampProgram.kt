@@ -82,5 +82,11 @@ internal class StampProgram(
 		const val CLASS_MASK = 7
 
 		private val VOXELS = listOf(CoarseVoxel.AIR, CoarseVoxel.FULL_BLOCK, CoarseVoxel.HAZARD, CoarseVoxel.CLIMBABLE, CoarseVoxel.WATER)
+
+		val CLASSES: Int = VOXELS.size
+
+		val CLIMB_CLASS: Int = VOXELS.indexOf(CoarseVoxel.CLIMBABLE)
+
+		val WATER_CLASS: Int = VOXELS.indexOf(CoarseVoxel.WATER)
 	}
 }

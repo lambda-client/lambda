@@ -11,7 +11,9 @@ import com.lambda.pathing.graph.LongDStarLite
 import com.lambda.pathing.graph.LongGraph
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium
-import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue
+import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
@@ -34,11 +36,9 @@ class CoarsePlanner(
 		for (alternative in alternatives) if (alternative != goalStance) add(PackedStance.pack(alternative, SpeedClass.STOPPED))
 	}
 
-	private val unknownDrops: LongOpenHashSet = shared?.unknownDrops ?: reuse?.unknownDrops ?: LongOpenHashSet()
-
 	private val edgeCache: CoarseEdgeCache = shared?.cache(view, moves)
 		?: reuse?.edgeCache?.takeIf { reuse.shared == null && !goalColumn(reuse.goalStance) && !goalColumn(goalStance) }
-		?: CoarseEdgeCache(view.cursor(), moves, listOf(goalStance), unknownDrops)
+		?: CoarseEdgeCache(view.cursor(), moves, listOf(goalStance))
 
 	private fun goalColumn(goal: Stance): Boolean = view.medium(goal.x, goal.y, goal.z) == Medium.WATER
 
@@ -64,8 +64,8 @@ class CoarsePlanner(
 			anchorSuccessors(node, sink)
 			alternativeSuccessors(node, sink)
 		},
-		reachedSuccessorProvider = { node, sink, reached ->
-			momentum.successors(edgeCache, node, sink, reached = reached)
+		reachedSuccessorProvider = { node, sink, value ->
+			momentum.successors(edgeCache, node, sink, value = value)
 			anchorSuccessors(node, sink)
 			alternativeSuccessors(node, sink)
 		},
@@ -76,6 +76,11 @@ class CoarsePlanner(
 		},
 		unknownPredecessorProvider = { node, sink, unknown ->
 			momentum.predecessors(edgeCache, node, sink, unknown)
+			anchorPredecessors(node, sink)
+			alternativePredecessors(node, sink)
+		},
+		relevantPredecessorProvider = { node, sink, relevance ->
+			momentum.predecessors(edgeCache, node, sink, relevance = relevance)
 			anchorPredecessors(node, sink)
 			alternativePredecessors(node, sink)
 		},
@@ -148,13 +153,45 @@ class CoarsePlanner(
 	}
 
 	fun forEachGraphStanceWithin(box: CellBox, action: (x: Int, y: Int, z: Int) -> Unit) {
-		search.forEachKnownNode { node ->
+		forEachNodeIn(columnsOf(listOf(box))) { node ->
 			val x = PackedStance.unpackX(node)
 			val y = PackedStance.unpackY(node)
 			val z = PackedStance.unpackZ(node)
 			if (box.contains(x, y, z) && (PackedStance.speed(node) != SpeedClass.MOVING || !search.isKnown(PackedStance.withSpeed(node, SpeedClass.STOPPED)))) action(x, y, z)
 		}
 	}
+
+	private fun forEachNodeIn(columns: LongOpenHashSet?, action: (Long) -> Unit) {
+		if (columns == null) return search.forEachKnownNode { action(it) }
+		indexNodes()
+		val iterator = columns.iterator()
+		while (iterator.hasNext()) {
+			val nodes = nodesByColumn.get(iterator.nextLong()) ?: continue
+			for (i in 0 until nodes.size) action(nodes.getLong(i))
+		}
+	}
+
+	private fun columnsOf(boxes: List<CellBox>): LongOpenHashSet? {
+		indexNodes()
+		var count = 0L
+		for (box in boxes) count += ((box.xs.last shr 4).toLong() - (box.xs.first shr 4) + 1) * ((box.zs.last shr 4).toLong() - (box.zs.first shr 4) + 1)
+		if (count > nodesByColumn.size) return null
+		val columns = LongOpenHashSet()
+		for (box in boxes) for (x in (box.xs.first shr 4)..(box.xs.last shr 4)) for (z in (box.zs.first shr 4)..(box.zs.last shr 4)) columns.add(PathingChunk.key(x, z))
+		return columns
+	}
+
+	private fun indexNodes() {
+		val count = search.knownNodeCount
+		while (indexedNodes < count) {
+			val node = search.knownNode(indexedNodes++)
+			nodesByColumn.computeIfAbsent(PathingChunk.key(PackedStance.unpackX(node) shr 4, PackedStance.unpackZ(node) shr 4)) { LongArrayList() }.add(node)
+		}
+	}
+
+	private val nodesByColumn = Long2ObjectOpenHashMap<LongArrayList>()
+
+	private var indexedNodes = 0
 
 	fun stanceCost(stance: Stance): Double = minOf(
 		search.g(PackedStance.pack(stance, SpeedClass.MOVING)),
@@ -255,34 +292,6 @@ class CoarsePlanner(
 	}
 
 	val anchorCount: Int get() = anchors.size
-
-	fun probeDropsFrom(start: Stance, maxStances: Int) {
-		val seen = LongOpenHashSet()
-		val queue = LongArrayFIFOQueue()
-		val first = PackedStance.pack(entry(start), SpeedClass.STOPPED)
-		seen.add(PackedStance.stanceKey(first))
-		queue.enqueue(first)
-		val successors = EdgeList()
-		while (!queue.isEmpty) {
-			val node = queue.dequeueLong()
-			edgeCache.forEachFallFrom(node) { _, _ -> }
-			successors.clear()
-			momentum.successors(edgeCache, node, successors)
-			for (index in 0 until successors.size) {
-				val next = successors.node(index)
-				if (seen.size < maxStances && seen.add(PackedStance.stanceKey(next))) queue.enqueue(PackedStance.withSpeed(next, SpeedClass.STOPPED))
-			}
-		}
-	}
-
-	fun drainUnknownDrops(action: (Int, Int, Int) -> Unit) {
-		val iterator = unknownDrops.iterator()
-		while (iterator.hasNext()) {
-			val cell = iterator.nextLong()
-			action(BlockPos.unpackLongX(cell), BlockPos.unpackLongY(cell), BlockPos.unpackLongZ(cell))
-		}
-		unknownDrops.clear()
-	}
 
 	val optimisticAnchors: Map<Stance, Double> get() = HashMap<Stance, Double>().also { copy -> anchors.forEach { stance, cost -> copy[stance] = cost } }
 
@@ -412,6 +421,8 @@ class CoarsePlanner(
 		return search.synchronizeAffected(lifted)
 	}
 
+	private enum class SyncMode { CHANGED, LOCAL, ARRIVED }
+
 	private companion object {
 
 		const val ROUTE_RESYNCHRONIZATION_ROUNDS = 64
@@ -425,6 +436,8 @@ class CoarsePlanner(
 		const val REPAIR_SLICE = 512
 
 		const val FORWARD_SHARE = 2
+
+		const val LOCAL_CHANGE = 16
 	}
 
 	fun valueField(): CoarseValueField = CoarseValueField(
@@ -449,15 +462,19 @@ class CoarsePlanner(
 			minY = minOf(minY, node.y - height)
 			maxY = maxOf(maxY, node.y + height)
 		}
-		return FieldLabels(
-			search.labels { node ->
-				val x = PackedStance.unpackX(node)
-				val y = PackedStance.unpackY(node)
-				val z = PackedStance.unpackZ(node)
-				around.any { abs(x - it.x) <= radius && abs(z - it.z) <= radius && abs(y - it.y) <= height } ||
-						y in minY..maxY && cells.contains(PathingChunk.key(x shr 4, z shr 4))
-			},
-		)
+		val labels = Long2DoubleOpenHashMap().apply { defaultReturnValue(Double.POSITIVE_INFINITY) }
+		val boxes = around.map { CellBox(it.x - radius..it.x + radius, it.y - height..it.y + height, it.z - radius..it.z + radius) }
+		val columns = columnsOf(boxes)?.apply { addAll(cells) }
+		forEachNodeIn(columns) { node ->
+			val x = PackedStance.unpackX(node)
+			val y = PackedStance.unpackY(node)
+			val z = PackedStance.unpackZ(node)
+			if (!around.any { abs(x - it.x) <= radius && abs(z - it.z) <= radius && abs(y - it.y) <= height } &&
+				!(y in minY..maxY && cells.contains(PathingChunk.key(x shr 4, z shr 4)))) return@forEachNodeIn
+			val label = search.label(node)
+			if (label.isFinite()) labels.put(node, label)
+		}
+		return FieldLabels(labels)
 	}
 
 	private fun nodeLabel(stance: Stance, speed: SpeedClass): Double {
@@ -481,15 +498,20 @@ class CoarsePlanner(
 	internal fun collectChanged(changed: List<CellBox>, arrivalsOnly: Boolean) {
 		updateGoalKnowledge()
 		anchors.refresh(changed)
-		val origins = changed.map(moves::originsReading)
+		val origins = changed.map { moves.originsReading(it, view) }
 		if (changed.isNotEmpty()) {
+			val local = !arrivalsOnly && changed.all(::local)
+			val pending = pending[(if (arrivalsOnly) SyncMode.ARRIVED else if (local) SyncMode.LOCAL else SyncMode.CHANGED).ordinal]
+			if (local) pendingPullIns += origins
 			val shafted = edgeCache.shaftReaders(changed)
-			val bounds = CellBox.enclosing(origins + edgeCache.fallReaders(changed) + edgeCache.chainReaders(changed) + shafted)
-			search.forEachKnownNode { node ->
-				if (!bounds.contains(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))) return@forEachKnownNode
+			val falling = edgeCache.fallReaders(changed)
+			val readers = origins + falling + edgeCache.chainReaders(changed) + shafted
+			val bounds = CellBox.enclosing(readers)
+			forEachNodeIn(columnsOf(readers)) { node ->
+				if (!bounds.contains(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))) return@forEachNodeIn
 				val key = PackedStance.stanceKey(node)
-				if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(changed, key) || edgeCache.chainsRead(changed, key) ||
-					CoarseEdgeCache.covers(shafted, key)) pendingSync.add(key)
+				if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(falling, key) || edgeCache.chainsRead(changed, key) ||
+					CoarseEdgeCache.covers(shafted, key)) pending.add(key)
 			}
 		}
 	}
@@ -505,27 +527,127 @@ class CoarsePlanner(
 	internal fun markForSync(stances: Iterable<Stance>) {
 		for (stance in stances) {
 			val key = PackedStance.stanceKey(PackedStance.pack(stance, SpeedClass.STOPPED))
-			if (search.isKnown(key) || search.isKnown(PackedStance.withSpeed(key, SpeedClass.MOVING))) pendingSync.add(key)
+			if (search.isKnown(key) || search.isKnown(PackedStance.withSpeed(key, SpeedClass.MOVING))) pending[SyncMode.CHANGED.ordinal].add(key)
 		}
 	}
 
-	fun continueSync(maxStances: Int = Int.MAX_VALUE): Boolean {
-		if (pendingSync.isEmpty()) return false
+	fun continueSync(maxStances: Int = Int.MAX_VALUE, near: Stance? = null): Boolean {
+		if (pending.all { it.isEmpty() } && pendingPullIns.isEmpty()) return false
 		if (maxStances <= 0) return true
-		val ordered = pendingSync.toLongArray()
+		if (near == null || pending.sumOf { it.size } <= maxStances) {
+			var budget = maxStances
+			for (mode in SyncMode.entries) budget -= synchronize(mode, budget)
+		} else {
+			synchronizeNearest(near, maxStances)
+		}
+		pullInAround()
+		return pending.any { it.isNotEmpty() }
+	}
+
+	private fun synchronizeNearest(near: Stance, budget: Int) {
+		val keys = LongArray(pending.sumOf { it.size })
+		val modes = IntArray(keys.size)
+		var count = 0
+		for (mode in SyncMode.entries) {
+			val iterator = pending[mode.ordinal].iterator()
+			while (iterator.hasNext()) {
+				modes[count] = mode.ordinal
+				keys[count++] = iterator.nextLong()
+			}
+		}
+		val order = LongArray(count) { index ->
+			val key = keys[index]
+			val dx = (PackedStance.unpackX(key) - near.x).toLong()
+			val dy = (PackedStance.unpackY(key) - near.y).toLong()
+			val dz = (PackedStance.unpackZ(key) - near.z).toLong()
+			(minOf(dx * dx + dy * dy + dz * dz, Int.MAX_VALUE.toLong()) shl 32) or index.toLong()
+		}
+		order.sort()
+		val chosen = Array(SyncMode.entries.size) { LongArrayList() }
+		for (position in 0 until budget) {
+			val index = order[position].toInt()
+			chosen[modes[index]].add(keys[index])
+		}
+		for (mode in SyncMode.entries) synchronize(mode, chosen[mode.ordinal].toLongArray())
+	}
+
+	private fun synchronize(mode: SyncMode, budget: Int): Int {
+		val keys = pending[mode.ordinal]
+		if (keys.isEmpty() || budget <= 0) return 0
+		val ordered = keys.toLongArray()
 		ordered.sort()
-		val count = minOf(maxStances, ordered.size)
-		syncedStances += count
-		val lifted = LongArrayList(count * 2)
-		for (i in 0 until count) {
-			val key = ordered[i]
-			pendingSync.remove(key)
+		val count = minOf(budget, ordered.size)
+		synchronize(mode, ordered.copyOf(count))
+		return count
+	}
+
+	private fun synchronize(mode: SyncMode, chosen: LongArray) {
+		if (chosen.isEmpty()) return
+		chosen.sort()
+		syncedStances += chosen.size
+		val keys = pending[mode.ordinal]
+		val lifted = LongArrayList(chosen.size * 2)
+		for (key in chosen) {
+			keys.remove(key)
 			lifted.add(PackedStance.withSpeed(key, SpeedClass.MOVING))
 			lifted.add(key)
 		}
-		search.synchronizeAffected(lifted)
-		return pendingSync.isNotEmpty()
+		search.synchronizeAffected(lifted, pullIn = mode == SyncMode.CHANGED)
+		if (mode == SyncMode.LOCAL) pullInFallers(lifted)
 	}
 
-	private val pendingSync = LongOpenHashSet()
+	private fun pullInFallers(synced: LongArrayList) {
+		val candidates = LongArrayList()
+		for (i in 0 until synced.size) {
+			val node = synced.getLong(i)
+			if (!search.isConsistent(node)) continue
+			pullInScratch.clear()
+			momentum.predecessors(edgeCache, node, pullInScratch, templates = false)
+			anchorPredecessors(node, pullInScratch)
+			alternativePredecessors(node, pullInScratch)
+			for (j in 0 until pullInScratch.size) pullInScratch.node(j).let { if (!search.isKnown(it)) candidates.add(it) }
+		}
+		search.pullIn(candidates)
+	}
+
+	private fun pullInAround() {
+		if (pendingPullIns.isEmpty()) return
+		val rows = Long2LongOpenHashMap()
+		val stanceYs = view.simulableStanceY
+		for (box in pendingPullIns) {
+			for (z in box.zs) for (y in maxOf(box.ys.first, stanceYs.first)..minOf(box.ys.last, stanceYs.last)) {
+				for (word in (box.xs.first shr 6)..(box.xs.last shr 6)) {
+					val key = BlockPos.asLong(word, y, z)
+					rows.put(key, rows.get(key) or lanes(word, box.xs))
+				}
+			}
+		}
+		pendingPullIns.clear()
+		val keys = rows.keys.toLongArray()
+		keys.sort()
+		val candidates = LongArrayList()
+		for (key in keys) {
+			val y = BlockPos.unpackLongY(key)
+			val z = BlockPos.unpackLongZ(key)
+			edgeCache.forEachStance(BlockPos.unpackLongX(key), y, z, rows.get(key)) { x ->
+				for (speed in SpeedClass.entries) PackedStance.pack(x, y, z, speed).let { if (!search.isKnown(it)) candidates.add(it) }
+			}
+		}
+		search.pullIn(candidates)
+	}
+
+	private fun local(box: CellBox): Boolean =
+		box.xs.last - box.xs.first < LOCAL_CHANGE && box.ys.last - box.ys.first < LOCAL_CHANGE && box.zs.last - box.zs.first < LOCAL_CHANGE
+
+	private fun lanes(word: Int, xs: IntRange): Long {
+		val low = maxOf(xs.first - (word shl 6), 0)
+		val high = minOf(xs.last - (word shl 6), 63)
+		return if (low > high) 0L else (-1L ushr (63 - high)) and (-1L shl low)
+	}
+
+	private val pending = Array(SyncMode.entries.size) { LongOpenHashSet() }
+
+	private val pendingPullIns = ArrayList<CellBox>()
+
+	private val pullInScratch = EdgeList()
 }

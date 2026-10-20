@@ -9,6 +9,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium
+import com.lambda.pathing.world.TerrainWatch
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
 import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
@@ -23,6 +24,7 @@ internal class WaterShafts(
 	private val ticksPerBlock: Double,
 ) {
 	private val profiles = Long2ObjectLinkedOpenHashMap<BooleanArray>()
+	private val watch = TerrainWatch(view)
 
 	fun forEachFrom(origin: Stance, visitor: ShaftVisitor) {
 		if (view.medium(origin.x, origin.y, origin.z) != Medium.WATER) return
@@ -86,7 +88,18 @@ internal class WaterShafts(
 		return if (view.voxel(x, top + 1, z).fullyPassable) top else null
 	}
 
+	private fun forget(changed: CellBox) {
+		val keys = profiles.keys.iterator()
+		while (keys.hasNext()) {
+			val key = keys.nextLong()
+			val x = BlockPos.unpackLongX(key)
+			val z = BlockPos.unpackLongZ(key)
+			if (x in changed.xs.first - 1..changed.xs.last + 1 && z in changed.zs.first - 1..changed.zs.last + 1) keys.remove()
+		}
+	}
+
 	private fun profile(x: Int, z: Int, top: Int): BooleanArray {
+		watch.poll(::clear, ::forget)
 		val key = BlockPos.asLong(x, top, z)
 		profiles.getAndMoveToLast(key)?.let { return it }
 		val cover = BooleanArray(SIDES)

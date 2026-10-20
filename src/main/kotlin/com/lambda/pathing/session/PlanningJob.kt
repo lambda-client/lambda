@@ -87,9 +87,9 @@ internal class PlanningJob(
 		enter("searching")
 		PlanningDebugChannel.publishRoute(frame.route)
 		LOG.info(
-			"Planning startup {} -> {}: coarse route of {} nodes to {} after {} ms, since-request={} ms; capture so far: {}",
+			"Planning startup {} -> {}: coarse route of {} nodes to {} after {} ms, since-request={} ms; terrain: {}",
 			start, goal, frame.route.nodes.size, frame.route.goal, (System.nanoTime() - began) / 1_000_000L,
-			System.currentTimeMillis() - preparation.startedMillis, world.captureLedger(),
+			System.currentTimeMillis() - preparation.startedMillis, world.terrainLedger(),
 		)
 		if (rehearsal != null) return rehearse(frame).also { enter("finished: ${it::class.simpleName}") }
 		return CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown, keepsWalkedFrames = preparation.liveImprover).use { follower ->

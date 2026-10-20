@@ -19,7 +19,7 @@ class SnapshotOverlayTest {
         val one = empty.with(key, section)
         assertEquals(0, empty.size)
         assertEquals(1, one.size)
-        assertTrue(one.contains(key))
+        assertTrue(one.isKnown(key))
         assertEquals(section, one[key])
         val none = one.without(LongArrayList.of(key))
         assertEquals(1, one.size)
@@ -47,7 +47,7 @@ class SnapshotOverlayTest {
         val removed = keys.filterIndexed { index, _ -> index % 3 == 0 }
         val trimmed = store.without(LongArrayList(removed))
         assertEquals(keys.size - removed.size, trimmed.size)
-        assertTrue(removed.none { trimmed.contains(it) })
+        assertTrue(removed.none { trimmed.isKnown(it) })
         assertTrue(keys.filterIndexed { index, _ -> index % 3 != 0 }.all { trimmed[it] === section })
         assertTrue(keys.all { store[it] === section }, "removal must not touch the store it was derived from")
     }

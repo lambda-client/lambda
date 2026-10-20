@@ -11,6 +11,18 @@ fun interface FilteredEdgeProvider {
 	fun edges(node: Long, sink: EdgeList, wanted: java.util.function.LongPredicate)
 }
 
+fun interface ValuedEdgeProvider {
+	fun edges(node: Long, sink: EdgeList, value: java.util.function.LongToDoubleFunction)
+}
+
+fun interface EdgeRelevance {
+	fun relevant(node: Long, lowerBound: Double): Boolean
+}
+
+fun interface RelevantEdgeProvider {
+	fun edges(node: Long, sink: EdgeList, relevance: EdgeRelevance)
+}
+
 class EdgeList(initialCapacity: Int = 16) {
 	private val targets = LongArrayList(initialCapacity)
 	private val costs = DoubleArrayList(initialCapacity)

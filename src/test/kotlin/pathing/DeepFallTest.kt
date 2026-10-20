@@ -6,6 +6,11 @@ package pathing
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.coarse.FallEdges
+import com.lambda.pathing.coarse.PackedStance
+import com.lambda.pathing.coarse.SpeedClass
+import com.lambda.pathing.coarse.StanceMemo
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.FallLimits
@@ -14,7 +19,6 @@ import com.lambda.pathing.physics.fallRule
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
-import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -22,19 +26,18 @@ import minecraft.MinecraftBootstrap
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.PointedDripstoneBlock
-import net.minecraft.block.ShapeContext
 import net.minecraft.block.SlabBlock
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.enums.Thickness
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.BlockView
 import pathing.ProbeScenarios.moveLibrary
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -185,29 +188,6 @@ class DeepFallTest {
 	}
 
 	@Test
-	fun `a rim over an uncaptured column asks for the column below it`() {
-		MinecraftBootstrap.ensure()
-		val states = HashMap<BlockPos, BlockState>()
-		for (x in -8..14) for (z in -6..6) states[BlockPos(x, 0, z)] = Blocks.STONE.defaultState
-		for (x in -4..0) for (z in -2..2) for (y in 1..79) states[BlockPos(x, y, z)] = Blocks.STONE.defaultState
-		for (x in 1..2) for (z in -1..1) states[BlockPos(x, 1, z)] = Blocks.WATER.defaultState
-		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
-		val bounds = SimulationSnapshotBounds(-16, 0, -16, 31, 127, 31)
-		val cells = HashMap<BlockPos, SnapshotBlockPhysics>()
-		for (x in -16..31) for (y in 0..127) for (z in -16..31) cells[BlockPos(x, y, z)] = sampler.physicsAt(x, y, z)
-		val uncaptured = ChunkSectionPos.asLong(0, 2, 0)
-		val environment = SnapshotSimulationEnvironment(bounds, ImmutableSnapshotSection.sectionsOf(cells) - uncaptured, null)
-		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 80, 0), Stance(12, 1, 0))
-		planner.repair()
-		assertNull(planner.routePlan(0L), "the only way down falls through terrain nobody captured")
-		planner.probeDropsFrom(Stance(-2, 80, 0), maxStances = 512)
-		val asked = ArrayList<BlockPos>()
-		planner.drainUnknownDrops { x, y, z -> asked += BlockPos(x, y, z) }
-		assertTrue(asked.any { it.x == 1 && it.y == 47 }, "the rim must ask for the uncaptured column below it: $asked")
-		planner.drainUnknownDrops { x, y, z -> error("drained twice: ($x, $y, $z)") }
-	}
-
-	@Test
 	fun `a hay bale seven blocks down cushions the fall`() {
 		val (environment, start, goal) = hayTower(hayTop = 74)
 		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), start, goal)
@@ -244,6 +224,20 @@ class DeepFallTest {
 		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
 	}
 
+	@Test
+	fun `a fall edge reads a column only down to its first solid cell`() {
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -8..14) for (z in -6..6) for (y in 30..59) blocks[BlockPos(x, y, z)] = SnapshotBlockPhysics.FULL_CUBE
+		for (x in -4..0) for (z in -2..2) for (y in 60..69) blocks[BlockPos(x, y, z)] = SnapshotBlockPhysics.FULL_CUBE
+		for (y in 40..42) blocks[BlockPos(5, y, 0)] = SnapshotBlockPhysics.AIR
+		val view = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-16, 30, -16, 24, 100, 16), blocks)
+		val moves = moveLibrary(SimpleMoveOptions(fallLimits = FallLimits(acceptedDamage = 100)))
+		val falls = FallEdges(view, moves, StanceMemo(view, moves))
+		val rim = PackedStance.pack(Stance(0, 70, 0), SpeedClass.STOPPED)
+		assertTrue(falls.reads(listOf(falls.readers(CellBox(5..5, 59..59, 0..0))), rim), "the landing floor below the rim is read")
+		assertFalse(falls.reads(listOf(falls.readers(CellBox(5..5, 41..41, 0..0))), rim), "a pocket sealed under that floor is not")
+	}
+
 	private fun hayTower(hayTop: Int): Triple<SnapshotSimulationEnvironment, Stance, Stance> {
 		MinecraftBootstrap.ensure()
 		val states = HashMap<BlockPos, BlockState>()
@@ -258,7 +252,7 @@ class DeepFallTest {
 		states: Map<BlockPos, BlockState>,
 		bounds: SimulationSnapshotBounds = SimulationSnapshotBounds(-16, 50, -16, 24, 100, 16),
 	): SnapshotSimulationEnvironment {
-		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
+		val sampler = BlockPhysicsSampler(StatesView(states))
 		return SnapshotSimulationEnvironment.synthetic(bounds, states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) })
 	}
 

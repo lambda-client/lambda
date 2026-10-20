@@ -22,8 +22,16 @@ internal class ImmutableSnapshotSection private constructor(
 
 	operator fun get(x: Int, y: Int, z: Int): SnapshotBlockPhysics = cell(localIndex(x, y, z))
 
-	fun with(x: Int, y: Int, z: Int, physics: SnapshotBlockPhysics): ImmutableSnapshotSection =
-		Builder(this).apply { replace(x, y, z, physics) }.build()
+	fun with(x: Int, y: Int, z: Int, physics: SnapshotBlockPhysics): ImmutableSnapshotSection {
+		val index = localIndex(x, y, z)
+		if (cell(index) == physics) return this
+		val bytes = byteIndices ?: if (palette.size == 1) ByteArray(SECTION_CELL_COUNT) else null
+		val existing = palette.indexOf(physics)
+		if (bytes == null || existing < 0 && palette.size >= BYTE_PALETTE) return Builder(this).apply { replace(x, y, z, physics) }.build()
+		val patched = if (bytes === byteIndices) bytes.copyOf() else bytes
+		patched[index] = (if (existing >= 0) existing else palette.size).toByte()
+		return ImmutableSnapshotSection(if (existing >= 0) palette else palette + physics, patched, null)
+	}
 
 	fun forEachDifference(other: ImmutableSnapshotSection, action: (Int) -> Unit) {
 		if (palette.size == 1 && other.palette.size == 1) {
@@ -108,6 +116,16 @@ internal class ImmutableSnapshotSection private constructor(
 	}
 
 	companion object {
+		private const val BYTE_PALETTE = 256
+
+		fun uniform(physics: SnapshotBlockPhysics): ImmutableSnapshotSection = ImmutableSnapshotSection(arrayOf(physics), null, null)
+
+		internal fun indexed(palette: Array<SnapshotBlockPhysics>, indices: IntArray): ImmutableSnapshotSection = when {
+			palette.size == 1 -> uniform(palette[0])
+			palette.size <= BYTE_PALETTE -> ImmutableSnapshotSection(palette, ByteArray(SECTION_CELL_COUNT) { indices[it].toByte() }, null)
+			else -> ImmutableSnapshotSection(palette, null, ShortArray(SECTION_CELL_COUNT) { indices[it].toShort() })
+		}
+
 		fun sectionsOf(blocks: Map<BlockPos, SnapshotBlockPhysics>): Map<Long, ImmutableSnapshotSection> {
 			val builders = HashMap<Long, Builder>()
 			blocks.forEach { (pos, physics) -> builders.getOrPut(ChunkSectionPos.toLong(pos), ::Builder).set(pos.x, pos.y, pos.z, physics) }

@@ -311,26 +311,12 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(WORLD_GROUP)
-    override val snapshotCaptureBudgetMillis by c.setting(
-        "Snapshot Tick Budget", 3.0, 0.25..10.0, 0.25,
-        "Client-thread time per tick for copying world physics while a tape is walked. Planning and large " +
-            "capture backlogs take more, up to 15 ms a tick, so routes arrive sooner.",
-        unit = " ms",
+    override val searchDistance by c.setting(
+        "Search Distance", 8, 2..32, 1,
+        "How far around you loaded chunks count as known terrain for planning, capped at the render distance. " +
+            "Chunks further out stay unknown until you come closer. Lower plans faster; higher sees further ahead.",
+        unit = " chunks",
     )
-
-    @Group(WORLD_GROUP)
-    override val captureRetries by c.setting(
-        "Capture Retries", 4, 0..16, 1,
-        "Retries while the exact world capture catches up to a body standing at the " +
-            "streamed frontier before the walk is failed.",
-    )
-
-    @Group(WORLD_GROUP)
-    override val captureRetryMillis by c.setting(
-        "Capture Retry Wait", 400, 50..2000, 50,
-        "Shortest wait between those retries; while terrain is still loading the wait stretches up to 20 s.",
-        unit = " ms",
-    ) { captureRetries > 0 }
 
     @Group(WORLD_GROUP)
     override val useBaritoneCache by c.setting(

@@ -8,9 +8,10 @@ import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.store.BaritoneCache
 import com.lambda.pathing.world.store.TerrainRecorder
 import com.lambda.pathing.world.store.TerrainStores
-import com.lambda.pathing.world.streaming.MinecraftCaptureSource
+import com.lambda.pathing.world.streaming.MinecraftTerrainSource
 import com.lambda.pathing.world.streaming.PathingWorld
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.client.world.ClientWorld
 
 internal class PlanningJourney private constructor(
 	private val origin: PlanningPreparation,
@@ -23,14 +24,14 @@ internal class PlanningJourney private constructor(
 
 	val hazards: HazardRules get() = origin.moveOptions.hazards
 
-	private val coarseView = world.snapshot.pinned()
+	private val coarseView = world.snapshot
 
 	private val goals = origin.waypoints + origin.finalGoal
 
 	private val starts = listOf(origin.start) + origin.waypoints
 
 	private fun buildLegs(remembered: BaritoneCache?): List<CoarsePlanningState> {
-		val memory = remembered?.let { coarseView.remembering(it.sectionsExcept(starts + goals), world::chunkCapturable) }
+		val memory = remembered?.let { coarseView.remembering(it.sectionsExcept(starts + goals), world::readable) }
 		val shared = SharedEdges(goals)
 		return goals.indices.map { index ->
 			val alternatives = if (index == goals.lastIndex) origin.alternatives else emptyList()
@@ -40,8 +41,6 @@ internal class PlanningJourney private constructor(
 
 	val coarse = CoarseService(
 		world, goals, { buildLegs(remembered) }, starts, origin.coarseExpansionBudget,
-		repin = { coarseView.repin(world.snapshot) },
-		pinCurrent = { coarseView.pinnedTo(world.snapshot) },
 		expandsField = !origin.routeOnly,
 	).also { it.start() }
 
@@ -49,7 +48,6 @@ internal class PlanningJourney private constructor(
 		if (origin.waypoints.isNotEmpty()) return false
 		if (goal == this.goal) return true
 		this.goal = goal
-		InterestPrimer.primeGoal(world, goal)
 		coarse.retarget(goals.lastIndex, goal)
 		return true
 	}
@@ -60,7 +58,7 @@ internal class PlanningJourney private constructor(
 	}
 
 	fun compatibleWith(preparation: PlanningPreparation): Boolean =
-		goal == preparation.finalGoal && origin.moveOptions == preparation.moveOptions &&
+		goal == preparation.finalGoal && origin.moveOptions == preparation.moveOptions && origin.searchDistance == preparation.searchDistance &&
 				origin.profile.isCompatibleWith(preparation.profile) &&
 				origin.waypoints.size >= preparation.waypoints.size &&
 				origin.waypoints.takeLast(preparation.waypoints.size) == preparation.waypoints
@@ -72,9 +70,11 @@ internal class PlanningJourney private constructor(
 	companion object {
 		fun open(preparation: PlanningPreparation, player: ClientPlayerEntity): PlanningJourney {
 			val terrain = preparation.dumpDirectory?.let { TerrainRecorder(player.entityWorld, TerrainStores.of(player.entityWorld)) }
-			val world = PathingWorld(preparation.bounds, MinecraftCaptureSource(player.entityWorld, player, preparation.moveOptions.hazards, preparation.moveOptions.avoidMobs, preparation.moveOptions.mobLingerTicks), terrain)
-			InterestPrimer.primeBody(world, player.blockPos)
-			InterestPrimer.primeJourney(world, preparation.start, preparation.finalGoal, preparation.waypoints)
+			val source = MinecraftTerrainSource(
+				player.entityWorld as ClientWorld, player, preparation.moveOptions.avoidMobs, preparation.moveOptions.mobLingerTicks,
+				searchDistance = preparation.searchDistance,
+			)
+			val world = PathingWorld(preparation.bounds, source, preparation.moveOptions.hazards, terrain)
 			val remembered = if (preparation.useBaritoneCache) BaritoneCache.of(player.entityWorld) else null
 			return PlanningJourney(preparation, world, terrain, remembered)
 		}

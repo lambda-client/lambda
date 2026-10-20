@@ -380,9 +380,9 @@ internal class SearchLoop(
 	private fun applyRollout(anchor: ValueAnchor, action: TrajectoryDecision, raw: Outcome): Outcome {
 		val outcome = if (raw is Outcome.Blocked) {
 			frontier.parkBlocked(anchor, action)
-			val capturable = world?.capturable(raw.section.x, raw.section.z) ?: true
-			probe.blocked(raw.frame, raw.section, capturable, anchor.stance, action.movement)
-			if (capturable) {
+			val loadable = world?.loadable(raw.section.x, raw.section.z) ?: true
+			probe.blocked(raw.frame, raw.section, loadable, anchor.stance, action.movement)
+			if (loadable) {
 				Outcome.Rejected(TrajectoryDiagnostic.UnknownTerrain(raw.frame, raw.section))
 			} else raw
 		} else raw

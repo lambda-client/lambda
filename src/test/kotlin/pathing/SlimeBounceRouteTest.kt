@@ -25,7 +25,6 @@ import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
 import minecraft.MinecraftBootstrap
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
-import net.minecraft.block.ShapeContext
 import net.minecraft.block.PaneBlock
 import net.minecraft.block.SlabBlock
 import net.minecraft.block.StairsBlock
@@ -133,7 +132,7 @@ class SlimeBounceRouteTest {
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16), blocks,
         )
-        val moves = moveLibrary(SimpleMoveOptions(allowSlimeBounces = true))
+        val moves = moveLibrary(SimpleMoveOptions(allowSlimeBounces = true, allowDeepDropJumps = false))
         val planner = CoarsePlanner(environment, moves, Stance(0, 10, 0), Stance(0, 8, 7))
         assertTrue(planner.repair().converged)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
@@ -241,7 +240,10 @@ class SlimeBounceRouteTest {
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16), blocks,
         )
-        certifyArrival(environment, goal = Stance(0, 9, 7), start = Stance(0, 11, 0))
+        certifyArrival(
+            environment, goal = Stance(0, 9, 7), start = Stance(0, 11, 0),
+            options = SimpleMoveOptions(allowSlimeBounces = true, allowDeepDropJumps = false),
+        )
     }
 
     /**
@@ -402,7 +404,7 @@ class SlimeBounceRouteTest {
             override fun getHeight(): Int = 384
             override fun getBottomY(): Int = -64
         }
-        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val sampler = BlockPhysicsSampler(view)
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16),
             states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -452,7 +454,7 @@ class SlimeBounceRouteTest {
             override fun getHeight(): Int = 384
             override fun getBottomY(): Int = -64
         }
-        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val sampler = BlockPhysicsSampler(view)
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-16, 0, -16, 16, 30, 32),
             states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -486,7 +488,7 @@ class SlimeBounceRouteTest {
             override fun getHeight(): Int = 384
             override fun getBottomY(): Int = -64
         }
-        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val sampler = BlockPhysicsSampler(view)
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16),
             states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -513,7 +515,7 @@ class SlimeBounceRouteTest {
             override fun getHeight(): Int = 384
             override fun getBottomY(): Int = -64
         }
-        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val sampler = BlockPhysicsSampler(view)
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-16, 0, -16, 16, 30, 32),
             states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -544,7 +546,7 @@ class SlimeBounceRouteTest {
             override fun getHeight(): Int = 384
             override fun getBottomY(): Int = -64
         }
-        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val sampler = BlockPhysicsSampler(view)
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-16, 0, -16, 16, 40, 16),
             states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -634,7 +636,7 @@ class SlimeBounceRouteTest {
             override fun getHeight(): Int = 384
             override fun getBottomY(): Int = -64
         }
-        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val sampler = BlockPhysicsSampler(view)
         return SnapshotSimulationEnvironment.synthetic(bounds, states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) })
     }
 

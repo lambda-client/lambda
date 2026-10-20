@@ -122,7 +122,6 @@ internal class TapeAdmission(private val walk: PathingSession) {
 
 	private fun replay(path: PublishedPath, frame: Int) {
 		walk.telemetry.published = path
-		walk.journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
 		walk.replay = Replay(path, TrajectoryExecutionCursor(path.plan, frame))
 		walk.launcher.current?.adopt(frame, path.publicationSequence.toLong())
 	}
@@ -144,7 +143,6 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		val mutation = world.mutationsSince(since)
 			.firstOrNull { path.plan.reads(it, nextFrame, untilFrame) } ?: return null
 		if (replay != null) {
-			world.applyPending()
 			if (path.plan.replaysUnchanged(world.snapshot, nextFrame, untilFrame)) {
 				replay.verifiedRevision = revision
 				walk.telemetry.countVerifiedChange()

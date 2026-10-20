@@ -1,5 +1,6 @@
 package com.lambda.pathing.world
 
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.Vanilla
@@ -60,8 +61,10 @@ object Footing {
 	private fun cache(view: CoarseVoxelView): Cache {
 		val revision = view.revision
 		val terrain = view.terrain
+		val journal = view.journal
 		val cache = caches.get()
-		if (cache.terrain.get() !== terrain || cache.revision.get() !== revision) cache.reset(terrain, revision)
+		if (cache.terrain.get() !== terrain || cache.revision.get() !== revision) cache.reset(terrain, revision, journal)
+		else if (journal != null) cache.follow(journal)
 		return cache
 	}
 
@@ -183,16 +186,49 @@ object Footing {
 	private class Cache {
 		var terrain = WeakReference<Any>(null)
 		var revision = WeakReference<Any>(null)
+		var version = 0L
 		val entries = Long2ObjectLinkedOpenHashMap<Holds>()
 		val walks = Long2LongOpenHashMap()
 		val climbs = Long2LongOpenHashMap()
 
-		fun reset(terrain: Any, revision: Any?) {
+		fun reset(terrain: Any, revision: Any?, journal: TerrainJournal?) {
+			clear()
+			this.terrain = WeakReference(terrain)
+			this.revision = WeakReference(revision)
+			version = journal?.version ?: 0L
+		}
+
+		fun follow(journal: TerrainJournal) {
+			val to = journal.version
+			if (to == version) return
+			val changed = journal.since(version, to)
+			version = to
+			if (changed == null) return clear()
+			for (box in changed) forget(box.grown(-REACH, REACH, -REACH - 1, REACH + 1, -REACH, REACH))
+		}
+
+		private fun forget(around: CellBox) {
+			val keys = entries.keys.iterator()
+			while (keys.hasNext()) if (around.contains(keys.nextLong())) keys.remove()
+			forget(walks, around)
+			forget(climbs, around)
+		}
+
+		private fun forget(memo: Long2LongOpenHashMap, around: CellBox) {
+			val keys = memo.keys.iterator()
+			while (keys.hasNext()) if (around.contains(keys.nextLong())) keys.remove()
+		}
+
+		private fun CellBox.contains(key: Long): Boolean = contains(BlockPos.unpackLongX(key), BlockPos.unpackLongY(key), BlockPos.unpackLongZ(key))
+
+		private fun clear() {
 			entries.clear()
 			walks.clear()
 			climbs.clear()
-			this.terrain = WeakReference(terrain)
-			this.revision = WeakReference(revision)
+		}
+
+		private companion object {
+			const val REACH = 2
 		}
 	}
 

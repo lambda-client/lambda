@@ -15,6 +15,7 @@ import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.chunk.ChunkSection
 
 class PathingSession internal constructor(
 	internal val request: PathingRequest,
@@ -98,7 +99,7 @@ class PathingSession internal constructor(
 	fun SafeContext.tick() {
 		assertClientThread()
 		if (!active) return
-		advanceSnapshotCapture()
+		advanceWorld()
 		if (!active) return
 		with(heartbeat) { beat(this@PathingSession) }
 		if (mc.isPaused) return
@@ -110,7 +111,7 @@ class PathingSession internal constructor(
 		if (state is State.Settling) return with(alignment) { settle() }
 		if (state is State.Planning) {
 			if (afloatStart != null) tickInput = treadInput()
-			return with(launcher) { retryAfterCapture() }
+			return with(launcher) { retryAfterMobs() }
 		}
 		if (state is State.Aligning) return with(alignment) { align() }
 
@@ -147,9 +148,14 @@ class PathingSession internal constructor(
 		journey?.world?.onBlockChanged(pos)
 	}
 
-	fun onChunkEvent(chunkX: Int, chunkZ: Int) {
+	fun onChunkLoaded(chunkX: Int, chunkZ: Int) {
 		assertClientThread()
-		journey?.world?.onChunkEvent(chunkX, chunkZ)
+		journey?.world?.onChunkLoaded(chunkX, chunkZ)
+	}
+
+	fun onChunkUnloaded(chunkX: Int, chunkZ: Int, sections: Array<ChunkSection>?) {
+		assertClientThread()
+		journey?.world?.onChunkUnloaded(chunkX, chunkZ, sections)
 	}
 
 	internal fun release(park: Boolean = false) {
@@ -231,23 +237,11 @@ class PathingSession internal constructor(
 		with(launcher) { capturePlan() }
 	}
 
-	internal fun SafeContext.advanceSnapshotCapture() {
+	internal fun advanceWorld() {
 		if (state is State.Planning) alignment.holdPlanningYaw()
 		if (!active) return
-		val activeJourney = journey ?: return
-
-		InterestPrimer.primeBody(activeJourney.world, player.blockPos)
-		val configured = request.pathingConfig.snapshotCaptureBudgetMillis
-
-		val replay = replay
-		val budget = when {
-			replay == null || replay.holding -> maxOf(configured, IDLE_CAPTURE_BUDGET_MILLIS)
-			activeJourney.world.pendingDemand > DEMAND_BACKLOG_SECTIONS -> maxOf(configured, BACKLOG_CAPTURE_BUDGET_MILLIS)
-			else -> configured
-		}
-		activeJourney.world.advance(budget)
-
-		waypointRoute.advanceCapture(configured)
+		journey?.world?.advance()
+		waypointRoute.advanceWorld()
 	}
 
 	internal fun dumpEvent(kind: String, note: String, execution: PlanDump.ExecutionTrace? = replayTrace()) {
@@ -340,12 +334,6 @@ class PathingSession internal constructor(
 	internal class AfloatStart(val state: MovementSimulationState, val age: Int)
 
 	internal companion object {
-		const val IDLE_CAPTURE_BUDGET_MILLIS = 15.0
-
-		const val BACKLOG_CAPTURE_BUDGET_MILLIS = 8.0
-
-		const val DEMAND_BACKLOG_SECTIONS = 64
-
 		const val MAX_RECOVERY_STREAK = 8
 
 		const val EVENT_DUMP_INTERVAL_MILLIS = 2_000L

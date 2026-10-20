@@ -4,7 +4,7 @@ import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 
 interface RememberedTerrain {
-	fun remembers(box: CellBox): Boolean
+	fun differences(arrived: CellBox): List<CellBox>
 
 	fun recall(around: Stance): List<CellBox>
 

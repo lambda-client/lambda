@@ -31,7 +31,6 @@ import minecraft.MinecraftBootstrap
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
-import net.minecraft.block.ShapeContext
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.ChunkSectionPos
@@ -187,7 +186,7 @@ class PlanDumpRoundTripTest {
         assertEquals(options.mobLingerTicks, loaded.moveOptions.mobLingerTicks)
         assertEquals(80, loaded.searchConfig.airReserve)
         val environment = loaded.environment()
-        val live = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), options.hazards)
+        val live = BlockPhysicsSampler(StatesView(states), options.hazards)
         for (pos in states.keys + listOf(BlockPos(0, 65, 0), BlockPos(9, 64, 0))) {
             val expected = live.physicsAt(pos.x, pos.y, pos.z)
             assertEquals(expected, environment.installedBlock(pos.x, pos.y, pos.z), "derived physics at $pos")

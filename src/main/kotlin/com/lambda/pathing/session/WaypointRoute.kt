@@ -9,6 +9,7 @@ import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.util.CommunicationUtils.info
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
+import net.minecraft.world.chunk.ChunkSection
 
 internal class WaypointRoute {
 
@@ -87,15 +88,19 @@ internal class WaypointRoute {
 		PathingRequest(automated, next.goal, next.through).submit()
 	}
 
-	fun advanceCapture(budgetMillis: Double) {
-		nextJourney?.world?.advance(budgetMillis)
+	fun advanceWorld() {
+		nextJourney?.world?.advance()
 	}
 
 	fun onBlockChanged(pos: BlockPos) {
 		nextJourney?.world?.onBlockChanged(pos)
 	}
 
-	fun onChunkEvent(x: Int, z: Int) {
-		nextJourney?.world?.onChunkEvent(x, z)
+	fun onChunkLoaded(x: Int, z: Int) {
+		nextJourney?.world?.onChunkLoaded(x, z)
+	}
+
+	fun onChunkUnloaded(x: Int, z: Int, sections: Array<ChunkSection>?) {
+		nextJourney?.world?.onChunkUnloaded(x, z, sections)
 	}
 }

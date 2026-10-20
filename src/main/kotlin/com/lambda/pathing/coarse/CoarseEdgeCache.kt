@@ -35,7 +35,6 @@ internal class CoarseEdgeCache(
 	private val view: CoarseVoxelView,
 	private val moves: SimpleMoveLibrary,
 	goals: List<Stance> = emptyList(),
-	unknownDrops: LongOpenHashSet? = null,
 ) {
 	private val outgoing = Long2ObjectLinkedOpenHashMap<List<CoarseEdge>>()
 
@@ -67,7 +66,7 @@ internal class CoarseEdgeCache(
 
 	private val chains = if (bounceTemplates.isEmpty()) null else BounceChains(view, standable, pads, moves.catalog.options.maxBounceDrop, bends = moves.catalog.options.allowOffAxisJumps)
 
-	private val falls = if (moves.falls) FallEdges(view, moves, standable, unknownDrops) else null
+	private val falls = if (moves.falls) FallEdges(view, moves, standable) else null
 
 	private val shafts = moves.templates.firstOrNull { it.movement == MovementId.DIVE && it.dx == 0 && it.dy == -1 && it.dz == 0 }
 		?.let { WaterShafts(view, standable, it.lowerBoundTicks) }
@@ -121,17 +120,38 @@ internal class CoarseEdgeCache(
 		if (!standable.isStance(origin)) return
 		val row = row(originRows, origin.x shr 6, origin.y, origin.z)
 		val bit = origin.x and 63
-		val mask = 1L shl bit
-		val byTemplate = row.byTemplate
-		for (position in byTemplate.indices) {
-			val index = byTemplate[position]
-			if (row.pending[index] and mask != 0L) {
-				if (pending != null && !pending.wanted(moves.templates[row.templates[index]])) continue
+		val lane = row.lane(bit)
+		if (lane >= 0) for (position in 0 until row.size) {
+			val index = row.byTemplate(position)
+			if (row.isPending(index, lane)) {
+				if (pending != null && !pending.wanted(moves.templates[row.template(index)])) continue
 				settle(row, index, bit, origin)
 			}
-			if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor, origin)
+			if (row.hasEdge(index, lane)) visit(row, index, bit, lane, visitor, origin)
 		}
 		if (bounces(origin)) visit(bouncesFrom.get(key) ?: bouncesFrom(origin).also { bouncesFrom.put(key, it) }, visitor)
+	}
+
+	fun settleFrom(node: Long, template: Int, visitor: EdgeVisitor) {
+		val origin = PackedStance.stance(PackedStance.stanceKey(node))
+		val row = row(originRows, origin.x shr 6, origin.y, origin.z)
+		val bit = origin.x and 63
+		val lane = row.lane(bit)
+		if (lane < 0) return
+		val index = row.indexOf(template, moves.groups.rank)
+		if (index < 0) return
+		if (row.isPending(index, lane)) settle(row, index, bit, origin)
+		if (row.hasEdge(index, lane)) visit(row, index, bit, lane, visitor, origin)
+	}
+
+	fun forEachStance(word: Int, y: Int, z: Int, lanes: Long, action: (Int) -> Unit) {
+		stamper.synchronize()
+		var bits = stamper.candidates(word, y, z) and lanes
+		while (bits != 0L) {
+			val x = (word shl 6) + java.lang.Long.numberOfTrailingZeros(bits)
+			bits = bits and (bits - 1)
+			if (standable.isStance(Stance(x, y, z))) action(x)
+		}
 	}
 
 	fun forEachSettledEdgeFrom(node: Long, visitor: EdgeVisitor) {
@@ -139,8 +159,8 @@ internal class CoarseEdgeCache(
 		val origin = PackedStance.stance(key)
 		val row = originRows.peek(origin.x shr 6, origin.y, origin.z) ?: return
 		val bit = origin.x and 63
-		val mask = 1L shl bit
-		for (index in 0 until row.size) if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor, origin)
+		val lane = row.lane(bit)
+		if (lane >= 0) for (index in 0 until row.size) if (row.hasEdge(index, lane)) visit(row, index, bit, lane, visitor, origin)
 		bouncesFrom.get(key)?.let { visit(it, visitor) }
 	}
 
@@ -149,13 +169,13 @@ internal class CoarseEdgeCache(
 		if (!standable.isStance(target)) return
 		val row = row(targetRows, target.x shr 6, target.y, target.z)
 		val bit = target.x and 63
-		val mask = 1L shl bit
-		for (index in 0 until row.size) {
-			if (row.pending[index] and mask != 0L) {
-				if (pending != null && !pending.wanted(moves.templates[row.templates[index]])) continue
+		val lane = row.lane(bit)
+		if (lane >= 0) for (index in 0 until row.size) {
+			if (row.isPending(index, lane)) {
+				if (pending != null && !pending.wanted(moves.templates[row.template(index)])) continue
 				settleArrival(row, index, bit, target)
 			}
-			if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor)
+			if (row.hasEdge(index, lane)) visit(row, index, bit, lane, visitor)
 		}
 		val key = PackedStance.stanceKey(node)
 		if (bounces(target)) visit(bouncesTo.get(key) ?: bouncesTo(target).also { bouncesTo.put(key, it) }, visitor)
@@ -199,7 +219,7 @@ internal class CoarseEdgeCache(
 
 	fun shaftReaders(changed: List<CellBox>): List<CellBox> = if (shafts == null) emptyList() else changed.map(WaterShafts::readers)
 
-	fun fallsRead(changed: List<CellBox>, key: Long): Boolean = falls?.reads(changed, key) == true
+	fun fallsRead(readers: List<CellBox>, key: Long): Boolean = falls?.reads(readers, key) == true
 
 	fun fallReaders(changed: List<CellBox>): List<CellBox> = falls?.let { changed.map(it::readers) }.orEmpty()
 
@@ -234,42 +254,42 @@ internal class CoarseEdgeCache(
 
 	private fun settle(row: RowEdges, index: Int, bit: Int, origin: Stance) {
 		exactChecks++
-		val edge = moves.templates[row.templates[index]].edge(view, origin)
+		val edge = moves.templates[row.template(index)].edge(view, origin)
 		row.resolve(index, bit, edge != null, edge?.standingStart == true, edge?.lowerBoundTicks ?: Double.NaN)
 	}
 
 	private fun settleArrival(row: RowEdges, index: Int, bit: Int, target: Stance) {
 		arrivalChecks++
-		val template = row.templates[index]
+		val template = row.template(index)
 		val motion = moves.templates[template]
 		val origin = target.offset(-motion.dx, -motion.dy, -motion.dz)
 		val origins = row(originRows, origin.x shr 6, origin.y, origin.z)
 		val position = origins.indexOf(template, moves.groups.rank)
 		if (position < 0) return row.resolve(index, bit, found = false, standingStart = false, irregularTicks = Double.NaN)
 		val originBit = origin.x and 63
-		val originMask = 1L shl originBit
-		if (origins.pending[position] and originMask != 0L) settle(origins, position, originBit, origin)
-		val found = origins.edges[position] and originMask != 0L
-		val ticks = if (found && origins.irregular[position] and originMask != 0L) origins.ticksOf(template, originBit) else Double.NaN
-		row.resolve(index, bit, found, origins.standing[position] and originMask != 0L, ticks)
+		val originLane = origins.lane(originBit)
+		if (origins.isPending(position, originLane)) settle(origins, position, originBit, origin)
+		val found = origins.hasEdge(position, originLane)
+		val ticks = if (found && origins.isIrregular(position, originLane)) origins.ticksOf(template, originBit) else Double.NaN
+		row.resolve(index, bit, found, origins.isStanding(position, originLane), ticks)
 	}
 
 	private fun visit(edges: StanceEdges, visitor: EdgeVisitor) {
 		for (index in edges.templates.indices) visitor.visit(moves.templates[edges.templates[index]], edges.ticks[index], edges.standing[index])
 	}
 
-	private fun visit(row: RowEdges, index: Int, bit: Int, visitor: EdgeVisitor, origin: Stance? = null) {
-		val mask = 1L shl bit
-		val template = moves.templates[row.templates[index]]
-		if (origin != null && template.movement in WATER_TARGETED && !standable.isStance(origin.offset(template.dx, template.dy, template.dz))) return
-		val ticks = if (row.irregular[index] and mask != 0L) row.ticksOf(row.templates[index], bit) else template.stampedTicks
-		visitor.visit(template, ticks, row.standing[index] and mask != 0L)
+	private fun visit(row: RowEdges, index: Int, bit: Int, lane: Int, visitor: EdgeVisitor, origin: Stance? = null) {
+		val id = row.template(index)
+		val template = moves.templates[id]
+		if (origin != null && !standable.isStance(origin.offset(template.dx, template.dy, template.dz))) return
+		val ticks = if (row.isIrregular(index, lane)) row.ticksOf(id, bit) else template.stampedTicks
+		visitor.visit(template, ticks, row.isStanding(index, lane))
 	}
 
 	fun isComplete(node: Long): Boolean = completeOrigins.contains(PackedStance.stanceKey(node))
 
 	private fun check(key: Long, origin: Stance) {
-		if (checkedOrigins.add(key) && !moves.readsUnknown(view, origin)) completeOrigins.add(key)
+		if (view.journal == null && checkedOrigins.add(key) && !moves.readsUnknown(view, origin)) completeOrigins.add(key)
 	}
 
 	private fun row(cache: RowCache, word: Int, y: Int, z: Int): RowEdges {
@@ -278,6 +298,8 @@ internal class CoarseEdgeCache(
 	}
 
 	private fun gather(word: Int, y: Int, z: Int): RowEdges {
+		val stances = stamper.candidates(word, y, z)
+		if (stances == 0L) return RowEdges.EMPTY
 		val groups = moves.groups
 		val builder = RowEdges.Builder()
 		val base = word shl 6
@@ -287,18 +309,18 @@ internal class CoarseEdgeCache(
 			for (originWord in ((base - groups.maxDx[group]) shr 6)..((base + 63 - groups.minDx[group]) shr 6)) {
 				val origin = originRows[originWord, originY, originZ]
 				if (origin.size == 0) continue
-				var index = origin.groupStarts[group]
-				val end = origin.groupStarts[group + 1]
+				var index = origin.groupStart(group)
+				val end = origin.groupStart(group + 1)
 				while (index < end) {
-					val template = origin.templates[index]
+					val template = origin.template(index)
 					val shift = ((originWord - word) shl 6) + moves.templates[template].dx
-					val edges = shifted(origin.edges[index], shift)
-					val pending = shifted(origin.pending[index], shift)
+					val edges = shifted(origin.edges(index), shift) and stances
+					val pending = shifted(origin.pending(index), shift) and stances
 					if (edges != 0L || pending != 0L) {
 						touched[template ushr 6] = touched[template ushr 6] or (1L shl template)
-						val irregular = shifted(origin.irregular[index], shift)
+						val irregular = shifted(origin.irregular(index), shift) and stances
 						gathered[template * 4] = gathered[template * 4] or edges
-						gathered[template * 4 + 1] = gathered[template * 4 + 1] or shifted(origin.standing[index], shift)
+						gathered[template * 4 + 1] = gathered[template * 4 + 1] or (shifted(origin.standing(index), shift) and stances)
 						gathered[template * 4 + 2] = gathered[template * 4 + 2] or irregular
 						gathered[template * 4 + 3] = gathered[template * 4 + 3] or pending
 						var bits = irregular
@@ -347,22 +369,23 @@ internal class CoarseEdgeCache(
 
 	fun invalidate(changed: List<CellBox>, arrivalsOnly: Boolean) {
 		if (changed.isEmpty()) return
-		val origins = changed.map(moves::originsReading)
-		val targets = changed.map(moves::targetsReading)
+		val origins = changed.map { moves.originsReading(it, view) }
+		val targets = changed.map { moves.targetsReading(it, view) }
 		val kept = if (arrivalsOnly) completeOrigins else null
 		remove(outgoing.keys, origins, kept)
 		if (shafts != null) remove(outgoing.keys, shaftReaders(changed))
 		remove(checkedOrigins, origins, kept)
 		if (!arrivalsOnly) remove(completeOrigins, origins)
 		standable.remove(targets)
-		stamper.invalidate()
 		originRows.remove(origins)
 		targetRows.remove(targets)
 		remove(bouncesFrom.keys, origins, kept)
 		remove(bouncesTo.keys, targets)
+		chains?.invalidate(changed)
+		if (view.journal != null) return
+		stamper.invalidate()
 		pads.clear()
 		falls?.clear()
-		chains?.invalidate(changed)
 		shafts?.clear()
 	}
 
@@ -424,6 +447,12 @@ internal class CoarseEdgeCache(
 		}
 
 		fun remove(boxes: List<CellBox>) {
+			if (boxes.sumOf(::rowCount) <= rows.size) {
+				for (box in boxes) for (z in box.zs) for (y in maxOf(box.ys.first, MIN_ROW_Y)..minOf(box.ys.last, MAX_ROW_Y)) {
+					for (word in (box.xs.first shr 6)..(box.xs.last shr 6)) rows.remove(BlockPos.asLong(word, y, z))?.let { bytes -= it.bytes }
+				}
+				return
+			}
 			val iterator = rows.long2ObjectEntrySet().fastIterator()
 			while (iterator.hasNext()) {
 				val entry = iterator.next()
@@ -436,8 +465,17 @@ internal class CoarseEdgeCache(
 			}
 		}
 
+		private fun rowCount(box: CellBox): Long {
+			val ys = minOf(box.ys.last, MAX_ROW_Y).toLong() - maxOf(box.ys.first, MIN_ROW_Y) + 1
+			return if (ys <= 0) 0L else ys * (box.zs.last.toLong() - box.zs.first + 1) * ((box.xs.last shr 6) - (box.xs.first shr 6) + 1)
+		}
+
 		private companion object {
 			const val BUDGET_BYTES = 128L shl 20
+
+			const val MIN_ROW_Y = -2048
+
+			const val MAX_ROW_Y = 2047
 		}
 	}
 

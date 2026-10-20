@@ -15,7 +15,6 @@ import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.session.CoarseService
-import com.lambda.pathing.session.InterestPrimer
 import com.lambda.pathing.world.store.BaritoneCache
 import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.pathing.world.store.TerrainStore
@@ -44,9 +43,7 @@ import java.io.DataOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.BitSet
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPOutputStream
-import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -117,35 +114,23 @@ class BlockFinderTest {
 
 	@Test
 	fun `the planning probe settles on the target nearest by path`() {
-		val source = FakeCaptureSource(groundY = 64).apply {
+		val source = FakeTerrainSource(groundY = 64).apply {
 			loadSquare(4)
 			for (x in 16..24) for (z in 20..28) {
 				if ((x == 16 || x == 24 || z == 20 || z == 28) && !(x == 24 && z == 24)) for (y in 64..66) set(x, y, z, SnapshotBlockPhysics.FULL_CUBE)
 			}
 		}
-		val world = PathingWorld(BOUNDS, source)
-		val running = AtomicBoolean(true)
+		val world = PathingWorld(BOUNDS, source, HazardRules.AVOID_ALL)
 		val start = Stance(8, 64, 24)
 		val walled = Stance(20, 64, 24)
 		val open = Stance(8, 64, 42)
-		val client = thread(name = "fake-client", isDaemon = true) {
-			while (running.get()) {
-				InterestPrimer.primeBody(world, BlockPos(start.x, start.y, start.z))
-				world.advance(15.0)
-				Thread.sleep(10)
-			}
-		}
 		val coarse = CoarseService(world, listOf(CoarsePlanningState(world.snapshot, SimpleMoveOptions(), start, walled, alternatives = listOf(open))), listOf(start), expansionBudget = 200_000)
 		try {
-			InterestPrimer.primeJourney(world, start, walled)
-			InterestPrimer.primeJourney(world, start, open)
 			coarse.start()
 			val route = assertNotNull(coarse.awaitRoute(0, start, cancelled = { false }) { it == walled || it == open }).route
 			assertEquals(open, route.goal, "the probe must settle on the open target: ${route.nodes}")
 		} finally {
 			coarse.close()
-			running.set(false)
-			client.join()
 		}
 	}
 

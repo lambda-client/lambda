@@ -9,15 +9,18 @@
 
 package pathing
 
-import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
 import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.world.CoarseVoxel
+import com.lambda.pathing.world.Footing
+import com.lambda.pathing.world.TerrainWatch
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.world.streaming.InterestTier
 import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.pathing.world.streaming.WorldMutation
 import net.minecraft.util.math.BlockPos
@@ -28,97 +31,86 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The world coordinator driven by a [FakeCaptureSource]: a flat world with ground at y=64,
- * the player in chunk (0, 0), chunks within radius 2 loaded, everything else unloaded.
+ * The live world over a [FakeTerrainSource]: a flat world with ground at y=64, the player in chunk
+ * (0, 0), chunks within radius 2 loaded, everything else unloaded.
  */
 class PathingWorldTest {
     private val bounds = SimulationSnapshotBounds(-64, 0, -64, 63, 127, 63)
-    private val source = FakeCaptureSource(groundY = 64, viewDistance = 8).apply { loadSquare(2) }
-    private val world = PathingWorld(bounds, source)
+    private val source = FakeTerrainSource(groundY = 64, viewDistance = 8, detachedCapacity = 2).apply { loadSquare(2) }
+    private val world = PathingWorld(bounds, source, HazardRules.AVOID_ALL)
     private val events = world.subscribe()
 
     private val key = ChunkSectionPos.asLong(0, 4, 0)
-    private val section = PathingSection(0, 4, 0)
 
     @Test
-    fun `interest is captured, installed at once and bumps the revision`() {
-        source.set(3, 64, 3, SnapshotBlockPhysics.FULL_CUBE)
-        world.interest(listOf(key), InterestTier.BODY)
-        assertEquals(1, world.pendingInterest)
-        assertFalse(world.snapshot.hasSection(key))
+    fun `chunks beyond the search distance stay unknown until the player comes closer`() {
+        val near = FakeTerrainSource(groundY = 64, viewDistance = 8).apply {
+            searchDistance = 1
+            loadSquare(3)
+        }
+        val limited = PathingWorld(bounds, near, HazardRules.AVOID_ALL)
+        val arrivals = limited.subscribe()
+        limited.advance()
+        assertTrue(limited.snapshot.isKnown(40, 70, 8), "chunk (2, 0) is within the search distance")
+        assertFalse(limited.snapshot.isKnown(56, 70, 8), "chunk (3, 0) is loaded but beyond the search distance")
+        assertFalse(limited.loadable(5, 0))
+        arrivals.drain()
 
-        world.advance(1_000.0)
+        near.playerChunkX = 1
+        limited.advance()
 
-        assertTrue(world.snapshot.hasSection(key))
-        assertEquals(0, world.pendingInterest)
-        assertEquals(1L, world.revision)
-        assertFalse(world.snapshot.collisionShape(3, 64, 3).isEmpty)
-        assertTrue(world.snapshot.collisionShape(3, 65, 3).isEmpty)
-        assertTrue(world.captureLedger().startsWith("1 sections/4096 cells"))
+        assertTrue(limited.snapshot.isKnown(56, 70, 8), "moving closer admits it")
+        assertTrue(arrivals.drain().arrived.any { it.contains(56, 70, 8) }, "an admitted chunk arrives like a loaded one")
+    }
 
-        val batch = events.drain()
-        assertEquals(1L, batch.revision)
-        assertEquals(setOf(section), batch.sections)
-        assertTrue(batch.mutations.isEmpty() && batch.chunks.isEmpty())
+    @Test
+    fun `loaded terrain is known at once and derived by its first read`() {
+        assertTrue(world.snapshot.isKnown(3, 70, 3))
+        assertFalse(world.isDerived(key), "knowing a section does not derive it")
+        assertTrue(world.snapshot.collisionShape(3, 64, 3).isEmpty)
+        assertFalse(world.snapshot.collisionShape(3, 63, 3).isEmpty)
+        assertTrue(world.isDerived(key))
+        assertEquals(0L, world.revision, "deriving is no terrain change")
         assertTrue(events.drain().isEmpty)
     }
 
     @Test
-    fun `a tiny budget still writes one cell per call and completes eventually`() {
-        world.interest(listOf(key), InterestTier.CORRIDOR)
-        world.advance(0.0)
-        assertEquals(1, world.pendingInterest, "the active section counts as pending")
-        assertFalse(world.snapshot.hasSection(key))
-        assertEquals(1L, source.reads)
-        repeat(4095) { world.advance(0.0) }
-        assertTrue(world.snapshot.hasSection(key))
-        assertEquals(4096L, source.reads)
-    }
-
-    @Test
-    fun `a block change patches its cell and installs the patch only on drain`() {
-        world.interest(listOf(key), InterestTier.BODY)
-        world.advance(1_000.0)
-        events.drain()
+    fun `a block change patches a derived section at once`() {
+        assertTrue(world.snapshot.collisionShape(5, 70, 5).isEmpty)
+        val version = world.snapshot.journal!!.version
 
         source.set(5, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
         world.onBlockChanged(BlockPos(5, 70, 5))
-        assertEquals(2L, world.revision, "the mutation is a revision on its own")
-        assertEquals(0, world.pendingDemand, "the cell is patched, nothing is re-captured")
-        assertTrue(world.snapshot.collisionShape(5, 70, 5).isEmpty, "the patch is parked until drain")
 
-        val batch = events.drain()
+        assertEquals(1L, world.revision)
         assertFalse(world.snapshot.collisionShape(5, 70, 5).isEmpty)
         assertTrue(world.snapshot.collisionShape(6, 70, 5).isEmpty)
-        assertTrue(batch.sections.isEmpty())
+        assertEquals(version + 1, world.snapshot.journal!!.version)
+        val batch = events.drain()
         assertEquals(setOf(VoxelPos(5, 70, 5)), batch.mutations)
-        assertEquals(listOf(WorldMutation.Cell(VoxelPos(5, 70, 5), 2L)), world.mutationsSince(1L))
-        assertTrue(world.mutationsSince(2L).isEmpty())
+        assertTrue(batch.sections.isEmpty())
+        assertEquals(listOf(WorldMutation.Cell(VoxelPos(5, 70, 5), 1L)), world.mutationsSince(0L))
+        assertTrue(world.mutationsSince(1L).isEmpty())
     }
 
     @Test
-    fun `a block change that keeps the recorded physics is not a mutation`() {
-        world.interest(listOf(key), InterestTier.BODY)
-        world.advance(1_000.0)
-        events.drain()
-
+    fun `a block change that keeps the physics is not a mutation`() {
+        world.snapshot.collisionShape(5, 70, 5)
         source.set(5, 70, 5, SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.AIR))
         world.onBlockChanged(BlockPos(5, 70, 5))
-        assertEquals(1L, world.revision)
-        assertEquals(0, world.pendingDemand, "nothing to re-capture")
+        assertEquals(0L, world.revision)
         assertTrue(events.drain().isEmpty)
     }
 
     @Test
-    fun `a block change next to water re-samples the current of the water it feeds`() {
+    fun `a block change next to water re-derives the current of the water it feeds`() {
         val still = SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.HAZARD, water = WaterPhysics(0.8888889f, Vec3d.ZERO))
         source.set(5, 70, 5, still)
-        world.interest(listOf(key), InterestTier.BODY)
-        world.advance(1_000.0)
-        events.drain()
+        assertEquals(Vec3d.ZERO, world.snapshot.water(BlockPos(5, 70, 5))?.flow)
 
         val flowing = SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.HAZARD, water = WaterPhysics(0.8888889f, Vec3d(1.0, 0.0, 0.0)))
         source.set(5, 70, 5, flowing)
@@ -130,151 +122,117 @@ class PathingWorldTest {
     }
 
     @Test
-    fun `a block change in an uncaptured section is ignored`() {
+    fun `a block change nobody has read is no event and the first read sees it`() {
         source.set(5, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
         world.onBlockChanged(BlockPos(5, 70, 5))
         assertEquals(0L, world.revision)
-        assertEquals(0, world.pendingDemand, "nothing to re-capture")
         assertTrue(events.drain().isEmpty)
+        assertFalse(world.snapshot.collisionShape(5, 70, 5).isEmpty)
     }
 
     @Test
-    fun `a block change during a first capture patches the cells the capture already wrote`() {
-        world.interest(listOf(key), InterestTier.BODY)
-        world.advance(0.0)
-        source.set(1, 65, 1, SnapshotBlockPhysics.FULL_CUBE)
-        world.onBlockChanged(BlockPos(1, 65, 1))
-        source.set(0, 64, 0, SnapshotBlockPhysics.FULL_CUBE)
-        world.onBlockChanged(BlockPos(0, 64, 0))
-        assertEquals(1, world.pendingInterest, "the capture carries on")
-        assertEquals(0, world.pendingDemand)
-        world.advance(1_000.0)
-        assertEquals(1L, world.revision)
-        assertFalse(world.snapshot.collisionShape(0, 64, 0).isEmpty, "the written cell was patched")
-        assertFalse(world.snapshot.collisionShape(1, 65, 1).isEmpty, "the unwritten cell was captured fresh")
+    fun `a derivation that raced a block change is redone instead of installing the old cell`() {
+        source.duringDerive = {
+            source.duringDerive = null
+            source.set(5, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
+            world.onBlockChanged(BlockPos(5, 70, 5))
+        }
+        assertFalse(world.snapshot.collisionShape(5, 70, 5).isEmpty)
+        assertEquals(2L, source.derived.get(), "the first derivation read the old cell and was discarded")
+        assertEquals(0L, world.revision, "nobody had read the section yet")
+    }
+
+    @Test
+    fun `an unloaded chunk is unknown until it loads, then it arrives`() {
+        assertFalse(world.snapshot.isKnown(50, 70, 3))
+        assertFailsWith<SnapshotSectionUnavailableException> { world.snapshot.slipperiness(BlockPos(50, 70, 3)) }
+        assertEquals(1L, world.exactMisses)
+        assertFalse(world.loadable(40, 0))
+        assertTrue(world.loadable(3, 0))
+
+        world.onChunkLoaded(3, 0)
+
         val batch = events.drain()
-        assertEquals(setOf(section), batch.sections)
-        assertTrue(batch.mutations.isEmpty(), "nothing depended on a section that was never installed")
+        assertEquals((0..7).map { PathingSection(3, it, 0) }.toSet(), batch.sections)
+        assertEquals(listOf(CellBox(48..63, 0..127, 0..15)), batch.arrived)
+        assertTrue(world.snapshot.isKnown(50, 70, 3))
+        assertEquals(SnapshotBlockPhysics.DEFAULT_SLIPPERINESS, world.snapshot.slipperiness(BlockPos(50, 63, 3)))
     }
 
     @Test
-    fun `a block change during a reloaded chunk's re-read is reported once`() {
-        world.interest(listOf(key), InterestTier.BODY)
-        world.advance(1_000.0)
-        events.drain()
-        world.onChunkEvent(0, 0)
-        world.advance(0.0)
-        assertEquals(1, world.pendingInterest, "re-read in flight")
-        source.set(0, 64, 0, SnapshotBlockPhysics.FULL_CUBE)
-        world.onBlockChanged(BlockPos(0, 64, 0))
-        assertEquals(2L, world.revision, "the kept section records the change at once")
-        world.advance(1_000.0)
-        assertEquals(2L, world.revision, "the re-read finds nothing beyond the recorded change")
-        val batch = events.drain()
-        assertFalse(world.snapshot.collisionShape(0, 64, 0).isEmpty)
-        assertEquals(setOf(VoxelPos(0, 64, 0)), batch.mutations)
-        assertTrue(batch.chunks.isEmpty())
-    }
-
-    @Test
-    fun `an all-air section is captured in one step without sampling its cells`() {
-        source.reportUniform = true
-        val sky = ChunkSectionPos.asLong(0, 5, 0)
-        world.interest(listOf(sky), InterestTier.BODY)
-        world.advance(0.0)
-        assertTrue(world.snapshot.hasSection(sky))
-        assertEquals(0L, source.reads)
-        assertTrue(world.snapshot.collisionShape(7, 85, 7).isEmpty)
-    }
-
-    @Test
-    fun `a reloaded chunk keeps its sections and an unchanged re-read reports nothing`() {
-        world.onChunkEvent(0, 0)
-        assertEquals(0L, world.revision)
-        assertTrue(events.drain().isEmpty)
-
-        world.interest(listOf(key), InterestTier.BODY)
-        world.advance(1_000.0)
-        events.drain()
-
-        world.onChunkEvent(0, 0)
-        assertEquals(1, world.pendingDemand, "content sections are re-read at demand tier")
-        assertTrue(world.snapshot.hasSection(key), "the recorded section stays until its re-read")
-        world.advance(1_000.0)
-        assertEquals(1L, world.revision)
-        assertTrue(events.drain().isEmpty)
-        assertTrue(world.mutationsSince(1L).isEmpty())
-        assertEquals(0, world.pendingInterest)
-    }
-
-    @Test
-    fun `a re-read reports exactly the cells that changed while the chunk was away`() {
-        world.interest(listOf(key), InterestTier.BODY)
-        world.advance(1_000.0)
-        events.drain()
+    fun `a resent chunk reports exactly the cells that changed under derived sections`() {
+        world.snapshot.collisionShape(3, 70, 5)
         source.set(3, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
-        world.onChunkEvent(0, 0)
-        world.advance(1_000.0)
+        source.set(3, 100, 5, SnapshotBlockPhysics.FULL_CUBE)
+
+        world.onChunkLoaded(0, 0)
+
         val batch = events.drain()
-        assertEquals(setOf(VoxelPos(3, 70, 5)), batch.mutations)
+        assertEquals(setOf(VoxelPos(3, 70, 5)), batch.mutations, "the section above was never read")
+        assertTrue(batch.sections.isEmpty(), "a resend is no arrival")
         assertTrue(batch.chunks.isEmpty())
         assertFalse(world.snapshot.collisionShape(3, 70, 5).isEmpty)
-        assertEquals(listOf(WorldMutation.Cell(VoxelPos(3, 70, 5), 2L)), world.mutationsSince(1L))
+        assertEquals(1L, world.chunkReloads)
+        assertEquals(1L, world.reloadsChanged)
     }
 
     @Test
-    fun `an exact read of an uncaptured section queues its 27-neighbourhood at demand tier`() {
-        assertFailsWith<SnapshotSectionUnavailableException> { world.snapshot.slipperiness(BlockPos(3, 70, 3)) }
-        assertEquals(27, world.pendingDemand)
-        world.advance(1_000.0)
-        assertEquals(27L, world.revision)
-        for (dy in -1..1) for (dz in -1..1) for (dx in -1..1) {
-            assertTrue(world.snapshot.hasSection(ChunkSectionPos.asLong(dx, 4 + dy, dz)))
+    fun `unloaded chunks stay readable until they are evicted, then they are forgotten`() {
+        world.snapshot.collisionShape(3, 70, 5)
+        world.onChunkUnloaded(0, 0, null)
+        world.onChunkUnloaded(1, 0, null)
+        assertTrue(world.snapshot.isKnown(20, 30, 3), "a detached chunk keeps its frozen sections")
+        assertTrue(events.drain().isEmpty)
+
+        world.onChunkUnloaded(2, 0, null)
+
+        assertTrue(events.drain().isEmpty, "forgetting sections nobody derived changes nothing a planner read")
+        assertEquals(1L, world.chunksForgotten)
+        assertTrue(world.snapshot.isKnown(3, 70, 5), "a derived section outlives its chunk")
+        assertFalse(world.snapshot.isKnown(3, 30, 5), "an underived one is forgotten")
+        assertTrue(world.snapshot.isKnown(20, 30, 3))
+    }
+
+    @Test
+    fun `a watch reports the boxes a change touched and resets when the journal overflows`() {
+        val watch = TerrainWatch(world.snapshot)
+        world.snapshot.collisionShape(5, 70, 5)
+        assertEquals(emptyList(), watch.changes())
+
+        source.set(5, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
+        world.onBlockChanged(BlockPos(5, 70, 5))
+        assertEquals(listOf(CellBox(5..5, 70..70, 5..5)), watch.changes())
+
+        repeat((1 shl 16) + 1000) { index ->
+            val physics = if (index % 2 == 0) SnapshotBlockPhysics.AIR else SnapshotBlockPhysics.FULL_CUBE
+            source.set(5, 70, 5, physics)
+            world.onBlockChanged(BlockPos(5, 70, 5))
         }
+        assertNull(watch.changes(), "entries were overwritten")
+        assertEquals(emptyList(), watch.changes())
     }
 
     @Test
-    fun `a miss at the vertical edge clips the neighbourhood to the bounds`() {
-        assertFailsWith<SnapshotSectionUnavailableException> { world.snapshot.slipperiness(BlockPos(3, 5, 3)) }
-        assertEquals(18, world.pendingDemand)
+    fun `cached footholds follow a block change through the journal`() {
+        val stance = Stance(5, 64, 5)
+        assertFalse(Footing.holds(world.snapshot, stance).isEmpty)
+        source.set(5, 63, 5, SnapshotBlockPhysics.AIR)
+        world.onBlockChanged(BlockPos(5, 63, 5))
+        assertTrue(Footing.holds(world.snapshot, stance).isEmpty, "the cached holds must drop with the floor")
     }
 
     @Test
-    fun `interest in an unloaded chunk waits and is captured once the chunk loads`() {
-        val far = ChunkSectionPos.asLong(3, 4, 0)
-        world.interest(listOf(far, key), InterestTier.BODY)
-        world.advance(1_000.0)
-        assertTrue(world.snapshot.hasSection(key))
-        assertFalse(world.snapshot.hasSection(far))
-        assertEquals(0, world.pendingInterest, "deferred keys are not pending interest")
-        assertTrue(world.chunkCapturable(0, 0))
-        assertFalse(world.chunkCapturable(3, 0))
-
-        source.load(3, 0)
-        world.advance(1_000.0)
-        assertTrue(world.snapshot.hasSection(far))
-        assertFalse(world.chunkCapturable(3, 0), "the published set refreshes every fourth tick")
-        repeat(3) { world.advance(1_000.0) }
-        assertTrue(world.chunkCapturable(3, 0))
-    }
-
-    @Test
-    fun `interestBlocks covers every section touching the box within bounds`() {
-        world.interestBlocks(-1, -20, 0, 16, 20, 15, InterestTier.CORRIDOR)
-        assertEquals(3 * 2 * 1, world.pendingInterest, "x sections -1..1, y clipped to sections 0..1, z section 0")
-    }
-
-    @Test
-    fun `capture insists on the client thread`() {
+    fun `advancing insists on the client thread`() {
         source.onClientThread = false
-        assertFailsWith<IllegalStateException> { world.advance(1.0) }
+        assertFailsWith<IllegalStateException> { world.advance() }
     }
 
     @Test
-    fun `awaitEvents observes a capture and close`() {
-        world.interest(listOf(key), InterestTier.BODY)
+    fun `awaitEvents observes a change and close`() {
+        world.snapshot.collisionShape(5, 70, 5)
         assertFalse(world.awaitEvents(0L, 1L))
-        world.advance(1_000.0)
+        source.set(5, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
+        world.onBlockChanged(BlockPos(5, 70, 5))
         assertTrue(world.awaitEvents(0L, 0L))
         world.close()
         assertFalse(world.awaitEvents(1L, 10_000L))

@@ -46,6 +46,12 @@ class RevisionLog(private val lock: ReentrantLock = ReentrantLock()) {
 		changed.signalAll()
 	}
 
+	fun recordArrived(sections: Collection<PathingSection>) = lock.withLock {
+		revisionCounter++
+		for (pending in subscribers) pending.sections += sections
+		changed.signalAll()
+	}
+
 	fun recordMutation(cell: VoxelPos) = lock.withLock {
 		cellMutations += WorldMutation.Cell(cell, ++revisionCounter)
 		for (pending in subscribers) pending.mutations += cell

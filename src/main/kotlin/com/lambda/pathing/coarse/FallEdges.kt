@@ -17,11 +17,10 @@ import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.ColumnOccupancy
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium
+import com.lambda.pathing.world.TerrainWatch
 import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap
-import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -50,26 +49,42 @@ internal class FallEdges(
 	private val view: CoarseVoxelView,
 	moves: SimpleMoveLibrary,
 	private val standable: StanceMemo,
-	private val unknownDrops: LongOpenHashSet? = null,
 ) {
 	private val limits = moves.catalog.options.fallLimits
 	private val shallowWater = moves.catalog.options.allowSwimming
 	private val jumpPenalty = moves.catalog.options.jumpPenaltyTicks
 	private val occupancy = ColumnOccupancy(view)
-	private val outgoing = Long2ObjectLinkedOpenHashMap<Array<FallEdge>>()
-	private val incoming = Long2ObjectLinkedOpenHashMap<Array<FallArrival>>()
+	private val watch = TerrainWatch(view)
+	private val outgoing = ColumnCache<Array<FallEdge>>(CACHED_ORIGINS)
+	private val incoming = ColumnCache<Array<FallArrival>>(CACHED_TARGETS)
+	private var floorRead = 0
+	private var ceilingRead = 0
 	private val rimMemo = Long2ObjectOpenHashMap<LongArray>()
 	private val gates = Long2BooleanOpenHashMap()
 	private val rims = LongOpenHashSet()
 	private val normalFloors = limits.maxFallOnto(FallRule.NORMAL) >= MIN_DROP
 
 	fun synchronize() {
-		if (occupancy.synchronize()) dropCaches()
+		occupancy.synchronize()
+		watch.poll(::dropCaches, ::forget)
 	}
 
 	fun clear() {
 		occupancy.clear()
 		dropCaches()
+	}
+
+	private fun forget(box: CellBox) {
+		outgoing.forget(box, MAX_REACH + 2)
+		incoming.forget(box, MAX_REACH + 3)
+		for (sectionX in ((box.xs.first - RIM_REACH) shr 4)..((box.xs.last + RIM_REACH) shr 4)) {
+			for (sectionY in ((box.ys.first - RIM_REACH) shr 4)..((box.ys.last + RIM_REACH) shr 4)) {
+				for (sectionZ in ((box.zs.first - RIM_REACH) shr 4)..((box.zs.last + RIM_REACH) shr 4)) {
+					rimMemo.remove(ChunkSectionPos.asLong(sectionX, sectionY, sectionZ))
+				}
+			}
+		}
+		gates.clear()
 	}
 
 	private fun dropCaches() {
@@ -87,10 +102,10 @@ internal class FallEdges(
 		val hanging = hanging(origin)
 		if (!hanging && !rim(origin)) return NONE
 		val key = key(origin)
-		outgoing.getAndMoveToLast(key)?.let { return it }
+		outgoing[key]?.let { return it }
+		floorRead = origin.y
 		val edges = if (hanging) waterDrop(origin) else scan(origin)
-		if (outgoing.size >= CACHED_ORIGINS) outgoing.removeFirst()
-		outgoing.putAndMoveToLast(key, edges)
+		outgoing.put(key, edges, floorRead - READ_MARGIN, origin.y + HEADROOM_CELLS + READ_MARGIN)
 		return edges
 	}
 
@@ -98,21 +113,36 @@ internal class FallEdges(
 		if (idle) return NO_ARRIVALS
 		synchronize()
 		val key = key(target)
-		incoming.getAndMoveToLast(key)?.let { return it }
+		incoming[key]?.let { return it }
+		ceilingRead = target.y
 		val arrivals = discover(target)
-		if (incoming.size >= CACHED_TARGETS) incoming.removeFirst()
-		incoming.putAndMoveToLast(key, arrivals)
+		incoming.put(key, arrivals, target.y - READ_MARGIN, ceilingRead + READ_MARGIN)
 		return arrivals
 	}
 
-	fun readers(changed: CellBox): CellBox =
-		changed.grown(-MAX_REACH - 1, MAX_REACH + 1, -HEADROOM_CELLS - 1, MAX_DEPTH + 2, -MAX_REACH - 1, MAX_REACH + 1)
+	fun readers(changed: CellBox): CellBox {
+		synchronize()
+		val reach = minOf(MAX_DEPTH + 2, exposedAbove(changed) - changed.ys.last)
+		return changed.grown(-MAX_REACH - 1, MAX_REACH + 1, -HEADROOM_CELLS - 1, reach, -MAX_REACH - 1, MAX_REACH + 1)
+	}
 
-	fun reads(changed: List<CellBox>, key: Long): Boolean {
+	private fun exposedAbove(changed: CellBox): Int {
+		val highest = changed.ys.last.toLong() + MAX_DEPTH + 2
+		if (highest > Int.MAX_VALUE / 2) return Int.MAX_VALUE / 2
+		var exposed = changed.ys.last
+		for (x in changed.xs) for (z in changed.zs) {
+			val cover = occupancy.lowestAbove(x, changed.ys.last, z, highest.toInt())
+			if (cover >= highest) return Int.MAX_VALUE / 2
+			exposed = maxOf(exposed, cover - 2)
+		}
+		return exposed
+	}
+
+	fun reads(readers: List<CellBox>, key: Long): Boolean {
 		val x = PackedStance.unpackX(key)
 		val y = PackedStance.unpackY(key)
 		val z = PackedStance.unpackZ(key)
-		if (changed.none { it.overlaps(x - MAX_REACH - 1, y - MAX_DEPTH - 2, z - MAX_REACH - 1, x + MAX_REACH + 1, y + HEADROOM_CELLS + 1, z + MAX_REACH + 1) }) return false
+		if (readers.none { it.contains(x, y, z) }) return false
 		if (rims.contains(key)) return true
 		if (idle) return false
 		synchronize()
@@ -181,14 +211,12 @@ internal class FallEdges(
 
 	private fun waterDrop(origin: Stance): Array<FallEdge> {
 		val hit = occupancy.highestAtOrBelow(origin.x, origin.y - 1, origin.z, origin.y - MAX_DEPTH)
+		floorRead = minOf(floorRead, if (hit == Int.MIN_VALUE) origin.y - MAX_DEPTH else hit)
 		if (hit == Int.MIN_VALUE) return NONE
 		val water = when (view.medium(origin.x, hit, origin.z)) {
 			Medium.WATER -> true
 			Medium.SOLID -> false
-			else -> {
-				recordUnknownDrop(origin.x, hit, origin.z)
-				return NONE
-			}
+			else -> return NONE
 		}
 		val target = Stance(origin.x, if (water) hit else hit + 1, origin.z)
 		if (!standable.isStance(target)) return NONE
@@ -211,21 +239,6 @@ internal class FallEdges(
 		val origin = Stance(target.x, y, target.z)
 		val edge = from(origin).firstOrNull { it.dx == 0 && it.dz == 0 && origin.y + it.dy == target.y } ?: return null
 		return FallArrival(origin, edge)
-	}
-
-	private fun recordUnknownDrops(origin: Stance, open: Int) {
-		if (unknownDrops == null) return
-		for (side in 0 until SIDES) {
-			if (open and (1 shl side) == 0) continue
-			val x = origin.x + SIDE_DX[side]
-			val z = origin.z + SIDE_DZ[side]
-			val hit = occupancy.highestAtOrBelow(x, origin.y - 1, z, origin.y - MAX_DEPTH)
-			if (hit != Int.MIN_VALUE) recordUnknownDrop(x, hit, z)
-		}
-	}
-
-	private fun recordUnknownDrop(x: Int, y: Int, z: Int) {
-		if (unknownDrops != null && view.isUnknown(x, y, z)) unknownDrops.add(BlockPos.asLong(x, y, z))
 	}
 
 	private fun openSides(origin: Stance): Int {
@@ -268,7 +281,7 @@ internal class FallEdges(
 	private fun scan(origin: Stance): Array<FallEdge> {
 		val open = openSides(origin)
 		if (!normalFloors && !softBelow(origin)) {
-			recordUnknownDrops(origin, open)
+			floorRead = origin.y - MAX_DEPTH
 			return NONE
 		}
 		val launch = origin.y + view.surfaceOffset(origin.x, origin.y - 1, origin.z)
@@ -286,14 +299,12 @@ internal class FallEdges(
 		val x = origin.x + dx
 		val z = origin.z + dz
 		val hit = occupancy.highestAtOrBelow(x, origin.y + 1, z, origin.y - MAX_DEPTH)
+		floorRead = minOf(floorRead, if (hit == Int.MIN_VALUE) origin.y - MAX_DEPTH else hit)
 		if (hit == Int.MIN_VALUE) return null
 		val water = when (view.medium(x, hit, z)) {
 			Medium.WATER -> true
 			Medium.SOLID -> false
-			else -> {
-				recordUnknownDrop(x, hit, z)
-				return null
-			}
+			else -> return null
 		}
 		val target = Stance(x, if (water) hit else hit + 1, z)
 		if (target.y - origin.y > -minimumDrop(water)) return null
@@ -399,6 +410,7 @@ internal class FallEdges(
 		val clearFrom = if (water) target.y + 1 else target.y
 		val ceiling = occupancy.lowestAbove(target.x, clearFrom - 1, target.z, target.y + MAX_DEPTH + 1)
 		val highest = minOf(ceiling - 2, target.y + MAX_DEPTH, view.simulableStanceY.last)
+		ceilingRead = maxOf(minOf(ceiling, target.y + MAX_DEPTH + 1), highest + HEADROOM_CELLS)
 		val lowest = target.y + minimumDrop(water)
 		if (highest < lowest) return if (dropped == null) NO_ARRIVALS else arrayOf(dropped)
 		var found: ArrayList<FallArrival>? = dropped?.let { arrayListOf(it) }
@@ -463,9 +475,13 @@ internal class FallEdges(
 
 		private const val LANDING_HALF_EXTENT = 0.5 + Vanilla.PLAYER_HALF_WIDTH
 
-		private const val CACHED_ORIGINS = 1 shl 14
+		private const val CACHED_ORIGINS = 1 shl 19
 
-		private const val CACHED_TARGETS = 1 shl 14
+		private const val CACHED_TARGETS = 1 shl 19
+
+		private const val READ_MARGIN = FallReach.MAX_WATER_CELLS + 3
+
+		private const val RIM_REACH = 3
 
 		private const val MEMO_WORDS = 4096 / 64
 

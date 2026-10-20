@@ -311,11 +311,11 @@ class CoarsePlannerTest {
                 val section = PathingSection.containing(read)
                 val changed = CellBox.sections(PathingChunk(section.x, section.z), section.y, section.y)
                 assertTrue(
-                    moves.originsReading(changed).contains(origin.x, origin.y, origin.z),
+                    moves.originsReading(changed, world).contains(origin.x, origin.y, origin.z),
                     "${edge.movement} origin is outside the refresh of the section containing $read",
                 )
                 assertTrue(
-                    moves.targetsReading(changed).contains(edge.to.x, edge.to.y, edge.to.z),
+                    moves.targetsReading(changed, world).contains(edge.to.x, edge.to.y, edge.to.z),
                     "${edge.movement} target is outside the refresh of the section containing $read",
                 )
             }

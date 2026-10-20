@@ -21,6 +21,8 @@ import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.RememberedTerrain
+import com.lambda.pathing.world.SECTION_CELL_COUNT
+import com.lambda.pathing.world.TerrainJournal
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
@@ -49,7 +51,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		defaultBlock: SnapshotBlockPhysics?,
 	) : this(bounds, StoreRef(SectionStore.of(sections)), defaultBlock)
 
-	internal class StoreRef(@Volatile var store: SectionStore)
+	internal class StoreRef(@Volatile var source: SectionSource)
 
 	internal class EntityCellsRef(@Volatile var cells: LongOpenHashSet = LongOpenHashSet())
 
@@ -59,40 +61,28 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun entityAt(x: Int, y: Int, z: Int): Boolean = entityRef.cells.contains(BlockPos.asLong(x, y, z))
 
-	private val store: SectionStore get() = storeRef.store
-
-	internal fun hasSection(key: Long): Boolean = store.contains(key)
+	private val store: SectionSource get() = storeRef.source
 
 	internal fun section(key: Long): ImmutableSnapshotSection? = store[key]
 
 	internal fun installedBlock(x: Int, y: Int, z: Int): SnapshotBlockPhysics? = blockIn(x, y, z) { store[it] }
 
 	internal fun install(key: Long, section: ImmutableSnapshotSection) = synchronized(storeRef) {
-		storeRef.store = storeRef.store.with(key, section)
+		storeRef.source = (storeRef.source as SectionStore).with(key, section)
 	}
 
 	internal fun install(sections: Long2ObjectMap<ImmutableSnapshotSection>) = synchronized(storeRef) {
-		storeRef.store = storeRef.store.with(sections)
+		storeRef.source = (storeRef.source as SectionStore).with(sections)
 	}
 
 	internal fun removeSections(keys: LongArrayList) = synchronized(storeRef) {
-		storeRef.store = storeRef.store.without(keys)
+		storeRef.source = (storeRef.source as SectionStore).without(keys)
 	}
-
-	internal fun pinned(): SnapshotSimulationEnvironment = SnapshotSimulationEnvironment(bounds, StoreRef(store), defaultBlock, onExactMiss, entityRef = entityRef)
-
-	internal fun repin(from: SnapshotSimulationEnvironment) {
-		storeRef.store = from.store
-	}
-
-	internal fun pinnedTo(from: SnapshotSimulationEnvironment): Boolean = storeRef.store === from.store
-
-	internal inline fun forEachSectionKey(action: (Long) -> Unit) = store.forEach { key, _ -> action(key) }
 
 	internal val sectionCount: Int get() = store.size
 
 	internal fun forEachInstalledBlock(action: (Long, SnapshotBlockPhysics) -> Unit) {
-		store.forEach { key, section ->
+		store.forEachSection { key, section ->
 			val sectionX = ChunkSectionPos.unpackX(key)
 			val sectionY = ChunkSectionPos.unpackY(key)
 			val sectionZ = ChunkSectionPos.unpackZ(key)
@@ -107,9 +97,11 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override val simulableStanceY: IntRange = bounds.simulableStanceY
 
-	override val revision: Any get() = store
+	override val revision: Any get() = store.revision
 
-	override val mayBounce: Boolean get() = store.bouncySections > 0
+	override val journal: TerrainJournal? get() = store.journal
+
+	override val mayBounce: Boolean get() = store.mayBounce
 
 	override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
@@ -117,7 +109,7 @@ class SnapshotSimulationEnvironment internal constructor(
 	override fun maySoftLandWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.softWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
-	override val maySoftLand: Boolean get() = store.softSections > 0
+	override val maySoftLand: Boolean get() = store.maySoftLand
 
 	override fun cursor(): CoarseVoxelView = SectionCursor(this) { store[it] }
 
@@ -147,11 +139,11 @@ class SnapshotSimulationEnvironment internal constructor(
 		return true
 	}
 
-	override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z) { store[it] }
+	override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, store::isKnown)
 
-	override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z) { store[it] }
+	override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z, store::isKnown)
 
-	override fun forEachKnownSection(action: (Long) -> Unit) = store.forEach { key, _ -> action(key) }
+	override fun forEachKnownSection(action: (Long) -> Unit) = store.forEachKnownKey(action)
 
 	override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxelIn(x, y, z) { store[it] }
 
@@ -337,7 +329,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		return true
 	}
 
-	private fun clearOfUnsupported(box: Box, pinned: SectionStore): Boolean = collisionCandidateRange(box) { minX, minY, minZ, maxX, maxY, maxZ ->
+	private fun clearOfUnsupported(box: Box, pinned: SectionSource): Boolean = collisionCandidateRange(box) { minX, minY, minZ, maxX, maxY, maxZ ->
 		if (!bounds.contains(minX, minY, minZ) || !bounds.contains(maxX, maxY, maxZ)) return false
 		for (sectionX in (minX shr 4)..(maxX shr 4)) for (sectionY in (minY shr 4)..(maxY shr 4)) for (sectionZ in (minZ shr 4)..(maxZ shr 4)) {
 			val section = pinned[ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)] ?: return false
@@ -360,11 +352,11 @@ class SnapshotSimulationEnvironment internal constructor(
 	private inline fun blockIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): SnapshotBlockPhysics? =
 		sectionAt(ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4))?.get(x, y, z) ?: defaultBlock
 
-	private inline fun isKnownIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean =
-		bounds.contains(x, y, z) && blockIn(x, y, z, sectionAt) != null
+	private inline fun isKnownIn(x: Int, y: Int, z: Int, known: (Long) -> Boolean): Boolean =
+		bounds.contains(x, y, z) && (defaultBlock != null || known(ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)))
 
-	private inline fun isUnknownIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean =
-		bounds.contains(x, y, z) && blockIn(x, y, z, sectionAt) == null
+	private inline fun isUnknownIn(x: Int, y: Int, z: Int, known: (Long) -> Boolean): Boolean =
+		bounds.contains(x, y, z) && defaultBlock == null && !known(ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4))
 
 	private inline fun voxelIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): CoarseVoxel {
 		if (!bounds.contains(x, y, z)) return CoarseVoxel.UNKNOWN
@@ -403,7 +395,8 @@ class SnapshotSimulationEnvironment internal constructor(
 				maxY > y && minY < y + 1.0 &&
 				maxZ > z && minZ < z + 1.0
 
-	private class PinnedSections(private val store: SectionStore) {
+
+	private class PinnedSections(private val store: SectionSource) {
 		private var resolved = false
 		private var key = 0L
 		private var section: ImmutableSnapshotSection? = null
@@ -428,26 +421,55 @@ class SnapshotSimulationEnvironment internal constructor(
 		private val recalled = ConcurrentHashMap.newKeySet<Long>()
 
 		@Volatile
-		private var forgottenRevision: Pair<SectionStore, Unit>? = null
+		private var epoch = Any()
+
+		@Volatile
+		private var epochRevision: Pair<Any, Any>? = null
 
 		override val simulableStanceY: IntRange get() = this@SnapshotSimulationEnvironment.simulableStanceY
 
 		override val revision: Any
 			get() {
-				val current = store
-				if (!forgotten) return current
-				forgottenRevision?.takeIf { it.first === current }?.let { return it }
-				return (current to Unit).also { forgottenRevision = it }
+				val current = store.revision
+				val stamp = epoch
+				epochRevision?.takeIf { it.first === current && it.second === stamp }?.let { return it }
+				return (current to stamp).also { epochRevision = it }
 			}
 
-		override fun remembers(box: CellBox): Boolean {
-			if (forgotten || recalled.isEmpty()) return false
-			for (sx in (box.xs.first shr 4)..(box.xs.last shr 4)) for (sz in (box.zs.first shr 4)..(box.zs.last shr 4)) {
-				for (sy in (maxOf(box.ys.first, bounds.minY) shr 4)..(minOf(box.ys.last, bounds.maxY) shr 4)) {
-					if (ChunkSectionPos.asLong(sx, sy, sz) in recalled) return true
+		override val journal: TerrainJournal? get() = store.journal
+
+		override fun differences(arrived: CellBox): List<CellBox> {
+			if (forgotten || recalled.isEmpty()) return emptyList()
+			val changes = ArrayList<CellBox>()
+			for (sx in (arrived.xs.first shr 4)..(arrived.xs.last shr 4)) for (sz in (arrived.zs.first shr 4)..(arrived.zs.last shr 4)) {
+				for (sy in (maxOf(arrived.ys.first, bounds.minY) shr 4)..(minOf(arrived.ys.last, bounds.maxY) shr 4)) {
+					val key = ChunkSectionPos.asLong(sx, sy, sz)
+					if (key !in recalled) continue
+					val memory = remembered(key) ?: continue
+					val real = store[key] ?: continue
+					var low = SECTION_CELL_COUNT
+					var minX = 15
+					var minZ = 15
+					var maxX = 0
+					var maxZ = 0
+					var high = -1
+					memory.forEachDifference(real) { index ->
+						if (low == SECTION_CELL_COUNT) low = index
+						high = index
+						minX = minOf(minX, index and 15)
+						maxX = maxOf(maxX, index and 15)
+						minZ = minOf(minZ, (index ushr 4) and 15)
+						maxZ = maxOf(maxZ, (index ushr 4) and 15)
+					}
+					if (high < 0) continue
+					changes += CellBox(
+						(sx shl 4) + minX..(sx shl 4) + maxX,
+						(sy shl 4) + (low ushr 8)..(sy shl 4) + (high ushr 8),
+						(sz shl 4) + minZ..(sz shl 4) + maxZ,
+					)
 				}
 			}
-			return false
+			return changes
 		}
 
 		override fun recall(around: Stance): List<CellBox> {
@@ -458,26 +480,38 @@ class SnapshotSimulationEnvironment internal constructor(
 					if (loaded(sx, sz)) continue
 					for (sy in (around.y shr 4) - 1..(around.y shr 4) + 1) {
 						val key = ChunkSectionPos.asLong(sx, sy, sz)
-						if (store[key] != null || key in recalled || remembered(key) == null || !recalled.add(key)) continue
+						if (store.isKnown(key) || key in recalled || remembered(key) == null || !recalled.add(key)) continue
 						boxes += CellBox((sx shl 4)..(sx shl 4) + 15, (sy shl 4)..(sy shl 4) + 15, (sz shl 4)..(sz shl 4) + 15)
 					}
 				}
 			}
+			val journal = store.journal
+			if (journal == null) {
+				if (boxes.isNotEmpty()) epoch = Any()
+			} else for (box in boxes) journal.record(box)
 			return boxes
 		}
 
 		override fun forget(): Boolean {
-			if (forgotten || recalled.all { store[it] != null }) return false
+			if (forgotten || recalled.all(store::isKnown)) return false
 			forgotten = true
+			val journal = store.journal
+			if (journal == null) epoch = Any() else for (key in recalled) {
+				if (store.isKnown(key)) continue
+				val x = ChunkSectionPos.unpackX(key) shl 4
+				val y = ChunkSectionPos.unpackY(key) shl 4
+				val z = ChunkSectionPos.unpackZ(key) shl 4
+				journal.record(x, y, z, x + 15, y + 15, z + 15)
+			}
 			return true
 		}
 
 		override fun forEachKnownSection(action: (Long) -> Unit) {
-			store.forEach { key, _ -> action(key) }
-			if (!forgotten) recalled.forEach { key -> if (store[key] == null) action(key) }
+			store.forEachKnownKey(action)
+			if (!forgotten) recalled.forEach { key -> if (!store.isKnown(key)) action(key) }
 		}
 
-		override val mayBounce: Boolean get() = store.bouncySections > 0
+		override val mayBounce: Boolean get() = store.mayBounce
 
 		override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
@@ -485,7 +519,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun maySoftLandWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.softWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
-		override val maySoftLand: Boolean get() = store.softSections > 0
+		override val maySoftLand: Boolean get() = store.maySoftLand
 
 		override fun cursor(): CoarseVoxelView = SectionCursor(this, ::at)
 
@@ -506,15 +540,17 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.honeyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
-		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
+		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::known)
 
-		override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z, ::at)
+		override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z, ::known)
 
 		override fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
 			if (!classifySectionIn(sectionX, sectionY, sectionZ, planes, ::at)) {
 				super.classifySection(sectionX, sectionY, sectionZ, planes)
 			}
 		}
+
+		private fun known(key: Long): Boolean = store.isKnown(key) || !forgotten && key in recalled
 
 		private fun at(key: Long): ImmutableSnapshotSection? = store[key] ?: if (forgotten || key !in recalled) null else remembered(key)
 	}
@@ -524,6 +560,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		private val sectionAt: (Long) -> ImmutableSnapshotSection?,
 	) : CoarseVoxelView {
 		private var cached: Any? = null
+		private var cachedVersion = 0L
 		private var filled = 0L
 		private val keys = LongArray(CURSOR_SLOTS)
 		private val sections = arrayOfNulls<ImmutableSnapshotSection>(CURSOR_SLOTS)
@@ -532,9 +569,11 @@ class SnapshotSimulationEnvironment internal constructor(
 
 		override val revision: Any? get() = owner.revision
 
+		override val journal: TerrainJournal? = owner.journal
+
 		override val terrain: Any get() = owner.terrain
 
-		override val mayBounce: Boolean get() = store.bouncySections > 0
+		override val mayBounce: Boolean get() = store.mayBounce
 
 		override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
@@ -542,7 +581,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun maySoftLandWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.softWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
-		override val maySoftLand: Boolean get() = store.softSections > 0
+		override val maySoftLand: Boolean get() = store.maySoftLand
 
 		override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxelIn(x, y, z, ::at)
 
@@ -561,9 +600,9 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.honeyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
-		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
+		override fun isKnown(x: Int, y: Int, z: Int): Boolean = owner.isKnown(x, y, z)
 
-		override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z, ::at)
+		override fun isUnknown(x: Int, y: Int, z: Int): Boolean = owner.isUnknown(x, y, z)
 
 		override fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
 			if (!classifySectionIn(sectionX, sectionY, sectionZ, planes, ::at)) {
@@ -572,10 +611,19 @@ class SnapshotSimulationEnvironment internal constructor(
 		}
 
 		private fun at(key: Long): ImmutableSnapshotSection? {
-			val current = owner.revision
-			if (current !== cached) {
-				cached = current
-				filled = 0L
+			val journal = journal
+			if (journal != null) {
+				val version = journal.version
+				if (version != cachedVersion) {
+					cachedVersion = version
+					filled = 0L
+				}
+			} else {
+				val current = owner.revision
+				if (current !== cached) {
+					cached = current
+					filled = 0L
+				}
 			}
 			val slot = (((key ushr 42).toInt() and 3) shl 4) or ((key.toInt() and 3) shl 2) or ((key ushr 20).toInt() and 3)
 			if (filled and (1L shl slot) != 0L && keys[slot] == key) return sections[slot]
@@ -605,6 +653,13 @@ class SnapshotSimulationEnvironment internal constructor(
 		private const val LAVA_ID = "minecraft:lava"
 
 		private const val RECALL_CHUNKS = 2
+
+		internal fun live(
+			bounds: SimulationSnapshotBounds,
+			source: SectionSource,
+			onExactMiss: (Long) -> Unit,
+		): SnapshotSimulationEnvironment =
+			SnapshotSimulationEnvironment(bounds, StoreRef(source), defaultBlock = null, onExactMiss = onExactMiss)
 
 		internal fun streaming(
 			bounds: SimulationSnapshotBounds,

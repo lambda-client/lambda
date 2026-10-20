@@ -67,6 +67,8 @@ class LongDStarLite(
 
 	fun isKnown(node: Long): Boolean = nodes.find(node) >= 0
 
+	fun knownNode(slot: Int): Long = nodes.key(slot)
+
 	fun forEachKnownNode(action: LongConsumer) {
 		for (slot in 0 until nodes.size) action.accept(nodes.key(slot))
 	}
@@ -188,7 +190,8 @@ class LongDStarLite(
 			nodeG > nodeRhs -> {
 				setG(node, nodeRhs)
 				heap.remove(node)
-				val predecessors = graph.predecessorsInto(nodes.key(node), predecessorScratch)
+				through = nodeRhs
+				val predecessors = graph.relevantPredecessorsInto(nodes.key(node), predecessorScratch, improvable)
 				for (i in 0 until predecessors.size) {
 					val predecessor = nodes.slot(predecessors.node(i))
 					if (predecessor != goalSlot) {
@@ -202,7 +205,8 @@ class LongDStarLite(
 
 			else -> {
 				setG(node, INF)
-				val predecessors = graph.predecessorsInto(nodes.key(node), predecessorScratch)
+				expanding = node
+				val predecessors = graph.relevantPredecessorsInto(nodes.key(node), predecessorScratch, dependent)
 				for (i in 0 until predecessors.size) {
 					val predecessor = nodes.slot(predecessors.node(i))
 					val best = nodes.best(predecessor)
@@ -229,7 +233,7 @@ class LongDStarLite(
 		}
 	}
 
-	fun synchronizeAffected(affectedNodes: LongIterable): Boolean {
+	fun synchronizeAffected(affectedNodes: LongIterable, pullIn: Boolean = true): Boolean {
 		val unique = LongOpenHashSet()
 		val iterator = affectedNodes.iterator()
 		while (iterator.hasNext()) unique.add(iterator.nextLong())
@@ -241,13 +245,35 @@ class LongDStarLite(
 			val slot = nodes.find(node)
 			if (slot < 0) continue
 			if (reconsider(slot)) changed = true
+			if (!pullIn || !sameCost(nodes.g(slot), nodes.rhs(slot))) continue
 			val predecessors = graph.unknownPredecessorsInto(node, predecessorScratch, unknown).copy()
-			for (i in 0 until predecessors.size) {
-				val predecessor = predecessors.node(i)
-				if (nodes.find(predecessor) < 0 && minSuccessorCost(predecessor).isFinite() && reconsider(nodes.slot(predecessor))) changed = true
-			}
+			for (i in 0 until predecessors.size) if (pullIn(predecessors.node(i))) changed = true
 		}
 		return changed
+	}
+
+	fun pullIn(candidates: LongIterable): Boolean {
+		var changed = false
+		val iterator = candidates.iterator()
+		while (iterator.hasNext()) if (pullIn(iterator.nextLong())) changed = true
+		return changed
+	}
+
+	private fun pullIn(node: Long): Boolean {
+		if (nodes.find(node) >= 0) return false
+		val cost = minSuccessorCost(node)
+		if (!cost.isFinite()) return false
+		val best = bestSuccessor
+		val added = nodes.slot(node)
+		setRhs(added, cost)
+		nodes.setBest(added, best)
+		updateVertex(added)
+		return true
+	}
+
+	fun isConsistent(node: Long): Boolean {
+		val slot = nodes.find(node)
+		return slot >= 0 && sameCost(nodes.g(slot), nodes.rhs(slot))
 	}
 
 	private fun reconsider(slot: Int): Boolean {
@@ -436,6 +462,11 @@ class LongDStarLite(
 		return if (slot < 0) INF else nodes.rhs(slot)
 	}
 
+	fun label(node: Long): Double {
+		val slot = nodes.find(node)
+		return if (slot < 0) INF else min(nodes.g(slot), nodes.rhs(slot))
+	}
+
 	fun labels(include: LongPredicate): Long2DoubleOpenHashMap {
 		val labels = Long2DoubleOpenHashMap().apply { defaultReturnValue(INF) }
 		for (slot in 0 until nodes.size) {
@@ -470,14 +501,28 @@ class LongDStarLite(
 
 	private var bestSuccessor = NodeTable.NONE
 
-	private val reached = LongPredicate { node -> nodes.find(node).let { it >= 0 && nodes.g(it) < INF } }
+	private val value = java.util.function.LongToDoubleFunction { node -> nodes.find(node).let { if (it < 0) INF else nodes.g(it) } }
+
+	private var through = 0.0
+
+	private var expanding = NodeTable.NONE
+
+	private val improvable = EdgeRelevance { node, lowerBound ->
+		val slot = nodes.find(node)
+		slot < 0 || lowerBound + through < nodes.rhs(slot)
+	}
+
+	private val dependent = EdgeRelevance { node, _ ->
+		val slot = nodes.find(node)
+		slot < 0 || nodes.best(slot) == expanding || nodes.best(slot) == NodeTable.NONE
+	}
 
 	private val unknown = LongPredicate { node -> nodes.find(node) < 0 }
 
 	private fun minSuccessorCost(key: Long): Double {
 		var best = INF
 		bestSuccessor = NodeTable.NONE
-		val successors = graph.reachedSuccessorsInto(key, successorScratch, reached)
+		val successors = graph.reachedSuccessorsInto(key, successorScratch, value)
 		for (i in 0 until successors.size) {
 			val target = nodes.find(successors.node(i))
 			if (target < 0) continue

@@ -65,10 +65,8 @@ interface PathingConfig {
     val bootstrapDelayMillis: Int
     val plannerThreads: Int
 
-    val snapshotCaptureBudgetMillis: Double
-    val captureRetries: Int
-    val captureRetryMillis: Int
     val useBaritoneCache: Boolean
+    val searchDistance: Int
 
     val dumpFailedPlans: Boolean
     val dumpAllPlans: Boolean

@@ -155,10 +155,10 @@ object PlanningDebugChannel : SearchProbe {
 		if (isActive) stats = view
 	}
 
-	override fun blocked(frame: Int, section: PathingSection, capturable: Boolean, stance: Stance, movement: MovementId) {
+	override fun blocked(frame: Int, section: PathingSection, loadable: Boolean, stance: Stance, movement: MovementId) {
 		if (verbose) LOG.info(
-			"[blocked] section ({}, {}, {}) capturable={} frame={} anchor={} action={}",
-			section.x, section.y, section.z, capturable, frame, stance, movement,
+			"[blocked] section ({}, {}, {}) loadable={} frame={} anchor={} action={}",
+			section.x, section.y, section.z, loadable, frame, stance, movement,
 		)
 	}
 

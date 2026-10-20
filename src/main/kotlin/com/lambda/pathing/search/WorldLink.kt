@@ -12,7 +12,7 @@ interface WorldLink {
 
 	fun sync(route: CoarseRoutePlan, from: BodyState): WorldSyncResult
 
-	fun capturable(sectionX: Int, sectionZ: Int): Boolean
+	fun loadable(chunkX: Int, chunkZ: Int): Boolean
 }
 
 sealed interface WorldSyncResult {

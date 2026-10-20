@@ -5,6 +5,11 @@ import com.lambda.pathing.actions.MeasuredMotion
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.graph.EdgeList
+import com.lambda.pathing.graph.EdgeRelevance
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList
+import it.unimi.dsi.fastutil.ints.IntArrayList
+import java.util.function.LongPredicate
+import java.util.function.LongToDoubleFunction
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium
 
@@ -33,6 +38,10 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 
 	private val groundCaps = HeuristicCaps.of(templates.filter { it.bounceDrop == null })
 
+	private val deferred = IntArrayList()
+
+	private val deferredBounds = DoubleArrayList()
+
 	fun heuristic(from: Long, to: Long, grounded: Boolean): Double = (if (grounded) groundCaps else searchCaps).estimate(
 		PackedStance.unpackX(to) - PackedStance.unpackX(from),
 		PackedStance.unpackY(to) - PackedStance.unpackY(from),
@@ -42,7 +51,7 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 	private fun stoppedCost(template: Int, ticks: Double): Double =
 		if (departsStoppedOnly[template]) ticks else ticks + MeasuredMotion.startupLossTicks
 
-	fun successors(edges: CoarseEdgeCache, node: Long, out: EdgeList, settledOnly: Boolean = false, reached: java.util.function.LongPredicate? = null) {
+	fun successors(edges: CoarseEdgeCache, node: Long, out: EdgeList, settledOnly: Boolean = false, value: LongToDoubleFunction? = null) {
 		val speed = PackedStance.speed(node)
 		if (speed == SpeedClass.MOVING) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.STOPPED), MeasuredMotion.stopTicks)
@@ -63,10 +72,19 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 			if (sharesNeighbor[id]) out.addMin(target, cost) else out.append(target, cost)
 		}
 		if (settledOnly) return edges.forEachSettledEdgeFrom(node, visitor)
-		val wanted = reached?.let { reach ->
+		deferred.clear()
+		deferredBounds.clear()
+		val wanted = value?.let { values ->
 			PendingFilter { template ->
 				val id = template.id.value
-				!(speed == SpeedClass.MOVING && departsStoppedOnly[id]) && reach.test(PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id]))
+				if (speed == SpeedClass.MOVING && departsStoppedOnly[id]) return@PendingFilter false
+				val target = values.applyAsDouble(PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id]))
+				if (target < Double.POSITIVE_INFINITY) {
+					val ticks = template.minimumTicks * slowdown
+					deferred.add(id)
+					deferredBounds.add(target + if (speed == SpeedClass.STOPPED) stoppedCost(id, ticks) else ticks)
+				}
+				false
 			}
 		}
 		edges.forEachEdgeFrom(node, wanted, visitor)
@@ -82,9 +100,13 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 		if (speed == SpeedClass.STOPPED) edges.forEachShaft(node) { dy, ticks ->
 			out.addMin(PackedStance.pack(x, y + dy, z, SpeedClass.STOPPED), maxOf(ticks, groundCaps.estimate(0, dy, 0)))
 		}
+		if (value == null || deferred.isEmpty) return
+		var best = Double.POSITIVE_INFINITY
+		for (i in 0 until out.size) best = minOf(best, out.cost(i) + value.applyAsDouble(out.node(i)))
+		for (i in 0 until deferred.size) if (deferredBounds.getDouble(i) < best) edges.settleFrom(node, deferred.getInt(i), visitor)
 	}
 
-	fun predecessors(edges: CoarseEdgeCache, node: Long, out: EdgeList, wanted: java.util.function.LongPredicate? = null) {
+	fun predecessors(edges: CoarseEdgeCache, node: Long, out: EdgeList, wanted: LongPredicate? = null, relevance: EdgeRelevance? = null, templates: Boolean = true) {
 		val speed = PackedStance.speed(node)
 		if (speed == SpeedClass.STOPPED) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.MOVING), MeasuredMotion.stopTicks)
@@ -95,14 +117,20 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 		val pending = PendingFilter { template ->
 			val id = template.id.value
 			if (arrival[id] != speed) return@PendingFilter false
-			val origins = wanted ?: return@PendingFilter true
+			if (wanted == null && relevance == null) return@PendingFilter true
 			val originX = x - template.dx
 			val originY = y - template.dy
 			val originZ = z - template.dz
-			!departsStoppedOnly[id] && origins.test(PackedStance.pack(originX, originY, originZ, SpeedClass.MOVING)) ||
-					origins.test(PackedStance.pack(originX, originY, originZ, SpeedClass.STOPPED))
+			if (relevance != null) {
+				val ticks = template.minimumTicks
+				!departsStoppedOnly[id] && relevance.relevant(PackedStance.pack(originX, originY, originZ, SpeedClass.MOVING), ticks) ||
+						relevance.relevant(PackedStance.pack(originX, originY, originZ, SpeedClass.STOPPED), stoppedCost(id, ticks))
+			} else {
+				!departsStoppedOnly[id] && wanted!!.test(PackedStance.pack(originX, originY, originZ, SpeedClass.MOVING)) ||
+						wanted!!.test(PackedStance.pack(originX, originY, originZ, SpeedClass.STOPPED))
+			}
 		}
-		edges.forEachEdgeTo(node, pending) { template, ticks, standingStart ->
+		if (templates) edges.forEachEdgeTo(node, pending) { template, ticks, standingStart ->
 			val id = template.id.value
 			if (arrival[id] != speed) return@forEachEdgeTo
 			val originX = x - template.dx

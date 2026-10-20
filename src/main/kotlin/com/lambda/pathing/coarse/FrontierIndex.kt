@@ -4,6 +4,7 @@ import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.planarLength
+import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
@@ -111,7 +112,7 @@ internal class FrontierIndex(
 		val anchored = costs.containsKey(key)
 		val stance = Stance(x, y, z)
 		val anchors = (view.isUnknown(x + 1, y, z) || view.isUnknown(x - 1, y, z) || view.isUnknown(x, y, z + 1) || view.isUnknown(x, y, z - 1)) &&
-				stance != goal && !DiveMovement.submerged(view, x, y, z) && moves.isStance(view, stance)
+				stance != goal && candidate(x, y, z) && !DiveMovement.submerged(view, x, y, z) && moves.isStance(view, stance)
 		if (anchors && !anchored) {
 			val cost = optimisticCost(stance)
 			costs.put(key, cost)
@@ -121,6 +122,17 @@ internal class FrontierIndex(
 			retire(key)
 		}
 	}
+
+	private fun candidate(x: Int, y: Int, z: Int): Boolean {
+		val body = view.cellClass(x, y, z)
+		if (body == CellClass.CLIMB || body == CellClass.WATER || body == CellClass.SPECIAL) return true
+		val head = view.cellClass(x, y + 1, z)
+		val below = view.cellClass(x, y - 1, z)
+		if (head == CellClass.SPECIAL || below == CellClass.SPECIAL || view.cellClass(x, y - 2, z) == CellClass.SPECIAL) return true
+		return below == CellClass.SOLID && !blocks(body) && !blocks(head)
+	}
+
+	private fun blocks(cell: CellClass): Boolean = cell == CellClass.SOLID || cell == CellClass.HAZARD || cell == CellClass.WATER
 
 	private fun retire(key: Long) {
 		costs.remove(key)

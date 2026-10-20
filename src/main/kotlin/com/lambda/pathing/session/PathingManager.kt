@@ -151,9 +151,17 @@ object PathingManager : Manager<PathingRequest>(0) {
 			ServerCorrections.record(event.packet, Lambda.mc.player?.id)
 		}
 		listenUnsafe<WorldEvent.ChunkEvent.Load> { event ->
-			session?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
-			parked?.world?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
-			waypointRoute.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
+			val pos = event.chunk.pos
+			session?.onChunkLoaded(pos.x, pos.z)
+			parked?.world?.onChunkLoaded(pos.x, pos.z)
+			waypointRoute.onChunkLoaded(pos.x, pos.z)
+		}
+		listenUnsafe<WorldEvent.ChunkEvent.Unload> { event ->
+			val pos = event.chunk.pos
+			val sections = event.chunk.sectionArray
+			session?.onChunkUnloaded(pos.x, pos.z, sections)
+			parked?.world?.onChunkUnloaded(pos.x, pos.z, sections)
+			waypointRoute.onChunkUnloaded(pos.x, pos.z, sections)
 		}
 		listen<TickEvent.Pre> {
 			val walk = session ?: return@listen

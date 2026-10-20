@@ -85,7 +85,7 @@ class DumpLegRouteReplayTest {
                 val key = "${action.movement}/${action::class.simpleName} -> ${diagnostic?.let { it::class.simpleName } ?: "ok"}"
                 perStance.getOrPut(from) { HashMap() }.merge(key, 1, Int::plus)
             }
-            override fun blocked(frame: Int, section: com.lambda.pathing.core.PathingSection, capturable: Boolean, stance: Stance, movement: com.lambda.pathing.core.MovementId) {
+            override fun blocked(frame: Int, section: com.lambda.pathing.core.PathingSection, loadable: Boolean, stance: Stance, movement: com.lambda.pathing.core.MovementId) {
                 perStance.getOrPut(stance) { HashMap() }.merge("BLOCKED/$movement/section(${section.x},${section.y},${section.z})", 1, Int::plus)
             }
         }

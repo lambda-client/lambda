@@ -30,13 +30,6 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	private val minReadY = minOf(templates.minOf { it.readBounds[1] }, -1)
 	private val maxReadY = maxOf(templates.maxOf { it.readBounds[4] }, 1)
 
-	private val minTargetX = minOf(templates.minOf { it.dx - it.readBounds[3] }, 0)
-	private val maxTargetX = maxOf(templates.maxOf { it.dx - it.readBounds[0] }, 0)
-	private val minTargetY = minOf(templates.minOf { it.dy - it.readBounds[4] }, -1)
-	private val maxTargetY = maxOf(templates.maxOf { it.dy - it.readBounds[1] }, 1)
-	private val minTargetZ = minOf(templates.minOf { it.dz - it.readBounds[5] }, 0)
-	private val maxTargetZ = maxOf(templates.maxOf { it.dz - it.readBounds[2] }, 0)
-
 	fun readsUnknown(view: CoarseVoxelView, origin: Stance): Boolean {
 		val x0 = origin.x + minReadX
 		val x1 = origin.x + maxReadX
@@ -81,8 +74,51 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 
 	internal fun originsReading(changed: CellBox): CellBox = changed.grown(-maxReadX, -minReadX, -maxReadY, -minReadY, -maxReadZ, -minReadZ)
 
-	internal fun targetsReading(changed: CellBox): CellBox =
-		changed.grown(minTargetX, maxTargetX, minTargetY, maxTargetY, minTargetZ, maxTargetZ)
+	private val fullReach = ReadReach.of(templates)!!
+
+	private val groundReach = ReadReach.of(templates.filter { it.movement != MovementId.BOUNCE && it.movement != MovementId.HONEY_SLIDE })
+
+	private val honeyReach = ReadReach.of(templates.filter { it.movement == MovementId.HONEY_SLIDE })
+
+	private val padReach = ReadReach.of(templates.filter { it.movement == MovementId.BOUNCE })
+
+	internal fun originsReading(changed: CellBox, view: CoarseVoxelView): CellBox = reach(changed, view) { it.origins(changed) }
+
+	internal fun targetsReading(changed: CellBox, view: CoarseVoxelView): CellBox = reach(changed, view) { it.targets(changed) }
+
+	private inline fun reach(changed: CellBox, view: CoarseVoxelView, box: (ReadReach) -> CellBox): CellBox {
+		var reached = box(groundReach ?: return box(fullReach))
+		if (honeyReach != null && honeyReach.zone(changed).let { view.mayContainHoney(it.xs.first, it.ys.first, it.zs.first, it.xs.last, it.ys.last, it.zs.last) }) {
+			reached = CellBox.enclosing(listOf(reached, box(honeyReach)))
+		}
+		if (padReach != null && padReach.zone(changed).grown(-bounceReach, bounceReach, -bounceDepth, 0, -bounceReach, bounceReach)
+				.let { view.mayBounceWithin(it.xs.first, it.ys.first, it.zs.first, it.xs.last, it.ys.last, it.zs.last) }) {
+			reached = CellBox.enclosing(listOf(reached, box(padReach)))
+		}
+		return reached
+	}
+
+	private class ReadReach(
+		val minX: Int, val maxX: Int, val minY: Int, val maxY: Int, val minZ: Int, val maxZ: Int,
+		val minTargetX: Int, val maxTargetX: Int, val minTargetY: Int, val maxTargetY: Int, val minTargetZ: Int, val maxTargetZ: Int,
+	) {
+		fun origins(changed: CellBox): CellBox = changed.grown(-maxX, -minX, -maxY, -minY, -maxZ, -minZ)
+
+		fun targets(changed: CellBox): CellBox = changed.grown(minTargetX, maxTargetX, minTargetY, maxTargetY, minTargetZ, maxTargetZ)
+
+		fun zone(changed: CellBox): CellBox = origins(changed).grown(minX, maxX, minY, maxY, minZ, maxZ)
+
+		companion object {
+			fun of(templates: List<MotionTemplate>): ReadReach? = if (templates.isEmpty()) null else ReadReach(
+				templates.minOf { it.readBounds[0] }, templates.maxOf { it.readBounds[3] },
+				minOf(templates.minOf { it.readBounds[1] }, -1), maxOf(templates.maxOf { it.readBounds[4] }, 1),
+				templates.minOf { it.readBounds[2] }, templates.maxOf { it.readBounds[5] },
+				minOf(templates.minOf { it.dx - it.readBounds[3] }, 0), maxOf(templates.maxOf { it.dx - it.readBounds[0] }, 0),
+				minOf(templates.minOf { it.dy - it.readBounds[4] }, -1), maxOf(templates.maxOf { it.dy - it.readBounds[1] }, 1),
+				minOf(templates.minOf { it.dz - it.readBounds[5] }, 0), maxOf(templates.maxOf { it.dz - it.readBounds[2] }, 0),
+			)
+		}
+	}
 
 	companion object {
 

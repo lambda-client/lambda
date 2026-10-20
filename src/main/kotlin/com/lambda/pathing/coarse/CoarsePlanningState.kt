@@ -49,10 +49,9 @@ internal class CoarsePlanningState(
 
 	fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE, applied: MutableSet<SharedEdges>? = null) {
 		edges?.let { if (applied?.add(it) == false) return }
-		val (overRemembered, arrived) = batch.arrived.partition { memory?.remembers(it) == true }
-		val changed = batch.changed + overRemembered
+		val changed = if (memory == null) batch.changed else batch.changed + batch.arrived.flatMap(memory::differences)
 		if (changed.isNotEmpty()) planner.terrainChanged(changed, maxStances)
-		if (arrived.isNotEmpty()) planner.terrainChanged(arrived, maxStances, arrivalsOnly = true)
+		if (batch.arrived.isNotEmpty()) planner.terrainChanged(batch.arrived, maxStances, arrivalsOnly = true)
 	}
 
 	fun forgetMemory(from: Stance, speed: SpeedClass = SpeedClass.STOPPED): Boolean {

@@ -25,8 +25,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 	private var deadEnd: String? = null
 	private var deadEndMobs = false
-	private var captureWaits = 0
-	private var captureWaitSince = 0L
 	private var mobWaitSince = 0L
 	private var mobPatienceSince = 0L
 	private var mobCells: LongArray? = null
@@ -50,7 +48,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		cancel()
 		deadEnd = null
 		deadEndMobs = false
-		captureWaitSince = 0L
 		mobWaitSince = 0L
 		mobPatienceSince = 0L
 		mobCells = null
@@ -58,22 +55,11 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 	fun progressed() {
 		restarts = 0
-		captureWaits = 0
 		mobPatienceSince = 0L
 	}
 
-	fun SafeContext.retryAfterCapture() {
-		if (current != null) return
-		if (mobWaitSince != 0L) return retryAfterMobs()
-		if (captureWaitSince == 0L) return
-		val waited = System.currentTimeMillis() - captureWaitSince
-		val pending = walk.journey?.world?.pendingInterest ?: 0
-		if (waited < walk.request.pathingConfig.captureRetryMillis || pending > 0 && waited < MAX_CAPTURE_WAIT_MILLIS) return
-		captureWaitSince = 0L
-		with(walk) { planTrajectory() }
-	}
-
-	private fun SafeContext.retryAfterMobs() {
+	fun SafeContext.retryAfterMobs() {
+		if (current != null || mobWaitSince == 0L) return
 		val waited = System.currentTimeMillis() - mobWaitSince
 		val moved = walk.journey?.world?.obstacleCells !== mobCells
 		if (waited < MOB_RETRY_MIN_MILLIS || !moved && waited < MOB_RETRY_MAX_MILLIS) return
@@ -128,7 +114,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			PlanningJourney.open(preparation, player).also { walk.journey = it }
 		}
 		launch(session, preparation, currentJourney)
-		with(walk) { advanceSnapshotCapture() }
+		walk.advanceWorld()
 	}
 
 	private fun SafeContext.rewindToWaypointUnderfoot() {
@@ -181,14 +167,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 						completed.reason,
 					)
 					planSuccessor()
-				} else if (captureWaits < walk.request.pathingConfig.captureRetries && (walk.journey?.world?.pendingInterest ?: 0) > 0) {
-					captureWaits++
-					current = null
-					captureWaitSince = System.currentTimeMillis()
-					LOG.info(
-						"Planning dead-ended before motion ({}) with {} sections still to capture; retrying once the capture catches up ({}/{})",
-						completed.reason, walk.journey?.world?.pendingInterest ?: 0, captureWaits, walk.request.pathingConfig.captureRetries,
-					)
 				} else if (completed.mobs && waitForMobs(completed.reason)) {
 					return
 				} else if (restarts < MAX_SESSION_RESTARTS &&
@@ -357,8 +335,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		const val WAYPOINT_UNDERFOOT_BLOCKS = 1.5
 
 		const val MAX_SESSION_RESTARTS = 3
-
-		const val MAX_CAPTURE_WAIT_MILLIS = 20_000L
 
 		const val MOB_RETRY_MIN_MILLIS = 1_000L
 

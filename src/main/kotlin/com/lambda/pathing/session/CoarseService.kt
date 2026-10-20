@@ -12,7 +12,6 @@ import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.PLANNER_THREAD_PRIORITY
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
-import com.lambda.pathing.world.streaming.InterestTier
 import com.lambda.pathing.world.streaming.PathingWorld
 import net.minecraft.util.math.Vec3d
 import org.apache.logging.log4j.LogManager
@@ -29,8 +28,6 @@ internal class CoarseService(
 	private val buildLegs: () -> List<CoarsePlanningState>,
 	starts: List<Stance>,
 	val expansionBudget: Int,
-	private val repin: () -> Unit = {},
-	private val pinCurrent: () -> Boolean = { true },
 	private val expandsField: Boolean = true,
 ) : AutoCloseable {
 	constructor(
@@ -38,10 +35,8 @@ internal class CoarseService(
 		legs: List<CoarsePlanningState>,
 		starts: List<Stance>,
 		expansionBudget: Int,
-		repin: () -> Unit = {},
-		pinCurrent: () -> Boolean = { true },
 		expandsField: Boolean = true,
-	) : this(world, legs.map { it.goal }, { legs }, starts, expansionBudget, repin, pinCurrent, expandsField)
+	) : this(world, legs.map { it.goal }, { legs }, starts, expansionBudget, expandsField)
 
 	class Frame(
 		val sequence: Long,
@@ -55,7 +50,7 @@ internal class CoarseService(
 
 	private class Request(val leg: Int, val stance: Stance, val speed: SpeedClass)
 
-	private class Failure(val start: Stance, val reason: String, val final: Boolean)
+	private class Failure(val start: Stance, val reason: String)
 
 	private val goals = goals.toTypedArray()
 
@@ -80,6 +75,8 @@ internal class CoarseService(
 	private fun build(): List<CoarsePlanningState> = synchronized(this) { built ?: buildLegs().also { built = it } }
 	private var revision = 0L
 	private val settledRevisions = AtomicLongArray(goals.size)
+
+	private val backlogs = BooleanArray(goals.size)
 	private var sequence = 0L
 	private var settled = -1
 
@@ -143,7 +140,7 @@ internal class CoarseService(
 			append(' ').append((System.nanoTime() - framed.publishedNanos) / 1_000_000L).append(" ms old from ").append(framed.start)
 			append(", route ").append(framed.route.nodes.size).append(" nodes to ").append(framed.route.goal)
 		}
-		failed?.let { append(", failure from ").append(it.start).append(if (it.final) " (final): " else ": ").append(it.reason) }
+		failed?.let { append(", failure from ").append(it.start).append(": ").append(it.reason) }
 	}
 
 	fun awaitFrame(leg: Int, timeoutMillis: Long, accept: (Frame) -> Boolean = { true }): Frame? = lock.withLock {
@@ -160,7 +157,7 @@ internal class CoarseService(
 
 	fun awaitLeg(leg: Int): Frame? = lock.withLock {
 		var frame = standing(leg)
-		while (frame == null && !closed && failures[leg]?.let { it.final && it.start == starts[leg] } != true) {
+		while (frame == null && !closed && failures[leg]?.start != starts[leg]) {
 			published.awaitNanos(ROUTE_POLL_MILLIS * 1_000_000L)
 			frame = standing(leg)
 		}
@@ -177,7 +174,7 @@ internal class CoarseService(
 			val next = awaitFrame(leg, ROUTE_POLL_MILLIS) { it.start == start && it !== frame }
 			if (next != null) {
 				frame = next
-				if (arrives(next.route.goal) || world?.chunkCapturable(goal.x shr 4, goal.z shr 4) != true) return next
+				if (arrives(next.route.goal) || !awaitsGoalChunk(goal)) return next
 			} else if (frame == null && hopeless(leg, start)) {
 				if (hopelessSince == 0L) hopelessSince = System.nanoTime()
 				else if (System.nanoTime() - hopelessSince > HOPELESS_MILLIS * 1_000_000L) return null
@@ -187,9 +184,14 @@ internal class CoarseService(
 		return frame
 	}
 
+	private fun awaitsGoalChunk(goal: Stance): Boolean {
+		val world = world ?: return false
+		return !world.readable(goal.x shr 4, goal.z shr 4) && world.loadable(goal.x shr 4, goal.z shr 4)
+	}
+
 	private fun learning(leg: Int): Boolean {
 		val world = world ?: return false
-		return settling != null || world.pendingInterest > 0 || settledRevisions.get(leg) != world.revision
+		return settling != null || settledRevisions.get(leg) != world.revision
 	}
 
 	fun failure(leg: Int, start: Stance): String? = lock.withLock { failures[leg]?.takeIf { it.start == start }?.reason }
@@ -198,12 +200,11 @@ internal class CoarseService(
 		while (!closed) if (!advance()) return
 	}
 
-	private fun hopeless(leg: Int, start: Stance): Boolean = lock.withLock { failures[leg]?.let { it.start == start && it.final } == true }
+	private fun hopeless(leg: Int, start: Stance): Boolean = lock.withLock { failures[leg]?.start == start }
 
 	private fun run() {
 		try {
 			build()
-			awaitPrimedCapture()
 			while (!closed) {
 				val began = System.nanoTime()
 				val worked = advance()
@@ -215,16 +216,10 @@ internal class CoarseService(
 			LOG.error("The coarse planner thread failed", failure)
 			closed = true
 			lock.withLock {
-				for (leg in goals.indices) failures[leg] = Failure(starts[leg], "the coarse planner crashed: ${failure.message}", final = true)
+				for (leg in goals.indices) failures[leg] = Failure(starts[leg], "the coarse planner crashed: ${failure.message}")
 				published.signalAll()
 			}
 		}
-	}
-
-	private fun awaitPrimedCapture() {
-		val world = world ?: return
-		val until = System.nanoTime() + PRIMED_CAPTURE_WAIT_MILLIS * 1_000_000L
-		while (!closed && world.pendingInterest > 0 && System.nanoTime() < until) Thread.sleep(POLL_MILLIS)
 	}
 
 	private fun awaitWork() {
@@ -240,7 +235,6 @@ internal class CoarseService(
 
 	private fun advance(): Boolean {
 		val batch = events?.drain()
-		repin()
 		val moved = lock.withLock { HashMap(retargets).also { retargets.clear() } }
 		for ((leg, goal) in moved) {
 			legs[leg].retarget(goal, starts[leg], speeds[leg])
@@ -297,7 +291,7 @@ internal class CoarseService(
 		try {
 			settleRoute(leg, timings)
 		} finally {
-			settledRevisions.set(leg, through)
+			if (!backlogs[leg]) settledRevisions.set(leg, through)
 			settling = null
 		}
 		val millis = timings.elapsedMillis
@@ -314,36 +308,31 @@ internal class CoarseService(
 		val state = legs[leg]
 		val planner = state.planner
 		val start = starts[leg]
-		timings.measure("sync") { planner.continueSync() }
+		backlogs[leg] = timings.measure("sync") { planner.continueSync(SYNC_SLICE_STANCES, near = start) }
+		if (backlogs[leg]) dirty[leg] = true
 		val repair = timings.measure("repair") { planner.repair(maxExpansions = expansionBudget, cancelled = ::closed) }
 		if (closed) return
 		if (!repair.converged && !repair.provenUnreachable) {
 			val stall = repair.stall?.let { "; stalled: $it" } ?: ""
-			return fail(leg, start, "coarse search did not converge within $expansionBudget expansions$stall", final = true)
+			return fail(leg, start, "coarse search did not converge within $expansionBudget expansions$stall")
 		}
 		val route = if (repair.provenUnreachable) null else {
 			val framed = lock.withLock { frames[leg] } != null
-			if (expandsField && framed) timings.measure("field") { planner.expandSearchField(cancelled = ::closed) }
+			if (expandsField && framed && !backlogs[leg]) timings.measure("field") { planner.expandSearchField(cancelled = ::closed) }
 			if (!framed) dirty[leg] = true
 			timings.measure("route") { state.routePlan(revision, ::closed, expansionBudget) }
 		}
 		if (closed) return
-		val routed = lock.withLock { frames[leg] } != null
-		if (world != null) timings.measure("drops") { planner.probeDropsFrom(start, if (route == null) DROP_PROBE_STANCES else NEAR_DROP_PROBE_STANCES) }
-		world?.let { requestKnowledge(it, state, start, route, if (routed) InterestTier.CORRIDOR else InterestTier.DEMAND) }
 		if (route == null) {
-			val stale = !pinCurrent()
-			if (stale) dirty[leg] = true
-			val capturing = world != null && (world.pendingInterest > 0 || stale)
 			val group = state.edges
-			if (!capturing && state.forgetMemory(start, speeds[leg])) {
+			if (state.forgetMemory(start, speeds[leg])) {
 				LOG.info("Remembered terrain leaves no coarse route from {} to {}; planning leg {} without it", start, state.goal, leg)
 				for (other in legs.indices) if (other != leg && group != null && legs[other].edges === group) legs[other].rebuild(starts[other], speeds[other])
 				for (other in legs.indices) if (other == leg || group != null && legs[other].edges === state.edges) dirty[other] = true
 				return
 			}
 			val why = planner.unreachableReport ?: planner.routeFailureReport()
-			return fail(leg, start, "no coarse route to the goal: $why", final = !capturing)
+			return fail(leg, start, "no coarse route to the goal: $why")
 		}
 		publish(leg, start, route, timings)
 		if (timings.measure("recall") { state.recallMemory(route, start) }) {
@@ -375,23 +364,13 @@ internal class CoarseService(
 		PlanningDebugChannel.publishCoarse(PlanningDebugChannel.CoarseSample(frame.sequence, planner.graphSize, frame.anchorCount, timings.elapsedMillis))
 	}
 
-	private fun requestKnowledge(world: PathingWorld, state: CoarsePlanningState, start: Stance, route: CoarseRoutePlan?, tier: InterestTier) {
-		if (route != null && route.goal != state.goal) world.interestAround(route.goal, tier)
-		state.planner.drainUnknownDrops { x, y, z ->
-			if (maxOf(abs(x - start.x), abs(z - start.z)) <= DROP_INTEREST_BLOCKS) {
-				world.interestBlocks(x, y - DROP_INTEREST_DEPTH_BLOCKS, z, x, y, z, InterestTier.BODY)
-			}
-		}
-	}
-
-	private fun fail(leg: Int, start: Stance, reason: String, final: Boolean) = lock.withLock {
-		failures[leg] = Failure(start, reason, final)
+	private fun fail(leg: Int, start: Stance, reason: String) = lock.withLock {
+		failures[leg] = Failure(start, reason)
 		published.signalAll()
 	}
 
 	internal companion object {
 		const val FULL_ROUTE_WAIT_MILLIS = 8_000L
-		const val PRIMED_CAPTURE_WAIT_MILLIS = 3_000L
 		const val HOPELESS_MILLIS = 1_000L
 		const val ROUTE_POLL_MILLIS = 100L
 		const val EPOCH_NANOS = 100_000_000L
@@ -400,12 +379,9 @@ internal class CoarseService(
 		const val REFRAME_BLOCKS = 12
 		const val REFRAME_NANOS = 300_000_000L
 		const val SLOW_SETTLE_MILLIS = 1_000L
+		const val SYNC_SLICE_STANCES = 3_000
 		const val LABEL_RADIUS_BLOCKS = 128
 		const val ROUTE_LABEL_BAND_BLOCKS = 48
 		const val LABEL_HEIGHT_BLOCKS = FallEdges.MAX_DEPTH + 32
-		const val DROP_INTEREST_BLOCKS = 48
-		const val DROP_INTEREST_DEPTH_BLOCKS = 32
-		const val DROP_PROBE_STANCES = 512
-		const val NEAR_DROP_PROBE_STANCES = 64
 	}
 }

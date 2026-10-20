@@ -192,6 +192,8 @@ interface CoarseVoxelView {
 
 	val revision: Any? get() = null
 
+	val journal: TerrainJournal? get() = null
+
 	fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
 
 	val mayBounce: Boolean get() = true

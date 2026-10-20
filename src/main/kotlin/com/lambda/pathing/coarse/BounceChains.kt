@@ -21,6 +21,7 @@ import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.Footing
+import com.lambda.pathing.world.TerrainWatch
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
@@ -63,7 +64,7 @@ internal class BounceChains(
 	private var maxY = Int.MIN_VALUE
 	private var maxZ = Int.MIN_VALUE
 	private val surfaces = Long2ObjectOpenHashMap<DoubleArray>()
-	private var surfacesRevision: Any? = null
+	private val surfaceWatch = TerrainWatch(view)
 	private var lastSurfaceKey = 0L
 	private var lastSurfaces: DoubleArray? = null
 	private val surfaceBounds = IntArray(6)
@@ -83,8 +84,7 @@ internal class BounceChains(
 	}
 
 	fun invalidate(changed: List<CellBox>) {
-		val bounds = surfaceBounds
-		if (!surfaces.isEmpty() && changed.any { it.overlaps(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5]) }) forgetSurfaces()
+		if (changed.any(::coversSurfaces)) forgetSurfaces()
 		if (scannedSections.isEmpty() && discovered.isEmpty()) return
 		if (minX > maxX || changed.any { it.overlaps(minX - CHAIN_REACH - 1, minY - maxDrop - 2, minZ - CHAIN_REACH - 1, maxX + CHAIN_REACH + 1, maxY + maxDrop + 2, maxZ + CHAIN_REACH + 1) }) clear()
 	}
@@ -464,11 +464,7 @@ internal class BounceChains(
 	}
 
 	private fun standingSurface(x: Int, y: Int, z: Int): Double {
-		val revision = view.revision
-		if (revision !== surfacesRevision) {
-			forgetSurfaces()
-			surfacesRevision = revision
-		}
+		surfaceWatch.poll(::forgetSurfaces) { box -> if (coversSurfaces(box)) forgetSurfaces() }
 		val bottom = y and SEGMENT_MASK.inv()
 		val key = BlockPos.asLong(x, bottom, z)
 		val segment = lastSurfaces?.takeIf { lastSurfaceKey == key } ?: surfaces.get(key) ?: DoubleArray(SEGMENT_HEIGHT) { index ->
@@ -500,6 +496,11 @@ internal class BounceChains(
 	private fun forgetSurfaces() {
 		surfaces.clear()
 		lastSurfaces = null
+	}
+
+	private fun coversSurfaces(box: CellBox): Boolean {
+		val bounds = surfaceBounds
+		return !surfaces.isEmpty() && box.overlaps(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])
 	}
 
 	private fun ceilingBottom(x: Int, y: Int, z: Int): Double? = when (view.collisionClass(x, y, z)) {

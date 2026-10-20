@@ -1,5 +1,6 @@
 package com.lambda.pathing.world.snapshot
 
+import com.lambda.pathing.world.TerrainJournal
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongCollection
@@ -8,32 +9,44 @@ import net.minecraft.util.math.ChunkSectionPos
 
 internal class SectionStore private constructor(
 	private val regions: Long2ObjectOpenHashMap<Array<ImmutableSnapshotSection?>>,
-	val size: Int,
+	override val size: Int,
 	val bouncySections: Int,
 	val softSections: Int,
 	val bubblySections: Int,
 	val honeySections: Int,
-) {
-	operator fun get(key: Long): ImmutableSnapshotSection? = regions.get(regionOf(key))?.get(slotOf(key))
+) : SectionSource {
+	override operator fun get(key: Long): ImmutableSnapshotSection? = regions.get(regionOf(key))?.get(slotOf(key))
 
-	fun contains(key: Long): Boolean = get(key) != null
+	override fun isKnown(key: Long): Boolean = get(key) != null
 
-	fun bouncyWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+	override val revision: Any get() = this
+
+	override val journal: TerrainJournal? get() = null
+
+	override val mayBounce: Boolean get() = bouncySections > 0
+
+	override val maySoftLand: Boolean get() = softSections > 0
+
+	override fun forEachKnownKey(action: (Long) -> Unit) = forEach { key, _ -> action(key) }
+
+	override fun forEachSection(action: (Long, ImmutableSnapshotSection) -> Unit) = forEach(action)
+
+	override fun bouncyWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		bouncySections > 0 && anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.bouncy }
 
-	fun waterWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+	override fun waterWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.watery }
 
-	fun bubblesWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+	override fun bubblesWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		bubblySections > 0 && anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.bubbly }
 
-	fun honeyWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+	override fun honeyWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		honeySections > 0 && anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.honeyed }
 
-	fun hotWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+	override fun hotWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.hot }
 
-	fun softWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+	override fun softWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		softSections > 0 && anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.soft }
 
 	private inline fun anyWithin(
@@ -129,7 +142,7 @@ internal class SectionStore private constructor(
 
 		private const val Z_SHIFT = 20
 
-		private const val REGION_SLOTS = 128
+		const val REGION_SLOTS = 128
 
 		private const val REGION_MASK = ((3L shl X_SHIFT) or (3L shl Z_SHIFT) or 7L).inv()
 
@@ -138,9 +151,9 @@ internal class SectionStore private constructor(
 		fun of(sections: Map<Long, ImmutableSnapshotSection>): SectionStore =
 			EMPTY.with(Long2ObjectOpenHashMap<ImmutableSnapshotSection>(sections.size).also { it.putAll(sections) })
 
-		private fun regionOf(key: Long): Long = key and REGION_MASK
+		fun regionOf(key: Long): Long = key and REGION_MASK
 
-		private fun slotOf(key: Long): Int = (((key ushr X_SHIFT) and 3L) or (((key ushr Z_SHIFT) and 3L) shl 2) or ((key and 7L) shl 4)).toInt()
+		fun slotOf(key: Long): Int = (((key ushr X_SHIFT) and 3L) or (((key ushr Z_SHIFT) and 3L) shl 2) or ((key and 7L) shl 4)).toInt()
 
 		@PublishedApi
 		internal fun keyOf(region: Long, slot: Int): Long =

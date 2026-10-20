@@ -17,6 +17,8 @@ transitive-accessible field net/minecraft/world/entity/ClientEntityManager cache
 transitive-accessible field net/minecraft/world/entity/EntityTrackingSection collection Lnet/minecraft/util/collection/TypeFilterableList;
 transitive-accessible field net/minecraft/client/world/ClientChunkManager chunks Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;
 transitive-accessible field net/minecraft/client/world/ClientChunkManager$ClientChunkMap chunks Ljava/util/concurrent/atomic/AtomicReferenceArray;
+transitive-accessible field net/minecraft/world/chunk/PalettedContainer data Lnet/minecraft/world/chunk/PalettedContainer$Data;
+transitive-accessible class net/minecraft/world/chunk/PalettedContainer$Data
 transitive-accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingProgress F
 transitive-accessible field net/minecraft/client/network/ClientPlayerInteractionManager blockBreakingCooldown I
 transitive-accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingPos Lnet/minecraft/util/math/BlockPos;

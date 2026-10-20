@@ -1,9 +1,11 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.MotionTemplate
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.BounceArcProbe
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.TerrainWatch
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntAVLTreeSet
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
@@ -45,12 +47,24 @@ internal class BounceIndex(templates: List<MotionTemplate>) {
 
 internal class BouncePads(private val view: CoarseVoxelView, private val index: BounceIndex) {
 	private val sections = Long2ObjectOpenHashMap<LongArray>()
+	private val watch = TerrainWatch(view)
 
 	fun arrivals(target: Stance): IntArray = candidates(target, index.arrivals)
 
 	fun departures(origin: Stance): IntArray = candidates(origin, index.departures)
 
 	fun clear() = sections.clear()
+
+	private fun forget(changed: CellBox) {
+		val keys = sections.keys.iterator()
+		while (keys.hasNext()) {
+			val key = keys.nextLong()
+			val minX = ChunkSectionPos.unpackX(key) shl 4
+			val minY = ChunkSectionPos.unpackY(key) shl 4
+			val minZ = ChunkSectionPos.unpackZ(key) shl 4
+			if (changed.overlaps(minX, minY - 1, minZ, minX + 15, minY + 15, minZ + 15)) keys.remove()
+		}
+	}
 
 	private fun candidates(at: Stance, index: BounceIndex.Lookup): IntArray {
 		if (index.min[0] > index.max[0]) return EMPTY
@@ -77,6 +91,7 @@ internal class BouncePads(private val view: CoarseVoxelView, private val index: 
 	fun padsIn(sectionX: Int, sectionY: Int, sectionZ: Int): LongArray = pads(sectionX, sectionY, sectionZ)
 
 	private fun pads(sectionX: Int, sectionY: Int, sectionZ: Int): LongArray {
+		watch.poll(::clear, ::forget)
 		val key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
 		sections.get(key)?.let { return it }
 		val minX = sectionX shl 4

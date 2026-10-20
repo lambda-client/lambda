@@ -4,6 +4,7 @@ import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.TerrainWatch
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.util.math.ChunkSectionPos
 
@@ -15,15 +16,10 @@ internal class StanceMemo(
 	private val sections = Long2ObjectOpenHashMap<LongArray>()
 	private var lastKey = 0L
 	private var last: LongArray? = null
-	private var revision: Any? = view.revision
+	private val watch = TerrainWatch(view)
 
 	fun isStance(stance: Stance): Boolean {
-		val current = view.revision
-		if (current !== revision) {
-			sections.clear()
-			last = null
-			revision = current
-		}
+		watch.poll(::clear) { box -> remove(box.grown(-STANCE_REACH, STANCE_REACH, -STANCE_REACH - 1, STANCE_REACH + 1, -STANCE_REACH, STANCE_REACH)) }
 		val bits = section(stance)
 		val index = index(stance)
 		val word = index ushr 6
@@ -44,14 +40,31 @@ internal class StanceMemo(
 	}
 
 	fun remove(boxes: List<CellBox>) {
-		val iterator = sections.keys.iterator()
-		while (iterator.hasNext()) {
-			val key = iterator.nextLong()
-			val minX = ChunkSectionPos.unpackX(key) shl 4
-			val minY = ChunkSectionPos.unpackY(key) shl 4
-			val minZ = ChunkSectionPos.unpackZ(key) shl 4
-			if (boxes.any { it.overlaps(minX, minY, minZ, minX + 15, minY + 15, minZ + 15) }) iterator.remove()
+		for (box in boxes) remove(box)
+	}
+
+	private fun remove(box: CellBox) {
+		val count = ((box.xs.last shr 4) - (box.xs.first shr 4) + 1).toLong() *
+				((box.ys.last shr 4) - (box.ys.first shr 4) + 1) * ((box.zs.last shr 4) - (box.zs.first shr 4) + 1)
+		if (count <= sections.size) {
+			for (sectionX in (box.xs.first shr 4)..(box.xs.last shr 4)) for (sectionY in (box.ys.first shr 4)..(box.ys.last shr 4)) {
+				for (sectionZ in (box.zs.first shr 4)..(box.zs.last shr 4)) sections.remove(ChunkSectionPos.asLong(sectionX, sectionY, sectionZ))
+			}
+		} else {
+			val iterator = sections.keys.iterator()
+			while (iterator.hasNext()) {
+				val key = iterator.nextLong()
+				val minX = ChunkSectionPos.unpackX(key) shl 4
+				val minY = ChunkSectionPos.unpackY(key) shl 4
+				val minZ = ChunkSectionPos.unpackZ(key) shl 4
+				if (box.overlaps(minX, minY, minZ, minX + 15, minY + 15, minZ + 15)) iterator.remove()
+			}
 		}
+		last = null
+	}
+
+	private fun clear() {
+		sections.clear()
 		last = null
 	}
 
@@ -70,5 +83,6 @@ internal class StanceMemo(
 
 	private companion object {
 		const val WORDS = 4096 / 64
+		const val STANCE_REACH = 2
 	}
 }

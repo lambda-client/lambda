@@ -90,7 +90,7 @@ class DropPrimitiveTest {
     @Test
     fun `the certified tape descends a ledge without ever pressing jump`() {
         val environment = ledgeEnvironment()
-        val moves = library()
+        val moves = moveLibrary(SimpleMoveOptions(maxWalkOffDepth = 3, allowDeepDropJumps = false))
         val start = Stance(0, 66, 0)
         val goal = Stance(4, 63, 0)
         val planner = CoarsePlanner(environment, moves, start, goal)

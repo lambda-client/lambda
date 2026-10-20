@@ -45,7 +45,7 @@ interface SearchProbe {
 	fun blocked(
 		frame: Int,
 		section: PathingSection,
-		capturable: Boolean,
+		loadable: Boolean,
 		stance: Stance,
 		movement: MovementId,
 	) {

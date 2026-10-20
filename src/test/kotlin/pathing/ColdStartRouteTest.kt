@@ -14,21 +14,18 @@ import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.CoarseService
-import com.lambda.pathing.session.InterestPrimer
-import com.lambda.pathing.world.streaming.PathingWorld
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
-import net.minecraft.util.math.BlockPos
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.concurrent.thread
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.streaming.PathingWorld
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 
 /**
- * The in-game cold start, end to end below the session layer: a [PathingWorld] fed by a
- * [FakeCaptureSource] on a "client thread", and the journey's [CoarseService] thread
- * serving the first route the way a planning job waits for it. Far goals at negative
- * coordinates, the case the bedrock corpus (all near the origin, all pre-captured) never
- * exercises.
+ * The in-game cold start, end to end below the session layer: a [PathingWorld] reading a
+ * [FakeTerrainSource] live, and the journey's [CoarseService] thread serving the first route
+ * the way a planning job waits for it. Far goals at negative coordinates, the case the bedrock
+ * corpus (all near the origin) never exercises.
  */
 class ColdStartRouteTest {
 
@@ -46,7 +43,7 @@ class ColdStartRouteTest {
         viewDistance: Int,
         rough: ((Int, Int) -> Int)? = null,
     ) {
-        val source = FakeCaptureSource(
+        val source = FakeTerrainSource(
             groundY = start.y,
             playerChunkX = start.x shr 4,
             playerChunkZ = start.z shr 4,
@@ -58,34 +55,17 @@ class ColdStartRouteTest {
             if (rough != null) {
                 val r = (loadedRadiusChunks + 1) * 16
                 for (x in start.x - r..start.x + r) for (z in start.z - r..start.z + r) {
-                    for (dy in 0 until rough(x, z)) set(x, start.y + dy, z, com.lambda.pathing.world.snapshot.SnapshotBlockPhysics.FULL_CUBE)
+                    for (dy in 0 until rough(x, z)) set(x, start.y + dy, z, SnapshotBlockPhysics.FULL_CUBE)
                 }
             }
         }
-        val world = PathingWorld(SimulationSnapshotBounds(Int.MIN_VALUE, -64, Int.MIN_VALUE, Int.MAX_VALUE, 319, Int.MAX_VALUE), source)
-        val running = AtomicBoolean(true)
-
-        /** The client thread: body interest and capture every "tick". */
-        val client = thread(name = "fake-client", isDaemon = true) {
-            source.onClientThread = true
-            while (running.get()) {
-                InterestPrimer.primeBody(world, BlockPos(start.x, start.y, start.z))
-                world.advance(15.0)
-                Thread.sleep(10)
-            }
-        }
-
-        fun stop() {
-            running.set(false)
-            client.join()
-        }
+        val world = PathingWorld(SimulationSnapshotBounds(Int.MIN_VALUE, -64, Int.MIN_VALUE, Int.MAX_VALUE, 319, Int.MAX_VALUE), source, HazardRules.AVOID_ALL)
     }
 
     private fun resolveColdStart(rig: Rig): Pair<com.lambda.pathing.coarse.CoarseRoutePlan?, String> {
         val world = rig.world
         val start = rig.start
         val goal = rig.goal
-        InterestPrimer.primeJourney(world, start, goal)
         val state = CoarsePlanningState(
             world.snapshot, SimpleMoveOptions(), start, goal,
         )
@@ -96,7 +76,7 @@ class ColdStartRouteTest {
             val began = System.nanoTime()
             val route = coarse.awaitRoute(0, start, cancelled = { false })?.route
             val report = "route=${route?.nodes?.size} nodes to ${route?.goal} in ${(System.nanoTime() - began) / 1_000_000} ms; " +
-                "sections=${world.snapshot.sectionCount} capture=${world.captureLedger()}; failure=${coarse.failure(0, start) ?: "-"}"
+                "terrain=${world.terrainLedger()}; failure=${coarse.failure(0, start) ?: "-"}"
             println("[cold] $report")
             return route to report
         } finally {
@@ -106,46 +86,26 @@ class ColdStartRouteTest {
 
     @Test
     fun `a goal 112 blocks away inside the loaded area routes on a flat floor`() {
-        val rig = Rig(Stance(-82, 4, -91), Stance(-164, 4, -13), loadedRadiusChunks = 10, viewDistance = 8)
-        try {
-            val (route, report) = resolveColdStart(rig)
-            assertNotNull(route, "flat floor, everything loaded: $report")
-        } finally {
-            rig.stop()
-        }
+        val (route, report) = resolveColdStart(Rig(Stance(-82, 4, -91), Stance(-164, 4, -13), loadedRadiusChunks = 10, viewDistance = 8))
+        assertNotNull(route, "flat floor, everything loaded: $report")
     }
 
     @Test
     fun `a goal 280 blocks away beyond render distance resolves in bounded time`() {
-        val rig = Rig(Stance(18, 4, -229), Stance(-164, 4, -13), loadedRadiusChunks = 8, viewDistance = 8)
-        try {
-            val (route, report) = resolveColdStart(rig)
-            assertNotNull(route, "flat floor beyond render distance: $report")
-        } finally {
-            rig.stop()
-        }
+        val (route, report) = resolveColdStart(Rig(Stance(18, 4, -229), Stance(-164, 4, -13), loadedRadiusChunks = 8, viewDistance = 8))
+        assertNotNull(route, "flat floor beyond render distance: $report")
     }
 
     @Test
     fun `a goal 280 blocks away over rough bedrock resolves in bounded time`() {
         val start = Stance(36, 4 + relief(36, -235), -235)
-        val rig = Rig(start, Stance(-164, 5, -13), loadedRadiusChunks = 8, viewDistance = 8, rough = ::relief)
-        try {
-            val (route, report) = resolveColdStart(rig)
-            assertNotNull(route, "rough floor beyond render distance: $report")
-        } finally {
-            rig.stop()
-        }
+        val (route, report) = resolveColdStart(Rig(start, Stance(-164, 5, -13), loadedRadiusChunks = 8, viewDistance = 8, rough = ::relief))
+        assertNotNull(route, "rough floor beyond render distance: $report")
     }
 
     @Test
     fun `a goal 200 blocks away beyond the loaded area routes to an anchor`() {
-        val rig = Rig(Stance(27, 4, -54), Stance(-164, 4, -13), loadedRadiusChunks = 6, viewDistance = 8)
-        try {
-            val (route, report) = resolveColdStart(rig)
-            assertNotNull(route, "flat floor, goal unloaded: $report")
-        } finally {
-            rig.stop()
-        }
+        val (route, report) = resolveColdStart(Rig(Stance(27, 4, -54), Stance(-164, 4, -13), loadedRadiusChunks = 6, viewDistance = 8))
+        assertNotNull(route, "flat floor, goal unloaded: $report")
     }
 }

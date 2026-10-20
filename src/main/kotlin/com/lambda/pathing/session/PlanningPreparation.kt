@@ -46,6 +46,7 @@ internal data class PlanningPreparation(
 	val dumpAllPlans: Boolean,
 	val liveImprover: Boolean,
 	val useBaritoneCache: Boolean,
+	val searchDistance: Int,
 	val startedMillis: Long,
 	val alternatives: List<Stance> = emptyList(),
 	val routeOnly: Boolean = false,
@@ -181,6 +182,7 @@ internal fun preparePlanning(
 			dumpAllPlans = config.dumpAllPlans,
 			liveImprover = config.liveImprover,
 			useBaritoneCache = config.useBaritoneCache,
+			searchDistance = config.searchDistance,
 			startedMillis = started,
 		)
 	)

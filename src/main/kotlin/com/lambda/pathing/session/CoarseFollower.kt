@@ -103,7 +103,7 @@ internal class CoarseFollower(
 		return true
 	}
 
-	override fun capturable(sectionX: Int, sectionZ: Int): Boolean = world?.chunkCapturable(sectionX, sectionZ) ?: true
+	override fun loadable(chunkX: Int, chunkZ: Int): Boolean = world?.loadable(chunkX, chunkZ) ?: true
 
 	override val finalGoal: Stance get() = coarse.goal(coarse.legCount - 1)
 

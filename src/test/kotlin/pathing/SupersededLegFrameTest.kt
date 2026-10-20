@@ -8,7 +8,7 @@ import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.CoarseService
-import com.lambda.pathing.session.InterestPrimer
+import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.streaming.PathingWorld
@@ -31,19 +31,16 @@ class SupersededLegFrameTest {
 		val start = Stance(0, 64, 0)
 		val waypoint = Stance(8, 64, 0)
 		val goal = Stance(16, 64, 0)
-		val source = FakeCaptureSource(groundY = 64).apply { loadSquare(4) }
-		val world = PathingWorld(SimulationSnapshotBounds(Int.MIN_VALUE, -64, Int.MIN_VALUE, Int.MAX_VALUE, 319, Int.MAX_VALUE), source)
+		val source = FakeTerrainSource(groundY = 64).apply { loadSquare(4) }
+		val world = PathingWorld(SimulationSnapshotBounds(Int.MIN_VALUE, -64, Int.MIN_VALUE, Int.MAX_VALUE, 319, Int.MAX_VALUE), source, HazardRules.AVOID_ALL)
 		val changes = ConcurrentLinkedQueue<BlockPos>()
 		val running = AtomicBoolean(true)
 		val client = thread(name = "fake-client", isDaemon = true) {
 			while (running.get()) {
 				while (true) world.onBlockChanged(changes.poll() ?: break)
-				InterestPrimer.primeBody(world, BlockPos(start.x, start.y, start.z))
-				world.advance(15.0)
 				Thread.sleep(10)
 			}
 		}
-		InterestPrimer.primeJourney(world, start, goal, listOf(waypoint))
 		val options = SimpleMoveOptions()
 		val legs = listOf(
 			CoarsePlanningState(world.snapshot, options, start, waypoint),

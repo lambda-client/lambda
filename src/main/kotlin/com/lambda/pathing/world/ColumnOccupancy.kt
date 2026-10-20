@@ -1,5 +1,6 @@
 package com.lambda.pathing.world
 
+import com.lambda.pathing.core.CellBox
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
@@ -11,7 +12,7 @@ internal class ColumnOccupancy(private val view: CoarseVoxelView) {
 	private val unknown = LongOpenHashSet()
 	private val tops = Long2ObjectOpenHashMap<IntArray>()
 	private val scratch = Array(CellClass.PLANES) { LongArray(SECTION_WORDS) }
-	private var revision: Any? = view.revision
+	private val watch = TerrainWatch(view)
 	private var lastKey = 0L
 	private var last: ShortArray? = null
 
@@ -19,11 +20,57 @@ internal class ColumnOccupancy(private val view: CoarseVoxelView) {
 	private val maxY = view.simulableStanceY.last.let { if (it == Int.MAX_VALUE) DEFAULT_MAX_Y else it + CEILING_MARGIN }
 
 	fun synchronize(): Boolean {
-		val current = view.revision
-		if (current === revision) return false
-		revision = current
-		clear()
-		return true
+		var forgot = false
+		watch.poll({
+			clear()
+			forgot = true
+		}) { box -> if (forget(box)) forgot = true }
+		return forgot
+	}
+
+	private fun forget(box: CellBox): Boolean {
+		var forgot = false
+		val lowY = maxOf(box.ys.first, minY) shr 4
+		val highY = minOf(box.ys.last, maxY) shr 4
+		val chunks = ((box.xs.last shr 4) - (box.xs.first shr 4) + 1).toLong() * ((box.zs.last shr 4) - (box.zs.first shr 4) + 1)
+		if (highY >= lowY && chunks * (highY - lowY + 1) <= sections.size) {
+			for (sectionX in (box.xs.first shr 4)..(box.xs.last shr 4)) for (sectionZ in (box.zs.first shr 4)..(box.zs.last shr 4)) {
+				for (sectionY in lowY..highY) {
+					val key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
+					unknown.remove(key)
+					if (sections.remove(key) != null) forgot = true
+				}
+			}
+		} else {
+			val keys = sections.keys.iterator()
+			while (keys.hasNext()) {
+				val key = keys.nextLong()
+				val minX = ChunkSectionPos.unpackX(key) shl 4
+				val minY = ChunkSectionPos.unpackY(key) shl 4
+				val minZ = ChunkSectionPos.unpackZ(key) shl 4
+				if (!box.overlaps(minX, minY, minZ, minX + 15, minY + 15, minZ + 15)) continue
+				keys.remove()
+				unknown.remove(key)
+				forgot = true
+			}
+		}
+		if (chunks <= tops.size) {
+			for (chunkX in (box.xs.first shr 4)..(box.xs.last shr 4)) for (chunkZ in (box.zs.first shr 4)..(box.zs.last shr 4)) {
+				if (tops.remove(ChunkPos.toLong(chunkX, chunkZ)) != null) forgot = true
+			}
+		} else {
+			val columns = tops.keys.iterator()
+			while (columns.hasNext()) {
+				val key = columns.nextLong()
+				val minX = ChunkPos.getPackedX(key) shl 4
+				val minZ = ChunkPos.getPackedZ(key) shl 4
+				if (!box.overlaps(minX, box.ys.first, minZ, minX + 15, box.ys.last, minZ + 15)) continue
+				columns.remove()
+				forgot = true
+			}
+		}
+		last = null
+		return forgot
 	}
 
 	fun clear() {
@@ -153,7 +200,7 @@ internal class ColumnOccupancy(private val view: CoarseVoxelView) {
 	private companion object {
 		const val COLUMNS = 256
 		const val SECTION_WORDS = SECTION_CELL_COUNT / 64
-		const val CAPACITY = 4096
+		const val CAPACITY = 1 shl 16
 		const val FLOOR_MARGIN = 2
 		const val CEILING_MARGIN = 4
 		const val DEFAULT_MIN_Y = -64

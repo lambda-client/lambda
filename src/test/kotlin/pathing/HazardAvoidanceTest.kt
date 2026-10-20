@@ -142,7 +142,7 @@ class HazardAvoidanceTest {
 		for ((y, rows) in layers) for ((row, line) in rows.withIndex()) for ((column, symbol) in line.withIndex()) {
 			blocks[symbol]?.let { states[BlockPos(column - 4, y, row - 8)] = it }
 		}
-		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
+		val sampler = BlockPhysicsSampler(StatesView(states))
 		val environment = SnapshotSimulationEnvironment.synthetic(
 			SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
 			states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -216,7 +216,7 @@ class HazardAvoidanceTest {
 		val start = Stance(-4, 64, 0)
 		val goal = Stance(8, 64, 0)
 		fun environment(ignoreHazards: Boolean): SnapshotSimulationEnvironment {
-			val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), rules(ignoreHazards))
+			val sampler = BlockPhysicsSampler(StatesView(states), rules(ignoreHazards))
 			return SnapshotSimulationEnvironment.synthetic(
 				SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
 				states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -273,7 +273,7 @@ class HazardAvoidanceTest {
 		val states = HashMap<BlockPos, BlockState>()
 		for (x in -4..8) for (z in -1..1) states[BlockPos(x, 63, z)] = if (x in 1..4) Blocks.MAGMA_BLOCK.defaultState else Blocks.STONE.defaultState
 		for (z in listOf(-2, 2)) for (x in -4..8) for (y in 64..65) states[BlockPos(x, y, z)] = Blocks.STONE.defaultState
-		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), rules(ignoreHazards))
+		val sampler = BlockPhysicsSampler(StatesView(states), rules(ignoreHazards))
 		val environment = SnapshotSimulationEnvironment.synthetic(
 			SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
 			states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -302,7 +302,7 @@ class HazardAvoidanceTest {
 		for (x in -4..6) for (z in -2..2) states[BlockPos(x, 63, z)] = Blocks.STONE.defaultState
 		states[BlockPos(2, 64, 0)] = Blocks.CACTUS.defaultState
 		states[BlockPos(2, 65, 0)] = Blocks.GREEN_CARPET.defaultState
-		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
+		val sampler = BlockPhysicsSampler(StatesView(states))
 		val environment = SnapshotSimulationEnvironment.synthetic(
 			SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
 			states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
@@ -329,7 +329,7 @@ class HazardAvoidanceTest {
 		for (z in listOf(-2, 2)) for (x in -4..8) for (y in 64..65) states[BlockPos(x, y, z)] = Blocks.STONE.defaultState
 		val fires = listOf(BlockPos(2, 64, 0), BlockPos(3, 64, 0))
 		for (fire in fires) states[fire] = hazard
-		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
+		val sampler = BlockPhysicsSampler(StatesView(states))
 		val environment = SnapshotSimulationEnvironment.synthetic(
 			SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
 			states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },

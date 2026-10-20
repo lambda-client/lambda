@@ -577,7 +577,7 @@ internal object PathingTestHarness {
         }
         PathingService.world?.let { w ->
             append(" revision=").append(w.revision)
-            append(" pendingInterest=").append(w.pendingInterest)
+            append(" derived=").append(w.sectionsDerived)
         }
     }
 
