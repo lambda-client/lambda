@@ -201,10 +201,14 @@ object InventoryManager : Manager<InventoryRequest>(
 			val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
 			packet.contents.forEachIndexed { index, incomingStack ->
 				val matches = alteredSlots.removeIf { cached ->
-					incomingStack.equal(cached.after)
+					cached.slotId == index && incomingStack.equal(cached.after)
 				}
-				if (matches) alteredContents.add(packetScreenHandler.slots[index].stack)
-				else alteredContents.add(incomingStack)
+				if (matches) {
+					alteredContents.add(packetScreenHandler.slots[index].stack)
+				} else {
+					alteredSlots.removeIf { it.slotId == index }
+					alteredContents.add(incomingStack)
+				}
 			}
 			packetScreenHandler.updateSlotStacks(packet.revision(), alteredContents, packet.cursorStack())
 			return
@@ -235,6 +239,7 @@ object InventoryManager : Manager<InventoryRequest>(
 			val matches = alteredSlots.removeIf {
 				it.slotId == packet.slot && it.after.equal(itemStack)
 			}
+			if (!matches) alteredSlots.removeIf { it.slotId == packet.slot }
 
 			if (packet.syncId == 0) {
 				if (PlayerScreenHandler.isInHotbar(packet.slot) && !itemStack.isEmpty) {
