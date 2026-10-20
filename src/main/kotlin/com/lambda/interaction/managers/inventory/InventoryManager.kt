@@ -177,6 +177,17 @@ object InventoryManager : Manager<InventoryRequest>(
 		}
 	}
 
+	/**
+	 * Re-caches the slots after applying a server update, so the server's changes aren't later
+	 * indexed as local ones and used to block a newer update for the same slot.
+	 */
+	context(safeContext: SafeContext)
+	private fun refreshCachedSlots() {
+		with(safeContext) {
+			if (player.currentScreenHandler.syncId == screenHandler?.syncId) slots = getStacks(player.currentScreenHandler.slots)
+		}
+	}
+
 	private fun getStacks(slots: Collection<Slot>) = slots.map { it.stack.copy() }
 
 	/**
@@ -197,6 +208,7 @@ object InventoryManager : Manager<InventoryRequest>(
 					player.currentScreenHandler.syncId -> player.currentScreenHandler
 					else -> return@runSafe
 				}
+			indexInventoryChanges()
 			val alteredContents = mutableListOf<ItemStack>()
 			val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
 			packet.contents.forEachIndexed { index, incomingStack ->
@@ -211,6 +223,7 @@ object InventoryManager : Manager<InventoryRequest>(
 				}
 			}
 			packetScreenHandler.updateSlotStacks(packet.revision(), alteredContents, packet.cursorStack())
+			refreshCachedSlots()
 			return
 		}
 		original.call(packet)
@@ -235,6 +248,7 @@ object InventoryManager : Manager<InventoryRequest>(
 				!it.isInventoryTabSelected
 			} ?: false
 
+			indexInventoryChanges()
 			val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
 			val matches = alteredSlots.removeIf {
 				it.slotId == packet.slot && it.after.equal(itemStack)
@@ -260,6 +274,7 @@ object InventoryManager : Manager<InventoryRequest>(
 				player.playerScreenHandler.setReceivedStack(packet.slot, itemStack)
 				player.playerScreenHandler.sendContentUpdates()
 			}
+			refreshCachedSlots()
 			return
 		}
 		original.call(packet)
