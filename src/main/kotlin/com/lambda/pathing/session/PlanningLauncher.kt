@@ -23,13 +23,14 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	var lastJob: PlanningJob? = null
 		private set
 
+	var resumeRoute = false
+
 	private var deadEnd: String? = null
 	private var deadEndMobs = false
-	private var mobWaitSince = 0L
-	private var mobPatienceSince = 0L
-	private var mobCells: LongArray? = null
+	private var throughMobsUntil = 0L
 	private var successor: PlanningSession? = null
 	private var successorPath: PublishedPath? = null
+	private var successorJoin = -1
 
 	fun cancel() {
 		val planning = current
@@ -42,47 +43,63 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		successor?.cancel()
 		successor = null
 		successorPath = null
+		successorJoin = -1
+	}
+
+	fun SafeContext.joinBridge(replay: Replay): Boolean {
+		val frame = replay.cursor.nextFrame
+		if (successorJoin >= 0 && frame >= successorJoin) {
+			val next = successor
+			val path = successorPath
+			val joins = frame == successorJoin && path != null && path.plan.initialState == joinState(replay, frame)
+			if (!joins) dropSuccessor() else {
+				successor = null
+				successorPath = null
+				successorJoin = -1
+				if (next != null) {
+					current = next
+					lastJob = next.job
+					next.attach()
+				}
+				with(walk.admission) { join(path) }
+				return true
+			}
+		}
+		val join = frame + JOIN_LEAD_FRAMES
+		if (successorJoin < 0 && frame >= BRIDGE_SETTLE_FRAMES && (frame - BRIDGE_SETTLE_FRAMES) % JOIN_LEAD_FRAMES == 0 && join < replay.path.plan.tape.frameCount) {
+			planJoin(replay, join)
+		}
+		return false
+	}
+
+	private fun joinState(replay: Replay, frame: Int) = replay.path.plan.frames[frame - 1].state.copy(isJumping = false)
+
+	private fun SafeContext.planJoin(replay: Replay, join: Int) {
+		val prepared = preparePlanning(player, walk.request, walk.goal, walk.remainingWaypoints(), initialOverride = joinState(replay, join))
+		val preparation = (prepared as? PlanningPreparationResult.Ready)?.preparation ?: return
+		val journey = walk.journey?.takeIf { it.compatibleWith(preparation) } ?: return
+		dropSuccessor()
+		val session = PlanningSession(attached = false)
+		successor = session
+		successorJoin = join
+		launch(session, preparation, journey, resumed = true)
 	}
 
 	fun reset() {
 		cancel()
 		deadEnd = null
 		deadEndMobs = false
-		mobWaitSince = 0L
-		mobPatienceSince = 0L
-		mobCells = null
 	}
 
 	fun progressed() {
 		restarts = 0
-		mobPatienceSince = 0L
-	}
-
-	fun SafeContext.retryAfterMobs() {
-		if (current != null || mobWaitSince == 0L) return
-		val waited = System.currentTimeMillis() - mobWaitSince
-		val moved = walk.journey?.world?.obstacleCells !== mobCells
-		if (waited < MOB_RETRY_MIN_MILLIS || !moved && waited < MOB_RETRY_MAX_MILLIS) return
-		mobWaitSince = 0L
-		mobCells = null
-		with(walk) { planTrajectory() }
-	}
-
-	private fun waitForMobs(reason: String): Boolean {
-		val now = System.currentTimeMillis()
-		if (mobPatienceSince == 0L) mobPatienceSince = now
-		if (now - mobPatienceSince > (walk.request.pathingConfig.mobWaitSeconds * MILLIS_PER_SECOND).toLong()) return false
-		current = null
-		mobWaitSince = now
-		mobCells = walk.journey?.world?.obstacleCells
-		LOG.info("Planning dead-ended before motion with mobs on the route ({}); waiting for them to move", reason)
-		return true
 	}
 
 	fun SafeContext.capturePlan() {
 		walk.tickInput = ALIGNMENT_INPUT
 
 		cancel()
+		val resumed = resumeRoute.also { resumeRoute = false }
 		val request = walk.request
 		val session = PlanningSession()
 		current = session
@@ -113,7 +130,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			walk.journey?.cancel()
 			PlanningJourney.open(preparation, player).also { walk.journey = it }
 		}
-		launch(session, preparation, currentJourney)
+		launch(session, preparation, currentJourney, resumed)
 		walk.advanceWorld()
 	}
 
@@ -157,7 +174,8 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		}
 		when (val completed = checkNotNull(result)) {
 			is PathPlanResult.Planned -> with(walk.admission) { adopt(completed.path) }
-			is PathPlanResult.Failed ->
+			is PathPlanResult.Failed -> {
+				if (completed.mobs) throughMobsUntil = System.currentTimeMillis() + THROUGH_MOBS_MILLIS
 				if (walk.replay != null) {
 					deadEnd = completed.reason
 					deadEndMobs = completed.mobs
@@ -167,8 +185,11 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 						completed.reason,
 					)
 					planSuccessor()
-				} else if (completed.mobs && waitForMobs(completed.reason)) {
-					return
+				} else if (completed.mobs) {
+					current = null
+					resumeRoute = true
+					LOG.info("Planning dead-ended before motion with mobs on the route ({}); planning through them", completed.reason)
+					with(walk) { planTrajectory() }
 				} else if (restarts < MAX_SESSION_RESTARTS &&
 					walk.journey?.world?.revision != session.launchRevision
 				) {
@@ -180,6 +201,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 					)
 					with(walk) { planTrajectory() }
 				} else with(walk) { fail(completed.reason) }
+			}
 			PathPlanResult.Cancelled -> with(walk) { fail("planning was cancelled") }
 		}
 		if (current === session) {
@@ -219,6 +241,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	}
 
 	fun SafeContext.resumeAfterHold() {
+		if (successorJoin >= 0) dropSuccessor()
 		val reason = deadEnd
 		val mobs = deadEndMobs
 		deadEnd = null
@@ -255,9 +278,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	}
 
 	fun SafeContext.retargeted() {
-		successor?.cancel()
-		successor = null
-		successorPath = null
+		dropSuccessor()
 		if (current == null && walk.replay != null) planSuccessor()
 	}
 
@@ -282,7 +303,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		val successorJourney = walk.journey?.takeIf { it.compatibleWith(preparation) } ?: return
 		val session = PlanningSession(attached = false)
 		successor = session
-		launch(session, preparation, successorJourney)
+		launch(session, preparation, successorJourney, resumed = true)
 	}
 
 	private fun SafeContext.published(session: PlanningSession, path: PublishedPath, running: Boolean) {
@@ -307,7 +328,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		successor = null
 	}
 
-	private fun SafeContext.launch(session: PlanningSession, preparation: PlanningPreparation, journey: PlanningJourney) {
+	private fun SafeContext.launch(session: PlanningSession, preparation: PlanningPreparation, journey: PlanningJourney, resumed: Boolean) {
 		session.launchRevision = journey.world.revision
 		val job = PlanningJob(
 			preparation = preparation,
@@ -318,6 +339,8 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			rehearsal = walk.rehearsal.takeIf { session === current },
 			onRehearsal = { point, path -> mc.execute { rehearsed(session, point, path) } },
 			onRehearsalProgress = { progress -> rehearsalProgress(session, progress) },
+			resumed = resumed,
+			throughMobs = System.currentTimeMillis() < throughMobsUntil,
 		)
 		session.job = job
 		if (session === current) lastJob = job
@@ -336,10 +359,10 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 		const val MAX_SESSION_RESTARTS = 3
 
-		const val MOB_RETRY_MIN_MILLIS = 1_000L
+		const val THROUGH_MOBS_MILLIS = 5_000L
 
-		const val MOB_RETRY_MAX_MILLIS = 3_000L
+		const val JOIN_LEAD_FRAMES = 10
 
-		const val MILLIS_PER_SECOND = 1000.0
+		const val BRIDGE_SETTLE_FRAMES = 2
 	}
 }

@@ -13,6 +13,7 @@ data class Telemetry(
 	val trail: List<Vec3d>,
 	val holds: Int = 0,
 	val repairs: Int = 0,
+	val pushes: Int = 0,
 	val leg: Int = 0,
 	val queuedWaypoints: Int = 0,
 	val sessionRestarts: Int = 0,
@@ -51,6 +52,9 @@ internal class WalkTelemetry {
 		private set
 
 	var repairs: Int = 0
+		private set
+
+	var pushes: Int = 0
 		private set
 
 	private val trail = ArrayDeque<Vec3d>()
@@ -96,6 +100,8 @@ internal class WalkTelemetry {
 
 	fun countRecovery() = update { recoveries++ }
 
+	fun countPush() = update { pushes++ }
+
 	fun countRejectedImprovement() = update { rejectedImprovements++ }
 
 	fun snapshot(): Telemetry {
@@ -110,6 +116,7 @@ internal class WalkTelemetry {
 				trail = ArrayList(trail),
 				holds = holds,
 				repairs = repairs,
+				pushes = pushes,
 				cadence = cadence(),
 			).also { cached = it }
 		}

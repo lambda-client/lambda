@@ -181,23 +181,9 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(HAZARDS_GROUP)
     override val avoidMobs by c.setting(
         "Avoid Mobs", true,
-        "Plan around nearby mobs, animals and other players instead of through them, and wait for them to move " +
-            "when they block the only way. Off, entities are ignored and every push makes the walk replan.",
+        "Plan the trajectory around nearby mobs, animals and other players, and through them when they block the " +
+            "only way. Pushes are absorbed by replaying the tape from the pushed body either way.",
     )
-
-    @Group(HAZARDS_GROUP)
-    override val mobLingerSeconds by c.setting(
-        "Mob Linger", 3.0, 0.0..10.0, 0.5,
-        "How long a cell stays closed after the entity standing in it leaves.",
-        unit = " s",
-    ) { avoidMobs }
-
-    @Group(HAZARDS_GROUP)
-    override val mobWaitSeconds by c.setting(
-        "Mob Wait", 30.0, 0.0..120.0, 5.0,
-        "How long a walk whose only way is blocked by entities waits for them to move before it gives up.",
-        unit = " s",
-    ) { avoidMobs }
 
     @Group(HAZARDS_GROUP)
     override val allowFallDamage by c.setting(

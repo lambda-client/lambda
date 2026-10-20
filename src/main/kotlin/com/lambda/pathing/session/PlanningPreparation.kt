@@ -23,7 +23,6 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.nio.file.Path
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 
 internal sealed interface PlanningPreparationResult {
 	data class Ready(val preparation: PlanningPreparation) : PlanningPreparationResult
@@ -112,7 +111,6 @@ internal fun preparePlanning(
 		fallLimits = fallLimits,
 		hazards = config.hazards,
 		avoidMobs = config.avoidMobs,
-		mobLingerTicks = (config.mobLingerSeconds * Vanilla.TICKS_PER_SECOND).roundToLong(),
 		airReserve = airReserve,
 		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
 		frontierTicksPerBlock = config.frontierTicksPerBlock,

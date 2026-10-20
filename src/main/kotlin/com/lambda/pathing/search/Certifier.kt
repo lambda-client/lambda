@@ -10,6 +10,8 @@ import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.UnsupportedBlockPhysicsException
+import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 
 internal class Certifier(
@@ -35,6 +37,8 @@ internal class Certifier(
 
 	var lastFailure: String? = null
 		private set
+
+	var entityBlocked = false
 
 	fun forget(mutations: Set<VoxelPos>, chunks: Set<PathingChunk>, executed: Int) {
 		for (frame in executed.coerceAtLeast(0) until certifiedDependencies.size) {
@@ -88,6 +92,8 @@ internal class Certifier(
 		if (!certified.completed || certified.frames.size != suffix.size) {
 			failures++
 			lastFailure = describe(certified.termination, shared)
+			val failure = (certified.termination as? TrajectoryRolloutTermination.Rejected)?.failure
+			if (failure is UnsupportedBlockPhysicsException && failure.physics.kind == UnsupportedPhysicsKind.ENTITY) entityBlocked = true
 			return MotionPlanResult.UnstableReplay(
 				"value-field tape did not reproduce: ${certified.termination}"
 			)

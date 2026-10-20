@@ -10,7 +10,6 @@ import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.world.streaming.EntityObstacles
-import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import minecraft.MinecraftBootstrap
 import net.minecraft.util.math.BlockPos
@@ -19,11 +18,12 @@ import pathing.ProbeScenarios.moveLibrary
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
- * Mobs as temporary obstacles: the cells a pushing entity stands in close for a few seconds after
- * it leaves them, and a walk plans around them instead of through them.
+ * Mobs as obstacles of the trajectory: the cells a pushing entity stands in are closed while it stands there,
+ * and a walk plans around them instead of through them.
  */
 class EntityObstaclesTest {
 	init {
@@ -31,30 +31,22 @@ class EntityObstaclesTest {
 	}
 
 	@Test
-	fun `a cell stays closed for the linger time after the mob leaves it`() {
-		val obstacles = EntityObstacles(lingerTicks = 3)
+	fun `a cell reopens as soon as the mob leaves it`() {
+		val obstacles = EntityObstacles()
 		val cell = BlockPos.asLong(4, 64, 0)
-		val changed = LongArrayList()
-		obstacles.update(LongOpenHashSet(longArrayOf(cell)), changed)
-		assertEquals(listOf(cell), changed.toList(), "a newly occupied cell is a change")
-		repeat(3) { tick ->
-			changed.clear()
-			obstacles.update(LongOpenHashSet(), changed)
-			if (tick < 2) assertTrue(cell in obstacles && changed.isEmpty, "the cell lingers after the mob left (tick $tick)")
-		}
-		assertFalse(cell in obstacles, "the cell reopens once the linger time is over")
-		assertEquals(listOf(cell), changed.toList(), "reopening is a change")
+		obstacles.update(LongOpenHashSet(longArrayOf(cell)))
+		assertTrue(cell in obstacles, "an occupied cell is closed")
+		obstacles.update(LongOpenHashSet())
+		assertFalse(cell in obstacles, "the cell reopens the tick the mob leaves")
 	}
 
 	@Test
-	fun `a cell the player's body touches is released at once`() {
-		val obstacles = EntityObstacles(lingerTicks = 60)
-		val cell = BlockPos.asLong(4, 64, 0)
-		obstacles.update(LongOpenHashSet(longArrayOf(cell)), LongArrayList())
-		val changed = LongArrayList()
-		obstacles.update(LongOpenHashSet(), changed) { it == cell }
-		assertFalse(cell in obstacles, "the player may never stand in a closed cell")
-		assertEquals(listOf(cell), changed.toList())
+	fun `unchanged occupancy keeps publishing the same cells`() {
+		val obstacles = EntityObstacles()
+		obstacles.update(LongOpenHashSet(longArrayOf(BlockPos.asLong(4, 64, 0))))
+		val published = obstacles.cells
+		obstacles.update(LongOpenHashSet(longArrayOf(BlockPos.asLong(4, 64, 0))))
+		assertSame(published, obstacles.cells, "consumers detect obstacle changes by identity")
 	}
 
 	@Test

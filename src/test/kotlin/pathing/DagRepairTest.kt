@@ -26,6 +26,7 @@ import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.floor
@@ -122,5 +123,68 @@ class DagRepairTest {
         val shared = first.zip(final).takeWhile { (a, b) -> a == b }.size
         assertTrue(shared >= 8, "the repaired tape must keep the executed prefix, shared only $shared frames")
         println("[repair] first=${first.size} final=${final.size} shared=$shared repairs=${report.repairs}")
+    }
+
+    @Test
+    fun `a mob stepping onto the published tail is walked around from a junction`() {
+        val sections = HashMap<Long, ImmutableSnapshotSection>()
+        for (sx in -1..3) for (sz in -1..1) sections[ChunkSectionPos.asLong(sx, 0, sz)] = floorSection(sx, withWall = false)
+        val environment = SnapshotSimulationEnvironment(
+            bounds = SimulationSnapshotBounds(-16, 0, -16, 63, 15, 31),
+            sections = sections,
+            defaultBlock = SnapshotBlockPhysics.AIR,
+        )
+        val start = Stance(2, 4, 0)
+        val goal = Stance(45, 4, 0)
+        val moves = moveLibrary(SimpleMoveOptions())
+        val planner = CoarsePlanner(environment, moves, start, goal)
+        assertTrue(planner.repair().converged)
+        planner.expandSearchField()
+        val route = checkNotNull(planner.routePlan(0L))
+
+        val mob = buildList { for (x in 29..30) for (z in -1..0) for (y in 4..5) add(BlockPos.asLong(x, y, z)) }.toLongArray()
+        val mobBox = Box(29.0, 4.0, -1.0, 31.0, 6.0, 1.0)
+        val none = LongArray(0)
+        var cells = none
+        val clock = VirtualSearchClock()
+        var firstTape: List<com.lambda.pathing.physics.MovementSimulationInput>? = null
+        var publishedFrames = 0
+        var exhaustion: SearchStats? = null
+
+        val outcome = walkHorizon(
+            route, planner, resting(Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5), -90.0), PROFILE, environment, MotionConstraints(),
+            execution = clock,
+            publish = { path, _ ->
+                if (firstTape == null) firstTape = path.plan.tape.asList()
+                publishedFrames = path.plan.tape.frameCount
+            },
+            started = System.currentTimeMillis(),
+            clock = clock,
+            world = object : WorldLink {
+                override fun await(timeoutMillis: Long) = false
+
+                override fun loadable(chunkX: Int, chunkZ: Int) = true
+
+                override fun obstacles(): LongArray = cells
+
+                override fun sync(route: CoarseRoutePlan, from: com.lambda.pathing.actions.BodyState): WorldSyncResult {
+                    if (cells === none && clock.cursorFrame() >= 10 && publishedFrames >= 70) {
+                        cells = mob
+                        environment.entityCells(mob)
+                    }
+                    return WorldSyncResult.Quiet
+                }
+            },
+            onConcluded = { exhaustion = it },
+        )
+
+        val planned = assertNotNull((outcome as? PathPlanResult.Planned)?.path, "no plan: $outcome")
+        assertTrue(cells === mob, "the mob must have stepped in during the walk")
+        assertTrue(!planned.partial, "the walk must arrive around the mob")
+        val report = assertNotNull(exhaustion)
+        assertTrue(report.repairs >= 1, "the tail through the mob must be repaired: $report")
+        assertTrue(planned.plan.frames.none { it.state.boundingBox.intersects(mobBox) }, "the repaired tape must not touch the mob")
+        val shared = assertNotNull(firstTape).zip(planned.plan.tape.asList()).takeWhile { (a, b) -> a == b }.size
+        assertTrue(shared >= 8, "the repaired tape must keep the executed prefix, shared only $shared frames")
     }
 }

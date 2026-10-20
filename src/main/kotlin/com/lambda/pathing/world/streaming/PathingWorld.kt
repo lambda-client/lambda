@@ -36,6 +36,8 @@ class PathingWorld internal constructor(
 
 	val snapshot: SnapshotSimulationEnvironment = SnapshotSimulationEnvironment.live(bounds, sections) { misses.incrementAndGet() }
 
+	val terrainSnapshot: SnapshotSimulationEnvironment = snapshot.ignoringEntities()
+
 	val revision: Long get() = revisions.revision
 
 	val sectionsDerived: Int get() = sections.size

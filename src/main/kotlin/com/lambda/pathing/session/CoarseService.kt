@@ -164,6 +164,11 @@ internal class CoarseService(
 		frame
 	}
 
+	fun resumable(leg: Int, start: Stance, speed: SpeedClass): Frame? {
+		follow(leg, start, speed)
+		return lock.withLock { standing(leg) }?.takeIf { it.labels.maps(start) }
+	}
+
 	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean, arrives: (Stance) -> Boolean = { it == goals[leg] }): Frame? {
 		val goal = goals[leg]
 		val waitUntil = System.nanoTime() + FULL_ROUTE_WAIT_MILLIS * 1_000_000L

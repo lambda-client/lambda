@@ -46,7 +46,7 @@ internal class SessionHeartbeat {
 		val telemetry = walk.telemetry.snapshot()
 		append(" | adopted +").append(telemetry.adopted - adopted)
 		append(", rejected +").append(telemetry.rejectedImprovements - rejected)
-		append(", recoveries ").append(telemetry.recoveries).append(", holds ").append(telemetry.holds)
+		append(", recoveries ").append(telemetry.recoveries).append(", pushes ").append(telemetry.pushes).append(", holds ").append(telemetry.holds)
 		append(", verified world changes ").append(walk.telemetry.verifiedChanges)
 		adopted = telemetry.adopted
 		rejected = telemetry.rejectedImprovements

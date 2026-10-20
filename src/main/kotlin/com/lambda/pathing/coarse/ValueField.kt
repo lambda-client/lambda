@@ -17,11 +17,19 @@ interface ValueField : SteeringField {
 	fun steps(stance: Stance, count: Int, marginTicks: Double = Double.MAX_VALUE): List<CoarseEdge>
 
 	fun reachesGoal(chain: List<Stance>): Boolean
+
+	fun obstruct(cells: LongArray) {}
 }
 
 class SwitchableValueField(initial: CoarseValueField) : ValueField {
+	private var obstacles: LongArray? = null
+
 	@Volatile
 	var current: CoarseValueField = initial
+		set(value) {
+			field = value
+			obstacles?.let(value::obstruct)
+		}
 
 	override val view: CoarseVoxelView get() = current.view
 
@@ -38,4 +46,9 @@ class SwitchableValueField(initial: CoarseValueField) : ValueField {
 		current.chain(stance, firstStep, length)
 
 	override fun reachesGoal(chain: List<Stance>): Boolean = current.reachesGoal(chain)
+
+	override fun obstruct(cells: LongArray) {
+		obstacles = cells
+		current.obstruct(cells)
+	}
 }

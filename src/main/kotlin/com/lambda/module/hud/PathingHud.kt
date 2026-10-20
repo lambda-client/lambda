@@ -110,6 +110,7 @@ object PathingHud : HudModule(
         row(Cell("frame", "$cursor/$frames"), Cell("runway", if (path.partial) "$runway" else "$runway to goal", runwayColor))
         row(Cell("adopted", "${telemetry.adopted}/${telemetry.adopted + telemetry.rejectedImprovements}"), Cell("repairs", telemetry.repairs))
         row(Cell("holds", telemetry.holds), Cell("recovered", telemetry.recoveries))
+        row(Cell("pushes", telemetry.pushes))
         row(
             Cell("ratio", if (!path.partial && path.excessRatio.isFinite()) "%.2fx".format(path.excessRatio) else "-"),
             Cell("deviation", if (telemetry.maxDeviation > 0.0) "%.0e".format(telemetry.maxDeviation) else "0"),

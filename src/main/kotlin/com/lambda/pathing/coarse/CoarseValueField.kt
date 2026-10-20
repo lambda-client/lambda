@@ -23,7 +23,20 @@ class CoarseValueField(
 	private val options = HashMap<Stance, Options>()
 	private var optionsRevision = labelRevision()
 
+	@Volatile
+	private var detours: Detours? = null
+	private val detourEdges = HashMap<Stance, List<CoarseEdge>>()
+
 	override fun invalidate() {
+		chains.clear()
+		options.clear()
+		detourEdges.clear()
+	}
+
+	override fun obstruct(cells: LongArray) {
+		detours = Detours.of(cells, { minOf(labelAt(it, SpeedClass.MOVING), labelAt(it, SpeedClass.STOPPED)) }) { stance ->
+			detourEdges.getOrPut(stance) { edgesFrom(stance) }
+		}
 		chains.clear()
 		options.clear()
 	}
@@ -36,12 +49,13 @@ class CoarseValueField(
 	override fun guide(stance: Stance, speed: SpeedClass): Double = guideVia(stance) { labelAt(it, speed) }
 
 	private inline fun guideVia(stance: Stance, labelOf: (Stance) -> Double): Double {
+		val detours = detours
 		val direct = labelOf(stance)
-		if (direct.isFinite()) return direct
+		if (direct.isFinite()) return if (detours == null) direct else direct + detours.penalty(stance)
 		var best = Double.POSITIVE_INFINITY
 		for ((_, _, to, _, lowerBoundTicks) in edgesFrom(stance)) {
 			val neighbour = labelOf(to)
-			if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour)
+			if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour + (detours?.penalty(to) ?: 0.0))
 		}
 		return best
 	}

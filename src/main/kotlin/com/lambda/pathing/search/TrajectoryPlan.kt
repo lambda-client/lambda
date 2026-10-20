@@ -5,6 +5,7 @@ import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
+import com.lambda.pathing.rollout.TrajectoryRolloutTermination
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.VoxelPos
@@ -95,6 +96,8 @@ class TrajectoryPlan internal constructor(
 	fun firstFrameReading(cells: Set<VoxelPos>, chunks: Set<PathingChunk>): Int? =
 		(cells.mapNotNull(cellReads::first) + chunks.mapNotNull(chunkReads::first)).minOrNull()
 
+	fun readsAny(cells: Collection<VoxelPos>, nextFrame: Int, untilFrame: Int): Boolean = cells.any { cellReads.reads(it, nextFrame, untilFrame) }
+
 	fun firstFrameReading(mutation: WorldMutation): Int? = when (mutation) {
 		is WorldMutation.Cell -> cellReads.first(mutation.cell)
 		is WorldMutation.Chunk -> chunkReads.first(mutation.chunk)
@@ -104,6 +107,14 @@ class TrajectoryPlan internal constructor(
 		private const val REQUIRED_STABLE_STOP_FRAMES = 3
 		private const val TERMINAL_STOP_SPEED = MotionConstraints.STOPPED_SPEED + 1.0E-9
 	}
+}
+
+internal fun TrajectoryPlan.firstRejectedFrame(environment: SimulationEnvironment, nextFrame: Int): Int? {
+	if (nextFrame >= frames.size) return null
+	val start = if (nextFrame == 0) initialState else frames[nextFrame - 1].state
+	val expected = frames.subList(nextFrame, frames.size)
+	val replayed = TrajectoryRolloutEngine.rollout(start, physicsProfile, environment, InputTape(expected.map { it.input }), expected.size)
+	return (replayed.termination as? TrajectoryRolloutTermination.Rejected)?.let { nextFrame + it.frame }
 }
 
 internal fun TrajectoryPlan.replaysUnchanged(environment: SimulationEnvironment, nextFrame: Int, untilFrame: Int): Boolean {

@@ -78,6 +78,13 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		}
 	}
 
+	fun SafeContext.join(path: PublishedPath) {
+		executionEnvironmentDeviation(path, nextFrame = 0)?.let { return staleBeforeExecution(it) }
+		replay(path, frame = 0)
+		walk.state = State.Executing(0, path.plan.tape.frameCount, walk.leg)
+		LOG.info("Joined a {}-frame trajectory planned past the push", path.plan.tape.frameCount)
+	}
+
 	private fun SafeContext.joinAfloat(path: PublishedPath, frame: Int) {
 		if (frame >= path.plan.tape.frameCount) return with(walk) { recoverOrFail("treaded $frame frames before the first tape arrived") }
 		executionEnvironmentDeviation(path, nextFrame = frame)?.let { return staleBeforeExecution(it) }
@@ -143,7 +150,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		val mutation = world.mutationsSince(since)
 			.firstOrNull { path.plan.reads(it, nextFrame, untilFrame) } ?: return null
 		if (replay != null) {
-			if (path.plan.replaysUnchanged(world.snapshot, nextFrame, untilFrame)) {
+			if (path.plan.replaysUnchanged(world.terrainSnapshot, nextFrame, untilFrame)) {
 				replay.verifiedRevision = revision
 				walk.telemetry.countVerifiedChange()
 				return null

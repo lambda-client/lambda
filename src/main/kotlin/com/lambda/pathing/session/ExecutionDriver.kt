@@ -8,6 +8,7 @@ import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionObservationResult
+import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.repairFrame
 import com.lambda.pathing.search.PublishedPath
@@ -26,7 +27,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		val active = walk.replay ?: return
 
 		walk.launcher.current?.updateExecutionFrame(active.cursor.nextFrame)
-		if (active.cursor.awaitingObservation && !finishObservedTick(active)) return
+		if (active.cursor.awaitingObservation && !finishObservedTick(active)) return continueReplaced(active)
 
 		active.pendingImprovement?.let { improvement ->
 			active.pendingImprovement = null
@@ -34,6 +35,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		}
 
 		val replay = walk.replay ?: return
+		if (replay.bridged && with(walk.launcher) { joinBridge(replay) }) return continueReplaced(replay)
 		val current = replay.path
 		val running = replay.cursor
 		if (!current.partial && running.nextFrame >= current.plan.stationaryFrom && running.nextFrame < current.plan.tape.frameCount) {
@@ -41,7 +43,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		}
 		if (replay.holding) return enterHold(replay)
 
-		if (running.nextFrame == 0 && with(walk.alignment) { realignBeforeLaunch(current) }) return
+		if (running.nextFrame == 0 && current.plan.initialState.velocity.horizontalLengthSquared() == 0.0 && with(walk.alignment) { realignBeforeLaunch(current) }) return
 
 		val observed = observe(current.plan, running.nextFrame)
 		announcePassedWaypoints(current, running.nextFrame)
@@ -68,8 +70,16 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 
 			ExecutionInputResult.Complete -> finishTrajectory(replay)
 
-			is ExecutionInputResult.Rejected -> reject(current, next.frame, next.deviation, observed, afterInput = false)
+			is ExecutionInputResult.Rejected -> {
+				reject(current, next.frame, next.deviation, observed, afterInput = false)
+				continueReplaced(replay)
+			}
 		}
+	}
+
+	private fun SafeContext.continueReplaced(previous: Replay) {
+		val next = walk.replay ?: return
+		if (next !== previous && next.cursor.nextFrame == 0 && !next.cursor.awaitingObservation) tickExecution()
 	}
 
 	private fun SafeContext.finishObservedTick(replay: Replay): Boolean {
@@ -216,6 +226,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		observed: MovementSimulationState,
 		afterInput: Boolean,
 	) {
+		if (rebase(path, frame, deviation, observed, afterInput)) return
 		val journey = walk.journey
 		val report = executionRejectionReport(path, frame, deviation, observed, afterInput, journey?.world?.snapshot, journey?.hazards ?: HazardRules.AVOID_ALL)
 		val history = walk.replay?.takeIf { it.path === path }?.observedHistory?.toList().orEmpty()
@@ -233,6 +244,27 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 				else -> recoverOrFail(report)
 			}
 		}
+	}
+
+	private fun SafeContext.rebase(
+		path: PublishedPath,
+		frame: Int,
+		deviation: ExecutionDeviation,
+		observed: MovementSimulationState,
+		afterInput: Boolean,
+	): Boolean {
+		if (deviation !is ExecutionDeviation.Velocity && deviation !is ExecutionDeviation.Position) return false
+		val replay = walk.replay?.takeIf { it.path === path && it.repairDeadline == null && !it.holding } ?: return false
+		if (replay.bridged && !afterInput && frame == 0) return false
+		val world = walk.journey?.world ?: return false
+		if (!pushedByEntity()) return false
+		val bridge = rebased(path, if (afterInput) frame + 1 else frame, observed, world.terrainSnapshot, world.revision) ?: return false
+		walk.launcher.cancel()
+		walk.replay = Replay(bridge, TrajectoryExecutionCursor(bridge.plan), bridged = true)
+		walk.telemetry.published = bridge
+		walk.telemetry.countPush()
+		LOG.debug("Pushed off frame {} ({}); replaying the remaining {} frames from the pushed state", frame, deviation, bridge.plan.tape.frameCount)
+		return true
 	}
 
 	private fun arrivedBeforeTeleport(replay: Replay, frame: Int): Boolean {

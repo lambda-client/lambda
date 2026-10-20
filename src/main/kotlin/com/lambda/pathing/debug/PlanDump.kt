@@ -22,7 +22,6 @@ import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.world.store.StoredTerrain
 import com.lambda.pathing.world.store.TerrainStore
-import com.lambda.pathing.world.streaming.EntityObstacles
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -277,7 +276,7 @@ internal object PlanDump {
 		allowDeepDropJumps, allowSwimming, allowDeepFalls,
 		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
 		hazards == HazardRules.IGNORE_ALL, allowDiving, avoidMobs, allowNeoJumps,
-		hazards.avoidFire, hazards.avoidCacti, hazards.sneakOnMagma, airReserve, mobLingerTicks,
+		hazards.avoidFire, hazards.avoidCacti, hazards.sneakOnMagma, airReserve,
 	).joinToString(" ")
 
 	private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -310,7 +309,6 @@ internal object PlanDump {
 		avoidMobs = parts.getOrNull(20)?.toBoolean() ?: false,
 		allowNeoJumps = parts.getOrNull(21)?.toBoolean() ?: false,
 		airReserve = parts.getOrNull(OPTIONS_HAZARDS + 3)?.toInt() ?: SimpleMoveOptions.DEFAULT_AIR_RESERVE,
-		mobLingerTicks = parts.getOrNull(OPTIONS_HAZARDS + 4)?.toLong() ?: EntityObstacles.LINGER_TICKS,
 	)
 
 	private fun MotionConstraints.dump(): String = listOf(

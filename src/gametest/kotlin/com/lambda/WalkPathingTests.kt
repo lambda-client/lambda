@@ -56,9 +56,9 @@ internal object WalkPathingTests {
         assertPathingWalk(context, server, "pathing-mob-in-the-way", Stance(0, 100, 8))
         server.runCommand("/kill @e[type=minecraft:cow]")
 
-        // A cow standing in the only one-wide gap through a wall: no route avoids it, so the
-        // walk dead-ends before motion. Mobs are temporary obstacles, so the session must
-        // hold and retry until the cow is gone instead of failing the walk.
+        // A cow standing in the only one-wide gap through a wall: no trajectory avoids it, so
+        // the session plans through it instead of failing the walk, absorbing the pushes until
+        // the body squeezes past or the cow is gone.
         server.runCommand("/fill -8 100 2 -1 101 6 minecraft:stone")
         server.runCommand("/fill 1 100 2 8 101 6 minecraft:stone")
         server.runCommand("/summon minecraft:cow 0.5 100 4.5 {NoAI:1b,Invulnerable:1b}")

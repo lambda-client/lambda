@@ -111,7 +111,7 @@ class PathingSession internal constructor(
 		if (state is State.Settling) return with(alignment) { settle() }
 		if (state is State.Planning) {
 			if (afloatStart != null) tickInput = treadInput()
-			return with(launcher) { retryAfterMobs() }
+			return
 		}
 		if (state is State.Aligning) return with(alignment) { align() }
 
@@ -280,10 +280,10 @@ class PathingSession internal constructor(
 		if (recoveryStreak >= MAX_RECOVERY_STREAK) return fail(reason)
 		recoveryStreak++
 		recoveredAt = player.pos
-		recover(reason, reuseCoarseState = true)
+		recover(reason, reuseCoarseState = true, resumeRoute = true)
 	}
 
-	internal fun SafeContext.recover(reason: String, reuseCoarseState: Boolean) {
+	internal fun SafeContext.recover(reason: String, reuseCoarseState: Boolean, resumeRoute: Boolean = false) {
 		if (!active) return fail(reason)
 		rehearsal = rehearsal?.takeIf { it.performing && (replay?.cursor?.nextFrame ?: 0) == 0 && it.restarts < MAX_REHEARSAL_RESTARTS }?.also {
 			it.restarts++
@@ -295,6 +295,7 @@ class PathingSession internal constructor(
 			journey = null
 		}
 		launcher.reset()
+		launcher.resumeRoute = resumeRoute && reuseCoarseState
 		replay = null
 		alignment.reset()
 		tickInput = ALIGNMENT_INPUT

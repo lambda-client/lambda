@@ -61,6 +61,9 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun entityAt(x: Int, y: Int, z: Int): Boolean = entityRef.cells.contains(BlockPos.asLong(x, y, z))
 
+	internal fun ignoringEntities(): SnapshotSimulationEnvironment =
+		SnapshotSimulationEnvironment(bounds, storeRef, defaultBlock, onExactMiss, onRead)
+
 	private val store: SectionSource get() = storeRef.source
 
 	internal fun section(key: Long): ImmutableSnapshotSection? = store[key]

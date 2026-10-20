@@ -170,7 +170,7 @@ class PlanDumpRoundTripTest {
             stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false, width = 0.6, height = 1.8,
         )
         val initial = MovementSimulationState.synthetic(profile, Vec3d(0.5, 65.0, 0.5), Rotation(37.5, 12.0), onGround = true)
-        val options = SimpleMoveOptions(hazards = HazardRules(avoidFire = true, avoidCacti = false, sneakOnMagma = false), airReserve = 80, mobLingerTicks = 40)
+        val options = SimpleMoveOptions(hazards = HazardRules(avoidFire = true, avoidCacti = false, sneakOnMagma = false), airReserve = 80)
         val path = PlanDump.write(
             directory.resolve("dumps"), store, sections.toLongArray(), bounds, Stance(0, 65, 0), Stance(7, 65, 3), initial, profile,
             options, MotionConstraints(airReserve = 80), "terrain round trip",
@@ -183,7 +183,6 @@ class PlanDumpRoundTripTest {
         assertEquals(sections.toSet(), loaded.sections.keys)
         assertEquals(options.hazards, loaded.moveOptions.hazards, "the hazard policy is part of the move options")
         assertEquals(options.airReserve, loaded.moveOptions.airReserve)
-        assertEquals(options.mobLingerTicks, loaded.moveOptions.mobLingerTicks)
         assertEquals(80, loaded.searchConfig.airReserve)
         val environment = loaded.environment()
         val live = BlockPhysicsSampler(StatesView(states), options.hazards)

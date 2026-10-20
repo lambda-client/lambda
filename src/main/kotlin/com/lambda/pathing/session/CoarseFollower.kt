@@ -32,6 +32,7 @@ internal class CoarseFollower(
 	startAir: Int = Vanilla.MAX_AIR,
 	private val breathes: Boolean = true,
 	private val keepsWalkedFrames: Boolean = false,
+	private val avoidsMobs: Boolean = true,
 ) : WorldLink, LegSource, AutoCloseable {
 	private val events = world?.subscribe()
 	override val startRevision: Long? = events?.drain()?.revision
@@ -104,6 +105,8 @@ internal class CoarseFollower(
 	}
 
 	override fun loadable(chunkX: Int, chunkZ: Int): Boolean = world?.loadable(chunkX, chunkZ) ?: true
+
+	override fun obstacles(): LongArray? = if (avoidsMobs) world?.obstacleCells else null
 
 	override val finalGoal: Stance get() = coarse.goal(coarse.legCount - 1)
 

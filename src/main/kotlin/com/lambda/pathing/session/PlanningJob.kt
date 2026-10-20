@@ -1,6 +1,7 @@
 package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
+import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.PLANNER_THREAD_PRIORITY
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.ImprovementDiff
@@ -29,11 +30,13 @@ internal class PlanningJob(
 	private val rehearsal: Rehearsal? = null,
 	private val onRehearsal: (RehearsalPoint, PublishedPath) -> Unit = { _, _ -> },
 	private val onRehearsalProgress: (String) -> Unit = {},
+	private val resumed: Boolean = false,
+	val throughMobs: Boolean = false,
 ) {
 	private val world = journey.world
 	private val coarse = journey.coarse
 	private val leg = journey.firstLegFor(preparation)
-	private val snapshot = world.snapshot
+	private val snapshot = if (throughMobs) world.terrainSnapshot else world.snapshot
 	private val start = preparation.start
 	private val goal = coarse.goal(leg)
 
@@ -81,7 +84,8 @@ internal class PlanningJob(
 	private fun plan(): PathPlanResult {
 		val began = System.nanoTime()
 		enter("awaiting a coarse route from $start")
-		val frame = coarse.awaitRoute(leg, start, cancelled)
+		val frame = (if (resumed) coarse.resumable(leg, start, SpeedClass.of(preparation.initial.velocity.horizontalLength())) else null)
+			?: coarse.awaitRoute(leg, start, cancelled)
 		if (cancelled()) return PathPlanResult.Cancelled.also { enter("cancelled") }
 		if (frame == null) return noRoute().also { enter("no coarse route") }
 		enter("searching")
@@ -92,8 +96,8 @@ internal class PlanningJob(
 			System.currentTimeMillis() - preparation.startedMillis, world.terrainLedger(),
 		)
 		if (rehearsal != null) return rehearse(frame).also { enter("finished: ${it::class.simpleName}") }
-		return CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown, keepsWalkedFrames = preparation.liveImprover).use { follower ->
-			walk(follower).let { if (it is PathPlanResult.Failed && mobsOnRoute(follower)) it.copy(mobs = true) else it }.also {
+		return CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown, keepsWalkedFrames = preparation.liveImprover, avoidsMobs = !throughMobs).use { follower ->
+			walk(follower).let { if (it is PathPlanResult.Failed && !throughMobs && mobsOnRoute(follower)) it.copy(mobs = true) else it }.also {
 				enter("finished: ${it::class.simpleName}")
 				dumpOutcome(it, follower)
 			}.let { improveLive(it, follower) }
@@ -228,7 +232,7 @@ internal class PlanningJob(
 	)
 
 	private fun mobsOnRoute(follower: CoarseFollower): Boolean =
-		follower.route.nodes.asSequence().take(MOB_ROUTE_NODES).any { snapshot.entityAt(it.x, it.y, it.z) || snapshot.entityAt(it.x, it.y + 1, it.z) }
+		follower.route.nodes.any { snapshot.entityAt(it.x, it.y, it.z) || snapshot.entityAt(it.x, it.y + 1, it.z) }
 
 	private fun noRoute(): PathPlanResult {
 		val reason = coarse.failure(leg, start) ?: "no coarse route to the goal"
@@ -297,8 +301,6 @@ internal class PlanningJob(
 	}
 
 	private companion object {
-		const val MOB_ROUTE_NODES = 6
-
 		val SPINE_MICROS_PER_EXPANSION = longArrayOf(83, 70, 100, 60, 120)
 
 		const val LIVE_REFINE_LEAD_FRAMES = 60

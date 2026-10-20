@@ -71,7 +71,7 @@ internal class PlanningJourney private constructor(
 		fun open(preparation: PlanningPreparation, player: ClientPlayerEntity): PlanningJourney {
 			val terrain = preparation.dumpDirectory?.let { TerrainRecorder(player.entityWorld, TerrainStores.of(player.entityWorld)) }
 			val source = MinecraftTerrainSource(
-				player.entityWorld as ClientWorld, player, preparation.moveOptions.avoidMobs, preparation.moveOptions.mobLingerTicks,
+				player.entityWorld as ClientWorld, player, preparation.moveOptions.avoidMobs,
 				searchDistance = preparation.searchDistance,
 			)
 			val world = PathingWorld(preparation.bounds, source, preparation.moveOptions.hazards, terrain)

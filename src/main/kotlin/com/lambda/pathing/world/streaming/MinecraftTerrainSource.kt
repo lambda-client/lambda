@@ -31,16 +31,14 @@ internal class MinecraftTerrainSource(
 	private val world: ClientWorld,
 	private val player: ClientPlayerEntity,
 	private val avoidMobs: Boolean = false,
-	mobLingerTicks: Long = EntityObstacles.LINGER_TICKS,
 	private val detachedCapacity: Int = DETACHED_CHUNKS,
 	private val searchDistance: Int = Int.MAX_VALUE,
 ) : TerrainSource {
 	private val chunkManager = world.chunkManager
 	private val bottomSection = world.bottomSectionCoord
 	private val view = LiveBlockView()
-	private val obstacles = EntityObstacles(mobLingerTicks)
+	private val obstacles = EntityObstacles()
 	private val occupied = LongOpenHashSet()
-	private val changed = LongArrayList()
 
 	@Volatile
 	private var detached = Long2ObjectOpenHashMap<Array<ChunkSection>>()
@@ -178,14 +176,7 @@ internal class MinecraftTerrainSource(
 				}
 			}
 		}
-		val body = player.boundingBox
-		obstacles.update(occupied, changed) { cell ->
-			val x = BlockPos.unpackLongX(cell).toDouble()
-			val y = BlockPos.unpackLongY(cell).toDouble()
-			val z = BlockPos.unpackLongZ(cell).toDouble()
-			body.intersects(x, y, z, x + 1.0, y + 1.0, z + 1.0)
-		}
-		changed.clear()
+		obstacles.update(occupied)
 		return obstacles.cells
 	}
 

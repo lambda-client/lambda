@@ -6,7 +6,7 @@ import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.PublishedPath
 
-internal class Replay(val path: PublishedPath, val cursor: TrajectoryExecutionCursor) {
+internal class Replay(val path: PublishedPath, val cursor: TrajectoryExecutionCursor, val bridged: Boolean = false) {
 	var pendingImprovement: PublishedPath? = null
 	var holding = false
 	var heldSince = 0L

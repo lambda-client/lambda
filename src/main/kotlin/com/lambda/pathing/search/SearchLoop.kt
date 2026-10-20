@@ -13,8 +13,13 @@ import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
+import com.lambda.pathing.rollout.TrajectoryRolloutTermination
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import kotlin.math.abs
+import net.minecraft.util.math.BlockPos
 
 internal class SearchLoop(
 	initialRoute: CoarseRoutePlan,
@@ -494,8 +499,11 @@ internal class SearchLoop(
 
 	private var retargetedGoal: Stance? = legs?.finalGoal
 
+	private var seenObstacles: LongArray? = world?.obstacles()?.also { if (it.isNotEmpty()) field.obstruct(nearRoute(it)) }
+
 	private fun syncWorld() {
 		val root = frontier.root ?: return
+		syncObstacles()
 		val result = world?.sync(route.plan, root) ?: return
 		result.revision?.let(route::advanceRevision)
 		if (result.mutations.isNotEmpty() || result.chunks.isNotEmpty()) certifier.forget(result.mutations, result.chunks, publications.cursor() ?: 0)
@@ -542,8 +550,67 @@ internal class SearchLoop(
 		frontier.updateRoute(route.index)
 	}
 
+	private fun syncObstacles() {
+		val cells = world?.obstacles() ?: return
+		val seen = seenObstacles
+		if (cells !== seen) {
+			seenObstacles = cells
+			field.obstruct(nearRoute(cells))
+			val known = seen?.let(::LongOpenHashSet)
+			val added = cells.filter { known?.contains(it) != true }.map { VoxelPos(BlockPos.unpackLongX(it), BlockPos.unpackLongY(it), BlockPos.unpackLongZ(it)) }
+			if (added.isNotEmpty() && (avoid(added) || reExplore())) return
+		}
+		if (!certifier.entityBlocked) return
+		certifier.entityBlocked = false
+		reRoot(publications.newest?.anchor ?: frontier.root ?: return)
+	}
+
+	private fun reExplore(): Boolean {
+		val tip = publications.newest?.anchor ?: frontier.root ?: return false
+		val best = incumbent.best
+		val target = (if (frontier.hasParked) frontier.parkedEntries.minByOrNull { it.order } else frontier.bestLiveEntryDeeperThan(tip.elapsed))?.anchor
+		if (!blocked(tip, best?.anchor, best?.tailFrames.orEmpty()) && !blocked(tip, target, emptyList())) return false
+		reRoot(tip)
+		return true
+	}
+
+	private fun blocked(tip: ValueAnchor, end: ValueAnchor?, tail: List<SimulatedTrajectoryFrame>): Boolean {
+		if (end == null || end === tip || !end.descendsFrom(tip)) return false
+		val inputs = ArrayList<MovementSimulationInput>()
+		for (anchor in end.lineFrom(tip)) inputs += anchor.inputs
+		tail.mapTo(inputs) { it.input }
+		val replayed = TrajectoryRolloutEngine.rollout(tip.state, profile, environment, InputTape(inputs), inputs.size)
+		return replayed.termination is TrajectoryRolloutTermination.Rejected
+	}
+
+	private fun nearRoute(cells: LongArray): LongArray {
+		val nodes = route.plan.nodes
+		return cells.filter { cell ->
+			val x = BlockPos.unpackLongX(cell)
+			val y = BlockPos.unpackLongY(cell)
+			val z = BlockPos.unpackLongZ(cell)
+			nodes.any { abs(it.x - x) <= OBSTACLE_REACH && abs(it.z - z) <= OBSTACLE_REACH && abs(it.y - y) <= OBSTACLE_REACH }
+		}.toLongArray()
+	}
+
+	private fun avoid(cells: List<VoxelPos>): Boolean {
+		val newest = publications.newest ?: return false
+		val plan = newest.plan.plan
+		val cursor = maxOf(publications.observedCursor, 0)
+		if (!plan.readsAny(cells, cursor, plan.tape.frameCount)) return false
+		val blocked = plan.firstRejectedFrame(environment, cursor) ?: return false
+		val frame = plan.segments.repairFrame(blocked, cursor, Publications.DIVERGENCE_MARGIN_FRAMES) ?: return false
+		val cut = newest.anchor.ancestorAt(frame) ?: return false
+		certifier.forget(cells.toSet(), emptySet(), cursor)
+		reRoot(cut)
+		return true
+	}
+
 	private fun repairFor(mutations: Set<VoxelPos>, chunks: Set<PathingChunk>) {
-		val cut = publications.repairCut(mutations, chunks) ?: return
+		reRoot(publications.repairCut(mutations, chunks) ?: return)
+	}
+
+	private fun reRoot(cut: ValueAnchor) {
 		frontier.dropDescendants(cut)
 		frontier.reRoot(cut)
 		rewindLegs()
@@ -696,5 +763,6 @@ internal class SearchLoop(
 		const val LINE_BEAM = 12
 		const val LINE_BEAM_OFF_SPINE = 4
 		const val LINE_BEAM_PER_STANCE = 6
+		const val OBSTACLE_REACH = 8
 	}
 }

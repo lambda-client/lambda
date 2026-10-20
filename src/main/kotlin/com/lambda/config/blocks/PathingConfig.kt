@@ -46,8 +46,6 @@ interface PathingConfig {
     val sneakOnMagma: Boolean
     val avoidLavaEdges: Boolean
     val avoidMobs: Boolean
-    val mobLingerSeconds: Double
-    val mobWaitSeconds: Double
     val allowFallDamage: Boolean
     val maxFallDamage: Double
     val unlimitedFallDamage: Boolean
