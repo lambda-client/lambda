@@ -47,7 +47,7 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
 plugins {
     kotlin("jvm") version "2.3.0"
     id("org.jetbrains.dokka") version "2.1.0"
-    id("fabric-loom") version "1.16-SNAPSHOT"
+    id("fabric-loom") version "1.17-SNAPSHOT"
     id("com.gradleup.shadow") version "9.3.0"
     id("maven-publish")
 }
@@ -110,22 +110,20 @@ loom {
 
     runs {
         all {
-            property("lambda.dev", "youtu.be/RYnFIRc0k6E")
-            property(
-                "lambda.pathing.metrics",
-                layout.buildDirectory.file("reports/pathing/pathing-metrics.jsonl").get().asFile.absolutePath,
-            )
+            systemProperties.putAll(mapOf(
+                Pair("lambda.dev", "youtu.be/RYnFIRc0k6E"),
+                Pair("lambda.pathing.metrics", layout.buildDirectory.file("reports/pathing/pathing-metrics.jsonl").get().asFile.absolutePath),
+                Pair("org.lwjgl.util.Debug", "true"),
+                Pair("org.lwjgl.util.DebugStack", "true"),
+                Pair("org.lwjgl.util.DebugFunctions", "true"),
+                Pair("mixin.debug.export", "true")
+            ))
 
-            property("org.lwjgl.util.Debug", "true")
-            property("org.lwjgl.util.DebugLoader", "true")
-            //property("org.lwjgl.util.DebugAllocator", "true")
-            //property("org.lwjgl.util.DebugAllocator.fast", "true")
-            property("org.lwjgl.util.DebugStack", "true")
-            property("org.lwjgl.util.DebugFunctions", "true")
-            property("mixin.debug.export", "true")
+//            //property("org.lwjgl.util.DebugAllocator", "true")
+//            //property("org.lwjgl.util.DebugAllocator.fast", "true")
 
-            vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash")
-            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")
+            programArguments.addAll("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")
+            jvmArguments.addAll("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash")
         }
     }
 }
@@ -165,8 +163,6 @@ dependencies {
     // Fabric
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
-    // Explicit dependency on fabric-renderer-indigo for mixin access to internal classes
-    modCompileOnly("net.fabricmc.fabric-api:fabric-renderer-indigo:4.1.4+1af5c5a75f")
     modImplementation("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
 
     // Add dependencies on the required Kotlin modules.
@@ -201,7 +197,7 @@ dependencies {
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
 
 	// DevLogin
-	modRuntimeOnly("com.ptsmods:devlogin:3.5")
+//	modRuntimeOnly("com.ptsmods:devlogin:3.5.1:fabric")
 
     // Test implementations
     testImplementation(kotlin("test"))
