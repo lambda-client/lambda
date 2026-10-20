@@ -62,6 +62,45 @@ abstract class Manager<R : Request>(
 	 */
 	var activeThisTick = false; protected set
 
+	private var leaseOwner: Any? = null
+
+	private var actingOwner: Any? = null
+
+	val leased: Boolean get() = leaseOwner != null
+
+	fun holdsLease(owner: Any): Boolean = leaseOwner === owner
+
+	/**
+	 * Gives [owner] exclusive use of this manager: requests made outside [actingAs] for the owner are refused
+	 * until [release].
+	 */
+	fun lease(owner: Any): Boolean {
+		if (leaseOwner === owner) return true
+		if (leaseOwner != null) return false
+		leaseOwner = owner
+		queuedRequest = null
+		onLeased()
+		return true
+	}
+
+	fun release(owner: Any) {
+		if (leaseOwner === owner) leaseOwner = null
+	}
+
+	fun <T> actingAs(owner: Any, block: () -> T): T {
+		val previous = actingOwner
+		actingOwner = owner
+		try {
+			return block()
+		} finally {
+			actingOwner = previous
+		}
+	}
+
+	protected val refusesForeign: Boolean get() = leaseOwner != null && actingOwner !== leaseOwner
+
+	protected open fun onLeased() {}
+
 	override fun load(): String {
 		openStages.forEach { openRequestsFor(it::class, it) }
 
@@ -103,6 +142,7 @@ abstract class Manager<R : Request>(
 	 * @return The registered request.
 	 */
 	fun request(request: R, queueIfMismatchedStage: Boolean = true): R {
+		if (refusesForeign) return request
 		val canOverrideQueued = queuedRequest?.let { it as Automated === request as Automated } != false
 		if (!canOverrideQueued) return request
 		if (!acceptingRequests || tickStage !in request.tickStageMask) {

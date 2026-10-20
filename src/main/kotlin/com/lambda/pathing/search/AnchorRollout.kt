@@ -8,10 +8,12 @@ import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.actions.control.Toggling
 import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
@@ -28,6 +30,7 @@ import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.climbableAt
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
 internal sealed interface Outcome {
@@ -107,7 +110,7 @@ internal class AnchorRollout(
 			action = action,
 			chain = chain,
 			movement = movement,
-			program = program,
+			program = openingDoors(program, anchor, action),
 			evaluator = RolloutEvaluator(
 				anchor.state, points, route.goalPoint, config,
 				allowHorizontalContact = movement.inMedium || movement.allowsWallContact || Footing.involvesPartial(field.view, action.step.x, action.step.y, action.step.z) ||
@@ -124,6 +127,19 @@ internal class AnchorRollout(
 		)
 	}
 
+	private fun openingDoors(program: ControlProgram, anchor: ValueAnchor, action: TrajectoryDecision): ControlProgram {
+		if (!config.openDoors) return program
+		val chain = field.chain(anchor.stance, action.step, DOOR_LOOKAHEAD)
+		val world = anchor.worldOver(environment)
+		val edited = anchor.edits.mapTo(HashSet()) { VoxelPos(it.x, it.y, it.z) }
+		val targets = field.toggleTargets(chain, world, edited, holds = config.closeDoors)
+		val changed = if (config.closeDoors) edited.map { BlockPos(it.x, it.y, it.z) } else emptyList()
+		val steering = anchor.inputs.lastOrNull()?.steering
+		if (targets.isEmpty() && changed.isEmpty() && steering == null) return program
+		val original = environment.takeIf { config.closeDoors }
+		return Toggling(program, world, profile, config.turning, targets, chain, original, changed, steering)
+	}
+
 	fun execute(prepared: PreparedRollout) {
 		val anchor = prepared.anchor
 		val action = prepared.action
@@ -135,7 +151,7 @@ internal class AnchorRollout(
 		prepared.raw = TrajectoryRolloutEngine.rollout(
 			initialState = anchor.state,
 			profile = profile,
-			environment = environment,
+			environment = anchor.worldOver(environment),
 			program = prepared.program,
 			frameCount = prepared.frameCount,
 			siblings = prepared.siblings,
@@ -264,6 +280,7 @@ internal class AnchorRollout(
 				trace = probe.traceOf(frames),
 				jumps = anchor.jumps + groundJumps(anchor.state, frames),
 				chain = prepared.chain,
+				edits = prepared.raw?.editsBefore(frames.size)?.takeIf { it.isNotEmpty() }?.let { anchor.edits + it } ?: anchor.edits,
 			),
 		)
 	}
@@ -274,5 +291,6 @@ internal class AnchorRollout(
 		const val TRANSITION_FRAMES = 40
 		const val OPEN_LANDING_NEIGHBORS = 2
 		const val GOAL_FLOOR_SLACK = 0.5
+		const val DOOR_LOOKAHEAD = 16
 	}
 }

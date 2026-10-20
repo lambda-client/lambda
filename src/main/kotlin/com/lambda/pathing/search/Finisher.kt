@@ -4,6 +4,7 @@ import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MeasuredMotion
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.control.CorridorFollowerProgram
+import com.lambda.pathing.actions.control.Toggling
 import com.lambda.pathing.actions.control.TerminalApproach
 import com.lambda.pathing.actions.control.brakeToStop
 import com.lambda.pathing.actions.control.hover
@@ -12,12 +13,14 @@ import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.VERTICAL_GOAL_TOLERANCE
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.center
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -109,7 +112,7 @@ internal class Finisher(
 	fun brakeToStop(anchor: ValueAnchor): Solution? = hoverBrake(anchor) ?: groundBrake(anchor) ?: floatBrake(anchor)
 
 	fun treadTape(anchor: ValueAnchor): Solution? {
-		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw, config.turning), FLOAT_TAIL_FRAMES)
+		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw, config.turning), FLOAT_TAIL_FRAMES, world = anchor.worldOver(environment))
 		if (gated.failed) return null
 		val frames = gated.rollout.frames
 		val end = frames.indices.lastOrNull { settledAfloat(frames, it) } ?: return null
@@ -126,7 +129,7 @@ internal class Finisher(
 		val view = field.view
 		if (!DiveMovement.submerged(view, stance.x, stance.y, stance.z) || view.medium(stance.x, stance.y - 1, stance.z) != Medium.WATER) return null
 		val center = stance.center(environment)
-		val gated = gate.run(anchor.state, listOf(center), hover(center, stance.y + HOVER_DEPTH, config.turning), HOVER_TAIL_FRAMES)
+		val gated = gate.run(anchor.state, listOf(center), hover(center, stance.y + HOVER_DEPTH, config.turning), HOVER_TAIL_FRAMES, world = anchor.worldOver(environment))
 		if (gated.failed) return null
 		var held = 0
 		for ((index, frame) in gated.rollout.frames.withIndex()) {
@@ -139,7 +142,7 @@ internal class Finisher(
 
 	private fun floatBrake(anchor: ValueAnchor): Solution? {
 		if (field.view.medium(anchor.stance.x, anchor.stance.y, anchor.stance.z) != Medium.WATER) return null
-		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw, config.turning), FLOAT_TAIL_FRAMES, FLOAT_DIP)
+		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw, config.turning), FLOAT_TAIL_FRAMES, FLOAT_DIP, anchor.worldOver(environment))
 		if (gated.failed) return null
 		val frames = gated.rollout.frames
 		val end = frames.indices.lastOrNull { field.floatsAt(frames[it].state, anchor.stance.y) && settledAfloat(frames, it) } ?: return null
@@ -152,6 +155,7 @@ internal class Finisher(
 			anchor.state, listOf(anchor.stance.center(environment)),
 			brakeToStop(anchor.state.rotation.yaw, config.turning),
 			BRAKE_TAIL_FRAMES,
+			world = anchor.worldOver(environment),
 		)
 		if (gated.failed) return null
 		var stable = 0
@@ -184,7 +188,15 @@ internal class Finisher(
 		points: List<HorizontalPoint>,
 		approach: TerminalApproach,
 	): List<SimulatedTrajectoryFrame>? {
-		val gated = gate.run(anchor.state, points, CorridorFollowerProgram(chain, approach, config), config.maxFrames)
+		val world = anchor.worldOver(environment)
+		val follower = CorridorFollowerProgram(chain, approach, config)
+		val edited = anchor.edits.mapTo(HashSet()) { VoxelPos(it.x, it.y, it.z) }
+		val targets = if (config.openDoors) field.toggleTargets(chain, world, edited, holds = config.closeDoors) else emptyList()
+		val changed = if (config.openDoors && config.closeDoors) edited.map { BlockPos(it.x, it.y, it.z) } else emptyList()
+		val steering = anchor.inputs.lastOrNull()?.steering
+		val program = if (targets.isEmpty() && changed.isEmpty() && steering == null) follower
+		else Toggling(follower, world, gate.profile, config.turning, targets, chain, environment.takeIf { config.closeDoors }, changed, steering)
+		val gated = gate.run(anchor.state, points, program, config.maxFrames, world = world)
 		attempts.record(gated.rollout, gated.stopFrame != null, route.goalPoint, gated.diagnostic)
 		return gated.rollout.frames.takeIf { gated.stopFrame != null && !gated.failed }
 	}

@@ -4,6 +4,7 @@ import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.Vanilla
+import com.lambda.pathing.world.snapshot.DoorToggle
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
@@ -168,6 +169,10 @@ interface CoarseVoxelView {
 	fun honey(x: Int, y: Int, z: Int): Boolean = false
 
 	fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
+
+	fun toggleAt(x: Int, y: Int, z: Int): DoorToggle? = null
+
+	fun mayToggleWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = false
 
 	fun isKnown(x: Int, y: Int, z: Int): Boolean = true
 

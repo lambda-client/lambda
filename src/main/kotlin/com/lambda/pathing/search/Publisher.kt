@@ -226,6 +226,8 @@ internal class Publisher(
 		fun linkTo(until: Int) {
 			val tail = frames.subList(link.elapsed, until)
 			val state = tail.last().state
+			val from = link.elapsed
+			val edits = certified.plan.edits.filter { it.frame in from until until }
 			link = ValueAnchor(
 				state = state,
 				stance = heldStanceOf(field.view, state),
@@ -236,6 +238,7 @@ internal class Publisher(
 				inputs = tail.map { it.input },
 				trace = probe.traceOf(tail),
 				jumps = parent.jumps,
+				edits = if (edits.isEmpty()) link.edits else link.edits + edits.map { it.cell },
 			)
 		}
 		if (!frames.last().state.onGround) {

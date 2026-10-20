@@ -14,3 +14,6 @@ class SnapshotSectionUnavailableException(val sectionX: Int, val sectionY: Int, 
 	SimulationEnvironmentException(
 		"Movement simulation read unloaded terrain in section ($sectionX, $sectionY, $sectionZ)"
 	)
+
+class RefusedUseException(val use: BlockUse) :
+	SimulationEnvironmentException("The planned use of ${use.pos} at ${use.hit} is not possible")

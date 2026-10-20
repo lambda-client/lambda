@@ -72,7 +72,11 @@ import net.minecraft.util.ActionResult
 import net.minecraft.util.ActionResult.PassToDefaultBlockAction
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
+import net.minecraft.world.RaycastContext
 import net.minecraft.world.GameMode
 
 object InteractManager : Manager<InteractRequest>(
@@ -125,6 +129,43 @@ object InteractManager : Manager<InteractRequest>(
 		}
 
 		return "Loaded Place Manager"
+	}
+
+	sealed interface Scheduled {
+		data object Applied : Scheduled
+
+		data class Refused(val reason: String) : Scheduled
+	}
+
+	override fun onLeased() {
+		activeRequest = null
+		potentialInteractions = mutableListOf()
+	}
+
+	/**
+	 * Uses the block under the server look for the lease [owner], exactly as vanilla's right click would send it.
+	 * Runs only at [TickEvent.Input.Post], where the server judges the use with the look of the last movement packet.
+	 */
+	fun AutomatedSafeContext.useScheduled(owner: Any, pos: BlockPos, side: Direction, hit: Vec3d): Scheduled {
+		if (!holdsLease(owner)) return Scheduled.Refused("the interact lease is not held")
+		if (tickStage != TickEvent.Input.Post) return Scheduled.Refused("a scheduled use runs at Input.Post, not $tickStage")
+		if (!PacketLimitHandler.canSendPackets(1, PacketType.Interaction)) return Scheduled.Refused("the packet limit is reached")
+		val look = RotationManager.serverRotation
+		val eye = player.eyePos
+		val end = eye.add(player.getRotationVector(look.pitchF, look.yawF).multiply(player.blockInteractionRange))
+		val target = world.raycast(RaycastContext(eye, end, RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, player))
+		if (target.type != HitResult.Type.BLOCK || target.blockPos != pos || target.side != side || target.pos.squaredDistanceTo(hit) > HIT_TOLERANCE * HIT_TOLERANCE) {
+			return Scheduled.Refused("$pos ($side) is not under the server look: ${target.type} ${target.blockPos} ${target.side} at ${target.pos}")
+		}
+		mc.itemUseCooldown = VANILLA_USE_COOLDOWN
+		val result = actingAs(owner) {
+			with(RotationManager) { withServerLook { withoutVanillaOverrides { interaction.interactBlock(player, Hand.MAIN_HAND, target) } } }
+		}
+		PacketLimitHandler.sentPackets(1, PacketType.Interaction)
+		interactionsThisTick++
+		activeThisTick = true
+		if (result is ActionResult.Success && result.swingSource() == ActionResult.SwingSource.CLIENT) player.swingHand(Hand.MAIN_HAND)
+		return if (result.isAccepted) Scheduled.Applied else Scheduled.Refused("the client refused the use of $pos: $result")
 	}
 
 	/**
@@ -414,4 +455,8 @@ object InteractManager : Manager<InteractRequest>(
 		WrongSlot,
 		CompleteFailure
 	}
+
+	private const val HIT_TOLERANCE = 1e-4
+
+	private const val VANILLA_USE_COOLDOWN = 4
 }

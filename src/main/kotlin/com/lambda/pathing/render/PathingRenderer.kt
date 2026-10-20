@@ -16,6 +16,7 @@ import com.lambda.pathing.search.SearchNodeRole
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.session.Telemetry
+import com.lambda.pathing.world.edit.DoorRules
 import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
@@ -131,6 +132,25 @@ object PathingRenderer : Loadable {
 		if (config.renderJumpMarkers) {
 			for (index in cursor until frames.size) {
 				if (plan.tape[index].jump) tick(frames[index].state.position.add(0.0, TAPE_Y, 0.0), JUMP_TICK_HEIGHT, config.jumpMarkerColor)
+			}
+		}
+
+		if (config.renderUseMarkers) {
+			for (index in cursor until frames.size) {
+				val use = plan.tape[index].use ?: continue
+				val eye = DoorRules.eye(if (index == 0) plan.initialState else frames[index - 1].state, plan.physicsProfile)
+				lineGradient(eye, config.useMarkerColor.setAlpha(0.15), use.hit, config.useMarkerColor, px(RING_WIDTH * 2 / 3))
+				diamond(use.hit, USE_MARK, config.useMarkerColor)
+			}
+			for (edit in plan.edits) {
+				if (edit.frame < cursor) continue
+				val cell = edit.cell
+				for (box in cell.physics.rayShape.boundingBoxes) {
+					box(box.offset(cell.x.toDouble(), cell.y.toDouble(), cell.z.toDouble())) {
+						colors(config.useMarkerColor.setAlpha(USE_FILL_ALPHA), config.useMarkerColor)
+						lineWidth = px(RING_WIDTH / 2)
+					}
+				}
 			}
 		}
 
@@ -479,6 +499,8 @@ object PathingRenderer : Loadable {
 	private const val RING_WIDTH = 14
 	private const val MOVEMENT_MARK = 0.2
 	private const val SPLICE_MARK = 0.12
+	private const val USE_MARK = 0.16
+	private const val USE_FILL_ALPHA = 0.18
 	private const val JUMP_TICK_HEIGHT = 0.4
 	private const val BEACON_HEIGHT = 6.0
 	private const val ANCHOR_BEACON_HEIGHT = 1.5

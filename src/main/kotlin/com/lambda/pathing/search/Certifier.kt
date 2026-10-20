@@ -8,6 +8,7 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.UnsupportedBlockPhysicsException
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
+import com.lambda.pathing.rollout.FrameEdit
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.rollout.TrajectoryRolloutTermination
@@ -24,6 +25,7 @@ internal class Certifier(
 ) {
 	private var certifiedFrames: List<SimulatedTrajectoryFrame> = emptyList()
 	private var certifiedDependencies: List<Set<VoxelPos>> = emptyList()
+	private var certifiedEdits: List<FrameEdit> = emptyList()
 
 	var certifications = 0
 		private set
@@ -44,6 +46,7 @@ internal class Certifier(
 			if (certifiedDependencies[frame].none { it in mutations || PathingChunk.containing(it) in chunks }) continue
 			certifiedFrames = certifiedFrames.subList(0, frame)
 			certifiedDependencies = certifiedDependencies.subList(0, frame)
+			certifiedEdits = certifiedEdits.filter { it.frame < frame }
 			return
 		}
 	}
@@ -55,6 +58,7 @@ internal class Certifier(
 
 		var baseFrames = certifiedFrames
 		var baseDependencies = certifiedDependencies
+		var baseEdits = certifiedEdits
 		var shared = sharedPrefix(inputs, baseFrames, baseFrames.size)
 		val executed = publications?.cursor()
 		val running = publications?.running?.plan?.plan
@@ -63,6 +67,7 @@ internal class Certifier(
 			if (trusted > shared) {
 				baseFrames = running.frames
 				baseDependencies = running.frameDependencies
+				baseEdits = running.edits
 				shared = trusted
 			}
 		}
@@ -76,7 +81,8 @@ internal class Certifier(
 		val suffix = inputs.subList(shared, inputs.size)
 		certifications++
 		replayedFrames += suffix.size
-		val tracked = environment.trackingView()
+		val edits = baseEdits.filter { it.frame < shared }
+		val tracked = environment.edited(edits.map { it.cell }).trackingView()
 		val certified = TrajectoryRolloutEngine.rollout(
 			initialState = resumeState,
 			profile = profile,
@@ -108,8 +114,10 @@ internal class Certifier(
 			lastFailure = "replay from f$shared ended at ${replayed.position}, the search at ${searched.position}"
 			return MotionPlanResult.UnstableReplay("value-field tape left the searched trajectory: $lastFailure")
 		}
+		val certifiedEdits = edits + certified.edits.map { it.copy(frame = shared + it.frame) }
 		certifiedFrames = frames
 		certifiedDependencies = frameDependencies
+		this.certifiedEdits = certifiedEdits
 
 		if (cancelled()) return MotionPlanResult.Cancelled
 		return MotionPlanResult.Success(
@@ -122,6 +130,7 @@ internal class Certifier(
 				tape = tape,
 				frames = frames,
 				segments = solution.planSegments,
+				edits = certifiedEdits,
 			),
 			safeAnchorStance = solution.anchor.stance,
 			safeAnchorFrame = solution.anchor.elapsed,

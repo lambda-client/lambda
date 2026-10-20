@@ -15,6 +15,7 @@ internal class Replay(val path: PublishedPath, val cursor: TrajectoryExecutionCu
 	var repairDeadline: Int? = null
 	var repairDeviation: ExecutionDeviation? = null
 	var verifiedRevision = Long.MIN_VALUE
+	var usedFrame = -1
 	var teleportsSeen = ServerCorrections.teleports
 
 	val observedHistory = ArrayDeque<Pair<Int, MovementSimulationState>>(OBSERVED_HISTORY_FRAMES)

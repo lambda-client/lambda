@@ -2,6 +2,7 @@ package com.lambda.pathing.session
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
@@ -83,9 +84,9 @@ internal class AlignmentController(private val walk: PathingSession) {
 			return with(walk) { recoverOrFail("moved %.2f blocks while aligning to the plan".format(positionDrift)) }
 		}
 
-		walk.face(path.plan.initialState.rotation.yaw)
-		val yawDrift = launchYawError(path)
-		if (yawDrift <= FIRST_FRAME_YAW_EPSILON && atRest()) {
+		walk.faceStart(path.plan)
+		val yawDrift = launchLookError(path)
+		if (yawDrift <= FIRST_FRAME_LOOK_EPSILON && atRest()) {
 			with(walk.admission) { install(path) }
 			return
 		}
@@ -93,7 +94,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 		walk.state = State.Aligning(walk.leg + 1, yawDrift)
 		if (++alignmentTicks > alignmentLimit) {
 			warn(
-				"Installing with %.2f° of launch yaw error; the rotation could not settle exactly."
+				"Installing with %.2f° of launch look error; the rotation could not settle exactly."
 					.format(yawDrift),
 				PATHING_SOURCE,
 			)
@@ -102,13 +103,13 @@ internal class AlignmentController(private val walk: PathingSession) {
 	}
 
 	fun SafeContext.realignBeforeLaunch(current: PublishedPath): Boolean {
-		val yawError = launchYawError(current)
-		if (yawError > FIRST_FRAME_YAW_EPSILON && alignmentTicks <= alignmentLimit) {
-			walk.face(current.plan.initialState.rotation.yaw)
+		val yawError = launchLookError(current)
+		if (yawError > FIRST_FRAME_LOOK_EPSILON && alignmentTicks <= alignmentLimit) {
+			walk.faceStart(current.plan)
 			walk.tickInput = ALIGNMENT_INPUT
 			if (++alignmentTicks > alignmentLimit) {
 				warn(
-					"Replaying with %.2f° of launch yaw error; the rotation could not settle exactly."
+					"Replaying with %.2f° of launch look error; the rotation could not settle exactly."
 						.format(yawError),
 					PATHING_SOURCE,
 				)
@@ -120,8 +121,11 @@ internal class AlignmentController(private val walk: PathingSession) {
 
 	fun SafeContext.startDrift(path: PublishedPath): Double = player.pos.distanceTo(path.plan.initialState.position)
 
-	fun SafeContext.launchYawError(path: PublishedPath): Double =
-		abs(Rotation.wrap(player.moveYaw - path.plan.initialState.rotation.yaw))
+	fun SafeContext.launchLookError(path: PublishedPath): Double {
+		val start = path.plan.initialState.rotation
+		val yaw = abs(Rotation.wrap(player.moveYaw - start.yaw))
+		return if (path.plan.usesBlocks) maxOf(yaw, abs(RotationManager.serverRotation.pitch - start.pitch)) else yaw
+	}
 
 	fun SafeContext.atRest(): Boolean {
 		val age = player.age
@@ -145,7 +149,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 	companion object {
 		const val START_DRIFT_TOLERANCE = 0.35
 
-		const val FIRST_FRAME_YAW_EPSILON = 2.5e-4
+		const val FIRST_FRAME_LOOK_EPSILON = 2.5e-4
 
 		const val SETTLED_SPEED = 1e-6
 

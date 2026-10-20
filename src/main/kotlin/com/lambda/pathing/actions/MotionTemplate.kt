@@ -15,9 +15,11 @@ import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.canStandAt
+import com.lambda.pathing.world.edit.Flips
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 class MotionTemplate internal constructor(
@@ -68,7 +70,17 @@ class MotionTemplate internal constructor(
 		conditions.all { it.matches(view, origin.x, origin.y, origin.z) }
 
 	internal fun edge(view: CoarseVoxelView, origin: Stance): CoarseEdge? {
-		if (!matches(view, origin)) return if (undecided(view, origin)) ledgeEdge(view, origin) else null
+		val units = Flips.units(view, origin.x, origin.y, origin.z, sweptOffsets, sweptBounds)
+		if (units.isEmpty()) return evaluate(view, origin)
+		evaluate(view, origin)?.takeIf { clearSweep(view, origin) }?.let { return it }
+		val flipped = Flips.search(view, units, pairs = arc == null) { flipped -> evaluate(flipped, origin, ledges = false)?.takeIf { clearSweep(flipped, origin) } }
+			?: return null
+		val edge = flipped.result
+		return edge.copy(lowerBoundTicks = edge.lowerBoundTicks + FLIP_TICKS * flipped.units, readSet = edge.readSet + flipped.states.keys, flips = flipped.states)
+	}
+
+	private fun evaluate(view: CoarseVoxelView, origin: Stance, ledges: Boolean = true): CoarseEdge? {
+		if (!matches(view, origin)) return if (ledges && undecided(view, origin)) ledgeEdge(view, origin) else null
 		val spec = arc ?: return if (realRise(view, origin) > maxRise) null else edgeOf(origin, ticks(view, origin), probeReads = null)
 		val launchOffset = surfaceOffset(view, origin)
 		spec.bounceDrop?.let { drop ->
@@ -77,11 +89,11 @@ class MotionTemplate internal constructor(
 			return edgeOf(origin, lowerBoundTicks, probed.reads, bounce = probed.solution)
 		}
 		val riseHeight = realRise(view, origin)
-		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return ledgeEdge(view, origin) }
+		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return if (ledges) ledgeEdge(view, origin) else null }
 		val momentum = spec.runUpNeeded?.invoke(riseHeight) == true
 		val probed = JumpArcProbe.probe(view, origin, dx, dz, riseHeight, spec.modes, launchHeight = origin.y + launchOffset, everyLaunch = !momentum)
-			?: return ledgeEdge(view, origin)
-		if (probed.solution.mode.jumps && Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !launchesFromFooting(view, origin, probed.solution)) return ledgeEdge(view, origin)
+			?: return if (ledges) ledgeEdge(view, origin) else null
+		if (probed.solution.mode.jumps && Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !launchesFromFooting(view, origin, probed.solution)) return if (ledges) ledgeEdge(view, origin) else null
 		val detour = probed.solution.via?.detour(dx, dz, probed.solution.lateralOffset) ?: 0.0
 		val runUp = if (momentum) standingRunUpTicks(view, origin, probed.solution) ?: return null else null
 		return edgeOf(
@@ -268,6 +280,61 @@ class MotionTemplate internal constructor(
 		bounds
 	}
 
+	private val sweptOffsets: List<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+		val steps = maxOf(abs(dx), abs(dz))
+		val columns = LinkedHashSet<Pair<Int, Int>>()
+		for (step in 0..steps) {
+			columns += (if (steps == 0) 0 else (dx.toDouble() * step / steps).roundToInt()) to (if (steps == 0) 0 else (dz.toDouble() * step / steps).roundToInt())
+		}
+		if (abs(dx) == 1 && abs(dz) == 1) {
+			columns += dx to 0
+			columns += 0 to dz
+		}
+		val top = maxOf(0, dy) + if (arc == null) 1 else 2
+		columns.flatMap { (x, z) -> (minOf(0, dy) - 1..top).map { y -> VoxelPos(x, y, z) } }
+	}
+
+	private fun clearSweep(view: CoarseVoxelView, origin: Stance): Boolean {
+		if (dx != 0 && dz != 0 || dx == 0 && dz == 0) return true
+		val target = target(origin)
+		val bottom = maxOf(origin.y, target.y) + SWEEP_FLOOR
+		val top = minOf(origin.y, target.y) + SWEEP_CEILING
+		if (bottom >= top) return true
+		val alongX = dx != 0
+		val from = (if (alongX) minOf(origin.x, target.x) else minOf(origin.z, target.z)) + 0.5 - BODY_HALF
+		val to = (if (alongX) maxOf(origin.x, target.x) else maxOf(origin.z, target.z)) + 0.5 + BODY_HALF
+		val lane = if (alongX) origin.z else origin.x
+		val blocked = ArrayList<DoubleArray>()
+		for (along in floor(from).toInt()..floor(to).toInt()) for (side in lane - 1..lane + 1) for (cellY in floor(bottom).toInt()..floor(top).toInt()) {
+			val cellX = if (alongX) along else side
+			val cellZ = if (alongX) side else along
+			val boxes = view.collisionBoxes(cellX, cellY, cellZ) ?: continue
+			for (box in boxes.indices step 6) {
+				val minAlong = if (alongX) boxes[box] + cellX else boxes[box + 2] + cellZ
+				val maxAlong = if (alongX) boxes[box + 3] + cellX else boxes[box + 5] + cellZ
+				if (maxAlong <= from || minAlong >= to || boxes[box + 4] + cellY <= bottom || boxes[box + 1] + cellY >= top) continue
+				blocked += if (alongX) doubleArrayOf(boxes[box + 2] + cellZ, boxes[box + 5] + cellZ) else doubleArrayOf(boxes[box] + cellX, boxes[box + 3] + cellX)
+			}
+		}
+		blocked.sortBy { it[0] }
+		blocked += doubleArrayOf(lane + 2.0, lane + 3.0)
+		var free = lane - 1.0
+		for (interval in blocked) {
+			val width = interval[0] - free
+			if (width >= SWEEP_WIDTH && interval[0] - SWEEP_WIDTH / 2 >= lane && free + SWEEP_WIDTH / 2 <= lane + 1) return true
+			free = maxOf(free, interval[1])
+		}
+		return false
+	}
+
+	internal fun sweep(origin: Stance): List<VoxelPos> = sweptOffsets.map { VoxelPos(origin.x + it.x, origin.y + it.y, origin.z + it.z) }
+
+	internal fun swept(origin: Stance, cells: Set<VoxelPos>): List<VoxelPos> = sweep(origin).filter { it in cells }
+
+	private val sweptBounds: IntArray by lazy(LazyThreadSafetyMode.PUBLICATION) {
+		intArrayOf(sweptOffsets.minOf { it.x }, sweptOffsets.minOf { it.y }, sweptOffsets.minOf { it.z }, sweptOffsets.maxOf { it.x }, sweptOffsets.maxOf { it.y }, sweptOffsets.maxOf { it.z })
+	}
+
 	internal val readOffsets: List<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
 		buildList {
 			addAll(ORIGIN_STANCE_READS)
@@ -296,6 +363,16 @@ class MotionTemplate internal constructor(
 	}
 
 	internal companion object {
+
+		const val FLIP_TICKS = 0.05
+
+		const val SWEEP_FLOOR = 0.6
+
+		const val SWEEP_CEILING = 1.8
+
+		const val SWEEP_WIDTH = 0.7
+
+		const val BODY_HALF = 0.3
 
 		const val IN_CELL_RUN_UP = 0.7
 

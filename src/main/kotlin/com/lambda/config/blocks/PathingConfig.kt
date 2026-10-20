@@ -31,6 +31,8 @@ interface PathingConfig {
     val allowNeoJumps: Boolean
     val allowSlimeBounces: Boolean
     val maxBounceDrop: Int
+    val openDoors: Boolean
+    val closeDoors: Boolean
 
     val avoidFire: Boolean
     val avoidCacti: Boolean
@@ -62,5 +64,5 @@ interface PathingConfig {
 
     val maxFrames: Int get() = MotionConstraints.DEFAULT_MAX_FRAMES
 
-    val hazards: HazardRules get() = HazardRules(avoidFire, avoidCacti, sneakOnMagma)
+    val hazards: HazardRules get() = HazardRules(avoidFire, avoidCacti, sneakOnMagma, openDoors)
 }

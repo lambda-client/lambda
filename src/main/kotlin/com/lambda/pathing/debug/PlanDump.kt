@@ -6,6 +6,7 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.BlockUse
 import com.lambda.pathing.physics.FallLimits
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
@@ -28,6 +29,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import java.nio.file.Files
@@ -229,9 +231,9 @@ internal object PlanDump {
 
 	private const val PREDICTED_BEFORE = 3
 
-	private fun MovementSimulationInput.dump(): String = listOf(
+	private fun MovementSimulationInput.dump(): String = (listOf(
 		"i", forward, strafe, jump, sneak, sprint, useItemSlowdown, rotation?.yaw ?: "-", rotation?.pitch ?: "-",
-	).joinToString(" ")
+	) + use?.let { listOf(it.pos.x, it.pos.y, it.pos.z, it.side.name, it.hit.x, it.hit.y, it.hit.z, it.open) }.orEmpty()).joinToString(" ")
 
 	private fun readInput(parts: List<String>) = MovementSimulationInput(
 		forward = parts[1].toDouble(),
@@ -241,7 +243,15 @@ internal object PlanDump {
 		sprint = parts[5].toBoolean(),
 		useItemSlowdown = parts[6].toBoolean(),
 		rotation = if (parts[7] == "-") null else Rotation(parts[7].toDouble(), parts[8].toDouble()),
+		use = if (parts.size <= INPUT_USE) null else BlockUse(
+			BlockPos(parts[INPUT_USE].toInt(), parts[INPUT_USE + 1].toInt(), parts[INPUT_USE + 2].toInt()),
+			Direction.valueOf(parts[INPUT_USE + 3]),
+			Vec3d(parts[INPUT_USE + 4].toDouble(), parts[INPUT_USE + 5].toDouble(), parts[INPUT_USE + 6].toDouble()),
+			parts[INPUT_USE + 7].toBoolean(),
+		),
 	)
+
+	private const val INPUT_USE = 9
 
 	private const val FALL_LIMIT_OPTION = 15
 
@@ -280,7 +290,7 @@ internal object PlanDump {
 		allowDeepDropJumps, allowSwimming, allowDeepFalls,
 		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
 		hazards == HazardRules.IGNORE_ALL, allowDiving, avoidMobs, allowNeoJumps,
-		hazards.avoidFire, hazards.avoidCacti, hazards.sneakOnMagma, airReserve,
+		hazards.avoidFire, hazards.avoidCacti, hazards.sneakOnMagma, airReserve, hazards.openDoors,
 	).joinToString(" ")
 
 	private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -303,7 +313,7 @@ internal object PlanDump {
 			FallLimits(damage, parts[16].toDouble(), parts[17].toDouble())
 		} ?: FallLimits(),
 		hazards = if (parts.size > OPTIONS_HAZARDS + 2) {
-			HazardRules(parts[OPTIONS_HAZARDS].toBoolean(), parts[OPTIONS_HAZARDS + 1].toBoolean(), parts[OPTIONS_HAZARDS + 2].toBoolean())
+			HazardRules(parts[OPTIONS_HAZARDS].toBoolean(), parts[OPTIONS_HAZARDS + 1].toBoolean(), parts[OPTIONS_HAZARDS + 2].toBoolean(), parts.getOrNull(OPTIONS_HAZARDS + 4)?.toBoolean() ?: false)
 		} else if (parts.getOrNull(18)?.toBoolean() == true) {
 			HazardRules.IGNORE_ALL
 		} else {
@@ -320,7 +330,7 @@ internal object PlanDump {
 		sprintModes.joinToString(",").ifEmpty { "-" },
 		touchArrival, touchRestRadius, maxSafeFallDistance,
 		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier, avoidLavaEdges, airReserve,
-		look?.factor ?: "-", hand?.speed ?: "-", hand?.acceleration ?: "-", hand?.noise ?: "-",
+		look?.factor ?: "-", hand?.speed ?: "-", hand?.acceleration ?: "-", hand?.noise ?: "-", openDoors, closeDoors,
 	).joinToString(" ")
 
 	private fun readSearchConfig(parts: List<String>) = MotionConstraints(
@@ -341,6 +351,8 @@ internal object PlanDump {
 		hand = parts.getOrNull(SEARCH_FALL_LIMITS + 6)?.toDoubleOrNull()?.let { speed ->
 			MouseHand.Limits(speed, parts[SEARCH_FALL_LIMITS + 7].toDouble(), parts[SEARCH_FALL_LIMITS + 8].toDouble())
 		},
+		openDoors = parts.getOrNull(SEARCH_FALL_LIMITS + 9)?.toBoolean() ?: false,
+		closeDoors = parts.getOrNull(SEARCH_FALL_LIMITS + 10)?.toBoolean() ?: false,
 	)
 
 	private fun MovementSimulationState.dump(keyword: String = "state"): String = listOf(

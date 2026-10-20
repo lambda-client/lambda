@@ -21,7 +21,7 @@ internal class PlantMemo {
 	fun recall(anchor: ValueAnchor): ValueAnchor? {
 		val from = from ?: return null
 		val landed = landed ?: return null
-		if (anchor.state != from.state || anchor.stance != from.stance || anchor.inputs.lastOrNull() != from.inputs.lastOrNull()) return null
+		if (anchor.state != from.state || anchor.stance != from.stance || anchor.inputs.lastOrNull() != from.inputs.lastOrNull() || anchor.edits != from.edits) return null
 		return ValueAnchor(
 			state = landed.state,
 			stance = landed.stance,
@@ -34,6 +34,7 @@ internal class PlantMemo {
 			trace = landed.trace,
 			jumps = anchor.jumps + landed.jumps - from.jumps,
 			chain = landed.chain,
+			edits = if (landed.edits === from.edits) anchor.edits else landed.edits,
 		)
 	}
 

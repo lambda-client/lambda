@@ -90,6 +90,20 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
         unit = " blocks",
     ) { allowSlimeBounces }
 
+    @Group(MOVES_GROUP)
+    override val openDoors by c.setting(
+        "Open Doors", false,
+        "Open and close wooden doors, fence gates and trapdoors when the route needs them in the other state. " +
+            "The click happens while walking, on the first tick the block is in reach and under the crosshair.",
+    )
+
+    @Group(MOVES_GROUP)
+    override val closeDoors by c.setting(
+        "Close Doors", false,
+        "Put every door, gate and trapdoor the walk changed back the way it was once the body is past it. " +
+            "Looking back costs a few ticks of walking speed per door.",
+    ) { openDoors }
+
     @Group(HAZARDS_GROUP)
     override val avoidFire by c.setting(
         "Avoid Fire", true,

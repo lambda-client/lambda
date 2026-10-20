@@ -11,6 +11,8 @@ import net.minecraft.util.math.Direction
 object Vanilla {
 	const val TICKS_PER_SECOND = 20
 
+	const val BLOCK_REACH = 4.5
+
 	const val SAFE_FALL_DISTANCE = 3.0
 
 	const val UNSAFE_FALL_EPSILON = 1.0E-6

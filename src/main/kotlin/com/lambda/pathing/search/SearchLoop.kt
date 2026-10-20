@@ -442,7 +442,7 @@ internal class SearchLoop(
 		val rollout = TrajectoryRolloutEngine.rollout(
 			initialState = anchor.state,
 			profile = profile,
-			environment = environment,
+			environment = anchor.worldOver(environment),
 			program = InputTape(inputs),
 			frameCount = inputs.size,
 		)
@@ -456,6 +456,7 @@ internal class SearchLoop(
 			inputSwitches = anchor.inputSwitches + inputSwitches(anchor.inputs.lastOrNull(), rollout.frames),
 			parent = anchor,
 			inputs = inputs,
+			edits = rollout.editsBefore(inputs.size).takeIf { it.isNotEmpty() }?.let { anchor.edits + it } ?: anchor.edits,
 		)
 	}
 
@@ -578,7 +579,7 @@ internal class SearchLoop(
 		val inputs = ArrayList<MovementSimulationInput>()
 		for (anchor in end.lineFrom(tip)) inputs += anchor.inputs
 		tail.mapTo(inputs) { it.input }
-		val replayed = TrajectoryRolloutEngine.rollout(tip.state, profile, environment, InputTape(inputs), inputs.size)
+		val replayed = TrajectoryRolloutEngine.rollout(tip.state, profile, tip.worldOver(environment), InputTape(inputs), inputs.size)
 		return replayed.termination is TrajectoryRolloutTermination.Rejected
 	}
 

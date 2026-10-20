@@ -24,6 +24,7 @@ import com.lambda.pathing.world.RememberedTerrain
 import com.lambda.pathing.world.SECTION_CELL_COUNT
 import com.lambda.pathing.world.TerrainJournal
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.function.BooleanBiFunction
@@ -44,7 +45,7 @@ class SnapshotSimulationEnvironment internal constructor(
 	private val onExactMiss: ((Long) -> Unit)? = null,
 	private val onRead: ((BlockPos) -> Unit)? = null,
 	private val entityRef: EntityCellsRef = EntityCellsRef(),
-) : SimulationEnvironment, CoarseVoxelView {
+) : EditableEnvironment, CoarseVoxelView {
 	internal constructor(
 		bounds: SimulationSnapshotBounds,
 		sections: Map<Long, ImmutableSnapshotSection>,
@@ -63,6 +64,23 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	internal fun ignoringEntities(): SnapshotSimulationEnvironment =
 		SnapshotSimulationEnvironment(bounds, storeRef, defaultBlock, onExactMiss, onRead)
+
+	override fun readBlock(x: Int, y: Int, z: Int): SnapshotBlockPhysics? {
+		onRead?.invoke(BlockPos(x, y, z))
+		return installedBlock(x, y, z)
+	}
+
+	override fun edited(edits: Collection<CellEdit>): SnapshotSimulationEnvironment {
+		if (edits.isEmpty()) return this
+		val base = store
+		val patches = Long2ObjectOpenHashMap<ImmutableSnapshotSection>()
+		for (edit in edits) {
+			val key = ChunkSectionPos.asLong(edit.x shr 4, edit.y shr 4, edit.z shr 4)
+			val section = patches[key] ?: base[key] ?: continue
+			patches[key] = section.with(edit.x, edit.y, edit.z, edit.physics)
+		}
+		return SnapshotSimulationEnvironment(bounds, StoreRef(EditedSections(base, patches)), defaultBlock, onExactMiss, onRead, entityRef)
+	}
 
 	private val store: SectionSource get() = storeRef.source
 
@@ -180,6 +198,11 @@ class SnapshotSimulationEnvironment internal constructor(
 	override fun bubbles(x: Int, y: Int, z: Int): Boolean = bubblesIn(x, y, z) { store[it] }
 
 	override fun honey(x: Int, y: Int, z: Int): Boolean = honeyIn(x, y, z) { store[it] }
+
+	override fun toggleAt(x: Int, y: Int, z: Int): DoorToggle? = toggleIn(x, y, z) { store[it] }
+
+	override fun mayToggleWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		togglesIn(minX, minY, minZ, maxX, maxY, maxZ) { store[it] }
 
 	override fun mayContainHotFloor(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.hotWithin(minX, minY, minZ, maxX, maxY, maxZ)
@@ -418,6 +441,17 @@ class SnapshotSimulationEnvironment internal constructor(
 	private inline fun honeyIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean =
 		bounds.contains(x, y, z) && blockIn(x, y, z, sectionAt)?.honey == true
 
+	private inline fun toggleIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): DoorToggle? =
+		if (bounds.contains(x, y, z)) blockIn(x, y, z, sectionAt)?.toggle else null
+
+	private inline fun togglesIn(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean {
+		if (!store.mayToggle) return false
+		for (sectionX in (minX shr 4)..(maxX shr 4)) for (sectionY in (minY shr 4)..(maxY shr 4)) for (sectionZ in (minZ shr 4)..(maxZ shr 4)) {
+			if (sectionAt(ChunkSectionPos.asLong(sectionX, sectionY, sectionZ))?.toggling == true) return true
+		}
+		return false
+	}
+
 	private inline fun collisionClassIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): CollisionClass {
 		if (!bounds.contains(x, y, z)) return CollisionClass.FULL
 		return blockIn(x, y, z, sectionAt)?.collisionClass ?: CollisionClass.EMPTY
@@ -570,6 +604,11 @@ class SnapshotSimulationEnvironment internal constructor(
 
 		override fun honey(x: Int, y: Int, z: Int): Boolean = honeyIn(x, y, z, ::at)
 
+		override fun toggleAt(x: Int, y: Int, z: Int): DoorToggle? = toggleIn(x, y, z, ::at)
+
+		override fun mayToggleWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+			togglesIn(minX, minY, minZ, maxX, maxY, maxZ, ::at)
+
 		override fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.honeyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
@@ -630,6 +669,11 @@ class SnapshotSimulationEnvironment internal constructor(
 
 		override fun honey(x: Int, y: Int, z: Int): Boolean = honeyIn(x, y, z, ::at)
 
+		override fun toggleAt(x: Int, y: Int, z: Int): DoorToggle? = toggleIn(x, y, z, ::at)
+
+		override fun mayToggleWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+			togglesIn(minX, minY, minZ, maxX, maxY, maxZ, ::at)
+
 		override fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.honeyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
@@ -671,7 +715,7 @@ class SnapshotSimulationEnvironment internal constructor(
 	class TrackedSnapshotSimulationEnvironment private constructor(
 		private val frameReads: HashSet<VoxelPos>,
 		snapshot: SnapshotSimulationEnvironment,
-	) : SimulationEnvironment by snapshot.observedBy({ pos -> frameReads += VoxelPos(pos.x, pos.y, pos.z) }) {
+	) : EditableEnvironment by snapshot.observedBy({ pos -> frameReads += VoxelPos(pos.x, pos.y, pos.z) }) {
 		internal constructor(snapshot: SnapshotSimulationEnvironment) : this(HashSet(), snapshot)
 
 		fun takeFrameDependencies(): Set<VoxelPos> =

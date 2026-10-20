@@ -13,6 +13,7 @@ data class HazardRules(
 	val avoidFire: Boolean = true,
 	val avoidCacti: Boolean = true,
 	val sneakOnMagma: Boolean = true,
+	val openDoors: Boolean = false,
 ) {
 	companion object {
 		val AVOID_ALL = HazardRules()

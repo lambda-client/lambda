@@ -23,7 +23,7 @@ internal class GatedRollout(
 )
 
 internal class RolloutGate(
-	private val profile: PlayerPhysicsProfile,
+	val profile: PlayerPhysicsProfile,
 	private val environment: SnapshotSimulationEnvironment,
 	private val config: MotionConstraints,
 	private val route: RouteState,
@@ -34,21 +34,22 @@ internal class RolloutGate(
 		program: ControlProgram,
 		frameCount: Int,
 		descentAllowance: Double = 0.0,
+		world: SnapshotSimulationEnvironment = environment,
 	): GatedRollout {
 		val evaluator = RolloutEvaluator(
 			from, points, route.goalPoint, config,
 			descentAllowance = descentAllowance,
-			climbing = { environment.climbableAt(it) },
-			sliding = { environment.besideHoney(it) },
-			landingRule = { environment.landingRule(it) },
-			lava = { environment.lavaWithin(it) },
+			climbing = { world.climbableAt(it) },
+			sliding = { world.besideHoney(it) },
+			landingRule = { world.landingRule(it) },
+			lava = { world.lavaWithin(it) },
 		)
 		var stopFrame: Int? = null
 		var failure: TrajectoryDiagnostic? = null
 		val rollout = TrajectoryRolloutEngine.rollout(
 			initialState = from,
 			profile = profile,
-			environment = environment,
+			environment = world,
 			program = program,
 			frameCount = frameCount,
 		) { frame ->

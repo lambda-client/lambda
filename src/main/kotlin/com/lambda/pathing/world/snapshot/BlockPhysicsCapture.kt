@@ -15,10 +15,15 @@ import com.lambda.util.BlockUtils.isFenceLike
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.CampfireBlock
+import net.minecraft.block.DoorBlock
+import net.minecraft.block.FenceGateBlock
+import net.minecraft.block.TrapdoorBlock
 import net.minecraft.block.ShapeContext
+import net.minecraft.block.enums.DoubleBlockHalf
 import net.minecraft.registry.Registries
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.registry.tag.FluidTags
+import net.minecraft.state.property.Properties
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -71,6 +76,25 @@ object BlockPhysicsCapture {
 	}
 
 	fun capture(state: BlockState, world: BlockView, pos: BlockPos, shapeContext: ShapeContext, hazards: HazardRules = HazardRules.AVOID_ALL): SnapshotBlockPhysics {
+		val physics = settled(state, world, pos, shapeContext, hazards)
+		if (!hazards.openDoors) return physics
+		val pairedY = pairing(state, world, pos) ?: return physics
+		val open = state.get(Properties.OPEN)
+		val other = settled(state.cycle(Properties.OPEN), world, pos, shapeContext, hazards)
+		return DoorToggle(if (open) other else physics, if (open) physics else other, pairedY, open).physics(open)
+	}
+
+	fun toggles(state: BlockState): Boolean =
+		DoorBlock.canOpenByHand(state) || state.block is FenceGateBlock || state.block is TrapdoorBlock && !state.isOf(Blocks.IRON_TRAPDOOR)
+
+	private fun pairing(state: BlockState, world: BlockView, pos: BlockPos): Int? = when {
+		DoorBlock.canOpenByHand(state) -> if (state.get(DoorBlock.HALF) == DoubleBlockHalf.LOWER) 1 else -1
+		state.block is FenceGateBlock -> 0
+		state.block is TrapdoorBlock && !state.isOf(Blocks.IRON_TRAPDOOR) && !world.getBlockState(pos.down()).isIn(BlockTags.CLIMBABLE) -> 0
+		else -> null
+	}
+
+	private fun settled(state: BlockState, world: BlockView, pos: BlockPos, shapeContext: ShapeContext, hazards: HazardRules): SnapshotBlockPhysics {
 		val shape = if (state.isOf(Blocks.POWDER_SNOW)) VoxelShapes.empty() else state.getCollisionShape(world, pos, shapeContext)
 		val unsupported = unsupportedPhysics(state, hazards)
 		val slime = state.isOf(Blocks.SLIME_BLOCK)
@@ -81,6 +105,7 @@ object BlockPhysicsCapture {
 			!state.fluidState.isEmpty && shape.isEmpty -> CoarseVoxel.WATER
 			else -> coarseVoxelOf(shape, bouncy = slime, velocityMultiplier = state.block.velocityMultiplier.toDouble())
 		}
+		val outline = if (hazards.openDoors) rayOutline(state, world, pos, shapeContext, shape) else null
 		return SnapshotBlockPhysics(
 			collisionShape = shape,
 			slipperiness = state.block.slipperiness.toDouble(),
@@ -98,7 +123,16 @@ object BlockPhysicsCapture {
 			fallRule = if (cushionedByWater(state, shape, world, pos)) FallRule.NONE else state.fallRule(),
 			honey = state.isOf(Blocks.HONEY_BLOCK),
 			exceedsCube = state.exceedsCube(),
+			outline = outline,
 		)
+	}
+
+	private fun rayOutline(state: BlockState, world: BlockView, pos: BlockPos, shapeContext: ShapeContext, collision: VoxelShape): VoxelShape? {
+		val outline = state.getOutlineShape(world, pos, shapeContext)
+		if (state.hasModelOffset() && collision.isEmpty && !outline.isEmpty) {
+			return VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, (outline.getMax(Direction.Axis.Y) - state.getModelOffset(pos).y).coerceAtMost(1.0), 1.0)
+		}
+		return outline.takeUnless { it.boundingBoxes == collision.boundingBoxes }
 	}
 
 	private fun cushionedByWater(state: BlockState, shape: VoxelShape, world: BlockView, pos: BlockPos): Boolean {

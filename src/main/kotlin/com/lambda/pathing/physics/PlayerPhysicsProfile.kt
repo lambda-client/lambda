@@ -35,6 +35,7 @@ data class PlayerPhysicsProfile(
 	val canDrown: Boolean = true,
 	val useItemSpeed: Float = Vanilla.USING_ITEM_SPEED_FACTOR,
 	val look: MouseLook? = null,
+	val blockReach: Double = Vanilla.BLOCK_REACH,
 ) {
 	val swimHeight: Double get() = if (standingEyeHeight < Vanilla.SWIM_HEIGHT) 0.0 else Vanilla.SWIM_HEIGHT
 
@@ -63,7 +64,8 @@ data class PlayerPhysicsProfile(
 				canSprint == other.canSprint &&
 				canDrown == other.canDrown &&
 				useItemSpeed == other.useItemSpeed &&
-				look == other.look
+				look == other.look &&
+				blockReach.closeTo(other.blockReach)
 
 	private fun Double.closeTo(other: Double): Boolean =
 		abs(this - other) <= PROFILE_EPSILON * max(1.0, max(abs(this), abs(other)))
@@ -119,6 +121,7 @@ data class PlayerPhysicsProfile(
 				canDrown = !player.abilities.invulnerable && !player.hasStatusEffect(StatusEffects.WATER_BREATHING) &&
 						!player.hasStatusEffect(StatusEffects.CONDUIT_POWER),
 				useItemSpeed = player.activeItem.getOrDefault(DataComponentTypes.USE_EFFECTS, UseEffectsComponent.DEFAULT).speedMultiplier(),
+				blockReach = player.blockInteractionRange,
 			)
 		}
 	}

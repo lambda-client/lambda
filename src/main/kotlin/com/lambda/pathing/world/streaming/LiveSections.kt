@@ -214,6 +214,8 @@ internal class LiveSections(
 
 	override val maySoftLand: Boolean get() = scannedFlags() and BlockPhysicsTable.SOFT != 0
 
+	override val mayToggle: Boolean get() = table.hazards.openDoors
+
 	override fun bouncyWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		mayBounce && anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.bouncy }
 

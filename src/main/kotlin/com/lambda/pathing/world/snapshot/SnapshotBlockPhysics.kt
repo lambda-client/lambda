@@ -28,7 +28,13 @@ data class SnapshotBlockPhysics(
 	val fallRule: FallRule = FallRule.NORMAL,
 	val honey: Boolean = false,
 	val exceedsCube: Boolean = collisionShape.boundingBoxes.any { it.minX < 0.0 || it.minY < 0.0 || it.minZ < 0.0 || it.maxX > 1.0 || it.maxY > 1.0 || it.maxZ > 1.0 },
+	val outline: VoxelShape? = null,
+	val toggle: DoorToggle? = null,
 ) {
+	val rayShape: VoxelShape get() = outline ?: collisionShape
+
+	private val outlineBoxes = outline?.boundingBoxes
+
 	internal val coarseShape: VoxelShape =
 		if (unsupportedPhysics != null || water != null) VoxelShapes.fullCube() else collisionShape
 
@@ -36,7 +42,11 @@ data class SnapshotBlockPhysics(
 
 	internal val coarseBoxes: DoubleArray = coarseShape.flatBoxes()
 
-	val cellClass: CellClass = if (unsupportedPhysics != null) CellClass.HAZARD else CellClass.of(coarseVoxel, collisionClass)
+	val cellClass: CellClass = when {
+		unsupportedPhysics != null -> CellClass.HAZARD
+		toggle != null -> CellClass.SPECIAL
+		else -> CellClass.of(coarseVoxel, collisionClass)
+	}
 
 	private val collisionBoxes = collisionShape.boundingBoxes
 
@@ -44,7 +54,7 @@ data class SnapshotBlockPhysics(
 
 	private val hash = Objects.hash(
 		collisionBoxes, slipperiness, velocityMultiplier, jumpVelocityMultiplier, unsupportedPhysics,
-		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed, water, hotFloor, fallRule, honey, exceedsCube,
+		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed, water, hotFloor, fallRule, honey, exceedsCube, outlineBoxes, toggle,
 	)
 
 	override fun equals(other: Any?): Boolean = this === other || other is SnapshotBlockPhysics && hash == other.hash &&
@@ -52,7 +62,8 @@ data class SnapshotBlockPhysics(
 			velocityMultiplier == other.velocityMultiplier && jumpVelocityMultiplier == other.jumpVelocityMultiplier &&
 			unsupportedPhysics == other.unsupportedPhysics && coarseVoxel == other.coarseVoxel && fenceLike == other.fenceLike &&
 			bounceFactor == other.bounceFactor && dampensSteppingSpeed == other.dampensSteppingSpeed && water == other.water &&
-			hotFloor == other.hotFloor && fallRule == other.fallRule && honey == other.honey && exceedsCube == other.exceedsCube
+			hotFloor == other.hotFloor && fallRule == other.fallRule && honey == other.honey && exceedsCube == other.exceedsCube &&
+			outlineBoxes == other.outlineBoxes && toggle == other.toggle
 
 	override fun hashCode(): Int = hash
 

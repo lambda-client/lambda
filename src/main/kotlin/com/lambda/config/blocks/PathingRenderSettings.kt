@@ -44,6 +44,9 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     override val renderJumpMarkers by c.setting("Jump Ticks", true, "A tick where the tape presses jump.") { enabled && renderTrajectory }
 
     @Group(LAYERS_GROUP)
+    override val renderUseMarkers by c.setting("Use Marks", true, "Where the tape uses a block: the crosshair ray from the eye to the clicked point, and the block's shape after the click.") { enabled && renderTrajectory }
+
+    @Group(LAYERS_GROUP)
     override val renderSplices by c.setting("Splice Marks", false, "Where one controller hands over to the next.") { enabled && renderTrajectory }
 
     @Group(LAYERS_GROUP)
@@ -177,6 +180,9 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(TAPE_GROUP)
     override val jumpMarkerColor by c.setting("Jump Tick", Color(253, 224, 71, 240)) { enabled && renderJumpMarkers }
+
+    @Group(TAPE_GROUP)
+    override val useMarkerColor by c.setting("Use Mark", Color(96, 165, 250, 240)) { enabled && renderUseMarkers }
 
     @Group(TAPE_GROUP)
     override val improvementAddedColor by c.setting("Improvement Added", Color(74, 222, 128, 245)) { enabled && renderImprovements }

@@ -21,6 +21,8 @@ data class MotionConstraints(
 	val airReserve: Int = SimpleMoveOptions.DEFAULT_AIR_RESERVE,
 	val look: MouseLook? = null,
 	val hand: MouseHand.Limits? = null,
+	val openDoors: Boolean = false,
+	val closeDoors: Boolean = false,
 ) {
 	val turning: Turning = Turning(maxYawDegreesPerFrame, look, hand)
 

@@ -17,6 +17,8 @@ internal interface SectionSource {
 
 	val maySoftLand: Boolean
 
+	val mayToggle: Boolean
+
 	fun bouncyWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean
 
 	fun waterWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean

@@ -7,7 +7,7 @@ import com.lambda.pathing.execution.ImprovementArbiter
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.replaysUnchanged
-import com.lambda.pathing.session.AlignmentController.Companion.FIRST_FRAME_YAW_EPSILON
+import com.lambda.pathing.session.AlignmentController.Companion.FIRST_FRAME_LOOK_EPSILON
 import com.lambda.pathing.session.AlignmentController.Companion.START_DRIFT_TOLERANCE
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
@@ -29,14 +29,14 @@ internal class TapeAdmission(private val walk: PathingSession) {
 			return with(walk) { recoverOrFail("moved %.2f blocks while planning".format(drift)) }
 		}
 
-		val yawDrift = with(walk.alignment) { launchYawError(path) }
-		if (yawDrift > FIRST_FRAME_YAW_EPSILON) {
+		val yawDrift = with(walk.alignment) { launchLookError(path) }
+		if (yawDrift > FIRST_FRAME_LOOK_EPSILON) {
 			walk.telemetry.published = path
 			walk.alignment.beginAligning(path)
 			walk.tickInput = ALIGNMENT_INPUT
 			walk.state = State.Aligning(walk.leg + 1, yawDrift)
 			info(
-				"Certified trajectory; aligning movement yaw by %.2f° before replay.".format(yawDrift),
+				"Certified trajectory; aligning the look by %.2f° before replay.".format(yawDrift),
 				PATHING_SOURCE,
 			)
 			return
@@ -112,7 +112,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 
 	fun SafeContext.install(path: PublishedPath) {
 		executionEnvironmentDeviation(path, nextFrame = 0)?.let { return staleBeforeExecution(it) }
-		walk.face(path.plan.initialState.rotation.yaw)
+		walk.faceStart(path.plan)
 		walk.alignment.installed()
 		replay(path, frame = 0)
 		walk.leg++

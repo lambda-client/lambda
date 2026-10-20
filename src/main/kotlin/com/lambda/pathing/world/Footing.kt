@@ -53,8 +53,7 @@ object Footing {
 				view.voxel(stance.x, stance.y, stance.z).centerPassable && view.voxel(stance.x, stance.y + 1, stance.z).centerPassable
 
 	fun stands(view: CoarseVoxelView, stance: Stance): Boolean {
-		val cache = cache(view)
-		cache.entries.get(BlockPos.asLong(stance.x, stance.y, stance.z))?.let { return !it.isEmpty }
+		if (view.revision != null) cache(view).entries.get(BlockPos.asLong(stance.x, stance.y, stance.z))?.let { return !it.isEmpty }
 		return floored(view, stance) && (uniformHolds(view, stance) != null || Patch.around(view, stance).anyFoothold(stance))
 	}
 
@@ -69,12 +68,12 @@ object Footing {
 	}
 
 	fun holds(view: CoarseVoxelView, stance: Stance): Holds {
-		val revision = view.revision
+		val revision = view.revision ?: return if (floored(view, stance)) uniformHolds(view, stance) ?: Patch.around(view, stance).holds(stance) else Holds.EMPTY
 		val cache = cache(view)
 		val key = BlockPos.asLong(stance.x, stance.y, stance.z)
 		cache.entries.getAndMoveToLast(key)?.let { return it }
 		val holds = if (floored(view, stance)) uniformHolds(view, stance) ?: Patch.around(view, stance).holds(stance) else Holds.EMPTY
-		if (revision != null && known(view, stance)) {
+		if (known(view, stance)) {
 			cache.entries.putAndMoveToLast(key, holds)
 			if (cache.entries.size > CACHE_CAPACITY) cache.entries.removeFirst()
 		}
@@ -238,8 +237,9 @@ object Footing {
 		val dx = to.x - from.x
 		val dy = to.y - from.y
 		val dz = to.z - from.z
+		if (view.revision == null || abs(dx) > 1 || abs(dy) > 1 || abs(dz) > 1) return search(view, from, to, maxRise)
 		val walks = cache(view).let { if (maxRise == WALK_RISE) it.walks else if (maxRise == JUMP_RISE) it.climbs else null }
-		if (walks == null || abs(dx) > 1 || abs(dy) > 1 || abs(dz) > 1 || view.revision == null) return search(view, from, to, maxRise)
+			?: return search(view, from, to, maxRise)
 		val code = (dx + 1) * 9 + (dy + 1) * 3 + (dz + 1)
 		val key = BlockPos.asLong(from.x, from.y, from.z)
 		val memo = walks.get(key)

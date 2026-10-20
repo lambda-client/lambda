@@ -9,6 +9,8 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.world.snapshot.CellEdit
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.Vec3d
 
 internal class ValueAnchor(
@@ -23,7 +25,18 @@ internal class ValueAnchor(
 	val trace: List<Vec3d> = emptyList(),
 	val jumps: Int = 0,
 	val chain: List<Stance> = emptyList(),
+	val edits: List<CellEdit> = parent?.edits ?: emptyList(),
 ) : BodyState {
+	@Volatile
+	private var world: SnapshotSimulationEnvironment? = null
+
+	fun worldOver(base: SnapshotSimulationEnvironment): SnapshotSimulationEnvironment {
+		if (edits.isEmpty()) return base
+		world?.let { return it }
+		val inherited = parent?.takeIf { it.edits === edits }?.worldOver(base)
+		return (inherited ?: base.edited(edits)).also { world = it }
+	}
+
 	override val speed: Double = state.velocity.horizontalLength()
 
 	var legRoot: Boolean = false
@@ -67,9 +80,9 @@ internal class ValueAnchor(
 	var momentumCredit: Double = Double.NaN
 	var momentumTurnCost: Double = 0.0
 
-	fun continuation() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, parent, inputs, decision, trace, jumps)
+	fun continuation() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, parent, inputs, decision, trace, jumps, edits = edits)
 
-	fun restingChild() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, this, emptyList(), jumps = jumps)
+	fun restingChild() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, this, emptyList(), jumps = jumps, edits = edits)
 
 	fun lineFrom(root: ValueAnchor?): List<ValueAnchor> =
 		generateSequence(this) { it.parent }

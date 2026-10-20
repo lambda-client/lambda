@@ -7,8 +7,10 @@ import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
+import com.lambda.pathing.world.edit.Flips
 import kotlin.math.abs
 
 class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
@@ -54,8 +56,14 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	}
 
 	fun isStance(view: CoarseVoxelView, stance: Stance): Boolean {
-		return stance.y in view.simulableStanceY && (Footing.standsAt(view, stance) || catalog.movements.any { it.occupies(view, stance) })
+		if (stance.y !in view.simulableStanceY) return false
+		if (stands(view, stance)) return true
+		val units = Flips.units(view, stance.x, stance.y, stance.z, STANCE_READS, STANCE_BOUNDS)
+		return units.isNotEmpty() && Flips.search(view, units) { flipped -> true.takeIf { stands(flipped, stance) } } != null
 	}
+
+	private fun stands(view: CoarseVoxelView, stance: Stance): Boolean =
+		Footing.standsAt(view, stance) || catalog.movements.any { it.occupies(view, stance) }
 
 	fun templates(view: CoarseVoxelView, at: Stance): List<MotionTemplate> =
 		if (bouncesAt(view, at.x, at.y, at.z)) templates else templatesWithoutBounces
@@ -121,6 +129,9 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	}
 
 	companion object {
+		private val STANCE_BOUNDS = intArrayOf(0, -1, 0, 0, 1, 0)
+
+		private val STANCE_READS = (-1..1).map { y -> VoxelPos(0, y, 0) }
 
 		fun build(costs: CoarseMoveCosts, options: SimpleMoveOptions = SimpleMoveOptions()): SimpleMoveLibrary =
 			SimpleMoveLibrary(MovementCatalog.build(costs, options))

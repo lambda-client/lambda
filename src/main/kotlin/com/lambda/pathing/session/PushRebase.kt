@@ -50,6 +50,7 @@ internal fun rebased(path: PublishedPath, from: Int, observed: MovementSimulatio
 			tape = InputTape(rollout.frames.map { it.input }),
 			frames = rollout.frames,
 			segments = listOf(PlanSegment.Terminal(start, rollout.frames.last().state, rollout.frames.map { it.input }, startFrame = 0)),
+			edits = rollout.edits,
 		)
 	}.getOrNull() ?: return null
 	return path.copy(

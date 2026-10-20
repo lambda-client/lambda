@@ -121,6 +121,11 @@ object RotationManager : Manager<RotationRequest>(
 		return "Loaded Rotation Manager"
 	}
 
+	override fun onLeased() {
+		yawRequest = null
+		pitchRequest = null
+	}
+
 	/**
 	 * If the [activeRequest] is from an older tick or null, and the [request]'s target rotation is not null,
 	 * the request is accepted and set as the [activeRequest]. The [activeRotation] is then updated.

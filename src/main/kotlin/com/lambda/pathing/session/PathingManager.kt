@@ -14,6 +14,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.managers.Manager
+import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
@@ -27,6 +28,8 @@ import com.lambda.util.world.ChunkPacketLoadContext
 object PathingManager : Manager<PathingRequest>(0) {
 
 	private var session: PathingSession? = null
+
+	private var leaseHolder: PathingSession? = null
 
 	@Volatile
 	var renderConfig: PathingRenderConfig = AutomationConfig.DEFAULT.pathingRenderConfig
@@ -164,8 +167,14 @@ object PathingManager : Manager<PathingRequest>(0) {
 			waypointRoute.onChunkUnloaded(pos.x, pos.z, sections)
 		}
 		listen<TickEvent.Pre> {
+			val walk = session
+			updateLeases(walk)
+			if (walk != null) with(walk) { tick() }
+		}
+
+		listen<TickEvent.Input.Post> {
 			val walk = session ?: return@listen
-			with(walk) { tick() }
+			with(walk) { useForThisTick() }
 		}
 
 		listen<MovementEvent.InputUpdate>({ Int.MAX_VALUE - 1 }) { event ->
@@ -179,6 +188,19 @@ object PathingManager : Manager<PathingRequest>(0) {
 				sprint = input.sprint,
 			)
 		}
+	}
+
+	private fun updateLeases(walk: PathingSession?) {
+		val steering = walk?.takeIf { it.steersRotation }
+		leaseHolder?.takeIf { it !== steering }?.let { held ->
+			RotationManager.release(held)
+			InteractManager.release(held)
+			leaseHolder = null
+		}
+		if (steering == null) return
+		leaseHolder = steering
+		RotationManager.lease(steering)
+		if (steering.request.pathingConfig.openDoors) InteractManager.lease(steering) else InteractManager.release(steering)
 	}
 
 	private const val PARKED_JOURNEY_MILLIS = 30_000L

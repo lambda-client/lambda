@@ -27,6 +27,12 @@ internal class SectionStore private constructor(
 
 	override val maySoftLand: Boolean get() = softSections > 0
 
+	override val mayToggle: Boolean by lazy(LazyThreadSafetyMode.PUBLICATION) {
+		var toggling = false
+		forEach { _, section -> if (section.toggling) toggling = true }
+		toggling
+	}
+
 	override fun forEachKnownKey(action: (Long) -> Unit) = forEach { key, _ -> action(key) }
 
 	override fun forEachSection(action: (Long, ImmutableSnapshotSection) -> Unit) = forEach(action)

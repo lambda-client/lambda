@@ -3,6 +3,7 @@ package com.lambda.pathing.session
 import com.lambda.Lambda
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
@@ -10,6 +11,7 @@ import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
@@ -136,6 +138,17 @@ class PathingSession internal constructor(
 		return input
 	}
 
+	fun SafeContext.useForThisTick() {
+		assertClientThread()
+		if (!active) return
+		val replay = replay?.takeIf { it.cursor.awaitingObservation && !it.holding } ?: return
+		val frame = replay.cursor.nextFrame
+		val use = replay.path.plan.tape[frame].use ?: return
+		if (replay.usedFrame == frame) return
+		replay.usedFrame = frame
+		with(execution) { use(replay, frame, use) }
+	}
+
 	fun cancel() {
 		assertClientThread()
 		if (active) dumpEvent("cancel", "cancelled at ${Lambda.mc.player?.blockPos} while ${state::class.simpleName}")
@@ -178,10 +191,15 @@ class PathingSession internal constructor(
 		return true
 	}
 
+	internal fun faceStart(plan: TrajectoryPlan) =
+		face(plan.initialState.rotation.yaw, plan.initialState.rotation.pitch.takeIf { plan.usesBlocks })
+
 	internal fun face(target: Double, pitch: Double? = null) {
 		request.runSafeAutomated {
-			if (pitch == null) rotationRequest { yaw(target); exact() }.submit()
-			else rotationRequest { rotation(target, pitch); exact() }.submit()
+			RotationManager.actingAs(this@PathingSession) {
+				if (pitch == null) rotationRequest { yaw(target); exact() }.submit()
+				else rotationRequest { rotation(target, pitch); exact() }.submit()
+			}
 		}
 	}
 

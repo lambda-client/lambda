@@ -37,7 +37,7 @@ class BlockPhysicsTable private constructor(val hazards: HazardRules) {
 
 	private fun create(state: BlockState): Entry {
 		val sample = capture(state, EmptyBlockView.INSTANCE, BlockPos.ORIGIN)
-		val shaped = state.block.hasDynamicBounds() || state.hasModelOffset() && sample.collides
+		val shaped = state.block.hasDynamicBounds() || state.hasModelOffset() && sample.collides || hazards.openDoors && BlockPhysicsCapture.toggles(state)
 		val water = state.fluidState.isIn(FluidTags.WATER)
 		return Entry(if (shaped || water) null else intern(sample), flagsOf(sample), water && !shaped)
 	}

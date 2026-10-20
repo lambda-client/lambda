@@ -21,4 +21,5 @@ data class CoarseEdge(
 	val bounce: BounceSolution? = null,
 	val standingStart: Boolean = true,
 	val via: Via? = null,
+	val flips: Map<VoxelPos, Boolean> = emptyMap(),
 )

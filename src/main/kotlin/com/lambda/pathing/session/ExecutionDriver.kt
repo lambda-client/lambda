@@ -2,6 +2,7 @@ package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
+import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.ServerCorrections
 import com.lambda.pathing.debug.executionRejectionReport
@@ -9,6 +10,7 @@ import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionObservationResult
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
+import com.lambda.pathing.physics.BlockUse
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.TrajectoryPlan
@@ -18,7 +20,9 @@ import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.Companion.TREAD_WATER_INPUT
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.world.snapshot.HazardRules
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
+import net.minecraft.state.property.Properties
 import net.minecraft.util.math.MathHelper
 import kotlin.math.abs
 
@@ -64,7 +68,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 				walk.state = State.Executing(next.frame, current.plan.tape.frameCount, walk.leg)
 				next.input.rotation?.let { rotation ->
 					val wet = observed.touchingWater || current.plan.frames.getOrNull(next.frame)?.state?.touchingWater == true
-					walk.face(rotation.yaw, rotation.pitch.takeIf { wet })
+					walk.face(rotation.yaw, rotation.pitch.takeIf { wet || current.plan.usesBlocks })
 				}
 			}
 
@@ -74,6 +78,14 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 				reject(current, next.frame, next.deviation, observed, afterInput = false)
 				continueReplaced(replay)
 			}
+		}
+	}
+
+	fun SafeContext.use(replay: Replay, frame: Int, use: BlockUse) {
+		if (world.getBlockState(use.pos).getOrEmpty(Properties.OPEN).orElse(null) == use.open) return
+		val result = walk.request.runSafeAutomated { with(InteractManager) { useScheduled(walk, use.pos, use.side, use.hit) } }
+		if (result is InteractManager.Scheduled.Refused) {
+			reject(replay.path, frame, ExecutionDeviation.Protocol("the use of ${use.pos} was refused: ${result.reason}"), observe(replay.path.plan, frame), afterInput = false)
 		}
 	}
 

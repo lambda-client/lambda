@@ -18,6 +18,7 @@ internal class ImmutableSnapshotSection private constructor(
 	val exceeding: Boolean = palette.any { it.exceedsCube }
 	val unsupported: Boolean = palette.any { it.unsupportedPhysics != null }
 	val soft: Boolean = palette.any { it.water != null || it.fallRule.cushions && !it.coarseVoxel.bouncy }
+	val toggling: Boolean = palette.any { it.toggle != null }
 	val indexStorageBytes: Int get() = byteIndices?.size ?: shortIndices?.size?.times(Short.SIZE_BYTES) ?: 0
 
 	operator fun get(x: Int, y: Int, z: Int): SnapshotBlockPhysics = cell(localIndex(x, y, z))

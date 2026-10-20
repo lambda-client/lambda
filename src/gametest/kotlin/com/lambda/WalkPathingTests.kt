@@ -28,6 +28,7 @@ import com.lambda.PathingTestHarness.pathingFailures
 import com.lambda.PathingTestHarness.restoreArena
 import com.lambda.PathingTestHarness.scenarioSelected
 import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.blocks.PathingConfig
 import com.lambda.config.blocks.RotationConfig
 import com.lambda.interaction.managers.rotating.MouseLook
 import com.lambda.interaction.managers.rotating.Rotation
@@ -36,6 +37,8 @@ import com.lambda.pathing.search.TrajectoryPlan
 import pathing.BedrockFieldLayout
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
+import net.minecraft.state.property.Properties
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
 /**
@@ -76,6 +79,48 @@ internal object WalkPathingTests {
         }
     }
 
+    private class ToggleWatch {
+        var uses = 0
+        var closes = 0
+        var recoveries = 0
+    }
+
+    private fun watchToggles(context: ClientGameTestContext, watch: ToggleWatch): (Int) -> Unit = {
+        context.runOnClient<IllegalStateException> {
+            PathingService.telemetry.published?.plan?.let { plan ->
+                val uses = plan.tape.asList().mapNotNull { it.use }
+                watch.uses = maxOf(watch.uses, uses.size)
+                watch.closes = maxOf(watch.closes, uses.count { !it.open })
+            }
+            watch.recoveries = PathingService.telemetry.recoveries
+        }
+    }
+
+    private fun usingDoors(close: Boolean = false): (PathingConfig) -> PathingConfig = { base ->
+        object : PathingConfig by base {
+            override val openDoors = true
+            override val closeDoors = close
+            override val hazards = base.hazards.copy(openDoors = true)
+        }
+    }
+
+    private fun checkToggles(context: ClientGameTestContext, scenario: String, watch: ToggleWatch, uses: IntRange, closes: IntRange, expected: Map<BlockPos, Boolean>) {
+        if (!scenarioSelected(scenario)) return
+        val states = context.computeOnClient<Map<BlockPos, Boolean>, IllegalStateException> { client ->
+            expected.keys.associateWith { client.world?.getBlockState(it)?.getOrEmpty(Properties.OPEN)?.orElse(false) == true }
+        }
+        println("[pathing-diag] $scenario: uses ${watch.uses}, closes ${watch.closes}, recoveries ${watch.recoveries}, open $states")
+        val failure = when {
+            watch.uses !in uses -> "the tape used blocks ${watch.uses} times, expected $uses"
+            watch.closes !in closes -> "the tape closed blocks ${watch.closes} times, expected $closes"
+            watch.recoveries > 0 -> "recovered ${watch.recoveries} times"
+            states != expected -> "ended with $states, expected $expected"
+            else -> return
+        }
+        pathingFailures += "$scenario: $failure"
+        println("[pathing-fail] $scenario: $failure")
+    }
+
     fun run(
         context: ClientGameTestContext,
         server: TestServerContext,
@@ -92,6 +137,54 @@ internal object WalkPathingTests {
             context.runOnClient<IllegalStateException> { PathingService.telemetry.published?.plan?.let { humanPlan = it } }
         })
         checkHumanTurns(context, humanPlan)
+
+        // A closed oak door in a wall across the straight line, and a closed fence gate in a fence
+        // behind it. With doors allowed the coarse route goes through both, and the tape clicks
+        // them open on the run. It starts looking at the floor, so it has to raise its aim to
+        // the door and lower it to the gate, and the server must see exactly that look while the
+        // camera looks elsewhere.
+        server.runCommand("/fill -8 100 3 8 102 3 minecraft:stone")
+        server.runCommand("/setblock 0 100 3 minecraft:oak_door[facing=north,half=lower]")
+        server.runCommand("/setblock 0 101 3 minecraft:oak_door[facing=north,half=upper]")
+        server.runCommand("/fill -8 100 5 8 100 5 minecraft:oak_fence")
+        server.runCommand("/setblock 0 100 5 minecraft:oak_fence_gate[facing=north]")
+        val doorWatch = ToggleWatch()
+        assertPathingWalk(
+            context, server, "pathing-door", Stance(0, 100, 7),
+            start = "0.5 100 0.5 0 35",
+            cameraYawDuringPlanning = 90.0f,
+            pathing = usingDoors(),
+            onTick = watchToggles(context, doorWatch),
+        )
+        checkToggles(context, "pathing-door", doorWatch, 2..2, 0..0, mapOf(BlockPos(0, 100, 3) to true, BlockPos(0, 100, 5) to true))
+        restoreArena(server)
+
+        // The same door with Close Doors on: opened on the way in, shut again once the body is past.
+        server.runCommand("/fill -8 100 3 8 102 3 minecraft:stone")
+        server.runCommand("/setblock 0 100 3 minecraft:oak_door[facing=north,half=lower]")
+        server.runCommand("/setblock 0 101 3 minecraft:oak_door[facing=north,half=upper]")
+        val closeWatch = ToggleWatch()
+        assertPathingWalk(
+            context, server, "pathing-door-close", Stance(0, 100, 8),
+            pathing = usingDoors(close = true),
+            onTick = watchToggles(context, closeWatch),
+        )
+        checkToggles(context, "pathing-door-close", closeWatch, 2..2, 1..1, mapOf(BlockPos(0, 100, 3) to false))
+        restoreArena(server)
+
+        // Five open trapdoors hang in the floor of a one-wide corridor over a deep pit. Closed they are
+        // floor, so the tape closes them while running up and crosses on them.
+        server.runCommand("/fill -1 100 -2 -1 101 10 minecraft:stone")
+        server.runCommand("/fill 1 100 -2 1 101 10 minecraft:stone")
+        server.runCommand("/fill 0 99 2 0 99 6 minecraft:oak_trapdoor[half=top,open=true,facing=north]")
+        val trapdoorWatch = ToggleWatch()
+        assertPathingWalk(
+            context, server, "pathing-trapdoor", Stance(0, 100, 8),
+            pathing = usingDoors(),
+            onTick = watchToggles(context, trapdoorWatch),
+        )
+        checkToggles(context, "pathing-trapdoor", trapdoorWatch, 1..5, 1..5, emptyMap())
+        restoreArena(server)
 
         // A cow standing on the straight line. Walking through it gets the body pushed off
         // its tape, so the cells a mob stands in are closed and the walk goes around it.

@@ -48,7 +48,7 @@ class FinisherTest {
         every { field.chain(any(), any(), any()) } returns listOf(anchor.stance)
         every { field.reachesGoal(any()) } returns true
         every { field.view } returns environment
-        every { gate.run(any(), any(), any(), any()) } returns successful
+        every { gate.run(any(), any(), any(), any(), any(), any()) } returns successful
     }
 
     @Test

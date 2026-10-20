@@ -1,8 +1,10 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
+import com.lambda.pathing.actions.MotionTemplateId
 import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.core.headingAlignment
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.floor
@@ -23,6 +25,9 @@ class CoarseValueField(
 	private val options = HashMap<Stance, Options>()
 	private var optionsRevision = labelRevision()
 
+	private val replans = HashMap<ReplanKey, Replanned>()
+	private var replansRevision = labelRevision()
+
 	@Volatile
 	private var detours: Detours? = null
 	private val detourEdges = HashMap<Stance, List<CoarseEdge>>()
@@ -30,6 +35,7 @@ class CoarseValueField(
 	override fun invalidate() {
 		chains.clear()
 		options.clear()
+		replans.clear()
 		detourEdges.clear()
 	}
 
@@ -83,6 +89,23 @@ class CoarseValueField(
 		val best = ranked.minOf { it.cost }
 		val ordered = if (count == 1) listOfNotNull(ranked.minOrNull()) else ranked.sorted()
 		return ordered.asSequence().takeWhile { it.cost <= best + marginTicks }.take(count).map { it.edge }.toList()
+	}
+
+	override fun edge(from: Stance, to: Stance): CoarseEdge? = optionsFrom(from).edges.firstOrNull { it.to == to }
+
+	override fun sweep(edge: CoarseEdge): List<VoxelPos> =
+		moves.templates.getOrNull(edge.template.value)?.takeIf { it.id == edge.template }?.sweep(edge.from) ?: emptyList()
+
+	override fun replanned(edge: CoarseEdge, view: CoarseVoxelView, touched: Set<VoxelPos>): CoarseEdge? {
+		val template = moves.templates.getOrNull(edge.template.value)?.takeIf { it.id == edge.template } ?: return edge
+		val swept = template.swept(edge.from, touched).map { it to view.toggleAt(it.x, it.y, it.z)?.open }
+		if (swept.none { (cell, open) -> cell !in edge.flips && this.view.toggleAt(cell.x, cell.y, cell.z)?.open != open }) return edge
+		val revision = labelRevision()
+		if (revision != replansRevision || replans.size >= MAX_OPTIONS) {
+			replans.clear()
+			replansRevision = revision
+		}
+		return replans.getOrPut(ReplanKey(edge.template, edge.from, swept)) { Replanned(template.edge(view, edge.from)?.takeIf { it.to == edge.to }) }.edge
 	}
 
 	private fun optionsFrom(stance: Stance): Options {
@@ -149,6 +172,10 @@ class CoarseValueField(
 	}
 
 	private data class ChainKey(val stance: Stance, val firstStep: Stance?, val length: Int)
+
+	private data class ReplanKey(val template: MotionTemplateId, val from: Stance, val states: List<Pair<VoxelPos, Boolean?>>)
+
+	private class Replanned(val edge: CoarseEdge?)
 
 	private fun descend(from: Stance, visited: Set<Stance>): Stance? {
 		val options = optionsFrom(from)

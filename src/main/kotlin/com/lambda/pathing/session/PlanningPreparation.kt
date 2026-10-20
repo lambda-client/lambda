@@ -18,9 +18,11 @@ import com.lambda.pathing.search.stanceOf
 import com.lambda.pathing.search.supportedStanceOf
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.util.FolderRegistry
+import net.minecraft.block.enums.DoubleBlockHalf
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.registry.tag.BlockTags
+import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
@@ -58,7 +60,9 @@ internal fun resolveGoalStance(player: ClientPlayerEntity, goal: Stance): Stance
 	val world = player.entityWorld
 	if (!world.isChunkLoaded(goal.x shr 4, goal.z shr 4)) return goal
 	val pos = BlockPos(goal.x, goal.y, goal.z)
-	val shape = world.getBlockState(pos).getCollisionShape(world, pos)
+	val state = world.getBlockState(pos)
+	if (state.getOrEmpty(Properties.DOUBLE_BLOCK_HALF).orElse(null) == DoubleBlockHalf.UPPER) return goal.offset(0, -1, 0)
+	val shape = state.getCollisionShape(world, pos)
 	if (shape.isEmpty) return goal
 	val surface = shape.getMax(Direction.Axis.Y)
 	return if (surface > 0.0 && surface <= CoarseMoveRates.FREE_STEP_RISE) {
@@ -127,6 +131,8 @@ internal fun preparePlanning(
 		airReserve = airReserve,
 		look = profile.look,
 		hand = hand,
+		openDoors = config.hazards.openDoors,
+		closeDoors = config.hazards.openDoors && config.closeDoors,
 	)
 	val initial = initialOverride ?: MovementSimulationState.from(player)
 	val start = supportedStanceOf(initial) ?: footing(player, initial) ?: stanceOf(initial)

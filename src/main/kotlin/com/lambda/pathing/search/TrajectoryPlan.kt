@@ -7,6 +7,7 @@ import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.SimulationEnvironment
+import com.lambda.pathing.rollout.FrameEdit
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.rollout.TrajectoryRolloutTermination
@@ -21,8 +22,11 @@ class TrajectoryPlan internal constructor(
 	val tape: InputTape,
 	frames: List<SimulatedTrajectoryFrame>,
 	val segments: List<PlanSegment>,
+	val edits: List<FrameEdit> = emptyList(),
 ) {
 	val frames: List<SimulatedTrajectoryFrame> = Collections.unmodifiableList(ArrayList(frames))
+	val usesBlocks: Boolean by lazy { tape.asList().any { it.use != null } }
+
 	private val cellReads by lazy { FrameDependencyIndex(frameDependencies) { it } }
 	private val chunkReads by lazy { FrameDependencyIndex(frameDependencies, PathingChunk::containing) }
 
