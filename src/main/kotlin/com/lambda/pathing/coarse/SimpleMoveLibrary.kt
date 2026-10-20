@@ -2,10 +2,10 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.MotionTemplate
-import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.SimpleMoveOptions
-import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.core.CellBox
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
@@ -54,8 +54,7 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	}
 
 	fun isStance(view: CoarseVoxelView, stance: Stance): Boolean {
-		if (stance.y !in view.simulableStanceY) return false
-		return Footing.standsAt(view, stance) || catalog.movements.any { it.occupies(view, stance) }
+		return stance.y in view.simulableStanceY && (Footing.standsAt(view, stance) || catalog.movements.any { it.occupies(view, stance) })
 	}
 
 	fun templates(view: CoarseVoxelView, at: Stance): List<MotionTemplate> =
@@ -92,7 +91,8 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 			reached = CellBox.enclosing(listOf(reached, box(honeyReach)))
 		}
 		if (padReach != null && padReach.zone(changed).grown(-bounceReach, bounceReach, -bounceDepth, 0, -bounceReach, bounceReach)
-				.let { view.mayBounceWithin(it.xs.first, it.ys.first, it.zs.first, it.xs.last, it.ys.last, it.zs.last) }) {
+				.let { view.mayBounceWithin(it.xs.first, it.ys.first, it.zs.first, it.xs.last, it.ys.last, it.zs.last) }
+		) {
 			reached = CellBox.enclosing(listOf(reached, box(padReach)))
 		}
 		return reached

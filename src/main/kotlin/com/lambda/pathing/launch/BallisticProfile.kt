@@ -318,11 +318,11 @@ data class BallisticProfile(
 		}
 
 		override fun equals(other: Any?): Boolean = other is ArcKey &&
-			entrySpeed.compareTo(other.entrySpeed) == 0 && rise.compareTo(other.rise) == 0 &&
-			holdForward == other.holdForward && sprint == other.sprint && jump == other.jump &&
-			holdTicks == other.holdTicks && maxTicks == other.maxTicks && drop.compareTo(other.drop) == 0 &&
-			bounceFactor.compareTo(other.bounceFactor) == 0 && headroom.compareTo(other.headroom) == 0 &&
-			bounces == other.bounces && reboundHeadroom.compareTo(other.reboundHeadroom) == 0 && floors == other.floors
+				entrySpeed.compareTo(other.entrySpeed) == 0 && rise.compareTo(other.rise) == 0 &&
+				holdForward == other.holdForward && sprint == other.sprint && jump == other.jump &&
+				holdTicks == other.holdTicks && maxTicks == other.maxTicks && drop.compareTo(other.drop) == 0 &&
+				bounceFactor.compareTo(other.bounceFactor) == 0 && headroom.compareTo(other.headroom) == 0 &&
+				bounces == other.bounces && reboundHeadroom.compareTo(other.reboundHeadroom) == 0 && floors == other.floors
 
 		private companion object {
 			const val GOLDEN_GAMMA = -0x61c8864680b583ebL

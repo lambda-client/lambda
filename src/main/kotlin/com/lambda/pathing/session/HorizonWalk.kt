@@ -14,9 +14,9 @@ import com.lambda.pathing.search.MotionPlanResult
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchClock
 import com.lambda.pathing.search.SearchConfig
-import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.search.SearchProbe
+import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SystemSearchClock
 import com.lambda.pathing.search.WorldLink
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment

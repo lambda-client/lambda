@@ -5,7 +5,7 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntArrays
 import it.unimi.dsi.fastutil.longs.LongArrayList
-import java.util.Arrays
+import java.util.*
 
 internal class RowEdges private constructor(
 	private val templates: ShortArray,

@@ -2,8 +2,8 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.families.DiveMovement
-import com.lambda.pathing.core.headingAlignment
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.headingAlignment
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.floor
 

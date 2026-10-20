@@ -85,8 +85,7 @@ object HoneySlideMovement : Movement {
 
 		override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
 			val far = span - 1
-			if (!view.mayContainHoney(x + minOf(0, ux * far) - 1, y + rise, z + minOf(0, uz * far) - 1, x + maxOf(0, ux * far) + 1, y + WALL_TOP, z + maxOf(0, uz * far) + 1)) return false
-			return sides.any { (sx, sz) -> wallCells(view, x, y, z, ux, uz, sx, sz, span, rise) >= MIN_WALL_CELLS }
+			return view.mayContainHoney(x + minOf(0, ux * far) - 1, y + rise, z + minOf(0, uz * far) - 1, x + maxOf(0, ux * far) + 1, y + WALL_TOP, z + maxOf(0, uz * far) + 1) && sides.any { (sx, sz) -> wallCells(view, x, y, z, ux, uz, sx, sz, span, rise) >= MIN_WALL_CELLS }
 		}
 
 		override val neighborReads: List<VoxelPos> = sides.flatMap { (sx, sz) ->

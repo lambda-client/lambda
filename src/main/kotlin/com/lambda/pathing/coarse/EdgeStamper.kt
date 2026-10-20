@@ -4,16 +4,16 @@ import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.StampProgram
 import com.lambda.pathing.core.CellBox
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.TerrainBits
 import com.lambda.pathing.world.TerrainWatch
-import com.lambda.pathing.core.MovementId
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
-import kotlin.math.abs
 import net.minecraft.util.math.BlockPos
+import kotlin.math.abs
 
 internal class EdgeStamper(private val view: CoarseVoxelView, private val moves: SimpleMoveLibrary, private val standable: StanceMemo) {
 	private val bits = TerrainBits(view)

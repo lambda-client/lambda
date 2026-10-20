@@ -1,7 +1,5 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
-
 import com.lambda.pathing.actions.BodyState
 import com.lambda.pathing.actions.PricedDecision
 import com.lambda.pathing.actions.TrajectoryDecision
@@ -10,6 +8,7 @@ import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import net.minecraft.util.math.Vec3d
 
 internal class ValueAnchor(

@@ -2,6 +2,7 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.MotionTemplateId
+import com.lambda.pathing.actions.families.SlimeBounceMovement
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
@@ -11,7 +12,6 @@ import com.lambda.pathing.launch.ArcSample
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceArcProbe
 import com.lambda.pathing.launch.BounceSolution
-import com.lambda.pathing.actions.families.SlimeBounceMovement
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.Sweep

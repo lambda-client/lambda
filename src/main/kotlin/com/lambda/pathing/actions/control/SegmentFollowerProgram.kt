@@ -1,9 +1,8 @@
 package com.lambda.pathing.actions.control
 
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.LaunchTrigger
-
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.horizontalDistance

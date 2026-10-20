@@ -1,9 +1,5 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
-import com.lambda.pathing.rollout.TrajectoryRolloutEngine
-import com.lambda.pathing.rollout.TrajectoryRolloutTermination
-
 import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.VoxelPos
@@ -12,6 +8,9 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.UnsupportedBlockPhysicsException
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
+import com.lambda.pathing.rollout.TrajectoryRolloutTermination
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 
 internal class Certifier(

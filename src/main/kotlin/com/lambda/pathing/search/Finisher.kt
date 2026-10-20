@@ -7,8 +7,8 @@ import com.lambda.pathing.actions.control.CorridorFollowerProgram
 import com.lambda.pathing.actions.control.TerminalApproach
 import com.lambda.pathing.actions.control.brakeToStop
 import com.lambda.pathing.actions.control.hover
-import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.actions.control.treadWater
+import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
@@ -119,7 +119,7 @@ internal class Finisher(
 
 	private fun settledAfloat(frames: List<SimulatedTrajectoryFrame>, end: Int): Boolean =
 		end >= SETTLED_FRAMES - 1 && frames[end].state.touchingWater &&
-			(end - SETTLED_FRAMES + 1..end).all { frames[it].state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED }
+				(end - SETTLED_FRAMES + 1..end).all { frames[it].state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED }
 
 	private fun hoverBrake(anchor: ValueAnchor): Solution? {
 		val stance = anchor.stance

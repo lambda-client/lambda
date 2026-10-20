@@ -4,10 +4,10 @@ import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.DecisionPrice
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.PricedDecision
 import com.lambda.pathing.actions.ProposalContext
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.coarse.MomentumRules
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance

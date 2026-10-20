@@ -1,14 +1,18 @@
 package com.lambda.pathing.actions.families.jump
 
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.DecisionContext
+import com.lambda.pathing.actions.MAX_LAUNCH_FRAME
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.closingSpeed
+import com.lambda.pathing.actions.control.LIP_LOOKAHEAD_MARGIN
 import com.lambda.pathing.actions.nominalLaunchFrame
 import com.lambda.pathing.actions.reachableEntrySpeed
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.center
 import com.lambda.pathing.core.Via
+import com.lambda.pathing.core.alongEdge
+import com.lambda.pathing.core.center
 import com.lambda.pathing.core.plus
 import com.lambda.pathing.core.unitBetween
 import com.lambda.pathing.launch.BODY_HALF_WIDTH
@@ -16,19 +20,15 @@ import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
-import com.lambda.pathing.actions.control.LIP_LOOKAHEAD_MARGIN
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.canStandAt
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.floor
-import kotlin.math.hypot
-import kotlin.math.pow
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.actions.MAX_LAUNCH_FRAME
-import com.lambda.pathing.core.alongEdge
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.floor
+import kotlin.math.hypot
+import kotlin.math.pow
 import kotlin.math.sin
 
 internal object JumpDecisions {

@@ -26,6 +26,7 @@ internal class Detours private constructor(private val penalties: Long2DoubleOpe
 			val occupied = LongOpenHashSet(cells)
 			fun blocked(stance: Stance): Boolean =
 				occupied.contains(BlockPos.asLong(stance.x, stance.y, stance.z)) || occupied.contains(BlockPos.asLong(stance.x, stance.y + 1, stance.z))
+
 			fun crosses(from: Stance, to: Stance): Boolean {
 				for (x in floor(minOf(from.x, to.x) + LOW_EDGE)..floor(maxOf(from.x, to.x) + HIGH_EDGE)) {
 					for (z in floor(minOf(from.z, to.z) + LOW_EDGE)..floor(maxOf(from.z, to.z) + HIGH_EDGE)) {
@@ -34,6 +35,7 @@ internal class Detours private constructor(private val penalties: Long2DoubleOpe
 				}
 				return false
 			}
+
 			val index = Long2IntOpenHashMap().apply { defaultReturnValue(-1) }
 			val stances = ArrayList<Stance>()
 			for (cell in cells) {

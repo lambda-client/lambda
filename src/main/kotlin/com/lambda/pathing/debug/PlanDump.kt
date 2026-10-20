@@ -2,9 +2,9 @@ package com.lambda.pathing.debug
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.physics.FallLimits
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.FallLimits
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile

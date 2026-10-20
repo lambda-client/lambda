@@ -182,7 +182,7 @@ internal class MinecraftTerrainSource(
 
 	private fun pushes(entity: Entity): Boolean =
 		entity.isAlive && entity.isPushable && !entity.isTouchingWater && !entity.isSpectator && supported(entity) &&
-			!entity.isConnectedThroughVehicle(player)
+				!entity.isConnectedThroughVehicle(player)
 
 	private fun supported(entity: Entity): Boolean {
 		val below = BlockPos.ofFloored(entity.x, entity.y - SUPPORT_PROBE, entity.z)

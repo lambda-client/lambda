@@ -2,8 +2,8 @@ package com.lambda.pathing.search
 
 import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.PathingChunk
@@ -12,14 +12,14 @@ import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
-import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.rollout.TrajectoryRolloutTermination
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
-import kotlin.math.abs
 import net.minecraft.util.math.BlockPos
+import kotlin.math.abs
 
 internal class SearchLoop(
 	initialRoute: CoarseRoutePlan,
@@ -194,8 +194,7 @@ internal class SearchLoop(
 	private fun awaitWorld(forBody: Boolean = false): Boolean {
 		val world = world ?: return false
 		clock.onWait(StallRecovery.WAIT_SLICE_MILLIS)
-		if (forBody && clock.simulated) return false
-		return world.await(StallRecovery.WAIT_SLICE_MILLIS)
+		return !(forBody && clock.simulated) && world.await(StallRecovery.WAIT_SLICE_MILLIS)
 	}
 
 	private fun restartable(): Boolean = !incumbent.hasSolution && recovery.restartable()

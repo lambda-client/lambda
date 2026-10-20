@@ -11,8 +11,8 @@ import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.fallLimits
 import com.lambda.pathing.search.SearchConfig
-import com.lambda.pathing.search.stanceOf
 import com.lambda.pathing.search.footprintStances
+import com.lambda.pathing.search.stanceOf
 import com.lambda.pathing.search.supportedStanceOf
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.util.FolderRegistry

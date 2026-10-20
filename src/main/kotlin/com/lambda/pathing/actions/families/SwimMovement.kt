@@ -105,7 +105,7 @@ object SwimMovement : Movement {
 
 	override fun completed(context: CompletionContext): Boolean =
 		context.stance != context.body.stance && context.stance.y == context.decision.step.y &&
-			if (context.decision.movement == MovementId.EXIT_WATER) context.observed.onGround else context.observed.touchingWater
+				if (context.decision.movement == MovementId.EXIT_WATER) context.observed.onGround else context.observed.touchingWater
 
 	override val inMedium: Boolean get() = true
 

@@ -100,7 +100,7 @@ class MotionTemplate internal constructor(
 
 	private fun undecided(view: CoarseVoxelView, origin: Stance): Boolean = conditions.all { condition ->
 		condition.matches(view, origin.x, origin.y, origin.z) ||
-			condition.reads().any { view.cellClass(origin.x + it.x, origin.y + it.y, origin.z + it.z) == CellClass.SPECIAL }
+				condition.reads().any { view.cellClass(origin.x + it.x, origin.y + it.y, origin.z + it.z) == CellClass.SPECIAL }
 	}
 
 	private fun launchesFromFooting(view: CoarseVoxelView, origin: Stance, solution: LaunchSolution): Boolean {
@@ -224,6 +224,7 @@ class MotionTemplate internal constructor(
 			standingStartBehind = standingStartViable(true, origin, spec.modes, probed.solution, rise),
 			bonkCells = probed.bonkCells,
 		)
+
 		val free = JumpArcProbe.footprints(dx, dz, rise, spec.modes)
 		val capped = if (free.isEmpty()) emptyList() else JumpArcProbe.cappedFootprints(dx, dz, rise, spec.modes)
 		val candidates = (free + capped + JumpArcProbe.alternativeFootprints(dx, dz, rise, spec.modes)).map(::candidateOf)

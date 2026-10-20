@@ -3,7 +3,6 @@ package com.lambda.pathing.actions.control
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.TrajectoryDecision
-
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
@@ -13,9 +12,9 @@ import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
-import kotlin.math.sin
-import kotlin.math.hypot
 import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.sin
 
 internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: ProgramContext) : ControlProgram {
 	private val takeoff = context.body.stance.center()

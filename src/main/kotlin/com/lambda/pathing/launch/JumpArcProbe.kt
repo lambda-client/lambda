@@ -160,7 +160,7 @@ object JumpArcProbe {
 			if (BlockPos.asLong(cellX, 0, cellZ) !in region) return@forEachColumn
 			forEachCeiling(view, from.x + cellX, from.z + cellZ, head, reads) { bottom, minX, maxX, minZ, maxZ ->
 				val over = cellX + maxX > x - BODY_HALF_WIDTH && cellX + minX < x + BODY_HALF_WIDTH &&
-					cellZ + maxZ > z - BODY_HALF_WIDTH && cellZ + minZ < z + BODY_HALF_WIDTH
+						cellZ + maxZ > z - BODY_HALF_WIDTH && cellZ + minZ < z + BODY_HALF_WIDTH
 				if (over && quantized(bottom - head) == solution.headroom) bonked = true
 			}
 		}
@@ -365,6 +365,7 @@ object JumpArcProbe {
 		for (lateral in LEDGE_LATERALS) {
 			fun feet(holds: Footing.Holds, along: Double) =
 				holds.heightAt(from.x + 0.5 + unitX * along - unitZ * lateral, from.z + 0.5 + unitZ * along + unitX * lateral)
+
 			val launchFeet = feet(takeoff, 0.0)
 			if (launchFeet.isNaN()) continue
 			val landingFeet = feet(landing, length)

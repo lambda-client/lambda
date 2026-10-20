@@ -6,12 +6,12 @@ import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.graph.EdgeList
 import com.lambda.pathing.graph.EdgeRelevance
+import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.Medium
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import java.util.function.LongPredicate
 import java.util.function.LongToDoubleFunction
-import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.Medium
 
 enum class SpeedClass {
 	STOPPED, MOVING;

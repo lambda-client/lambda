@@ -4,8 +4,8 @@ import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.families.DiveMovement
-import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.CellBox
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium

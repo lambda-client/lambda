@@ -60,7 +60,7 @@ object TrajectoryRolloutEngine {
 				val match = shared.firstOrNull()?.get(frame)
 				if (match != null) {
 					val reused = if (match.input == input) match
-						else SimulatedTrajectoryFrame(frame, input, match.state.copy(rotation = input.rotation ?: current.rotation))
+					else SimulatedTrajectoryFrame(frame, input, match.state.copy(rotation = input.rotation ?: current.rotation))
 					current = reused.state
 					frames += reused
 					if (observer?.invoke(reused) == true) break

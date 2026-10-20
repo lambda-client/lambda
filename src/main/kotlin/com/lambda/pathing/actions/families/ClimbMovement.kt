@@ -3,7 +3,6 @@ package com.lambda.pathing.actions.families
 import com.lambda.pathing.actions.CellCondition
 import com.lambda.pathing.actions.CellPredicate
 import com.lambda.pathing.actions.CoarseMoveRates
-import com.lambda.pathing.actions.control.ClimbProgram
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
@@ -13,6 +12,7 @@ import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.actions.control.ClimbProgram
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.bearingBetween

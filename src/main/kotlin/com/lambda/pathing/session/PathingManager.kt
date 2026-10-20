@@ -119,8 +119,8 @@ object PathingManager : Manager<PathingRequest>(0) {
 
 		previous?.takeIf { it.active }?.dumpEvent("superseded", "a new request toward $goal replaced the session")
 		previous?.release()
-		if (journey != null && journey?.goal != goal && journey?.retarget(goal) != true) {
-			journey?.cancel()
+		if (journey != null && journey.goal != goal && journey.retarget(goal) != true) {
+			journey.cancel()
 			journey = null
 		}
 		PlanningDebugChannel.reset()

@@ -519,6 +519,7 @@ object Footing {
 				collected.add(x + maxX); collected.add(y + maxY); collected.add(z + maxZ)
 				holding.add(floor)
 			}
+
 			var column = 0
 			for (z in z0..z1) for (x in x0..x1) {
 				starts[column++] = holding.size

@@ -7,11 +7,11 @@ import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
+import com.lambda.pathing.actions.NeoTerrain
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.actions.NeoTerrain
 import com.lambda.pathing.actions.control.NeoProgram
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance

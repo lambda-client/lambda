@@ -37,6 +37,7 @@ fun interface CellPredicate {
 					val head = view.voxel(x, y + 1, z)
 					return feet.centerPassable && head.centerPassable && feet.opensToward(sides) && head.opensToward(sides)
 				}
+
 				override val extraReads = listOf(VoxelPos(0, 1, 0))
 			}
 		}
@@ -66,6 +67,7 @@ fun interface CellPredicate {
 				val crossing = if (dy > 0) y + 1 else y
 				return view.voxel(x, crossing, z).opensToward(side) && view.voxel(x, crossing + 1, z).opensToward(side)
 			}
+
 			override val extraReads = listOf(VoxelPos(0, -2, 0), VoxelPos(0, -1, 0), VoxelPos(0, 1, 0)) + if (!inbound && dy > 0) listOf(VoxelPos(0, 2, 0)) else emptyList()
 			override val neighborReads = listOf(0 to 0, CoarseVoxel.dx(side) to CoarseVoxel.dz(side))
 				.flatMap { (cx, cz) -> (-1..1).flatMap { dx -> (-1..1).flatMap { dz -> (-3..3).map { VoxelPos(cx + dx, it, cz + dz) } } } }.distinct()
@@ -74,12 +76,14 @@ fun interface CellPredicate {
 		val WALK_SUPPORT = object : CellPredicate {
 			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
 				view.voxel(x, y, z).partial || view.voxel(x, y - 1, z).partial || view.standingSurface(x, y, z) != null && !view.voxel(x, y, z).intrudesAbove
+
 			override val extraReads = listOf(VoxelPos(0, -1, 0))
 		}
 
 		val CLIMBING = object : CellPredicate {
 			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
 				Footing.involvesPartial(view, x, y, z) && !view.voxel(x, y, z).centerPassable && Footing.climbable(view, Stance(x, y, z), Stance(x, y + 1, z))
+
 			override val extraReads = listOf(VoxelPos(0, -2, 0), VoxelPos(0, -1, 0), VoxelPos(0, 1, 0))
 			override val neighborReads = (-1..1).flatMap { dx -> (-1..1).flatMap { dz -> (-3..4).map { VoxelPos(dx, it, dz) } } }
 		}
@@ -96,9 +100,9 @@ fun interface CellPredicate {
 					if (CENTER_SLICE.matches(view, x, y, z)) return true
 					val toX = x + CoarseVoxel.dx(side)
 					val toZ = z + CoarseVoxel.dz(side)
-					if (!Footing.involvesPartial(view, x, y - 2, z) && !Footing.involvesPartial(view, toX, y - 1, toZ)) return false
-					return Footing.walkable(view, Stance(x, y - 2, z), Stance(toX, y - 1, toZ), Footing.WALK_RISE)
+					return !(!Footing.involvesPartial(view, x, y - 2, z) && !Footing.involvesPartial(view, toX, y - 1, toZ)) && Footing.walkable(view, Stance(x, y - 2, z), Stance(toX, y - 1, toZ), Footing.WALK_RISE)
 				}
+
 				override val extraReads = listOf(VoxelPos(0, -1, 0))
 				override val neighborReads = listOf(0 to 0, CoarseVoxel.dx(side) to CoarseVoxel.dz(side))
 					.flatMap { (cx, cz) -> (-1..1).flatMap { dx -> (-1..1).flatMap { dz -> (-5..2).map { VoxelPos(cx + dx, it, cz + dz) } } } }.distinct()
@@ -114,6 +118,7 @@ fun interface CellPredicate {
 				val here = Stance(x, y, z)
 				return if (outbound) Footing.walkable(view, here, Stance(x + dx, y + dy, z + dz), maxRise) else Footing.walkable(view, Stance(x - dx, y - dy, z - dz), here, maxRise)
 			}
+
 			override val extraReads = listOf(VoxelPos(0, 1, 0))
 			override val neighborReads = listOf(0 to 0, if (outbound) dx to dz else -dx to -dz)
 				.flatMap { (cx, cz) -> (-1..1).flatMap { ox -> (-1..1).flatMap { oz -> (-3..3).map { VoxelPos(cx + ox, it, cz + oz) } } } }.distinct()
@@ -127,6 +132,7 @@ fun interface CellPredicate {
 				fun walled(cellX: Int, cellZ: Int) = if (hop) full(cellX, y, cellZ) && full(cellX, y + 1, cellZ) else full(cellX, y, cellZ) || full(cellX, y + 1, cellZ)
 				return !walled(x, z) || !walled(x + otherDx, z + otherDz)
 			}
+
 			override val extraReads = listOf(VoxelPos(0, 1, 0), VoxelPos(otherDx, 0, otherDz), VoxelPos(otherDx, 1, otherDz))
 		}
 
@@ -155,6 +161,7 @@ fun interface CellPredicate {
 		val GROUNDED = object : CellPredicate {
 			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
 				view.medium(x, y, z) != Medium.CLIMBABLE || view.standingSurface(x, y - 1, z) != null
+
 			override val extraReads = listOf(VoxelPos(0, -1, 0))
 		}
 

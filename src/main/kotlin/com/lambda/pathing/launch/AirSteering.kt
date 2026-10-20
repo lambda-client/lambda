@@ -1,12 +1,12 @@
 package com.lambda.pathing.launch
 
-import kotlin.math.cos
-import kotlin.math.sin
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.MovementKeys
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.planarLength
 import com.lambda.pathing.physics.MovementSimulationState
+import kotlin.math.cos
+import kotlin.math.sin
 
 class AirPlan(
 	private val aimX: Double,

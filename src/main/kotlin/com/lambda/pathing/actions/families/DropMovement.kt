@@ -5,7 +5,6 @@ import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.DecisionPrice
-import com.lambda.pathing.actions.control.DropProgram
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
@@ -13,6 +12,7 @@ import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.actions.control.DropProgram
 import com.lambda.pathing.actions.landingRisk
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
@@ -50,7 +50,7 @@ object DropMovement : Movement {
 		movement = id,
 		cost = context.costs.dropCost(hypot(dx.toDouble(), dz.toDouble()), depth) ?: return null,
 		conditions = StanceRules.stanceConditions(dx, -depth, dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0) +
-			StanceRules.targetCorner(dx, 0, dz, hop = false) + (if (abs(dx) > 1) StanceRules.targetCorner(dx, -depth, dz, hop = false) else emptyList()),
+				StanceRules.targetCorner(dx, 0, dz, hop = false) + (if (abs(dx) > 1) StanceRules.targetCorner(dx, -depth, dz, hop = false) else emptyList()),
 		arc = MotionTemplate.ArcSpec(MODES),
 	)
 

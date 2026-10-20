@@ -1,8 +1,7 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
-
 import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 
 internal class Solution(
 	val anchor: ValueAnchor,

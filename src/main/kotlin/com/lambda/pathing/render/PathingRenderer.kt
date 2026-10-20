@@ -1,13 +1,13 @@
 package com.lambda.pathing.render
 
 import com.lambda.Lambda.mc
+import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.core.Loadable
 import com.lambda.graphics.mc.LineDashStyle
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel

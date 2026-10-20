@@ -1,12 +1,11 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.rollout.TrajectoryRollout
-import com.lambda.pathing.rollout.TrajectoryDiagnostic
-
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.TrajectoryRollout
 import kotlin.math.hypot
 
 data class PlanAttempt(

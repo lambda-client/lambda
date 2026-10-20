@@ -1,9 +1,8 @@
 package com.lambda.pathing.actions.control
 
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.MotionConstraints
-
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center

@@ -10,10 +10,10 @@ import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.chunk.ChunkSection
+import org.apache.logging.log4j.LogManager
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.math.abs
-import org.apache.logging.log4j.LogManager
 
 private val LOG = LogManager.getLogger(Lambda.SYMBOL)
 

@@ -5,7 +5,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.chunk.PalettedContainer
-import java.util.PriorityQueue
+import java.util.*
 
 enum class BlockSource(val label: String) {
 	LOADED("loaded chunks"),

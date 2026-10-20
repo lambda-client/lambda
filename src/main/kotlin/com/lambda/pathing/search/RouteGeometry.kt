@@ -1,13 +1,12 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
-import com.lambda.pathing.rollout.TrajectoryDiagnostic
-
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.Vanilla
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.Medium
@@ -85,7 +84,7 @@ internal fun holdingStanceOf(view: CoarseVoxelView, state: MovementSimulationSta
 
 internal fun holdsBody(view: CoarseVoxelView, stance: Stance, state: MovementSimulationState): Boolean =
 	!Footing.involvesPartial(view, stance.x, stance.y, stance.z) ||
-		Footing.holds(view, stance).at(state.position.x, state.position.z) != null
+			Footing.holds(view, stance).at(state.position.x, state.position.z) != null
 
 private val NEIGHBOR_OFFSETS = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
 

@@ -110,8 +110,7 @@ internal class NeoPilot(
 
 	private fun holdsGround(): Boolean {
 		trial.copyFrom(start)
-		if (!supported(trial.forward, trial.side, floor(trial.up + EPSILON).toInt(), 0.0)) return false
-		return step(trial, groundHeading, Double.NaN, Double.NaN, jump = false, margin = 0.0)
+		return supported(trial.forward, trial.side, floor(trial.up + EPSILON).toInt(), 0.0) && step(trial, groundHeading, Double.NaN, Double.NaN, jump = false, margin = 0.0)
 	}
 
 	private fun complete(jumpHeading: Int, airHeading: Int, launch: Boolean, launched: Boolean, margin: Double, bound: Int): Int {

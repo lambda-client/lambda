@@ -511,7 +511,8 @@ class CoarsePlanner(
 				if (!bounds.contains(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))) return@forEachNodeIn
 				val key = PackedStance.stanceKey(node)
 				if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(falling, key) || edgeCache.chainsRead(changed, key) ||
-					CoarseEdgeCache.covers(shafted, key)) pending.add(key)
+					CoarseEdgeCache.covers(shafted, key)
+				) pending.add(key)
 			}
 		}
 	}

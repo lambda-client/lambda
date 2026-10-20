@@ -87,7 +87,7 @@ internal object JumpTemplates {
 			movement = MovementId.JUMP,
 			cost = cost,
 			conditions = StanceRules.stanceConditions(dx, rise, dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0) +
-				StanceRules.targetCorner(dx, maxOf(0, rise), dz, hop = true),
+					StanceRules.targetCorner(dx, maxOf(0, rise), dz, hop = true),
 			departure = CellPredicate.LAUNCHABLE,
 			arc = MotionTemplate.ArcSpec(
 				MODES,
@@ -117,7 +117,7 @@ internal object JumpTemplates {
 		movement = MovementId.JUMP,
 		cost = cost,
 		conditions = StanceRules.stanceConditions(dx, rise, dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0) +
-			StanceRules.targetCorner(dx, maxOf(0, rise), dz, hop = true),
+				StanceRules.targetCorner(dx, maxOf(0, rise), dz, hop = true),
 		departure = CellPredicate.LAUNCHABLE,
 		arc = MotionTemplate.ArcSpec(MODES, riseAdmission = { realRise -> realRise <= LaunchMode.MAX_JUMP_RISE }, momentumOnly = true, exactOnly = true),
 	)

@@ -4,10 +4,10 @@ import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.Vanilla
-import kotlin.math.floor
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
+import kotlin.math.floor
 
 enum class CollisionClass {
 

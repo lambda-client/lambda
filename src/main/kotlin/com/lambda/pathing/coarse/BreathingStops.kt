@@ -5,7 +5,7 @@ import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
-import java.util.PriorityQueue
+import java.util.*
 import kotlin.math.ceil
 import kotlin.math.sqrt
 

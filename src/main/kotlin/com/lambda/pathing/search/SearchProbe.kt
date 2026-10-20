@@ -1,15 +1,13 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.core.PathingSection
-import com.lambda.pathing.rollout.TrajectoryRollout
-import com.lambda.pathing.rollout.TrajectoryDiagnostic
-
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
-import java.util.Collections
-import java.util.IdentityHashMap
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.TrajectoryRollout
 import net.minecraft.util.math.Vec3d
+import java.util.*
 
 class CandidatePath(val points: List<Vec3d>, val best: Boolean)
 

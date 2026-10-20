@@ -6,8 +6,8 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.BounceArcProbe
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.TerrainWatch
-import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntAVLTreeSet
+import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.math.BlockPos

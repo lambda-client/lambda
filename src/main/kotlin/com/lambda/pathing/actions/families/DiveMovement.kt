@@ -60,8 +60,7 @@ object DiveMovement : Movement {
 		submerged(view, stance.x, stance.y, stance.z) && !openWater(view, stance.x, stance.y, stance.z) && breathableWithin(view, stance, AIR_REACH_BLOCKS)
 
 	fun openWater(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
-		if (!submerged(view, x, y, z) || !openAbove(view, x, y, z) || hangsOverAir(view, x, y, z)) return false
-		return HORIZONTAL_SIDES.none { side -> keepsBeside(view, x + SIDE_X[side], y, z + SIDE_Z[side]) }
+		return !(!submerged(view, x, y, z) || !openAbove(view, x, y, z) || hangsOverAir(view, x, y, z)) && HORIZONTAL_SIDES.none { side -> keepsBeside(view, x + SIDE_X[side], y, z + SIDE_Z[side]) }
 	}
 
 	fun hangsOverAir(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
@@ -71,7 +70,7 @@ object DiveMovement : Movement {
 		val voxel = view.voxel(x, y, z)
 		if (voxel.medium != Medium.WATER) return exit(voxel)
 		val above = view.voxel(x, y + 1, z)
-		return if (above.medium == Medium.WATER) !openAbove(view, x, y, z) else true
+		return above.medium != Medium.WATER || !openAbove(view, x, y, z)
 	}
 
 	fun exit(voxel: CoarseVoxel): Boolean =
@@ -296,9 +295,9 @@ object DiveMovement : Movement {
 	override fun completed(context: CompletionContext): Boolean =
 		context.stance != context.body.stance && refilled(context) &&
 				(context.observed.touchingWater || context.observed.onGround && context.stance == context.decision.step) &&
-				kotlin.math.abs(context.stance.x - context.decision.step.x) <= 1 &&
-				kotlin.math.abs(context.stance.y - context.decision.step.y) <= 1 &&
-				kotlin.math.abs(context.stance.z - context.decision.step.z) <= 1
+				abs(context.stance.x - context.decision.step.x) <= 1 &&
+				abs(context.stance.y - context.decision.step.y) <= 1 &&
+				abs(context.stance.z - context.decision.step.z) <= 1
 
 	private fun refilled(context: CompletionContext): Boolean {
 		val dive = context.decision as? TrajectoryDecision.Dive ?: return true

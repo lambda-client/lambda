@@ -8,12 +8,12 @@ import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.search.CandidatePath
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchTreeView
-import com.lambda.pathing.rollout.TrajectoryDiagnostic
-import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.world.CoarseVoxelView
 import net.minecraft.util.math.Vec3d
 import kotlin.math.ceil

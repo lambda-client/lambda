@@ -15,8 +15,8 @@ import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.FallReach
 import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.Vanilla
-import com.lambda.pathing.world.ColumnOccupancy
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.ColumnOccupancy
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.TerrainWatch
 import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap

@@ -4,14 +4,14 @@ import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.WaterPhysics
-import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CellClass
+import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.flatBoxes
 import net.minecraft.util.math.Box
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
-import java.util.Objects
+import java.util.*
 
 data class SnapshotBlockPhysics(
 	val collisionShape: VoxelShape,

@@ -51,10 +51,12 @@ internal class FrontierIndex(
 			PackedStance.unpackY(to) - PackedStance.unpackY(from),
 			(PackedStance.unpackZ(to) - PackedStance.unpackZ(from)).toDouble(),
 		) * unknownTicksPerBlock
-		return maxOf(floor, moves.heuristic(
-			PackedStance.unpackX(from), PackedStance.unpackY(from), PackedStance.unpackZ(from),
-			PackedStance.unpackX(to), PackedStance.unpackY(to), PackedStance.unpackZ(to),
-		), realistic)
+		return maxOf(
+			floor, moves.heuristic(
+				PackedStance.unpackX(from), PackedStance.unpackY(from), PackedStance.unpackZ(from),
+				PackedStance.unpackX(to), PackedStance.unpackY(to), PackedStance.unpackZ(to),
+			), realistic
+		)
 	}
 
 	@PublishedApi
@@ -128,8 +130,7 @@ internal class FrontierIndex(
 		if (body == CellClass.CLIMB || body == CellClass.WATER || body == CellClass.SPECIAL) return true
 		val head = view.cellClass(x, y + 1, z)
 		val below = view.cellClass(x, y - 1, z)
-		if (head == CellClass.SPECIAL || below == CellClass.SPECIAL || view.cellClass(x, y - 2, z) == CellClass.SPECIAL) return true
-		return below == CellClass.SOLID && !blocks(body) && !blocks(head)
+		return head == CellClass.SPECIAL || below == CellClass.SPECIAL || view.cellClass(x, y - 2, z) == CellClass.SPECIAL || below == CellClass.SOLID && !blocks(body) && !blocks(head)
 	}
 
 	private fun blocks(cell: CellClass): Boolean = cell == CellClass.SOLID || cell == CellClass.HAZARD || cell == CellClass.WATER

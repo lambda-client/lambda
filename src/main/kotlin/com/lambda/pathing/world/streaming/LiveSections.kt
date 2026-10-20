@@ -12,11 +12,11 @@ import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.ChunkSectionPos
+import org.apache.logging.log4j.LogManager
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicIntegerArray
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReferenceArray
-import org.apache.logging.log4j.LogManager
 
 private val LOG = LogManager.getLogger(Lambda.SYMBOL)
 

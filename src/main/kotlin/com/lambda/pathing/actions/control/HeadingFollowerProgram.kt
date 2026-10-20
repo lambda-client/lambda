@@ -1,8 +1,7 @@
 package com.lambda.pathing.actions.control
 
-import com.lambda.pathing.actions.ControlProgram
-
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.physics.MovementSimulationInput

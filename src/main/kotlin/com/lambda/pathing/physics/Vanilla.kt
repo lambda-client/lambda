@@ -1,9 +1,9 @@
 package com.lambda.pathing.physics
 
 import net.minecraft.block.BedBlock
-import net.minecraft.block.BubbleColumnBlock
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
+import net.minecraft.block.BubbleColumnBlock
 import net.minecraft.block.PointedDripstoneBlock
 import net.minecraft.block.enums.Thickness
 import net.minecraft.util.math.Direction
@@ -162,6 +162,6 @@ internal fun BlockState.fallRule(): FallRule = when {
 	isOf(Blocks.SLIME_BLOCK) -> FallRule.NONE
 	isOf(Blocks.FARMLAND) -> FallRule.FARMLAND
 	isOf(Blocks.POINTED_DRIPSTONE) && get(PointedDripstoneBlock.VERTICAL_DIRECTION) == Direction.UP &&
-		get(PointedDripstoneBlock.THICKNESS) == Thickness.TIP -> FallRule.STALAGMITE
+			get(PointedDripstoneBlock.THICKNESS) == Thickness.TIP -> FallRule.STALAGMITE
 	else -> FallRule.NORMAL
 }

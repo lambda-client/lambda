@@ -6,8 +6,7 @@ import com.lambda.pathing.coarse.SwitchableValueField
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import java.util.Collections
-import java.util.IdentityHashMap
+import java.util.*
 
 internal class PlanRefiner(
 	private val catalog: MovementCatalog,

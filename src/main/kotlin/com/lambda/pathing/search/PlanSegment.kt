@@ -1,9 +1,9 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 

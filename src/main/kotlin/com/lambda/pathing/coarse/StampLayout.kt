@@ -35,6 +35,7 @@ internal class StampLayout(moves: SimpleMoveLibrary) {
 			cellDxs += cell.x
 			cellRows.lastIndex
 		}
+
 		fun ids(cells: Collection<VoxelPos>) = cells.map(::id).toIntArray()
 		val clauseIds = HashMap<List<Any>, Int>()
 		val diagrams = HashMap<Int, ClauseDiagram>()
@@ -207,6 +208,7 @@ internal class ClauseDiagram private constructor(
 				unique[key] = node
 				return node
 			}
+
 			val root = build(0, 0)
 			starts += sets.size
 			return ClauseDiagram(root, levels.toIntArray(), starts.toIntArray(), sets.toIntArray(), targets.toIntArray())

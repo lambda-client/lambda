@@ -1,11 +1,11 @@
 package com.lambda.pathing.world.snapshot
 
+import com.lambda.pathing.physics.BubbleColumn
+import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.WaterPhysics
-import com.lambda.pathing.physics.BubbleColumn
-import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.bounceFactor
 import com.lambda.pathing.physics.bubbles
 import com.lambda.pathing.physics.fallRule
@@ -103,8 +103,7 @@ object BlockPhysicsCapture {
 
 	private fun cushionedByWater(state: BlockState, shape: VoxelShape, world: BlockView, pos: BlockPos): Boolean {
 		val fluid = state.fluidState
-		if (fluid.isEmpty || !fluid.isIn(FluidTags.WATER) || shape.isEmpty) return false
-		return shape.getMax(Direction.Axis.Y) < fluid.getHeight(world, pos)
+		return !(fluid.isEmpty || !fluid.isIn(FluidTags.WATER) || shape.isEmpty) && shape.getMax(Direction.Axis.Y) < fluid.getHeight(world, pos)
 	}
 
 	private fun unsupportedPhysics(state: BlockState, hazards: HazardRules): UnsupportedPhysics? = when {

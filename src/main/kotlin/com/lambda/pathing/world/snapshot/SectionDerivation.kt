@@ -28,6 +28,7 @@ internal object SectionDerivation {
 		val slots = Reference2IntOpenHashMap<SnapshotBlockPhysics>().apply { defaultReturnValue(UNMAPPED) }
 		fun slotOf(entry: SnapshotBlockPhysics): Int = slots.getInt(entry).takeIf { it != UNMAPPED }
 			?: physics.size.also { slots.put(entry, it); physics += entry }
+
 		val cells = IntArray(SECTION_CELL_COUNT)
 		var positional = false
 		for (index in 0 until SECTION_CELL_COUNT) {

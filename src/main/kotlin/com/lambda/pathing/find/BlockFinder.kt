@@ -35,7 +35,6 @@ import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
-import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import java.util.function.Predicate
 import kotlin.math.sqrt

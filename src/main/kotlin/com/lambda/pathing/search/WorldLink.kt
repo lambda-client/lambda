@@ -1,9 +1,9 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.actions.BodyState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.actions.BodyState
 
 interface WorldLink {
 	val startRevision: Long? get() = null

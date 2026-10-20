@@ -1,7 +1,7 @@
 package com.lambda.pathing.session
 
-import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.SharedEdges
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.snapshot.HazardRules

@@ -6,11 +6,10 @@ import com.lambda.pathing.core.planarLength
 import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
-import com.lambda.pathing.physics.Vanilla
-import kotlin.math.abs
-import kotlin.math.hypot
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
+import kotlin.math.abs
+import kotlin.math.hypot
 
 internal sealed interface RolloutVerdict {
 	data object Continue : RolloutVerdict

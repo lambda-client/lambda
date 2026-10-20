@@ -1,7 +1,6 @@
 package com.lambda.pathing.actions.families
 
 import com.lambda.pathing.actions.CellPredicate
-import com.lambda.pathing.actions.control.BounceProgram
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
@@ -12,6 +11,7 @@ import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.actions.control.BounceProgram
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Via

@@ -1,16 +1,15 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
-
 import com.lambda.pathing.actions.InputTape
-import com.lambda.pathing.physics.SimulationEnvironment
-import com.lambda.pathing.rollout.TrajectoryRolloutEngine
-import com.lambda.pathing.rollout.TrajectoryRolloutTermination
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.SimulationEnvironment
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
+import com.lambda.pathing.rollout.TrajectoryRolloutTermination
 import com.lambda.pathing.world.streaming.WorldMutation
 import java.util.*
 
@@ -123,8 +122,7 @@ internal fun TrajectoryPlan.replaysUnchanged(environment: SimulationEnvironment,
 	val start = if (nextFrame == 0) initialState else frames[nextFrame - 1].state
 	val expected = frames.subList(nextFrame, until)
 	val replayed = TrajectoryRolloutEngine.rollout(start, physicsProfile, environment, InputTape(expected.map { it.input }), expected.size)
-	if (!replayed.completed || replayed.frames.size != expected.size) return false
-	return replayed.frames.indices.all { index ->
+	return !(!replayed.completed || replayed.frames.size != expected.size) && replayed.frames.indices.all { index ->
 		val actual = replayed.frames[index].state
 		val planned = expected[index].state
 		actual.position == planned.position && actual.velocity == planned.velocity && actual.onGround == planned.onGround

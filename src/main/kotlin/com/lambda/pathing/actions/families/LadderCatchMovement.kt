@@ -9,14 +9,14 @@ import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
-import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.launch.AirPlan
+import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.nominalLaunchFrame
 import com.lambda.pathing.actions.reachableEntrySpeed
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.launch.AirPlan
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import kotlin.math.abs

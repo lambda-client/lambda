@@ -112,8 +112,7 @@ internal class CoarseFollower(
 
 	override fun hasNext(): Boolean {
 		val active = breath
-		if (active != null && (targets.isNotEmpty() || active.goal != coarse.goal(leg))) return true
-		return !abandoned && leg + 1 < coarse.legCount
+		return active != null && (targets.isNotEmpty() || active.goal != coarse.goal(leg)) || !abandoned && leg + 1 < coarse.legCount
 	}
 
 	override fun handoff(touched: Stance): CoarseRoutePlan? {

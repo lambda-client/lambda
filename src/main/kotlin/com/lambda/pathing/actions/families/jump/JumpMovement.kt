@@ -10,17 +10,17 @@ import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.actions.landingRisk
-import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.actions.control.PursuitTracker
 import com.lambda.pathing.actions.control.RunUpLaunchProgram
 import com.lambda.pathing.actions.control.SegmentFollowerProgram
-import com.lambda.pathing.launch.AirPlan
+import com.lambda.pathing.actions.landingRisk
 import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.plus
 import com.lambda.pathing.core.unitBetween
+import com.lambda.pathing.launch.AirPlan
 
 object JumpMovement : Movement {
 	override val id = MovementId.JUMP
