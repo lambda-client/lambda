@@ -45,7 +45,8 @@ object DropMovement : Movement {
 		dx = dx, dy = -depth, dz = dz,
 		movement = id,
 		cost = context.costs.dropCost(hypot(dx.toDouble(), dz.toDouble()), depth) ?: return null,
-		conditions = StanceRules.stanceConditions(dx, -depth, dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0) + StanceRules.targetCorner(dx, 0, dz, hop = false),
+		conditions = StanceRules.stanceConditions(dx, -depth, dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0) +
+			StanceRules.targetCorner(dx, 0, dz, hop = false) + (if (abs(dx) > 1) StanceRules.targetCorner(dx, -depth, dz, hop = false) else emptyList()),
 		arc = MotionTemplate.ArcSpec(MODES),
 	)
 

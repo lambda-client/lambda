@@ -233,6 +233,24 @@ class CoarsePlannerTest {
     }
 
     @Test
+    fun `a wide diagonal drop that lands short of a corner walled at the landing level is not proposed`() {
+        fun pit(walled: Boolean) = SyntheticView().apply {
+            this[VoxelPos(0, 0, 0)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(1, 0, 0)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(0, -1, -1)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(1, -1, -1)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(2, -1, -2)] = CoarseVoxel.FULL_BLOCK
+            if (walled) this[VoxelPos(1, 0, -2)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(2, 0, -1)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(1, 2, -2)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(2, 2, -2)] = CoarseVoxel.FULL_BLOCK
+        }
+        fun drops(walled: Boolean) = library().edgesFrom(pit(walled), Stance(0, 1, 0)).filter { it.to == Stance(2, 0, -2) && it.movement == MovementId.DROP }
+        assertTrue(drops(walled = false).isNotEmpty(), "with one landing-level corner open the drop stays offered")
+        assertTrue(drops(walled = true).isEmpty(), "the body lands in the pit beside the target and cannot pass the walled corner")
+    }
+
+    @Test
     fun `a jump whose apex arc passes through a block is not proposed`() {
         // A four-stance gap the body would clear, but with a block sitting at the arc's
         // apex column (two out) at head-apex height (+3 above the takeoff feet). The old

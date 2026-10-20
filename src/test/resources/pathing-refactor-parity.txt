@@ -2,4 +2,4 @@ course-1 partial=false frames=184 expansions=7196 sha256=226e9d410e73e57517c29db
 course-2 partial=false frames=188 expansions=5170 sha256=cf67eedb03a4c63403ed8b452d560b265baead4155e87b29c8cc46b3ebf2b21f
 course-3 partial=false frames=197 expansions=7240 sha256=111383c71ecf65c918cd777cf5863ed142d20194d4a51849ef6a0d7d757ae656
 course-4 partial=false frames=207 expansions=5197 sha256=2083a89a297cfdec287d6d129808c0a63d91e55a6a05fd5d87c4bf1c723701ab
-bedrock-traverse partial=false frames=377 expansions=26025 sha256=21872bc2c568472357d227fcd5562c7d6be08b6f905f055ff8b37e9396d148a2
+bedrock-traverse partial=false frames=381 expansions=27155 sha256=1ab6e32a2830b2c1baacd82106858fe4c54d67fc6cdbe9b0a177b1dd14350c75
