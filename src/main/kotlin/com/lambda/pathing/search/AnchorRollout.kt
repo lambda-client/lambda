@@ -29,8 +29,8 @@ import com.lambda.pathing.rollout.TrajectoryRolloutTermination
 import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.climbableAt
+import com.lambda.pathing.world.edit.DoorRules
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
 internal sealed interface Outcome {
@@ -133,11 +133,10 @@ internal class AnchorRollout(
 		val world = anchor.worldOver(environment)
 		val edited = anchor.edits.mapTo(HashSet()) { VoxelPos(it.x, it.y, it.z) }
 		val targets = field.toggleTargets(chain, world, edited, holds = config.closeDoors)
-		val changed = if (config.closeDoors) edited.map { BlockPos(it.x, it.y, it.z) } else emptyList()
+		val originals = if (config.closeDoors) DoorRules.originals(anchor.edits) else null
 		val steering = anchor.inputs.lastOrNull()?.steering
-		if (targets.isEmpty() && changed.isEmpty() && steering == null) return program
-		val original = environment.takeIf { config.closeDoors }
-		return Toggling(program, world, profile, config.turning, targets, chain, original, changed, steering)
+		if (targets.isEmpty() && originals.isNullOrEmpty() && steering == null) return program
+		return Toggling(program, world, profile, config.turning, targets, chain, originals, steering)
 	}
 
 	fun execute(prepared: PreparedRollout) {
@@ -147,6 +146,7 @@ internal class AnchorRollout(
 		var airborne = false
 		val goal = route.goal
 		val goalPress = anchor.stance != goal && pressingGoalArrives()
+		var deferred = -1
 
 		prepared.raw = TrajectoryRolloutEngine.rollout(
 			initialState = anchor.state,
@@ -163,6 +163,10 @@ internal class AnchorRollout(
 				}
 
 				is RolloutVerdict.Stopped -> {
+					if ((prepared.program as? Toggling)?.defersStop(verdict.frame) == true) {
+						deferred = frame.index
+						return@rollout false
+					}
 					prepared.stopFrame = verdict.frame
 					true
 				}
@@ -208,6 +212,7 @@ internal class AnchorRollout(
 				}
 			}
 		}
+		if (prepared.stopFrame == null && prepared.failure == null && deferred >= 0 && deferred == prepared.raw?.frames?.lastIndex) prepared.stopFrame = deferred
 	}
 
 	fun transition(anchor: ValueAnchor, action: TrajectoryDecision, chain: List<Stance>? = null): Outcome {

@@ -29,19 +29,27 @@ internal class Toggling(
 	private val turning: Turning,
 	private val targets: List<ToggleTarget>,
 	private val chain: List<Stance> = emptyList(),
-	private val original: EditableEnvironment? = null,
-	changed: List<BlockPos> = emptyList(),
+	private val originals: Map<BlockPos, Boolean>? = null,
 	steering: Rotation? = null,
 ) : ControlProgram {
+	private val base = world
 	private var frame: Rotation? = steering
 	private var frameTurn = Rotation.ZERO
 	private var progress = 0
-	private val restorable = (changed + targets.map { it.pos }).distinct()
+	private val restorable = (originals?.keys.orEmpty() + targets.map { it.pos }).distinct()
 	private val byCell = targets.groupBy { it.pos }.values.map { list -> list.sortedBy { it.segment } }
 	private val sights = HashMap<BlockPos, Sight>()
 	private val points = HashMap<BlockPos, Vec3d>()
+	private var restoring = false
+	private var stopAsked = -1
+	private val held = HashMap<BlockPos, Int>()
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput = control(frame, observed).copy(steering = this.frame)
+
+	fun defersStop(frame: Int): Boolean {
+		if (stopAsked < 0) stopAsked = frame
+		return restoring && frame - stopAsked < STOP_GRACE_FRAMES
+	}
 
 	private fun control(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		val steering = this.frame
@@ -56,17 +64,21 @@ internal class Toggling(
 		val restores = restores(observed)
 		val usable = usable(observed, pending)
 		val use = if (usable.isEmpty() && restores.isEmpty()) null else DoorRules.use(world, observed, profile, usable + restores)
-		if (use == null) return aim(observed, input, usable, aimable(pending), restores)
+		restoring = use != null && use.pos in restores
+		if (use == null) return aim(observed, input, usable, aimable(pending), restores, upcoming(observed), urgentRoute(observed, pending))
 		DoorRules.edits(world, observed, profile, use)?.let { world = world.edited(it) }
 		val next = pending()
-		return aim(observed, input, usable(observed, next), aimable(next), restores(observed)).copy(use = use)
+		return aim(observed, input, usable(observed, next), aimable(next), restores(observed), upcoming(observed), urgentRoute(observed, next)).copy(use = use)
 	}
 
 	private fun usable(observed: MovementSimulationState, pending: List<ToggleTarget>): List<BlockPos> =
 		pending.filter { progress >= it.after && fits(observed, it) }.map { it.pos }
 
+	private fun urgentRoute(observed: MovementSimulationState, pending: List<ToggleTarget>): Boolean =
+		!observed.onGround || pending.any { it.segment <= progress }
+
 	private fun pending(): List<ToggleTarget> = byCell.mapNotNull { list ->
-		val target = list.firstOrNull { it.segment + 1 >= progress } ?: return@mapNotNull null
+		val target = list.firstOrNull { active(it, 0) } ?: return@mapNotNull null
 		target.takeIf { world.readBlock(it.pos.x, it.pos.y, it.pos.z)?.toggle?.let { toggle -> toggle.open != target.open } == true }
 	}
 
@@ -85,18 +97,24 @@ internal class Toggling(
 		}
 	}
 
-	private fun restores(observed: MovementSimulationState): List<BlockPos> {
-		val original = original ?: return emptyList()
+	private fun restores(observed: MovementSimulationState): List<BlockPos> = restorable(observed, 0)
+
+	private fun upcoming(observed: MovementSimulationState): List<BlockPos> = restorable(observed, 1).filter { !behind(it, 0) }
+
+	private fun restorable(observed: MovementSimulationState, ahead: Int): List<BlockPos> {
+		val originals = originals ?: return emptyList()
 		return restorable.filter { pos ->
-			val was = original.readBlock(pos.x, pos.y, pos.z)?.toggle ?: return@filter false
 			val now = world.readBlock(pos.x, pos.y, pos.z)?.toggle ?: return@filter false
-			now.open != was.open && behind(pos) && leaving(observed, pos) && clear(observed, pos, was.current.collisionShape)
+			val was = originals[pos] ?: base.readBlock(pos.x, pos.y, pos.z)?.toggle?.open ?: return@filter false
+			now.open != was && behind(pos, ahead) && (ahead > 0 || leaving(observed, pos) && clear(observed, pos, now.physics(was).collisionShape) && !DoorRules.supports(observed, pos, now.current.collisionShape))
 		}
 	}
 
-	private fun behind(pos: BlockPos): Boolean = targets.none { target ->
-		target.pos.x == pos.x && target.pos.z == pos.z && abs(target.pos.y - pos.y) <= 1 && target.segment + PASSED_SEGMENTS > progress
+	private fun behind(pos: BlockPos, ahead: Int): Boolean = targets.none { target ->
+		target.pos.x == pos.x && target.pos.z == pos.z && abs(target.pos.y - pos.y) <= 1 && active(target, ahead)
 	}
+
+	private fun active(target: ToggleTarget, ahead: Int): Boolean = minOf(target.segment + PASSED_SEGMENTS, chain.lastIndex) > progress + ahead
 
 	private fun leaving(observed: MovementSimulationState, pos: BlockPos): Boolean =
 		(pos.x + 0.5 - observed.position.x) * observed.velocity.x + (pos.z + 0.5 - observed.position.z) * observed.velocity.z <= 0.0
@@ -112,22 +130,36 @@ internal class Toggling(
 		usable: List<BlockPos>,
 		aimable: List<BlockPos>,
 		restores: List<BlockPos>,
+		upcoming: List<BlockPos>,
+		routeFirst: Boolean,
 	): MovementSimulationInput {
 		val rotation = input.rotation ?: return input
 		val sprinting = sprinting(observed, input)
-		if (observed.touchingWater || !wholeKeys(input) || sprinting && input.jump && observed.onGround) return release(observed, input)
+		if (observed.touchingWater || !wholeKeys(input)) return release(observed, input)
 		val eye = DoorRules.eye(observed, profile)
 		val heading = heading(rotation, input)
+		if (!routeFirst) for (pos in restores.sortedByDescending { distance(eye, it) }) {
+			if (!closing(observed, eye, pos)) continue
+			val look = look(eye, pos, profile.blockReach, heading, WALK_OFFSETS, observed.rotation, RESTORE_DRIFT) ?: continue
+			restoring = true
+			val steered = steer(observed, input, rotation, look, heading, false)
+			return if (holds(observed, pos)) steered.copy(forward = 0.0, strafe = 0.0, sprint = false, jump = false) else steered
+		}
+		if (sprinting && input.jump && observed.onGround) return release(observed, input)
 		val offsets = if (sprinting) SPRINT_OFFSETS else WALK_OFFSETS
 		val reach = profile.blockReach + AIM_LEAD
 		for (pos in usable) {
 			look(eye, pos, reach, heading, offsets, observed.rotation)?.let { return steer(observed, input, rotation, it, heading, sprinting) }
 			if (sprinting) look(eye, pos, reach, heading, WALK_OFFSETS, observed.rotation)?.let { return steer(observed, input, rotation, it, heading, false) }
 		}
+		restores.firstNotNullOfOrNull { look(eye, it, profile.blockReach, heading, WALK_OFFSETS, observed.rotation, RESTORE_DRIFT) }?.let {
+			restoring = true
+			return steer(observed, input, rotation, it, heading, false)
+		}
+		upcoming.firstNotNullOfOrNull { look(eye, it, profile.blockReach, heading, WALK_OFFSETS, observed.rotation, RESTORE_DRIFT) }
+			?.let { return steer(observed, input, rotation, it, heading, false) }
 		aimable.firstNotNullOfOrNull { pos -> if (pos in usable) null else look(eye, pos, reach, heading, offsets, observed.rotation) }
 			?.let { return steer(observed, input, rotation, it, heading, sprinting) }
-		restores.firstNotNullOfOrNull { look(eye, it, profile.blockReach, heading, WALK_OFFSETS, observed.rotation, RESTORE_DRIFT) }
-			?.let { return steer(observed, input, rotation, it, heading, false) }
 		return release(observed, input)
 	}
 
@@ -143,7 +175,7 @@ internal class Toggling(
 		val boxes = DoorRules.boxes(world, pos)
 		val spans = boxes.map { span(eye, it) }
 		sights[pos]?.takeIf { it.offset in offsets && it.box < boxes.size }?.let { kept ->
-			aimed(eye, boxes[kept.box], spans[kept.box], heading - kept.offset, kept.height, reach)
+			aimed(eye, boxes[kept.box], spans[kept.box], heading - kept.offset, kept.height)
 				?.takeIf { it.drift <= drift && DoorRules.hits(world, eye, it.look, pos, reach) }
 				?.let { return it.look }
 		}
@@ -151,7 +183,7 @@ internal class Toggling(
 		for (offset in offsets) for ((index, box) in boxes.withIndex()) {
 			if (spans[index].drift(heading - offset) > drift) continue
 			for (height in HEIGHTS) {
-				val aim = aimed(eye, box, spans[index], heading - offset, height, reach) ?: continue
+				val aim = aimed(eye, box, spans[index], heading - offset, height) ?: continue
 				candidates += Sight(offset, index, height) to aim
 			}
 		}
@@ -179,12 +211,11 @@ internal class Toggling(
 		return Span(center, low + inset, high - inset)
 	}
 
-	private fun aimed(eye: Vec3d, box: Box, span: Span, ideal: Double, height: Double, reach: Double): Aim? {
+	private fun aimed(eye: Vec3d, box: Box, span: Span, ideal: Double, height: Double): Aim? {
 		val yaw = span.yaw(ideal)
 		val radians = Math.toRadians(yaw)
 		val distance = crossing(eye, box, -sin(radians), cos(radians)) ?: return null
 		val y = box.minY + (box.maxY - box.minY) * height
-		if (distance * distance + (eye.y - y) * (eye.y - y) > reach * reach) return null
 		return Aim(Rotation(yaw, Math.toDegrees(MathHelper.atan2(eye.y - y, distance))), abs(Rotation.wrap(yaw - ideal)))
 	}
 
@@ -217,11 +248,26 @@ internal class Toggling(
 
 	private fun turn(from: Rotation, to: Rotation): Double = abs(Rotation.wrap(to.yaw - from.yaw)) + abs(to.pitch - from.pitch)
 
-	private fun inReach(eye: Vec3d, pos: BlockPos, reach: Double): Boolean {
+	private fun closing(observed: MovementSimulationState, eye: Vec3d, pos: BlockPos): Boolean {
+		val ahead = eye.add(observed.velocity.x * HOLD_LOOKAHEAD, 0.0, observed.velocity.z * HOLD_LOOKAHEAD)
+		return !inReach(ahead, pos, profile.blockReach - HOLD_MARGIN) || DoorRules.visiblePoint(world, ahead, pos, profile.blockReach, observed.rotation) == null
+	}
+
+	private fun holds(observed: MovementSimulationState, pos: BlockPos): Boolean {
+		if (!observed.onGround) return false
+		val ticks = held.getOrDefault(pos, 0)
+		if (ticks >= MAX_HOLD_TICKS) return false
+		held[pos] = ticks + 1
+		return true
+	}
+
+	private fun inReach(eye: Vec3d, pos: BlockPos, reach: Double): Boolean = distance(eye, pos) <= reach * reach
+
+	private fun distance(eye: Vec3d, pos: BlockPos): Double {
 		val dx = (eye.x - (pos.x + 0.5)).coerceIn(-0.5, 0.5).let { eye.x - (pos.x + 0.5) - it }
 		val dy = (eye.y - (pos.y + 0.5)).coerceIn(-0.5, 0.5).let { eye.y - (pos.y + 0.5) - it }
 		val dz = (eye.z - (pos.z + 0.5)).coerceIn(-0.5, 0.5).let { eye.z - (pos.z + 0.5) - it }
-		return dx * dx + dy * dy + dz * dz <= reach * reach
+		return dx * dx + dy * dy + dz * dz
 	}
 
 	private fun release(observed: MovementSimulationState, input: MovementSimulationInput): MovementSimulationInput {
@@ -281,9 +327,13 @@ internal class Toggling(
 		const val RELEASE_TURN = 1.0
 		const val REACHED = 0.75
 		const val REACHED_RISE = 1.5
-		const val PASSED_SEGMENTS = 2
+		const val PASSED_SEGMENTS = 1
 		const val CLEARANCE = 0.1
 		const val SPRINT_KEYS_SPAN = 67.5
+		const val STOP_GRACE_FRAMES = 20
+		const val HOLD_MARGIN = 0.25
+		const val HOLD_LOOKAHEAD = 10.0
+		const val MAX_HOLD_TICKS = 10
 		val WHOLE = setOf(-1.0, 0.0, 1.0)
 		val KEYS = listOf(1.0 to 0.0, 1.0 to 1.0, 1.0 to -1.0, 0.0 to 1.0, 0.0 to -1.0, -1.0 to 1.0, -1.0 to -1.0, -1.0 to 0.0)
 		val SPRINT_OFFSETS = KEYS.filter { it.first > 0.0 }.map { angle(it.first, it.second) }

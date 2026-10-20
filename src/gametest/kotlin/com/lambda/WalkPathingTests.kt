@@ -186,6 +186,30 @@ internal object WalkPathingTests {
         checkToggles(context, "pathing-trapdoor", trapdoorWatch, 1..5, 1..5, emptyMap())
         restoreArena(server)
 
+        // A door and a gate back to back, then a closed trapdoor opened as a step onto a ledge. From
+        // the ledge both are out of reach, so Close Doors shuts them before the climb even though the
+        // client already reports them open by then.
+        server.runCommand("/fill 0 99 -2 0 99 16 minecraft:stone")
+        server.runCommand("/fill -1 100 -2 -1 103 16 minecraft:stone")
+        server.runCommand("/fill 1 100 -2 1 103 16 minecraft:stone")
+        server.runCommand("/setblock 0 100 4 minecraft:oak_door[facing=north,half=lower]")
+        server.runCommand("/setblock 0 101 4 minecraft:oak_door[facing=north,half=upper]")
+        server.runCommand("/setblock 0 100 5 minecraft:oak_fence_gate[facing=north]")
+        server.runCommand("/setblock 0 100 8 minecraft:oak_trapdoor[half=bottom,open=false,facing=north]")
+        server.runCommand("/fill 0 100 9 0 101 9 minecraft:stone")
+        server.runCommand("/fill 0 101 10 0 101 14 minecraft:stone")
+        val courseWatch = ToggleWatch()
+        assertPathingWalk(
+            context, server, "pathing-door-course", Stance(0, 102, 13),
+            pathing = usingDoors(close = true),
+            onTick = watchToggles(context, courseWatch),
+        )
+        checkToggles(
+            context, "pathing-door-course", courseWatch, 6..12, 3..6,
+            mapOf(BlockPos(0, 100, 4) to false, BlockPos(0, 100, 5) to false, BlockPos(0, 100, 8) to false),
+        )
+        restoreArena(server)
+
         // A cow standing on the straight line. Walking through it gets the body pushed off
         // its tape, so the cells a mob stands in are closed and the walk goes around it.
         server.runCommand("/summon minecraft:cow 0.5 100 4.5 {NoAI:1b,Invulnerable:1b}")

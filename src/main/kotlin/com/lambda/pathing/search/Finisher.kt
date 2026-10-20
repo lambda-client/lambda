@@ -1,6 +1,7 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.actions.CoarseMoveRates
+import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.MeasuredMotion
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.control.CorridorFollowerProgram
@@ -19,8 +20,8 @@ import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.VERTICAL_GOAL_TOLERANCE
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.center
+import com.lambda.pathing.world.edit.DoorRules
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -37,6 +38,7 @@ internal class Finisher(
 	private val route: RouteState,
 	private val routePoints: RoutePoints,
 ) {
+	private val closing = config.openDoors && config.closeDoors
 	private var provenApproach: TerminalApproach? = null
 	private var sweepEpoch = 0
 	private var sweeps = 0
@@ -79,12 +81,12 @@ internal class Finisher(
 				collisions = anchor.collisionEvents + collisionEvents(anchor.state, frames),
 				switches = anchor.inputSwitches + inputSwitches(anchor.inputs.lastOrNull(), frames),
 			)
-			if (approach == provenApproach) return Solution(anchor, frames)
+			if (approach == provenApproach) return Solution(anchor, frames, closing)
 			if (best == null || candidate.beats(best)) best = candidate
 		}
 		val chosen = best ?: return null
 		provenApproach = chosen.approach
-		return Solution(anchor, chosen.frames)
+		return Solution(anchor, chosen.frames, closing)
 	}
 
 	fun brakeNearGoal(anchor: ValueAnchor, radius: Double): Solution? {
@@ -117,7 +119,7 @@ internal class Finisher(
 		val frames = gated.rollout.frames
 		val end = frames.indices.lastOrNull { settledAfloat(frames, it) } ?: return null
 		if (end < FLOAT_TAIL_FRAMES - FLOAT_END_SLACK_FRAMES) return null
-		return Solution(anchor, frames.take(end + 1))
+		return Solution(anchor, frames.take(end + 1), closing)
 	}
 
 	private fun settledAfloat(frames: List<SimulatedTrajectoryFrame>, end: Int): Boolean =
@@ -135,7 +137,7 @@ internal class Finisher(
 		for ((index, frame) in gated.rollout.frames.withIndex()) {
 			val state = frame.state
 			held = if (stanceOf(state) == stance && state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED) held + 1 else 0
-			if (held >= config.stableStopFrames) return Solution(anchor, gated.rollout.frames.take(index + 1))
+			if (held >= config.stableStopFrames) return Solution(anchor, gated.rollout.frames.take(index + 1), closing)
 		}
 		return null
 	}
@@ -147,17 +149,14 @@ internal class Finisher(
 		val frames = gated.rollout.frames
 		val end = frames.indices.lastOrNull { field.floatsAt(frames[it].state, anchor.stance.y) && settledAfloat(frames, it) } ?: return null
 		if (end < FLOAT_TAIL_FRAMES - FLOAT_END_SLACK_FRAMES) return null
-		return Solution(anchor, frames.take(end + 1))
+		return Solution(anchor, frames.take(end + 1), closing)
 	}
 
 	private fun groundBrake(anchor: ValueAnchor): Solution? {
-		val gated = gate.run(
-			anchor.state, listOf(anchor.stance.center(environment)),
-			brakeToStop(anchor.state.rotation.yaw, config.turning),
-			BRAKE_TAIL_FRAMES,
-			world = anchor.worldOver(environment),
-		)
+		val world = anchor.worldOver(environment)
+		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), closingBehind(anchor, world), BRAKE_TAIL_FRAMES, world = world)
 		if (gated.failed) return null
+		val lastUse = gated.rollout.frames.indexOfLast { it.input.use != null }
 		var stable = 0
 		var stableEnd = -1
 		var previous = anchor.state
@@ -170,7 +169,7 @@ internal class Finisher(
 			stable = if (cycleClosed && state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED) stable + 1 else 0
 			twoBack = previous
 			previous = state
-			if (stable >= config.stableStopFrames && state.onGround) {
+			if (stable >= config.stableStopFrames && state.onGround && index > lastUse) {
 				stableEnd = index
 				break
 			}
@@ -179,7 +178,29 @@ internal class Finisher(
 		val frames = gated.rollout.frames.take(stableEnd + 1)
 		val resting = holdingStanceOf(field.view, frames.last().state) ?: return null
 		if (!field.isStance(resting) || !field.isMapped(resting)) return null
-		return Solution(anchor, frames)
+		val rest = world.edited(gated.rollout.editsBefore(frames.size))
+		val edited = (anchor.edits + gated.rollout.editsBefore(frames.size)).mapTo(HashSet()) { VoxelPos(it.x, it.y, it.z) }
+		if (strandedByToggles(rest, edited, resting, frames.last().state)) return null
+		return Solution(anchor, frames, closing)
+	}
+
+	private fun closingBehind(anchor: ValueAnchor, world: SnapshotSimulationEnvironment): ControlProgram {
+		if (!closing || anchor.edits.isEmpty()) return brakeToStop(anchor.state.rotation.yaw, config.turning)
+		val steering = anchor.inputs.lastOrNull()?.steering
+		val edited = anchor.edits.mapTo(HashSet()) { VoxelPos(it.x, it.y, it.z) }
+		val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
+		val holds = field.toggleTargets(chain, world, edited, holds = true).filter { world.readBlock(it.pos.x, it.pos.y, it.pos.z)?.toggle?.open == it.open }
+		val brake = brakeToStop(steering?.yaw ?: anchor.state.rotation.yaw, config.turning)
+		return Toggling(brake, world, gate.profile, config.turning, holds, chain, DoorRules.originals(anchor.edits), steering)
+	}
+
+	private fun strandedByToggles(world: SnapshotSimulationEnvironment, edited: Set<VoxelPos>, resting: Stance, state: MovementSimulationState): Boolean {
+		if (!config.openDoors) return false
+		val chain = field.chain(resting, null, FINISH_CHAIN_LENGTH)
+		val edge = chain.getOrNull(1)?.let { field.edge(resting, it) }
+		val swept = edge?.let { field.sweep(it).filter { cell -> cell !in it.flips } }.orEmpty()
+		if (swept.any { world.toggleAt(it.x, it.y, it.z)?.open != environment.toggleAt(it.x, it.y, it.z)?.open }) return true
+		return field.toggleTargets(chain, world, edited, holds = false).any { VoxelPos(it.pos.x, it.pos.y, it.pos.z) in swept || DoorRules.blocks(world, state, it) }
 	}
 
 	private fun terminalRun(
@@ -192,10 +213,10 @@ internal class Finisher(
 		val follower = CorridorFollowerProgram(chain, approach, config)
 		val edited = anchor.edits.mapTo(HashSet()) { VoxelPos(it.x, it.y, it.z) }
 		val targets = if (config.openDoors) field.toggleTargets(chain, world, edited, holds = config.closeDoors) else emptyList()
-		val changed = if (config.openDoors && config.closeDoors) edited.map { BlockPos(it.x, it.y, it.z) } else emptyList()
+		val originals = if (closing) DoorRules.originals(anchor.edits) else null
 		val steering = anchor.inputs.lastOrNull()?.steering
-		val program = if (targets.isEmpty() && changed.isEmpty() && steering == null) follower
-		else Toggling(follower, world, gate.profile, config.turning, targets, chain, environment.takeIf { config.closeDoors }, changed, steering)
+		val program = if (targets.isEmpty() && originals.isNullOrEmpty() && steering == null) follower
+		else Toggling(follower, world, gate.profile, config.turning, targets, chain, originals, steering)
 		val gated = gate.run(anchor.state, points, program, config.maxFrames, world = world)
 		attempts.record(gated.rollout, gated.stopFrame != null, route.goalPoint, gated.diagnostic)
 		return gated.rollout.frames.takeIf { gated.stopFrame != null && !gated.failed }

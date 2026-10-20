@@ -19,6 +19,7 @@ import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SystemSearchClock
 import com.lambda.pathing.search.WorldLink
+import com.lambda.pathing.world.snapshot.CellEdit
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 
 internal fun walkHorizon(
@@ -41,6 +42,7 @@ internal fun walkHorizon(
 	onConcluded: ((SearchStats) -> Unit)? = null,
 	parallelism: Int = 1,
 	legs: LegSource? = null,
+	rootEdits: List<CellEdit> = emptyList(),
 ): PathPlanResult {
 	var published = 0
 	var lastTape: List<MovementSimulationInput>? = null
@@ -80,6 +82,7 @@ internal fun walkHorizon(
 		onConcluded = onConcluded,
 		parallelism = parallelism,
 		legs = legs,
+		rootEdits = rootEdits,
 	).run()
 
 	return when (result) {

@@ -15,6 +15,7 @@ import com.lambda.pathing.debug.ParkourCourseLayout
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.world.snapshot.CellEdit
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
@@ -185,8 +186,10 @@ internal fun walkFrom(
     start: MovementSimulationState,
     environment: SnapshotSimulationEnvironment,
     constraints: MotionConstraints = MotionConstraints(),
+    rootEdits: List<CellEdit> = emptyList(),
 ): PathPlanResult = walkHorizon(
     route, planner, start, ProbeScenarios.PROFILE, environment, constraints,
     publish = { _, _ -> },
     started = System.currentTimeMillis(),
+    rootEdits = rootEdits,
 )

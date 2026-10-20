@@ -4,6 +4,7 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.SharedEdges
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.world.snapshot.CellEdit
 import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.store.BaritoneCache
 import com.lambda.pathing.world.store.TerrainRecorder
@@ -12,6 +13,8 @@ import com.lambda.pathing.world.streaming.MinecraftTerrainSource
 import com.lambda.pathing.world.streaming.PathingWorld
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.world.ClientWorld
+import net.minecraft.util.math.BlockPos
+import java.util.concurrent.ConcurrentHashMap
 
 internal class PlanningJourney private constructor(
 	private val origin: PlanningPreparation,
@@ -43,6 +46,21 @@ internal class PlanningJourney private constructor(
 		world, goals, { buildLegs(remembered) }, starts, origin.coarseExpansionBudget,
 		expandsField = !origin.routeOnly,
 	).also { it.start() }
+
+	private val toggleOriginals = ConcurrentHashMap<Long, Boolean>()
+
+	fun recordUse(pos: BlockPos, open: Boolean) {
+		val toggle = world.snapshot.toggleAt(pos.x, pos.y, pos.z) ?: return
+		toggleOriginals.putIfAbsent(pos.asLong(), !open)
+		if (toggle.pairedY != 0) toggleOriginals.putIfAbsent(BlockPos.asLong(pos.x, pos.y + toggle.pairedY, pos.z), !open)
+	}
+
+	fun changedToggles(): List<CellEdit> = toggleOriginals.mapNotNull { (key, original) ->
+		val x = BlockPos.unpackLongX(key)
+		val y = BlockPos.unpackLongY(key)
+		val z = BlockPos.unpackLongZ(key)
+		world.snapshot.toggleAt(x, y, z)?.takeIf { it.open != original }?.let { CellEdit(x, y, z, it.physics(it.open)) }
+	}
 
 	fun retarget(goal: Stance): Boolean {
 		if (origin.waypoints.isNotEmpty()) return false

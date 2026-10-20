@@ -51,7 +51,7 @@ internal class GraftContext(
 	val finish: ((ValueAnchor) -> Solution?)?,
 )
 
-internal class SpineGraft(private val steps: List<SpineStep>, private val contextOf: (Int) -> GraftContext) {
+internal class SpineGraft(private val steps: List<SpineStep>, private val contextOf: (Int) -> GraftContext, private val closing: Boolean = false) {
 	private val stances = ArrayList<Stance>(steps.size)
 	private val elapsed = ArrayList<Int>(steps.size)
 	private val byStance = HashMap<Stance, MutableList<Int>>()
@@ -77,7 +77,7 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 			val next = when (step) {
 				is SpineStep.Decide -> step.memo?.recall(anchor) ?: when (val outcome = contextOf(step.leg).step(anchor, step.decision, step.chain)) {
 					is Outcome.Anchored -> outcome.anchor.also { step.memo?.keep(anchor, it) }
-					is Outcome.Arrived -> return Solution(anchor, outcome.frames)
+					is Outcome.Arrived -> return Solution(anchor, outcome.frames, closing)
 					is Outcome.Rejected -> return failPlant("rejected ${rejection(outcome.diagnostic)}", index)
 					is Outcome.Blocked -> return failPlant("blocked", index)
 				}
@@ -122,7 +122,7 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 			val next = when (step) {
 				is SpineStep.Decide -> when (val outcome = advance(anchor, step, stances[k], context)) {
 					is Outcome.Anchored -> outcome.anchor
-					is Outcome.Arrived -> return Solution(anchor, outcome.frames)
+					is Outcome.Arrived -> return Solution(anchor, outcome.frames, closing)
 					else -> return null
 				}
 

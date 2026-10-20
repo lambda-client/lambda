@@ -12,6 +12,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShape
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.floor
@@ -122,6 +123,29 @@ object DoorRules {
 		return door.y + minOf(0, paired).toDouble()..door.y + 1.0 + maxOf(0, paired)
 	}
 
+	fun originals(edits: List<CellEdit>): Map<BlockPos, Boolean> {
+		val originals = LinkedHashMap<BlockPos, Boolean>()
+		for (edit in edits) edit.physics.toggle?.let { originals.putIfAbsent(BlockPos(edit.x, edit.y, edit.z), !it.open) }
+		return originals
+	}
+
+	fun supports(state: MovementSimulationState, pos: BlockPos, shape: VoxelShape): Boolean {
+		val body = state.boundingBox
+		val feet = Box(body.minX, body.minY - FOOTING_PROBE, body.minZ, body.maxX, body.minY + FOOTING_PROBE, body.maxZ)
+		return shape.boundingBoxes.any { it.offset(pos).intersects(feet) }
+	}
+
+	fun blocks(environment: EditableEnvironment, state: MovementSimulationState, target: ToggleTarget): Boolean {
+		val cell = environment.readBlock(target.pos.x, target.pos.y, target.pos.z) ?: return false
+		val toggle = cell.toggle?.takeIf { it.open != target.open } ?: return false
+		val next = toggle.physics(target.open).collisionShape
+		val halves = if (toggle.pairedY == 0) listOf(target.pos) else listOf(target.pos, target.pos.up(toggle.pairedY))
+		return halves.any { pos ->
+			next.boundingBoxes.any { it.offset(pos).intersects(state.boundingBox) } ||
+					supports(state, pos, cell.collisionShape) && !supports(state, pos, next)
+		}
+	}
+
 	fun use(environment: EditableEnvironment, state: MovementSimulationState, profile: PlayerPhysicsProfile, doors: Collection<BlockPos>): BlockUse? {
 		if (state.isSneaking) return null
 		val hit = target(environment, state, profile) ?: return null
@@ -146,6 +170,8 @@ object DoorRules {
 	}
 
 	private const val POSE_TOLERANCE = 1e-3
+
+	private const val FOOTING_PROBE = 0.05
 
 	private val SAMPLES = doubleArrayOf(0.25, 0.5, 0.75)
 

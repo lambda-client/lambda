@@ -16,6 +16,7 @@ import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.rollout.TrajectoryRolloutTermination
+import com.lambda.pathing.world.snapshot.CellEdit
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
@@ -41,6 +42,7 @@ internal class SearchLoop(
 	parallelism: Int = 1,
 	private val legs: LegSource? = null,
 	private val spine: Spine? = null,
+	private val rootEdits: List<CellEdit> = emptyList(),
 ) {
 	private val parallelism = parallelism.coerceAtLeast(1)
 	private val batchSize = if (this.parallelism > 1) this.parallelism * ROLLOUTS_PER_THREAD else 1
@@ -64,7 +66,7 @@ internal class SearchLoop(
 	private val recovery = StallRecovery(frontier, publications, world)
 	private val movements = catalog
 	private val graftContexts = HashMap<Int, GraftContext>()
-	private val graft = spine?.let { SpineGraft(it.steps, ::graftContext) }
+	private val graft = spine?.let { SpineGraft(it.steps, ::graftContext, config.openDoors && config.closeDoors) }
 
 	private var repairs = 0
 	private var syncBucket = -1
@@ -157,6 +159,7 @@ internal class SearchLoop(
 			inputSwitches = 0,
 			parent = null,
 			inputs = emptyList(),
+			edits = rootEdits,
 		)
 		searchConfig.exploration?.taboo?.let(root::attempt)
 		frontier.admit(root, incumbentScore = null)
@@ -408,7 +411,7 @@ internal class SearchLoop(
 			}
 
 			is Outcome.Arrived -> if (!hasNextLeg()) incumbent.offer(
-				Solution(anchor, outcome.frames)
+				Solution(anchor, outcome.frames, config.openDoors && config.closeDoors)
 			)
 
 			is Outcome.Blocked -> Unit

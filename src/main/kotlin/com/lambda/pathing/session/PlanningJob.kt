@@ -16,6 +16,7 @@ import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.VirtualPacing
+import com.lambda.pathing.world.snapshot.CellEdit
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -133,6 +134,7 @@ internal class PlanningJob(
 					},
 					legs = follower,
 					parallelism = preparation.plannerThreads,
+					rootEdits = rootEdits(),
 				).also {
 					dumpOutcome(it, follower)
 					planLegs = follower.planLegs(leg)
@@ -261,7 +263,10 @@ internal class PlanningJob(
 		},
 		legs = follower,
 		parallelism = preparation.plannerThreads,
+		rootEdits = rootEdits(),
 	)
+
+	private fun rootEdits(): List<CellEdit> = if (preparation.seedConfig.closeDoors) journey.changedToggles() else emptyList()
 
 	private fun dumpOutcome(outcome: PathPlanResult, follower: CoarseFollower) {
 		if (outcome is PathPlanResult.Failed) {

@@ -2,6 +2,7 @@ package com.lambda.pathing.search
 
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.actions.control.Toggling
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
@@ -46,6 +47,7 @@ internal class RolloutGate(
 		)
 		var stopFrame: Int? = null
 		var failure: TrajectoryDiagnostic? = null
+		var deferred = -1
 		val rollout = TrajectoryRolloutEngine.rollout(
 			initialState = from,
 			profile = profile,
@@ -55,7 +57,12 @@ internal class RolloutGate(
 		) { frame ->
 			when (val verdict = evaluator.observe(frame.index, frame.state)) {
 				is RolloutVerdict.Stopped -> {
-					stopFrame = verdict.frame; true
+					if ((program as? Toggling)?.defersStop(verdict.frame) == true) {
+						deferred = frame.index
+						false
+					} else {
+						stopFrame = verdict.frame; true
+					}
 				}
 				is RolloutVerdict.Failed -> {
 					failure = verdict.diagnostic; true
@@ -63,6 +70,7 @@ internal class RolloutGate(
 				is RolloutVerdict.Continue -> false
 			}
 		}
+		if (stopFrame == null && failure == null && deferred >= 0 && deferred == rollout.frames.lastIndex) stopFrame = deferred
 		val diagnostic = if (stopFrame != null) null else failure ?: evaluator.terminalDiagnostic(rollout)
 		return GatedRollout(rollout, stopFrame, failure != null, diagnostic)
 	}

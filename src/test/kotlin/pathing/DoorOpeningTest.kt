@@ -4,15 +4,24 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.actions.BodyState
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.search.VirtualSearchClock
+import com.lambda.pathing.search.WorldLink
+import com.lambda.pathing.search.WorldSyncResult
 import com.lambda.pathing.search.replaysUnchanged
 import com.lambda.pathing.session.PathPlanResult
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.world.edit.DoorRules
 import com.lambda.pathing.world.edit.SnapshotRaycast
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import com.lambda.pathing.world.snapshot.CellEdit
 import com.lambda.pathing.world.snapshot.HazardRules
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -195,6 +204,43 @@ class DoorOpeningTest {
 	}
 
 	@Test
+	fun `a trapdoor opened as a step is closed again behind a closed gate`() {
+		MinecraftBootstrap.ensure()
+		val path = walk(stepCourse(), start = STEP_START, goal = STEP_GOAL, constraints = CLOSING)
+		val uses = path.plan.tape.asList().withIndex().filter { it.value.use != null }.map { it.index to it.value.use!! }
+		val opened = uses.firstOrNull { (_, use) -> use.pos == STEP_TRAPDOOR && use.open }?.first
+		assertNotNull(opened, "the trapdoor is opened to stand on: $uses")
+		val landed = path.plan.frames.indexOfFirst { it.state.onGround && it.state.position.x < 7.0 }
+		assertTrue(opened <= landed, "the trapdoor is open by the landing: $opened vs $landed")
+		assertTrue(path.plan.frames.none { it.state.onGround && it.state.position.x in 6.0..7.0 && it.state.position.y < 64.5 }, "the body never lands on the closed trapdoor")
+		assertEquals(false, uses.lastOrNull { (_, use) -> use.pos == STEP_TRAPDOOR }?.second?.open, "the trapdoor ends closed: $uses")
+		assertEquals(false, uses.lastOrNull { (_, use) -> use.pos == STEP_GATE }?.second?.open, "the gate ends closed: $uses")
+	}
+
+	@Test
+	fun `a door this journey opened is closed behind even when the world already shows it open`() {
+		MinecraftBootstrap.ensure()
+		val environment = doorway(open = true)
+		val door = BlockPos(0, 64, 0)
+		val opened = listOf(door, door.up()).map { pos -> CellEdit(pos.x, pos.y, pos.z, assertNotNull(environment.toggleAt(pos.x, pos.y, pos.z)).physics(true)) }
+		val path = walk(environment, constraints = CLOSING, rootEdits = opened)
+		val uses = path.plan.tape.asList().mapNotNull { it.use }
+		assertEquals(false, uses.lastOrNull { DoorRules.covers(environment, door, it.pos) }?.open, "the door opened earlier in the journey is closed behind: $uses")
+	}
+
+	@Test
+	fun `a live walk never comes to rest on a trapdoor it still has to open`() {
+		MinecraftBootstrap.ensure()
+		for (micros in LIVE_MICROS_PER_EXPANSION) {
+			val rests = ArrayList<MovementSimulationState>()
+			val outcome = liveWalk(stepCourse(), STEP_START, STEP_GOAL, CLOSING, micros) { rests += it.plan.frames.last().state }
+			val onTrapdoor = rests.filter { it.position.x in 6.0..7.0 && it.position.y < 64.5 }
+			assertTrue(onTrapdoor.isEmpty(), "no published tape may stop on the closed trapdoor at $micros us per expansion: ${onTrapdoor.map { it.position }}")
+			assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the live walk must arrive at $micros us per expansion, got $outcome")
+		}
+	}
+
+	@Test
 	fun `a door at a corner is clicked while strafing past`() {
 		MinecraftBootstrap.ensure()
 		fun corner(open: Boolean): SnapshotSimulationEnvironment {
@@ -244,16 +290,60 @@ class DoorOpeningTest {
 		start: Stance = START,
 		goal: Stance = GOAL,
 		constraints: MotionConstraints = MotionConstraints(openDoors = true),
+		rootEdits: List<CellEdit> = emptyList(),
 	) = run {
 		val planner = CoarsePlanner(environment, ProbeScenarios.moveLibrary(SimpleMoveOptions(hazards = hazards)), start, goal)
 		assertTrue(planner.repair().converged, "the route must converge")
 		planner.expandSearchField()
 		val route = assertNotNull(planner.routePlan(0L), "the toggles must carry a coarse route")
 		val body = resting(Vec3d(start.x + 0.5, 64.0, start.z + 0.5)).copy(rotation = rotation)
-		val outcome = walkFrom(route, planner, body, environment, constraints)
+		val outcome = walkFrom(route, planner, body, environment, constraints, rootEdits)
 		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the walk must be certified, got $outcome")
 		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
 		path
+	}
+
+	private fun liveWalk(
+		environment: SnapshotSimulationEnvironment,
+		start: Stance,
+		goal: Stance,
+		constraints: MotionConstraints,
+		microsPerExpansion: Long,
+		published: (PublishedPath) -> Unit,
+	): PathPlanResult {
+		val planner = CoarsePlanner(environment, ProbeScenarios.moveLibrary(SimpleMoveOptions(hazards = hazards)), start, goal)
+		assertTrue(planner.repair().converged, "the route must converge")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "the toggles must carry a coarse route")
+		val clock = VirtualSearchClock(microsPerExpansion)
+		val executor = VirtualExecutor(clock)
+		return walkHorizon(
+			route, planner, resting(Vec3d(start.x + 0.5, 64.0, start.z + 0.5)), ProbeScenarios.PROFILE, environment, constraints,
+			execution = executor, clock = clock, started = System.currentTimeMillis(),
+			publish = { path, _ ->
+				published(path)
+				executor.offer(path)
+			},
+			world = object : WorldLink {
+				override fun await(timeoutMillis: Long) = false
+				override fun loadable(chunkX: Int, chunkZ: Int) = true
+				override fun sync(route: CoarseRoutePlan, from: BodyState): WorldSyncResult = WorldSyncResult.Quiet
+			},
+		)
+	}
+
+	private fun stepCourse(): SnapshotSimulationEnvironment {
+		val states = HashMap<BlockPos, BlockState>()
+		for (x in -1..15) for (z in -1..1) states[BlockPos(x, 63, z)] = Blocks.STONE.defaultState
+		for (x in -1..15) for (y in 64..68) {
+			states[BlockPos(x, y, -1)] = Blocks.STONE.defaultState
+			states[BlockPos(x, y, 1)] = Blocks.STONE.defaultState
+		}
+		states[BlockPos(5, 64, 0)] = Blocks.STONE.defaultState
+		for (x in 0..5) states[BlockPos(x, 65, 0)] = Blocks.STONE.defaultState
+		states[STEP_TRAPDOOR] = Blocks.OAK_TRAPDOOR.defaultState.with(TrapdoorBlock.HALF, BlockHalf.BOTTOM).with(TrapdoorBlock.OPEN, false).with(TrapdoorBlock.FACING, Direction.EAST)
+		states[STEP_GATE] = Blocks.OAK_FENCE_GATE.defaultState.with(FenceGateBlock.FACING, Direction.EAST).with(FenceGateBlock.OPEN, false)
+		return environmentOf(states)
 	}
 
 	private fun doorway(open: Boolean, hazards: HazardRules = this.hazards): SnapshotSimulationEnvironment {
@@ -294,6 +384,12 @@ class DoorOpeningTest {
 	private companion object {
 		val START = Stance(0, 64, -12)
 		val GOAL = Stance(0, 64, 5)
+		val STEP_START = Stance(13, 64, 0)
+		val STEP_GOAL = Stance(2, 66, 0)
+		val STEP_TRAPDOOR = BlockPos(6, 64, 0)
+		val STEP_GATE = BlockPos(9, 64, 0)
+		val CLOSING = MotionConstraints(openDoors = true, closeDoors = true)
+		val LIVE_MICROS_PER_EXPANSION = listOf(150L, 350L, 640L, 1000L, 1300L)
 		const val CRUISE_FRAMES = 8
 		const val SLACK_FRAMES = 3
 	}

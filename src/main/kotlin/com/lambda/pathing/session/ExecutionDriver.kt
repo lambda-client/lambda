@@ -83,6 +83,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 
 	fun SafeContext.use(replay: Replay, frame: Int, use: BlockUse) {
 		if (world.getBlockState(use.pos).getOrEmpty(Properties.OPEN).orElse(null) == use.open) return
+		walk.journey?.recordUse(use.pos, use.open)
 		val result = walk.request.runSafeAutomated { with(InteractManager) { useScheduled(walk, use.pos, use.side, use.hit) } }
 		if (result is InteractManager.Scheduled.Refused) {
 			reject(replay.path, frame, ExecutionDeviation.Protocol("the use of ${use.pos} was refused: ${result.reason}"), observe(replay.path.plan, frame), afterInput = false)
