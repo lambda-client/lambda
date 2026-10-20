@@ -22,7 +22,6 @@ import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.handlers.breaking.BrokenBlockHandler
 import com.lambda.util.collections.LimitedDecayQueue
 
 /**
@@ -52,7 +51,7 @@ abstract class PostActionHandler<T : ActionInfo> {
 	}
 
 	fun Automated.setPendingConfigs() {
-		BrokenBlockHandler.pendingActions.setSizeLimit(buildConfig.maxPendingActions)
-		BrokenBlockHandler.pendingActions.setDecayTime(buildConfig.actionTimeout * 50L)
+		pendingActions.setSizeLimit(buildConfig.maxPendingActions)
+		pendingActions.setDecayTime(buildConfig.actionTimeout.toLong())
 	}
 }

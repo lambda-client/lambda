@@ -25,6 +25,7 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpPitch
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpYaw
@@ -32,6 +33,7 @@ import com.lambda.interaction.managers.rotating.RotationManager.activeRotation
 import com.lambda.interaction.managers.rotating.RotationManager.serverRotation
 import com.lambda.interaction.managers.rotating.RotationManager.updateActiveRotation
 import com.lambda.threading.runSafe
+import com.lambda.util.ClientTicks
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
@@ -39,15 +41,17 @@ import com.lambda.util.player.RotationUtils.getInputRelativeTo
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.client.input.Input
 import net.minecraft.util.hit.EntityHitResult
+import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec2f
+import kotlin.math.abs
 
 /**
  * Manager designed to rotate the player and adjust movement input to match the camera's direction.
  */
 @Suppress("unused")
 object RotationManager : Manager<RotationRequest>(
-	1,
-	*(ALL_STAGES.subList(ALL_STAGES.indexOf(TickEvent.Player.Post), ALL_STAGES.size - 1).toTypedArray()),
+	4,
+	*ALL_STAGES.filter { it !in TickEvent.ROTATION_STAGES }.toTypedArray(),
 ) {
 	var yawRequest
 		get() = requests[1] as? IRotationRequest.YawRot
@@ -62,6 +66,10 @@ object RotationManager : Manager<RotationRequest>(
 	@JvmStatic var prevServerRotation = Rotation.ZERO
 
 	private var changedThisTick = false
+
+	private val hand = MouseHand(System.nanoTime())
+
+	private var pendingStep: MouseHand.Step? = null
 
 	private val IRotationRequest.overridable get() = age >= 1
 
@@ -83,7 +91,7 @@ object RotationManager : Manager<RotationRequest>(
         listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
             requests.forEachIndexed { index, request ->
                 if (request == null) return@forEachIndexed
-                if (request.keepTicks <= 0 && request.decayTicks <= 0) {
+                if (request.keepTicks <= 0 && request.decayTicks <= 0 && (request.exact || look.reaches(serverRotation, player.rotation))) {
                     requests[index] = null
                 }
             }
@@ -168,10 +176,27 @@ object RotationManager : Manager<RotationRequest>(
 		overrideHolds += condition
 	}
 
-	fun withoutVanillaOverrides(block: () -> Unit) {
+	fun <T> withoutVanillaOverrides(block: () -> T): T {
 		pauseVanillaOverrides = true
-		block()
-		pauseVanillaOverrides = false
+		try {
+			return block()
+		} finally {
+			pauseVanillaOverrides = false
+		}
+	}
+
+	fun <T> SafeContext.withServerLook(block: () -> T): T {
+		if (BaritoneHandler.isActive) return block()
+		val yaw = player.yaw
+		val pitch = player.pitch
+		player.yaw = MathHelper.wrapDegrees(serverRotation.yawF)
+		player.pitch = serverRotation.pitchF
+		try {
+			return block()
+		} finally {
+			player.yaw = yaw
+			player.pitch = pitch
+		}
 	}
 
 	/**
@@ -214,6 +239,11 @@ object RotationManager : Manager<RotationRequest>(
 	@JvmStatic fun onRotationSend() {
 		prevServerRotation = serverRotation
 		serverRotation = activeRotation
+		pendingStep?.let(hand::commit) ?: hand.rest()
+		pendingStep = null
+		forEachRequest { request ->
+			if (request.keepTicks-- <= 0) request.decayTicks--
+		}
 
 		if (yawRequest?.rotationConfig?.rotationMode == RotationMode.Lock)
 			mc.player?.yaw = serverRotation.yawF
@@ -222,34 +252,48 @@ object RotationManager : Manager<RotationRequest>(
 	}
 
 	/**
-	 * Updates the [activeRotation]. If [activeRequest] is null, the player's rotation is used.
-	 * Otherwise, the [serverRotation] is interpolated towards the [RotationRequest.target] rotation.
+	 * Updates the [activeRotation]: whole mouse counts from the [serverRotation] toward the requested rotation,
+	 * or the player's rotation while nothing is requested.
 	 */
 	private fun SafeContext.updateActiveRotation() {
-		val newYaw = yawRequest?.let { yawRequest ->
-			val toYaw =
-				if (yawRequest.keepTicks >= 0) yawRequest.yaw.value ?: activeRotation.yaw
-				else player.rotation.yaw
-			serverRotation.slerpYaw(toYaw, yawRequest.rotationConfig.turnSpeed)
-		} ?: player.rotation.yaw
-
-		val newPitch = pitchRequest?.let { pitchRequest ->
-			val toPitch =
-				if (pitchRequest.keepTicks >= 0) pitchRequest.pitch.value ?: activeRotation.pitch
-				else player.rotation.pitch
-			serverRotation.slerpPitch(toPitch, pitchRequest.rotationConfig.turnSpeed)
-		} ?: player.rotation.pitch
-
-		forEachRequest { request ->
-			if (request.keepTicks-- <= 0) {
-				request.decayTicks--
-			}
+		val yawRequest = yawRequest
+		val pitchRequest = pitchRequest
+		val config = (yawRequest ?: pitchRequest)?.rotationConfig
+		if (config == null) {
+			pendingStep = null
+			activeRotation = player.rotation
+			return
 		}
 
-		if (!newYaw.isNaN() && !newPitch.isNaN()) {
-			activeRotation = Rotation(newYaw, newPitch)
+		val toYaw = yawRequest?.let { if (it.keepTicks >= 0) it.yaw.value ?: activeRotation.yaw else player.rotation.yaw } ?: player.rotation.yaw
+		val toPitch = pitchRequest?.let { if (it.keepTicks >= 0) it.pitch.value ?: activeRotation.pitch else player.rotation.pitch } ?: player.rotation.pitch
+		if (toYaw.isNaN() || toPitch.isNaN()) return
+
+		if (yawRequest?.exact == true || pitchRequest?.exact == true) {
+			pendingStep = null
+			activeRotation = Rotation(serverRotation.slerpYaw(toYaw, config.turnSpeed), serverRotation.slerpPitch(toPitch, config.turnSpeed))
+			return
 		}
+
+		val look = look
+		val limits = MouseHand.Limits(config.turnSpeed, config.turnAcceleration, config.turnNoise)
+		val step = hand.step(serverRotation, Rotation(toYaw, toPitch), look, limits, ClientTicks.now)
+		pendingStep = step
+		activeRotation = look.turn(serverRotation, step.dx, step.dy)
 	}
+
+	val SafeContext.look: MouseLook
+		get() = MouseLook(
+			MouseLook.factor(mc.options.mouseSensitivity.value, mc.options.perspective.isFirstPerson && player.isUsingSpyglass),
+			mc.options.invertMouseX.value,
+			mc.options.invertMouseY.value,
+		)
+
+	private val SafeContext.sentRotation: Rotation get() = if (BaritoneHandler.isActive) player.rotation else serverRotation
+
+	fun SafeContext.reachedYaw(yaw: Double): Boolean = abs(Rotation.wrap(yaw - sentRotation.yaw)) <= look.degreesPerCount / 2
+
+	fun SafeContext.reachedPitch(pitch: Double): Boolean = abs(pitch - sentRotation.pitch) <= look.degreesPerCount / 2
 
 	@JvmStatic
 	fun resetYaw(yaw: Double, active: Boolean) {
@@ -322,7 +366,8 @@ object RotationManager : Manager<RotationRequest>(
 		val pitch = activeRotation.pitchF.takeIf { pitchRequest != null && pitchRequest?.rotationConfig?.rotationMode != RotationMode.Silent }
 		if (yaw == null && pitch == null) return@runSafe null
 
-		val rot = lerp(deltaTime, serverRotation, Rotation(yaw ?: player.yaw, pitch ?: player.pitch))
+		val target = Rotation(yaw ?: player.yaw, pitch ?: player.pitch)
+		val rot = if (deltaTime == 1.0) target else lerp(deltaTime, serverRotation, target)
 		return Vec2d(rot.yaw, rot.pitch)
 	}
 }

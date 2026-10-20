@@ -22,10 +22,8 @@ import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runConcurrent
-import com.lambda.threading.runSafeGameScheduled
+import com.lambda.util.ClientTicks
 import com.lambda.util.PacketUtils.sendPacket
-import kotlinx.coroutines.delay
 import net.minecraft.block.entity.HangingSignBlockEntity
 import net.minecraft.client.gui.screen.ingame.AbstractSignEditScreen
 import net.minecraft.client.gui.screen.ingame.HangingSignEditScreen
@@ -59,7 +57,7 @@ object AutoSign : Module(
 	private var writeOnFront by setting("Write Front", true, description = "Write on front side of the sign") { autoWrite }
 
 	private var autoClose by setting("Auto Close", true)
-	var signWriteDelay by setting("Sign Write Delay", 400L, 100L..1000L, 50L, description = "Delay in milliseconds before sending the sign text to the server") { autoClose }
+	var signWriteDelay by setting("Sign Write Delay", 8, 2..20, 1, description = "Ticks to wait before sending the sign text to the server", unit = " ticks") { autoClose }
 
 	init {
 		listen<GuiEvent.SignEditorOpen> { event ->
@@ -93,16 +91,13 @@ object AutoSign : Module(
 			if (autoClose) {
 				val pos = event.sign.pos
 				val messages = editor.messages.copyOf()
-				runConcurrent {
-					delay(signWriteDelay)
-					runSafeGameScheduled {
-						connection.sendPacket {
-							UpdateSignC2SPacket(
-								pos,
-								writeOnFront,
-								messages[0], messages[1], messages[2], messages[3]
-							)
-						}
+				ClientTicks.runLater(signWriteDelay) {
+					connection.sendPacket {
+						UpdateSignC2SPacket(
+							pos,
+							writeOnFront,
+							messages[0], messages[1], messages[2], messages[3]
+						)
 					}
 				}
 			} else mc.setScreen(editor)

@@ -55,6 +55,7 @@ object LambdaTest : FabricClientGameTest {
         server.runCommand("/tp Steve ~ -60 ~")
 
         MovementReplayTests.run(context, server)
+        InteractionManagerTests.run(context, server)
 
         // The pathing scenarios below are the planner's own tapes, walked live by
         // PathingManager -- the same path a `.path` command takes. A simulator-vs-

@@ -25,7 +25,7 @@ import com.lambda.config.migration.StepConfigMigration
 @Suppress("unused")
 object ModuleConfigMigration : StepConfigMigration() {
 	override val category = ModuleCategory
-	override val latestVersion = 3
+	override val latestVersion = 4
 
 	init {
 		step(1, 2) { root ->
@@ -53,6 +53,11 @@ object ModuleConfigMigration : StepConfigMigration() {
 			if (!loaderBranch.isString) return@step
 			if (loaderBranch.asString() != "Snapshot") return@step
 			settings.asObject().put("Loader Branch", "Dev")
+		}
+
+		step(3, 4) { root ->
+			val count = MigrationUtils.millisToTicks(root, "Sign Write Delay", 2..20)
+			LOG.info("Migrated Module config category schema v3 -> v4: $count settings converted to ticks")
 		}
 	}
 }

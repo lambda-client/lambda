@@ -120,10 +120,8 @@ object RebreakHandler {
 		val breakTicks = reBreak.breakingTicks - breakConfig.fudgeFactor
 		return@runSafeAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
 			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@runSafeAutomated RebreakResult.Ignored
-			if (breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
-				destroyBlock(reBreak)
-			}
-			reBreak.stopBreakPacket()
+			reBreak.predicted = breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak
+			reBreak.stopBreakPacket { if (reBreak.predicted) destroyBlock(reBreak) }
 			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 			if (breakConfig.swing.isEnabled()) {
 				swingHand(breakConfig.swingType, Hand.MAIN_HAND)

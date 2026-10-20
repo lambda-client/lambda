@@ -62,6 +62,18 @@ interface Contextual : ComparableResult<Rank> {
                 it.hotbarIndex == HotbarManager.serverSlot
             }.thenByDescending {
                 it is BreakContext && it.instantBreak
+            }.thenBy {
+                it.blockPos
+            }.thenBy {
+                it.hitResult.blockPos
+            }.thenBy {
+                it.hitResult.side
+            }.thenBy {
+                it.hitResult.pos.x
+            }.thenBy {
+                it.hitResult.pos.y
+            }.thenBy {
+                it.hitResult.pos.z
             }.compare(context, other.context)
 
             else -> super.compareResult(other)

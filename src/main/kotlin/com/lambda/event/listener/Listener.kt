@@ -23,6 +23,7 @@ import com.lambda.event.Muteable
 import com.lambda.event.OwnerPriority
 import com.lambda.module.Module
 import com.lambda.util.collections.Updatable
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * An abstract class representing a [Listener] in the [Event] system ([EventFlow]).
@@ -40,7 +41,7 @@ import com.lambda.util.collections.Updatable
  * which defines the actions to be taken when the [Event] occurs.
  *
  * [Listener]s can be sorted based on their [priority],
- * if two [Listener]s have the same [priority], their order is determined by their [hashCode].
+ * if two [Listener]s have the same [priority], the one created first runs first.
  *
  * @property priority The priority of the [Listener]. [Listener]s with higher [priority] are executed first.
  * @property owner The owner of the [Listener]. This is typically the object that created the [Listener].
@@ -50,6 +51,8 @@ abstract class Listener<T : Event> : Comparable<Listener<T>> {
     abstract val priority: Updatable<Int>
     abstract val owner: Any
     abstract val alwaysListen: Boolean
+
+    private val sequence = nextSequence.getAndIncrement()
 
     /**
      * Executes the actions defined by this listener when the event occurs.
@@ -62,11 +65,12 @@ abstract class Listener<T : Event> : Comparable<Listener<T>> {
         comparator.compare(this, other)
 
     companion object {
+        private val nextSequence = AtomicLong()
+
         val comparator = compareBy<Listener<out Event>> {
             it.priority.value
-        }.thenBy {
-            // Hashcode is needed because ConcurrentSkipListSet handles insertion based on compareTo
-            it.hashCode()
+        }.thenByDescending {
+            it.sequence
         }
 
         val Any.ownerPriorityOr0Getter

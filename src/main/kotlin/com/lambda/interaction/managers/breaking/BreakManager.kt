@@ -106,7 +106,7 @@ import kotlin.math.max
  * style system.
  */
 object BreakManager : Manager<BreakRequest>(
-	0,
+	2,
 	onOpen = {
 		processRequest(activeRequest)
 		simulateAbandoned()
@@ -421,8 +421,14 @@ object BreakManager : Manager<BreakRequest>(
 	private fun SafeContext.handlePreProcessing() {
 		if (activeInfos.isEmpty()) return
 
-		activeInfos
-			.filter { it.updatedThisTick }
+		val updated = activeInfos.filter { it.updatedThisTick }
+		val masked = updated.filter { tickStage in it.breakConfig.tickStageMask }
+		if (masked.isEmpty()) {
+			updated.forEach { it.updatePreProcessing() }
+			return
+		}
+
+		masked
 			.let { infos ->
 				rotationRequest = infos.lastOrNull { info ->
 					info.breakConfig.rotate
@@ -431,9 +437,9 @@ object BreakManager : Manager<BreakRequest>(
 					rotation.submit(false)
 				}
 
-				infos.forEach { it.updatePreProcessing() }
+				updated.forEach { it.updatePreProcessing() }
 
-				val first = infos.firstOrNull() ?: return@let
+				val first = infos.first()
 				val last = infos.lastOrNull { it.swapInfo.swap && it.shouldProgress } ?: return@let
 
 				val minKeepTicks = if (first.swapInfo.longSwap || last.swapInfo.longSwap) 1 else 0
@@ -539,6 +545,7 @@ object BreakManager : Manager<BreakRequest>(
 	private fun SafeContext.simulateAbandoned() {
 		// Canceled but double breaking so requires break manager to continue the simulation
 		val abandonedInfo = abandonedBreak ?: return
+		if (tickStage !in abandonedInfo.breakConfig.tickStageMask) return
 
 		abandonedInfo.request.runSafeAutomated {
 			abandonedInfo.context.blockPos
@@ -602,26 +609,18 @@ object BreakManager : Manager<BreakRequest>(
 	 * @see startPending
 	 * @see nullify
 	 */
-	private fun AutomatedSafeContext.onBlockBreak(info: BreakInfo) {
+	private fun AutomatedSafeContext.onBlockBreak(info: BreakInfo, send: ((predict: () -> Unit) -> Unit)?) {
 		info.request.onStop?.invoke(this, info.context.blockPos)
-		when (breakConfig.breakConfirmation) {
-			BreakConfirmationMode.None -> {
-				destroyBlock(info)
-				info.internalOnBreak()
-				if (!info.callbacksCompleted) {
-					info.startPending()
-				} else {
-					RebreakHandler.offerRebreak(info)
-				}
-			}
-			BreakConfirmationMode.BreakThenAwait -> {
-				destroyBlock(info)
+		info.predicted = send != null && breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak
+		send?.invoke { if (info.predicted) destroyBlock(info) }
+		if (info.predicted && breakConfig.breakConfirmation == BreakConfirmationMode.None) {
+			info.internalOnBreak()
+			if (!info.callbacksCompleted) {
 				info.startPending()
+			} else {
+				RebreakHandler.offerRebreak(info)
 			}
-			BreakConfirmationMode.AwaitThenBreak -> {
-				info.startPending()
-			}
-		}
+		} else info.startPending()
 		breaksThisTick++
 		if (info.type == Primary && !info.vanillaInstantBreakable) {
 			breakDelay = breakConfig.breakDelay
@@ -712,8 +711,7 @@ object BreakManager : Manager<BreakRequest>(
 			if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
 				if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
 				lastPosStarted = ctx.blockPos
-				onBlockBreak(info)
-				info.startBreakPacket()
+				onBlockBreak(info) { info.startBreakPacket(predict = it) }
 				PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 				if (breakConfig.swing.isEnabled()) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
 				return
@@ -769,11 +767,10 @@ object BreakManager : Manager<BreakRequest>(
 					if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
 				}
 
-				onBlockBreak(info)
 				if (info.type == Primary) {
-					info.stopBreakPacket()
+					onBlockBreak(info) { info.stopBreakPacket(predict = it) }
 					PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
-				}
+				} else onBlockBreak(info, null)
 				if (swing.isEnabled() && swing != BreakConfig.SwingMode.Start) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
 			} else {
 				if (swing == BreakConfig.SwingMode.Constant) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
@@ -822,8 +819,7 @@ object BreakManager : Manager<BreakRequest>(
 		if (gamemode.isCreative) {
 			lastPosStarted = ctx.blockPos
 			info.request.onStart?.invoke(this, ctx.blockPos)
-			onBlockBreak(info)
-			info.startBreakPacket()
+			onBlockBreak(info) { info.startBreakPacket(predict = it) }
 			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 			if (breakConfig.swing.isEnabled()) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
 			return true
@@ -855,7 +851,14 @@ object BreakManager : Manager<BreakRequest>(
 			info.context.cachedState.onBlockBreakStart(world, ctx.blockPos, player)
 		}
 
-		if (instantBreakable) onBlockBreak(info)
+		val send = { predict: () -> Unit ->
+			if (isGrim) info.stopBreakPacket()
+			info.startBreakPacket(predict = if (requiresSecondStop) {{}} else predict)
+			if (oldGrim) info.startBreakPacket(OLD_GRIM_Y_OFFSET)
+			if (requiresSecondStop) info.stopBreakPacket(predict = predict)
+		}
+
+		if (instantBreakable) onBlockBreak(info, send)
 		else {
 			info.apply {
 				breaking = true
@@ -863,12 +866,8 @@ object BreakManager : Manager<BreakRequest>(
 				soundsCooldown = 0.0f
 				if (breakConfig.breakingTexture) setBreakingTextureStage()
 			}
+			send {}
 		}
-
-		if (isGrim) info.stopBreakPacket()
-		info.startBreakPacket()
-		if (oldGrim) info.startBreakPacket(OLD_GRIM_Y_OFFSET)
-		if (requiresSecondStop) info.stopBreakPacket()
 
 		PacketLimitHandler.sentPackets(packetCount, PacketType.PlayerAction)
 

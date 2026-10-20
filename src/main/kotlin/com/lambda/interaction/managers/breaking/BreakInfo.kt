@@ -80,6 +80,7 @@ data class BreakInfo(
 	}
 
 	// Post Processing
+	var predicted = false
 	var broken = false; private set
 	private var item: ItemEntity? = null
 	val callbacksCompleted
@@ -142,18 +143,19 @@ data class BreakInfo(
 		}
 
 	context(_: SafeContext)
-	fun startBreakPacket(yAddition: Int = 0) = breakPacket(Action.START_DESTROY_BLOCK, yAddition)
+	fun startBreakPacket(yAddition: Int = 0, predict: () -> Unit = {}) = breakPacket(Action.START_DESTROY_BLOCK, yAddition, predict)
 
 	context(_: SafeContext)
-	fun stopBreakPacket(yAddition: Int = 0) = breakPacket(Action.STOP_DESTROY_BLOCK, yAddition)
+	fun stopBreakPacket(yAddition: Int = 0, predict: () -> Unit = {}) = breakPacket(Action.STOP_DESTROY_BLOCK, yAddition, predict)
 
 	context(_: SafeContext)
-	fun abortBreakPacket(yAddition: Int = 0) = breakPacket(Action.ABORT_DESTROY_BLOCK, yAddition)
+	fun abortBreakPacket(yAddition: Int = 0) = breakPacket(Action.ABORT_DESTROY_BLOCK, yAddition) {}
 
 	context(safeContext: SafeContext)
-	private fun breakPacket(action: Action, yAddition: Int) =
+	private fun breakPacket(action: Action, yAddition: Int, predict: () -> Unit) =
 		with(safeContext) {
 			interaction.sendSequencedPacket(world) { sequence: Int ->
+				predict()
 				PlayerActionC2SPacket(
 					action,
 					with(context.blockPos) { BlockPos(x, y + yAddition, z) },

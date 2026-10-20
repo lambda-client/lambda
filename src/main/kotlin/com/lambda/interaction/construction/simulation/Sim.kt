@@ -41,6 +41,13 @@ import kotlin.math.pow
 @DslMarker
 annotation class SimDsl
 
+private val hitOrder = compareBy<CheckedHit>(
+    { (it.hit as? BlockHitResult)?.side?.ordinal ?: -1 },
+    { it.hit.pos.x },
+    { it.hit.pos.y },
+    { it.hit.pos.z },
+)
+
 /**
  * A class designed to simulate transforming a BlockState at a specified BlockPos to
  * a TargetState.
@@ -147,6 +154,6 @@ abstract class Sim<T : BuildResult> : Results<T> {
             return null
         }
 
-        return validHits
+        return validHits.sortedWith(hitOrder).toCollection(LinkedHashSet())
     }
 }

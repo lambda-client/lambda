@@ -30,9 +30,19 @@ interface RotationConfig {
     val rotationMode: RotationMode
 
     /**
-     * The rotation speed (in degrees).
+     * The fastest the rotation may turn, in degrees per tick.
      */
     val turnSpeed: Double
+
+    /**
+     * The most the turning speed may change from one tick to the next, in degrees per tick.
+     */
+    val turnAcceleration: Double
+
+    /**
+     * The standard deviation of the turning speed, in degrees per tick.
+     */
+    val turnNoise: Double
 
     /**
      * Ticks the rotation should not be changed.
@@ -51,6 +61,8 @@ interface RotationConfig {
         override val keepTicks = 1
         override val decayTicks = 1
         override val turnSpeed = 180.0
+        override val turnAcceleration = 360.0
+        override val turnNoise = 0.0
         override val tickStageMask = RotationManager.openStages.toSet()
     }
 }

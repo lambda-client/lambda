@@ -42,10 +42,10 @@ class BuildSettings(override val c: Config) : BuildConfig, ConfigBlock {
     @Group(GENERAL_GROUP) override val actionTimeout by c.setting("Action Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks")
     @Group(GENERAL_GROUP) override val maxBuildDependencies by c.setting("Max Sim Dependencies", 3, 0..10, 1, "Maximum dependency build results")
 
-    @Group(PACKET_LIMITS_GROUP) override val limitTimeframe by c.setting("Limit Timeframe", 310, 50..1500, 1, "The timeframe in which the limit is bound to", "ms")
-    @Group(PACKET_LIMITS_GROUP) override val actionLimit by c.setting("Action Limit", 59, 1..100, 1, "The maximum allowed action packets to be sent to the server per given timeframe")
-    @Group(PACKET_LIMITS_GROUP) override val interactionLimit by c.setting("Interaction Limit", 9, 1..20, 1, "The maximum allowed interaction packets to be sent to the server per given timeframe")
-    @Group(PACKET_LIMITS_GROUP) override val inventoryLimit by c.setting("Inventory Limit", 5, 1..100, 1, "The maximum allowed inventory packets to be sent to the server per given timeframe")
+    @Group(PACKET_LIMITS_GROUP) override val limitTimeframe by c.setting("Limit Timeframe", 6, 1..30, 1, "The number of ticks the packet limits count over", " ticks")
+    @Group(PACKET_LIMITS_GROUP) override val actionLimit by c.setting("Action Limit", 59, 1..100, 1, "The maximum allowed action packets to be sent to the server per limit timeframe")
+    @Group(PACKET_LIMITS_GROUP) override val interactionLimit by c.setting("Interaction Limit", 9, 1..20, 1, "The maximum allowed interaction packets to be sent to the server per limit timeframe")
+    @Group(PACKET_LIMITS_GROUP) override val inventoryLimit by c.setting("Inventory Limit", 5, 1..100, 1, "The maximum allowed inventory packets to be sent to the server per limit timeframe")
 
     @Group(REACH_GROUP) override var blockReach by c.setting("Block Reach", 4.5, 1.0..7.0, 0.01, "Maximum block interaction distance")
     @Group(REACH_GROUP) override var entityReach by c.setting("Entity Reach", 3.0, 1.0..7.0, 0.01, "Maximum entity interaction distance")

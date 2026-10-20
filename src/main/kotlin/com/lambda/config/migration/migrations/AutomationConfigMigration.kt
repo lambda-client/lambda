@@ -25,7 +25,7 @@ import com.lambda.config.migration.StepConfigMigration
 @Suppress("unused")
 object AutomationConfigMigration : StepConfigMigration() {
 	override val category = AutomationCategory
-	override val latestVersion = 3
+	override val latestVersion = 4
 
 	init {
 		step(1, 2) { root ->
@@ -48,6 +48,11 @@ object AutomationConfigMigration : StepConfigMigration() {
 		step(2, 3) { root ->
 			val count = MigrationUtils.locateAndMoveMisplacedSettings(category, root)
 			LOG.info("Migrated Automation config category schema v2 -> v3: $count settings moved")
+		}
+
+		step(3, 4) { root ->
+			val count = MigrationUtils.millisToTicks(root, "Limit Timeframe", 1..30)
+			LOG.info("Migrated Automation config category schema v3 -> v4: $count settings converted to ticks")
 		}
 	}
 }

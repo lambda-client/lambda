@@ -180,8 +180,8 @@ class PathingSession internal constructor(
 
 	internal fun face(target: Double, pitch: Double? = null) {
 		request.runSafeAutomated {
-			if (pitch == null) rotationRequest { yaw(target) }.submit()
-			else rotationRequest { rotation(target, pitch) }.submit()
+			if (pitch == null) rotationRequest { yaw(target); exact() }.submit()
+			else rotationRequest { rotation(target, pitch); exact() }.submit()
 		}
 	}
 

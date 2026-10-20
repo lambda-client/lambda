@@ -26,6 +26,20 @@ import tools.jackson.databind.JsonNode
 import tools.jackson.databind.node.ObjectNode
 
 object MigrationUtils {
+	fun millisToTicks(node: ObjectNode, settingName: String, ticks: IntRange): Int {
+		var converted = 0
+		node.propertyStream().toList().forEach { (key, value) ->
+			when {
+				value.isObject -> converted += millisToTicks(value.asObject(), settingName, ticks)
+				key == settingName && value.isNumber && value.asLong() > ticks.last -> {
+					node.put(key, ((value.asLong() + MILLIS_PER_TICK / 2) / MILLIS_PER_TICK).toInt().coerceIn(ticks))
+					converted++
+				}
+			}
+		}
+		return converted
+	}
+
 	fun locateAndMoveMisplacedSettings(category: ConfigCategory, rootNode: ObjectNode): Int {
 		var settingsMoved = 0
 		category.configs.forEach { config ->
@@ -130,4 +144,6 @@ object MigrationUtils {
 
 		return bestMatch
 	}
+
+	private const val MILLIS_PER_TICK = 50L
 }

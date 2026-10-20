@@ -21,18 +21,15 @@ import com.lambda.config.blocks.BuildConfig
 import com.lambda.context.Automated
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import kotlin.time.ComparableTimeMark
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.TimeSource
+import com.lambda.util.ClientTicks
 
 object PacketLimitHandler {
 	private val packetLimitMap = PacketType.entries.associateWith { LimitHandler() }
 
 	init {
 		listen<TickEvent.Pre>(priority = { Int.MAX_VALUE }) {
-			val currentTime = TimeSource.Monotonic.markNow()
-			packetLimitMap.values.forEach { it.removeStale(currentTime) }
+			val now = ClientTicks.now
+			packetLimitMap.values.forEach { it.removeStale(now) }
 		}
 	}
 
@@ -40,29 +37,27 @@ object PacketLimitHandler {
 	fun canSendPackets(packetCount: Int, packetType: PacketType): Boolean {
 		val handler = packetLimitMap[packetType] ?: return false
 		handler.maxPacketsThisTimeframe = packetType.maxPacketsPerTimeframe(automated.buildConfig)
-		handler.timeframe = automated.buildConfig.limitTimeframe.milliseconds
-		handler.removeStale(TimeSource.Monotonic.markNow())
-		return handler.packetTimestamps.size + packetCount <= handler.maxPacketsThisTimeframe
+		handler.timeframe = automated.buildConfig.limitTimeframe
+		handler.removeStale(ClientTicks.now)
+		return handler.packetTicks.size + packetCount <= handler.maxPacketsThisTimeframe
 	}
 
 	fun sentPackets(packetCount: Int, packetType: PacketType) {
 		packetLimitMap[packetType]?.let { handler ->
-			val currentTime = TimeSource.Monotonic.markNow()
-			repeat((0 until packetCount).count()) {
-				handler.packetTimestamps.addLast(currentTime)
-			}
+			val now = ClientTicks.now
+			repeat(packetCount) { handler.packetTicks.addLast(now) }
 		}
 	}
 
 	private class LimitHandler {
 		var maxPacketsThisTimeframe = 0
-		var timeframe: Duration = Duration.ZERO
-		val packetTimestamps = ArrayDeque<ComparableTimeMark>()
+		var timeframe = 0
+		val packetTicks = ArrayDeque<Long>()
 
-		fun removeStale(currentTime: ComparableTimeMark) {
-			if (timeframe <= Duration.ZERO) return
-			while (packetTimestamps.isNotEmpty() && packetTimestamps.first() <= currentTime - timeframe) {
-				packetTimestamps.removeFirst()
+		fun removeStale(now: Long) {
+			if (timeframe <= 0) return
+			while (packetTicks.isNotEmpty() && packetTicks.first() <= now - timeframe) {
+				packetTicks.removeFirst()
 			}
 		}
 	}

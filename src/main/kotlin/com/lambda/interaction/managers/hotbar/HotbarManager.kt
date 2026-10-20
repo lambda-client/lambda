@@ -29,7 +29,7 @@ import com.lambda.interaction.managers.hotbar.HotbarManager.checkResetSwap
 import com.lambda.interaction.managers.hotbar.HotbarManager.setActiveRequest
 import com.lambda.interaction.managers.hotbar.HotbarManager.setActiveSlot
 import com.lambda.threading.runSafe
-import net.minecraft.item.ItemStack
+import net.minecraft.item.Item
 
 /**
  * Manager responsible for handling the current selected hotbar index. It can be accessed from anywhere through a
@@ -40,7 +40,7 @@ import net.minecraft.item.ItemStack
  * After which, the manager will end the request and swap back to the player's selected slot.
  */
 object HotbarManager : Manager<HotbarRequest>(
-	1,
+	5,
 	onOpen = {
 		if (activeRequest != null) {
 			setActiveSlot()
@@ -55,7 +55,8 @@ object HotbarManager : Manager<HotbarRequest>(
 		interaction.lastSelectedSlot
 	} ?: -1
 	//ToDo: something to manage stacks so the hotbar manager is strictly index based
-	private var previousStack: ItemStack? = null
+	private var previousSlot = -1
+	private var previousItem: Item? = null
 	private var swappedTicks = 0
 
 	private var swapsThisTick = 0
@@ -69,10 +70,12 @@ object HotbarManager : Manager<HotbarRequest>(
             swapsThisTick = 0
             if (swapDelay > 0) swapDelay--
 
-			val currentStack = player.mainHandStack
-			if (previousStack != currentStack) swappedTicks = 1
+			val slot = serverSlot
+			val item = player.mainHandStack.item
+			if (slot != previousSlot || item != previousItem) swappedTicks = 1
 			else swappedTicks++
-			previousStack = currentStack
+			previousSlot = slot
+			previousItem = item
 
 			val activeInfo = activeRequest ?: return@listen
 			if (activeInfo.slot != activeSlot) return@listen

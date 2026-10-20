@@ -17,7 +17,6 @@
 
 package com.lambda.util.collections
 
-import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
@@ -27,9 +26,10 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class LimitedDecayQueue<E>(
     private var sizeLimit: Int,
     private var maxAge: Long,
+    private val now: () -> Long = { System.nanoTime() / 1_000_000L },
     private val onDecay: (E) -> Unit = {}
 ) : AbstractMutableCollection<E>() {
-    private val queue: ConcurrentLinkedQueue<Pair<E, Instant>> = ConcurrentLinkedQueue()
+    private val queue: ConcurrentLinkedQueue<Pair<E, Long>> = ConcurrentLinkedQueue()
 
     override val size: Int
         @Synchronized
@@ -58,7 +58,7 @@ class LimitedDecayQueue<E>(
     override fun add(element: E): Boolean {
         cleanUp()
         return if (queue.size < sizeLimit) {
-            queue.add(element to Instant.now())
+            queue.add(element to now())
             true
         } else {
             false
@@ -70,7 +70,8 @@ class LimitedDecayQueue<E>(
         cleanUp()
         val spaceAvailable = sizeLimit - queue.size
         val elementsToAdd = elements.take(spaceAvailable)
-        val added = elementsToAdd.map { queue.add(it to Instant.now()) }
+        val time = now()
+        val added = elementsToAdd.map { queue.add(it to time) }
         return added.any { it }
     }
 
@@ -119,7 +120,7 @@ class LimitedDecayQueue<E>(
      * maximum activeRequestAge that any element in the queue can have before being considered expired
      * and removed. Updates the internal state and triggers a cleanup of expired elements.
      *
-     * @param decayTime The decay time in milliseconds. Must be a non-negative value.
+     * @param decayTime The decay time in the units of [now]. Must be a non-negative value.
      */
     fun setDecayTime(decayTime: Long) {
         maxAge = decayTime
@@ -127,8 +128,8 @@ class LimitedDecayQueue<E>(
     }
 
     fun cleanUp() {
-        val now = Instant.now()
-        while (queue.isNotEmpty() && now.minusMillis(maxAge).isAfter(queue.peek().second)) {
+        val oldest = now() - maxAge
+        while (queue.isNotEmpty() && queue.peek().second < oldest) {
             onDecay(queue.poll().first)
         }
     }

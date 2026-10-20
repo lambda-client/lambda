@@ -25,7 +25,7 @@ import com.lambda.threading.runSafe
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import kotlin.random.Random
+import java.util.SplittableRandom
 
 /**
  * Holds the necessary information for managers to perform actions.
@@ -38,7 +38,7 @@ abstract class BuildContext : Drawable, Automated {
     abstract val expectedState: BlockState
     abstract val blockPos: BlockPos
     abstract val sorter: ActionConfig.SortMode
-    val random = Random.nextDouble()
+    val random: Double get() = SplittableRandom(blockPos.asLong()).nextDouble()
 
     open val sortDistance by lazy {
         runSafe { player.eyePos.distanceTo(hitResult.pos) } ?: Double.MAX_VALUE

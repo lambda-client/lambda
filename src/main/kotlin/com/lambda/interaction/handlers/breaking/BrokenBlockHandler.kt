@@ -18,7 +18,6 @@
 package com.lambda.interaction.handlers.breaking
 
 import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -38,6 +37,7 @@ import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.matches
+import com.lambda.util.ClientTicks
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.player.PlayerUtils.gamemode
@@ -53,7 +53,7 @@ import net.minecraft.util.math.ChunkSectionPos
  */
 object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 	override val pendingActions = LimitedDecayQueue<BreakInfo>(
-		DEFAULT.buildConfig.maxPendingActions, DEFAULT.buildConfig.actionTimeout * 50L
+		DEFAULT.buildConfig.maxPendingActions, DEFAULT.buildConfig.actionTimeout.toLong(), ClientTicks::now
 	) { info ->
 		runSafe {
 			val pos = info.context.blockPos
@@ -67,10 +67,6 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 			} else if (!Client.ignoreItemDropWarnings) {
 				val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
 				if (verboseDebug) this@BrokenBlockHandler.warn(message)
-			}
-
-			if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
-				world.setBlockState(info.context.blockPos, info.context.cachedState)
 			}
 
 			info.request.onCancel?.invoke(this, info.context.blockPos)
@@ -104,9 +100,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 					return@listen
 				}
 
-				if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak
-					|| (pending.type == BreakInfo.BreakType.Rebreak && !pending.breakConfig.rebreak)
-					) {
+				if (!pending.predicted || (pending.type == BreakInfo.BreakType.Rebreak && !pending.breakConfig.rebreak)) {
 					destroyBlock(pending)
 				}
 				pending.internalOnBreak()

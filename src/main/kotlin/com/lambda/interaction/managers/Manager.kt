@@ -107,7 +107,7 @@ abstract class Manager<R : Request>(
 		if (!canOverrideQueued) return request
 		if (!acceptingRequests || tickStage !in request.tickStageMask) {
 			if (!queueIfMismatchedStage || request.nowOrNothing) return request
-			val currentStageIndex = ALL_STAGES.indexOf(tickStage)
+			val currentStageIndex = if (tickStage == TickEvent.Post) -1 else ALL_STAGES.indexOf(tickStage)
 			if (openStages.none { ALL_STAGES.indexOf(it) > currentStageIndex && it in request.tickStageMask })
 				return request
 			queuedRequest = request

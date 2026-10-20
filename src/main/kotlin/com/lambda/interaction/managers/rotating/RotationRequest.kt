@@ -19,16 +19,12 @@ package com.lambda.interaction.managers.rotating
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.Request
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.requestCount
-import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.wrap
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.UpdatableLazy
 import com.lambda.util.collections.updatableLazy
-import kotlin.math.abs
 import kotlin.math.hypot
 
 @DslMarker
@@ -50,6 +46,7 @@ interface IRotationRequest : Automated {
 	var keepTicks: Int
 	var decayTicks: Int
 	var age: Int
+	val exact: Boolean
 
 	val done: Boolean
 
@@ -57,6 +54,7 @@ interface IRotationRequest : Automated {
 
 	class Yaw(
 		automated: Automated,
+		override val exact: Boolean = false,
 		val buildYaw: SafeContext.() -> Double
 	) : RotationRequest(automated), YawRot {
 		override val yaw = updatableLazy { runSafe { buildYaw() } }
@@ -65,15 +63,7 @@ interface IRotationRequest : Automated {
 		override var age = 0
 
 		override val done
-			get() =
-				runSafe {
-					val rot =
-						if (BaritoneHandler.isActive) player.rotation
-						else RotationManager.activeRotation
-					val delta = rot.yaw - (yaw.value ?: return@runSafe false)
-					val wrappedDelta = ((delta + 180) % 360 + 360) % 360 - 180
-					abs(wrappedDelta) <= 0.001
-				} == true
+			get() = runSafe { with(RotationManager) { reachedYaw(yaw.value ?: return@runSafe false) } } == true
 
 		override fun dist(rotation: Rotation): Double {
 			return wrap((yaw.value ?: return Double.MAX_VALUE) - rotation.yaw)
@@ -84,6 +74,7 @@ interface IRotationRequest : Automated {
 
 	class Pitch(
 		automated: Automated,
+		override val exact: Boolean = false,
 		val buildPitch: SafeContext.() -> Double
 	) : RotationRequest(automated), PitchRot {
 		override val pitch = updatableLazy { runSafe { buildPitch() } }
@@ -92,13 +83,7 @@ interface IRotationRequest : Automated {
 		override var age = 0
 
 		override val done
-			get() =
-				runSafe {
-					val rot =
-						if (BaritoneHandler.isActive) player.rotation
-						else RotationManager.activeRotation
-					abs(rot.pitch - (pitch.value ?: return@runSafe false)) <= 0.001
-				} == true
+			get() = runSafe { with(RotationManager) { reachedPitch(pitch.value ?: return@runSafe false) } } == true
 
 		override fun dist(rotation: Rotation): Double {
 			return wrap((pitch.value ?: return Double.MAX_VALUE) - rotation.pitch)
@@ -109,6 +94,7 @@ interface IRotationRequest : Automated {
 
 	class Full(
 		automated: Automated,
+		override val exact: Boolean = false,
 		val buildRotation: SafeContext.() -> Rotation
 	) : RotationRequest(automated), FullRot {
 		override val rotation = updatableLazy { runSafe { buildRotation() } }
@@ -119,13 +105,10 @@ interface IRotationRequest : Automated {
 		override var age = 0
 
 		override val done
-			get() =
-				runSafe {
-					val rot =
-						if (BaritoneHandler.isActive) player.rotation
-						else RotationManager.activeRotation
-					rot.dist(rotation.value ?: return@runSafe false) <= 0.001
-				} == true
+			get() = runSafe {
+				val target = rotation.value ?: return@runSafe false
+				with(RotationManager) { reachedYaw(target.yaw) && reachedPitch(target.pitch) }
+			} == true
 
 		override fun dist(rotation: Rotation) =
 			this.rotation.value?.let {
@@ -146,6 +129,10 @@ interface IRotationRequest : Automated {
 		var pitchBuilder: (SafeContext.() -> Double)? = null
 		var yawBuilder: (SafeContext.() -> Double)? = null
 		var rotationBuilder: (SafeContext.() -> Rotation)? = null
+		var exact = false
+
+		@RotationRequestDsl
+		fun exact() { exact = true }
 
 		@JvmName("yawBuilder1")
 		@RotationRequestDsl
@@ -202,10 +189,10 @@ interface IRotationRequest : Automated {
 			val pitchBuilder = pitchBuilder
 			val rotationBuilder = rotationBuilder
 			return when {
-				rotationBuilder != null -> Full(automated, rotationBuilder)
-				yawBuilder != null && pitchBuilder != null -> Full(automated) { Rotation(yawBuilder(), pitchBuilder()) }
-				yawBuilder != null -> Yaw(automated, yawBuilder)
-				pitchBuilder != null -> Pitch(automated, pitchBuilder)
+				rotationBuilder != null -> Full(automated, exact, rotationBuilder)
+				yawBuilder != null && pitchBuilder != null -> Full(automated, exact) { Rotation(yawBuilder(), pitchBuilder()) }
+				yawBuilder != null -> Yaw(automated, exact, yawBuilder)
+				pitchBuilder != null -> Pitch(automated, exact, pitchBuilder)
 				else -> throw IllegalArgumentException("Must specify at least one rotation value to build a rotation request")
 			}
 		}

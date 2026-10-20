@@ -190,4 +190,19 @@ class LimitedDecayQueueTest {
         assertEquals(1, elements.size)
         assertEquals("Element3", elements[0])
     }
+
+    @Test
+    fun `an injected clock decides when elements decay`() {
+        var tick = 0L
+        val decayed = mutableListOf<String>()
+        val ticks = LimitedDecayQueue<String>(3, 2, { tick }) { decayed.add(it) }
+        ticks.add("first")
+        tick = 1
+        ticks.add("second")
+        tick = 2
+        assertEquals(2, ticks.size)
+        tick = 3
+        assertEquals(listOf("second"), ticks.toList())
+        assertEquals(listOf("first"), decayed)
+    }
 }

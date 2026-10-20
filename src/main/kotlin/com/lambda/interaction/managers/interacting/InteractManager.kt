@@ -45,18 +45,18 @@ import com.lambda.interaction.managers.interacting.InteractManager.populateFrom
 import com.lambda.interaction.managers.interacting.InteractManager.potentialInteractions
 import com.lambda.interaction.managers.interacting.InteractManager.processRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.module.modules.world.AutoSign.signWriteDelay
-import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafeAutomated
-import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.matches
+import com.lambda.util.ClientTicks
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.PlayerUtils.gamemode
 import com.lambda.util.player.PlayerUtils.isItemOnCooldown
 import com.lambda.util.player.PlayerUtils.swingHand
-import kotlinx.coroutines.delay
 import net.minecraft.block.AbstractSignBlock
 import net.minecraft.block.BlockState
 import net.minecraft.block.pattern.CachedBlockPosition
@@ -76,7 +76,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
 
 object InteractManager : Manager<InteractRequest>(
-	0,
+	1,
 	onOpen = { activeRequest?.let { it.runSafeAutomated { processRequest(it) } } }
 ), PositionBlocking {
 	private var activeRequest: InteractRequest? = null
@@ -155,6 +155,7 @@ object InteractManager : Manager<InteractRequest>(
 	 * @see populateFrom
 	 */
 	fun AutomatedSafeContext.processRequest(request: InteractRequest)  {
+		if (tickStage !in interactConfig.tickStageMask) return
 		if (request.fresh) populateFrom(request)
 
 		if (potentialInteractions.isNotEmpty()) {
@@ -189,6 +190,10 @@ object InteractManager : Manager<InteractRequest>(
 		val iterator = potentialInteractions.iterator()
 		while (iterator.hasNext()) {
 			val ctx = iterator.next()
+			if (blockState(ctx.blockPos).matches(ctx.expectedState)) {
+				iterator.remove()
+				continue
+			}
 			if (ctx.hotbarIndex != player.inventory.selectedSlot) return InteractResult.WrongSlot
 			if (!canInteractThisTick()) break
 
@@ -198,12 +203,15 @@ object InteractManager : Manager<InteractRequest>(
 			if (tickStage !in interactConfig.tickStageMask) return InteractResult.CompleteFailure
 
 			val hand = if (interactConfig.airPlace == AirPlaceMode.Grim) Hand.OFF_HAND else Hand.MAIN_HAND
-			val actionResult =
-				if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, hand)
-				else interaction.interactBlock(player, if (ctx.preProcessingInfo.item != null) hand else Hand.MAIN_HAND, ctx.hitResult)
+			val actionResult = with(RotationManager) {
+				withServerLook {
+					if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, hand)
+					else withoutVanillaOverrides { interaction.interactBlock(player, if (ctx.preProcessingInfo.item != null) hand else Hand.MAIN_HAND, ctx.hitResult) }
+				}
+			}
 
+			PacketLimitHandler.sentPackets(1, PacketType.Interaction)
 			if (actionResult.isAccepted) {
-				PacketLimitHandler.sentPackets(1, PacketType.Interaction)
 				if (interactConfig.swing) {
 					swingHand(interactConfig.swingType, Hand.MAIN_HAND)
 
@@ -216,12 +224,9 @@ object InteractManager : Manager<InteractRequest>(
 				val expectedState = ctx.expectedState
 				if (ctx.preProcessingInfo.placing && expectedState.block is AbstractSignBlock) {
 					cancellingSignScreens++
-					runConcurrent {
-						delay(signWriteDelay)
-						runSafeGameScheduled {
-							connection.sendPacket {
-								UpdateSignC2SPacket(ctx.blockPos, true, "", "", "", "")
-							}
+					ClientTicks.runLater(signWriteDelay) {
+						connection.sendPacket {
+							UpdateSignC2SPacket(ctx.blockPos, true, "", "", "", "")
 						}
 					}
 				}
@@ -267,7 +272,16 @@ object InteractManager : Manager<InteractRequest>(
 		val hitResult = interactContext.hitResult
 		if (!world.worldBorder.contains(hitResult.blockPos)) return ActionResult.FAIL
 		if (gamemode == GameMode.SPECTATOR) return ActionResult.PASS
-		return interactBlockInternal(interactContext, request, hand, hitResult)
+		var placed = false
+		var result: ActionResult = ActionResult.PASS
+		interaction.sendSequencedPacket(world) { sequence: Int ->
+			result = interactBlockInternal(interactContext, request, hand, hitResult) { placed = true }
+			PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
+		}
+		if (placed && interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.None) {
+			request.onPlace?.invoke(this, interactContext.blockPos)
+		}
+		return result
 	}
 
 	/**
@@ -279,10 +293,11 @@ object InteractManager : Manager<InteractRequest>(
 		interactContext: InteractContext,
 		request: InteractRequest,
 		hand: Hand,
-		hitResult: BlockHitResult
+		hitResult: BlockHitResult,
+		onPlaced: () -> Unit
 	): ActionResult {
-		val handNotEmpty = player.getStackInHand(hand).isEmpty.not()
-		val cantInteract = player.shouldCancelInteraction() && handNotEmpty
+		val handsNotEmpty = !player.mainHandStack.isEmpty || !player.offHandStack.isEmpty
+		val cantInteract = player.shouldCancelInteraction() && handsNotEmpty
 		if (!cantInteract) {
 			val blockState = blockState(hitResult.blockPos)
 			if (!connection.hasFeature(blockState.block.requiredFeatures)) return ActionResult.FAIL
@@ -302,9 +317,9 @@ object InteractManager : Manager<InteractRequest>(
 			val itemUsageContext = ItemUsageContext(player, hand, hitResult)
 			return if (gamemode.isCreative) {
 				val i = stack.count
-				useOnBlock(interactContext, request, hand, hitResult, stack, itemUsageContext)
+				useOnBlock(interactContext, request, stack, itemUsageContext, onPlaced)
 					.also { stack.count = i }
-			} else useOnBlock(interactContext, request, hand, hitResult, stack, itemUsageContext)
+			} else useOnBlock(interactContext, request, stack, itemUsageContext, onPlaced)
 		}
 		return ActionResult.PASS
 	}
@@ -317,10 +332,9 @@ object InteractManager : Manager<InteractRequest>(
 	private fun AutomatedSafeContext.useOnBlock(
 		interactContext: InteractContext,
 		request: InteractRequest,
-		hand: Hand,
-		hitResult: BlockHitResult,
 		itemStack: ItemStack,
-		context: ItemUsageContext
+		context: ItemUsageContext,
+		onPlaced: () -> Unit
 	): ActionResult {
 		val blockPos = context.blockPos
 		return if (!player.abilities.allowModifyWorld &&
@@ -329,7 +343,7 @@ object InteractManager : Manager<InteractRequest>(
 			ActionResult.PASS
 		} else {
 			val item = itemStack.blockItem ?: return ActionResult.FAIL
-			place(interactContext, request, hand, hitResult, item, ItemPlacementContext(context))
+			place(interactContext, request, item, ItemPlacementContext(context), onPlaced)
 		}
 	}
 
@@ -341,18 +355,15 @@ object InteractManager : Manager<InteractRequest>(
 	private fun AutomatedSafeContext.place(
 		interactContext: InteractContext,
 		request: InteractRequest,
-		hand: Hand,
-		hitResult: BlockHitResult,
 		item: BlockItem,
-		context: ItemPlacementContext
+		context: ItemPlacementContext,
+		onPlaced: () -> Unit
 	): ActionResult {
 		if (!item.block.isEnabled(world.enabledFeatures)) return ActionResult.FAIL
 		if (!context.canPlace()) return ActionResult.FAIL
 
 		val itemPlacementContext = item.getPlacementContext(context) ?: return ActionResult.FAIL
 		val blockState = item.getPlacementState(itemPlacementContext) ?: return ActionResult.FAIL
-
-		sendInteractPacket(hand, hitResult)
 
 		if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.None) {
 			InteractInfo(interactContext, request.pendingInteractions, request.onPlace, interactConfig).startPending()
@@ -378,21 +389,10 @@ object InteractManager : Manager<InteractRequest>(
 		}
 
 		if (interactConfig.sounds) placeSound(state, blockPos)
-
-		if (interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.None) {
-			request.onPlace?.invoke(this, interactContext.blockPos)
-		}
+		onPlaced()
 
 		return ActionResult.SUCCESS
 	}
-
-	/**
-	 * sends the block placement packet using the given [hand] and [hitResult].
-	 */
-	private fun SafeContext.sendInteractPacket(hand: Hand, hitResult: BlockHitResult) =
-		interaction.sendSequencedPacket(world) { sequence: Int ->
-			PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
-		}
 
 	/**
 	 * Plays the block placement sound at a given [pos].

@@ -33,6 +33,7 @@ import com.lambda.interaction.managers.inventory.InventoryManager.processActiveR
 import com.lambda.module.modules.client.Client
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.ClientTicks
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.item.ItemStackUtils.equal
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
@@ -50,15 +51,15 @@ import net.minecraft.screen.slot.Slot
  * avoid accepting old information from the server in cases where ping is high. This helps to prevent desync.
  */
 object InventoryManager : Manager<InventoryRequest>(
-	1,
+	3,
 	onOpen = { processActiveRequest() }
 ) {
 	private var activeRequest: InventoryRequest? = null
 	private var actions = mutableListOf<InventoryAction>()
 
 	private var slots = listOf<ItemStack>()
-	private var alteredSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, Client.desyncTimeout * 50L)
-	private var alteredPlayerSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, Client.desyncTimeout * 50L)
+	private var alteredSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, Client.desyncTimeout.toLong(), ClientTicks::now)
+	private var alteredPlayerSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, Client.desyncTimeout.toLong(), ClientTicks::now)
 
 	var screenHandler: ScreenHandler? = null
 		set(value) {
@@ -121,8 +122,8 @@ object InventoryManager : Manager<InventoryRequest>(
 	private fun populateFrom(request: InventoryRequest) {
 		activeRequest = request
 		actions = request.actions.toMutableList()
-		alteredSlots.setDecayTime(Client.desyncTimeout * 50L)
-		alteredPlayerSlots.setDecayTime(Client.desyncTimeout * 50L)
+		alteredSlots.setDecayTime(Client.desyncTimeout.toLong())
+		alteredPlayerSlots.setDecayTime(Client.desyncTimeout.toLong())
 	}
 
 	/**

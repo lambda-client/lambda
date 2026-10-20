@@ -38,6 +38,8 @@ import com.lambda.event.Event
  * @see net.minecraft.client.MinecraftClient.tick
  */
 sealed class TickEvent : Event {
+    final override fun toString(): String = this::class.qualifiedName!!.removePrefix("${TickEvent::class.qualifiedName}.")
+
     /**
      * Triggered before each iteration of the game loop.
      *
@@ -87,16 +89,6 @@ sealed class TickEvent : Event {
      * @see net.minecraft.client.MinecraftClient.handleInputEvents
      */
     sealed class Input {
-        data object Pre : TickEvent()
-        data object Post : TickEvent()
-    }
-
-    /**
-     * Triggered during the world render tick stage
-     *
-     * @see net.minecraft.client.render.WorldRenderer.tick
-     */
-    sealed class WorldRender {
         data object Pre : TickEvent()
         data object Post : TickEvent()
     }
@@ -164,20 +156,18 @@ sealed class TickEvent : Event {
         val ALL_STAGES by lazy {
             listOf(
                 Pre,
-                Post,
                 Network.Pre,
                 Network.Post,
                 Input.Pre,
                 Input.Post,
-                WorldRender.Pre,
-                WorldRender.Post,
-                Sound.Pre,
-                Sound.Post,
-                Render.Pre,
-                Render.Post,
                 Player.Pre,
                 Player.Post,
+                Sound.Pre,
+                Sound.Post,
+                Post,
             )
         }
+
+        val ROTATION_STAGES by lazy { ALL_STAGES.subList(ALL_STAGES.indexOf(Pre), ALL_STAGES.indexOf(Player.Post)) }
     }
 }
