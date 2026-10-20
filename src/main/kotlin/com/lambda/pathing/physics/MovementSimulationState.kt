@@ -1,6 +1,7 @@
 package com.lambda.pathing.physics
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.mixin.entity.ClientPlayerEntityAccessor
 import com.lambda.util.math.DOWN
 import com.lambda.util.math.flooredBlockPos
@@ -38,6 +39,7 @@ data class MovementSimulationState(
 	val submergedInWater: Boolean = false,
 	val swimming: Boolean = false,
 	val air: Int = Vanilla.MAX_AIR,
+	val turn: Rotation = Rotation.ZERO,
 ) {
 	companion object {
 		fun from(player: ClientPlayerEntity, isJumping: Boolean = false) = MovementSimulationState(
@@ -63,6 +65,7 @@ data class MovementSimulationState(
 			submergedInWater = player.isSubmergedInWater,
 			swimming = player.isSwimming,
 			air = player.air,
+			turn = with(RotationManager) { Rotation(Rotation.wrap(serverRotation.yaw - prevServerRotation.yaw), serverRotation.pitch - prevServerRotation.pitch) },
 		)
 
 		fun synthetic(

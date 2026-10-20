@@ -1,6 +1,8 @@
 package com.lambda.pathing.session
 
 import com.lambda.config.blocks.PathingConfig
+import com.lambda.interaction.managers.rotating.MouseHand
+import com.lambda.interaction.managers.rotating.MouseLook
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
@@ -16,6 +18,7 @@ import com.lambda.pathing.search.stanceOf
 import com.lambda.pathing.search.supportedStanceOf
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.util.FolderRegistry
+import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.util.math.BlockPos
@@ -66,7 +69,10 @@ internal fun resolveGoalStance(player: ClientPlayerEntity, goal: Stance): Stance
 private const val UNLIMITED_FALL_DAMAGE = 100_000
 
 internal fun PlayerPhysicsProfile.planned(config: PathingConfig): PlayerPhysicsProfile =
-	if (config.unlimitedAir && canDrown) copy(canDrown = false) else this
+	copy(
+		canDrown = canDrown && !config.unlimitedAir,
+		look = MouseLook(MouseLook.factor(MinecraftClient.getInstance().options.mouseSensitivity.value)),
+	)
 
 internal fun preparePlanning(
 	player: ClientPlayerEntity,
@@ -78,6 +84,8 @@ internal fun preparePlanning(
 	val started = System.currentTimeMillis()
 	val config = request.pathingConfig
 	val turnSpeed = request.rotationConfig.turnSpeed
+	val hand = with(request.rotationConfig) { MouseHand.Limits(turnSpeed, turnAcceleration, turnNoise) }
+		.takeUnless { it.noise == 0.0 && it.acceleration >= 2.0 * it.speed }
 
 	@Suppress("NAME_SHADOWING")
 	val goal = resolveGoalStance(player, goal)
@@ -97,7 +105,8 @@ internal fun preparePlanning(
 		maxJumpDrop = SimpleMoveOptions.FULL_JUMP_DROP,
 		allowSlimeBounces = config.allowSlimeBounces,
 		maxBounceDrop = config.maxBounceDrop,
-		allowNeoJumps = config.allowNeoJumps && sprints && turnSpeed >= NeoMovement.MIN_TURN_DEGREES_PER_FRAME,
+		allowNeoJumps = config.allowNeoJumps && sprints && turnSpeed >= NeoMovement.MIN_TURN_DEGREES_PER_FRAME &&
+				(hand == null || hand.acceleration >= NeoMovement.MIN_TURN_DEGREES_PER_FRAME),
 		fallLimits = fallLimits,
 		hazards = config.hazards,
 		avoidMobs = config.avoidMobs,
@@ -116,6 +125,8 @@ internal fun preparePlanning(
 		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
 		avoidLavaEdges = config.avoidLavaEdges,
 		airReserve = airReserve,
+		look = profile.look,
+		hand = hand,
 	)
 	val initial = initialOverride ?: MovementSimulationState.from(player)
 	val start = supportedStanceOf(initial) ?: footing(player, initial) ?: stanceOf(initial)

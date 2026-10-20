@@ -36,30 +36,17 @@ class MouseHand(private val seed: Long) {
 		private set
 
 	fun step(from: Rotation, to: Rotation, look: MouseLook, limits: Limits, tick: Long): Step {
-		if (look.reaches(from, to)) return Step(0, 0, Motion())
-		val errorX = Rotation.wrap(to.yaw - from.yaw)
-		val errorY = to.pitch - from.pitch
-		val distance = hypot(errorX, errorY)
-		val cap = (limits.speed + limits.noise * gaussian(tick)).coerceAtLeast(look.degreesPerCount)
-		val braking = limits.acceleration * (sqrt(2.0 * distance / limits.acceleration + 0.25) - 0.5)
-		val speed = minOf(cap, braking, distance)
-		var velocityX = speed * errorX / distance
-		var velocityY = speed * errorY / distance
-		val changeX = velocityX - motion.velocityX
-		val changeY = velocityY - motion.velocityY
-		val change = hypot(changeX, changeY)
-		if (change > limits.acceleration) {
-			velocityX = motion.velocityX + changeX * limits.acceleration / change
-			velocityY = motion.velocityY + changeY * limits.acceleration / change
-		}
-		val wantX = velocityX / look.degreesPerCount + motion.carryX
-		val wantY = velocityY / look.degreesPerCount + motion.carryY
+		if (look.reaches(from, to) && hypot(motion.velocityX, motion.velocityY) <= limits.acceleration) return Step(0, 0, Motion())
+		val cap = (limits.speed + limits.noise * gaussian(seed * GOLDEN_GAMMA + tick)).coerceAtLeast(look.degreesPerCount)
+		val velocity = velocity(Rotation.wrap(to.yaw - from.yaw), to.pitch - from.pitch, motion.velocityX, motion.velocityY, cap, limits.acceleration)
+		val wantX = velocity.yaw / look.degreesPerCount + motion.carryX
+		val wantY = velocity.pitch / look.degreesPerCount + motion.carryY
 		val countsX = wantX.roundToInt()
 		val countsY = wantY.roundToInt()
 		return Step(
 			if (look.invertX) -countsX else countsX,
 			if (look.invertY) -countsY else countsY,
-			Motion(velocityX, velocityY, wantX - countsX, wantY - countsY),
+			Motion(velocity.yaw, velocity.pitch, wantX - countsX, wantY - countsY),
 		)
 	}
 
@@ -71,14 +58,30 @@ class MouseHand(private val seed: Long) {
 		motion = Motion()
 	}
 
-	private fun gaussian(tick: Long): Double {
-		val random = SplittableRandom(seed * GOLDEN_GAMMA + tick)
-		val u1 = 1.0 - random.nextDouble()
-		val u2 = random.nextDouble()
-		return sqrt(-2.0 * ln(u1)) * cos(2.0 * PI * u2)
-	}
+	companion object {
+		private const val GOLDEN_GAMMA = -0x61c8864680b583ebL
 
-	private companion object {
-		const val GOLDEN_GAMMA = -0x61c8864680b583ebL
+		fun velocity(errorX: Double, errorY: Double, previousX: Double, previousY: Double, cap: Double, acceleration: Double): Rotation {
+			val distance = hypot(errorX, errorY)
+			val braking = acceleration * (sqrt(2.0 * distance / acceleration + 0.25) - 0.5)
+			val speed = minOf(cap, braking, distance)
+			var x = if (distance == 0.0) 0.0 else speed * errorX / distance
+			var y = if (distance == 0.0) 0.0 else speed * errorY / distance
+			val changeX = x - previousX
+			val changeY = y - previousY
+			val change = hypot(changeX, changeY)
+			if (change > acceleration) {
+				x = previousX + changeX * acceleration / change
+				y = previousY + changeY * acceleration / change
+			}
+			return Rotation(x, y)
+		}
+
+		fun gaussian(key: Long): Double {
+			val random = SplittableRandom(key)
+			val u1 = 1.0 - random.nextDouble()
+			val u2 = random.nextDouble()
+			return sqrt(-2.0 * ln(u1)) * cos(2.0 * PI * u2)
+		}
 	}
 }

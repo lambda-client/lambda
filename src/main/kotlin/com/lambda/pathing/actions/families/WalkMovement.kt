@@ -285,7 +285,7 @@ object WalkMovement : Movement {
 			sprint = walk.sprint,
 			lookAheadNodes = walk.lookAheadNodes,
 			launch = context.launch,
-			maxYawChange = context.constraints.maxYawDegreesPerFrame,
+			turning = context.constraints.turning,
 			easeTurns = walk.easeTurns,
 			via = walk.via?.let { context.nodes.first() + it },
 		)

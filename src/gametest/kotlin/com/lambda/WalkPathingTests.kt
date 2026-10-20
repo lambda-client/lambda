@@ -24,8 +24,15 @@ import com.lambda.PathingTestHarness.BEDROCK_FIELD_LENGTH
 import com.lambda.PathingTestHarness.BEDROCK_FIELD_SEED
 import com.lambda.PathingTestHarness.EXECUTION_TOLERANCE
 import com.lambda.PathingTestHarness.assertPathingWalk
+import com.lambda.PathingTestHarness.pathingFailures
 import com.lambda.PathingTestHarness.restoreArena
+import com.lambda.PathingTestHarness.scenarioSelected
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.blocks.RotationConfig
+import com.lambda.interaction.managers.rotating.MouseLook
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.search.TrajectoryPlan
 import pathing.BedrockFieldLayout
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
@@ -38,6 +45,37 @@ import net.minecraft.util.math.Vec3d
  */
 @Suppress("UnstableApiUsage")
 internal object WalkPathingTests {
+    private val HUMAN_HAND = object : RotationConfig by AutomationConfig.DEFAULT.rotationConfig {
+        override val turnSpeed = 20.0
+        override val turnAcceleration = 6.0
+        override val turnNoise = 3.0
+    }
+
+    private fun checkHumanTurns(context: ClientGameTestContext, plan: TrajectoryPlan?) {
+        if (!scenarioSelected("pathing-human-turns")) return
+        val failure = context.computeOnClient<String, IllegalStateException> { client ->
+            if (plan == null) return@computeOnClient "nothing published"
+            val look = MouseLook(MouseLook.factor(client.options.mouseSensitivity.value))
+            val rotations = listOf(plan.initialState.rotation) + plan.frames.map { it.state.rotation }
+            val steps = rotations.zipWithNext { a, b -> Rotation(Rotation.wrap(b.yaw - a.yaw), b.pitch - a.pitch) }
+            val slack = look.degreesPerCount * 1.5
+            val fastest = steps.maxOf { Math.hypot(it.yaw, it.pitch) }
+            val jerk = steps.zipWithNext { a, b -> Math.hypot(b.yaw - a.yaw, b.pitch - a.pitch) }.maxOrNull() ?: 0.0
+            val offLattice = rotations.zipWithNext().count { (a, b) -> look.turn(a, look.countsX(Rotation.wrap(b.yaw - a.yaw)), look.countsY(b.pitch - a.pitch)) != b }
+            println("[pathing-diag] pathing-human-turns: fastest %.2f deg/tick, largest speed change %.2f, off-lattice steps %d".format(fastest, jerk, offLattice))
+            when {
+                offLattice > 0 -> "$offLattice steps were not whole mouse counts"
+                fastest > HUMAN_HAND.turnSpeed + 5 * HUMAN_HAND.turnNoise + slack -> "turned %.2f deg in one tick".format(fastest)
+                jerk > HUMAN_HAND.turnAcceleration + slack -> "changed turn speed by %.2f deg in one tick".format(jerk)
+                else -> ""
+            }
+        }
+        if (failure.isNotEmpty()) {
+            pathingFailures += "pathing-human-turns: $failure"
+            println("[pathing-fail] pathing-human-turns: $failure")
+        }
+    }
+
     fun run(
         context: ClientGameTestContext,
         server: TestServerContext,
@@ -49,6 +87,11 @@ internal object WalkPathingTests {
         assertPathingWalk(context, server, "pathing-already-there", Stance(0, 100, 0))
         assertPathingWalk(context, server, "pathing-straight", Stance(0, 100, 5))
         assertPathingWalk(context, server, "pathing-diagonal", Stance(5, 100, 5))
+        var humanPlan: TrajectoryPlan? = null
+        assertPathingWalk(context, server, "pathing-human-turns", Stance(-5, 100, 2), rotation = HUMAN_HAND, onTick = {
+            context.runOnClient<IllegalStateException> { PathingService.telemetry.published?.plan?.let { humanPlan = it } }
+        })
+        checkHumanTurns(context, humanPlan)
 
         // A cow standing on the straight line. Walking through it gets the body pushed off
         // its tape, so the cells a mob stands in are closed and the walk goes around it.

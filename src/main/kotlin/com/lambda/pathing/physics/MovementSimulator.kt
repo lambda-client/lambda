@@ -24,6 +24,7 @@ class MovementSimulator(
 	private var boundingBox = initialState.boundingBox
 	private var pose = Pose.entries.minBy { abs(it.height() - initialState.boundingBox.lengthY) }
 	private var rotation = initialState.rotation
+	private var turn = initialState.turn
 
 	private var onGround = initialState.onGround
 	private var isJumping = initialState.isJumping
@@ -72,6 +73,7 @@ class MovementSimulator(
 			submergedInWater = submergedInWater,
 			swimming = swimming,
 			air = air,
+			turn = turn,
 		)
 
 	val burningFeet: Boolean
@@ -109,7 +111,9 @@ class MovementSimulator(
 		val slowedDown = inSneakingPose || pose == Pose.SWIMMING && !touchingWater
 		val partlyInWater = touchingWater && !submergedInWater
 
-		rotation = input.rotation ?: rotation
+		val turned = profile.turn(rotation, input.rotation)
+		turn = profile.turnBetween(rotation, turned)
+		rotation = turned
 		isSneaking = input.sneak
 
 		var movementInput = Vec2f(

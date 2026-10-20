@@ -27,8 +27,6 @@ import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.Manager
-import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpPitch
-import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpYaw
 import com.lambda.interaction.managers.rotating.RotationManager.activeRotation
 import com.lambda.interaction.managers.rotating.RotationManager.serverRotation
 import com.lambda.interaction.managers.rotating.RotationManager.updateActiveRotation
@@ -91,7 +89,7 @@ object RotationManager : Manager<RotationRequest>(
         listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
             requests.forEachIndexed { index, request ->
                 if (request == null) return@forEachIndexed
-                if (request.keepTicks <= 0 && request.decayTicks <= 0 && (request.exact || look.reaches(serverRotation, player.rotation))) {
+                if (request.keepTicks <= 0 && request.decayTicks <= 0 && look.reaches(serverRotation, player.rotation)) {
                     requests[index] = null
                 }
             }
@@ -265,22 +263,28 @@ object RotationManager : Manager<RotationRequest>(
 			return
 		}
 
-		val toYaw = yawRequest?.let { if (it.keepTicks >= 0) it.yaw.value ?: activeRotation.yaw else player.rotation.yaw } ?: player.rotation.yaw
-		val toPitch = pitchRequest?.let { if (it.keepTicks >= 0) it.pitch.value ?: activeRotation.pitch else player.rotation.pitch } ?: player.rotation.pitch
+		val toYaw = yawRequest?.let { if (it.keepTicks >= 0) it.yaw.value ?: activeRotation.yaw else player.rotation.yaw } ?: serverRotation.yaw
+		val toPitch = pitchRequest?.let { if (it.keepTicks >= 0) it.pitch.value ?: activeRotation.pitch else player.rotation.pitch } ?: serverRotation.pitch
 		if (toYaw.isNaN() || toPitch.isNaN()) return
 
-		if (yawRequest?.exact == true || pitchRequest?.exact == true) {
-			pendingStep = null
-			activeRotation = Rotation(serverRotation.slerpYaw(toYaw, config.turnSpeed), serverRotation.slerpPitch(toPitch, config.turnSpeed))
-			return
-		}
-
 		val look = look
-		val limits = MouseHand.Limits(config.turnSpeed, config.turnAcceleration, config.turnNoise)
-		val step = hand.step(serverRotation, Rotation(toYaw, toPitch), look, limits, ClientTicks.now)
-		pendingStep = step
-		activeRotation = look.turn(serverRotation, step.dx, step.dy)
+		val target = Rotation(toYaw, toPitch)
+		val next = if (yawRequest.aimsExactly || pitchRequest.aimsExactly) {
+			pendingStep = null
+			look.nearest(serverRotation, target)
+		} else {
+			val limits = MouseHand.Limits(config.turnSpeed, config.turnAcceleration, config.turnNoise)
+			val step = hand.step(serverRotation, target, look, limits, ClientTicks.now)
+			pendingStep = step
+			look.turn(serverRotation, step.dx, step.dy)
+		}
+		activeRotation = Rotation(
+			if (yawRequest != null) next.yaw else player.rotation.yaw,
+			if (pitchRequest != null) next.pitch else player.rotation.pitch,
+		)
 	}
+
+	private val IRotationRequest?.aimsExactly: Boolean get() = this != null && exact && keepTicks >= 0
 
 	val SafeContext.look: MouseLook
 		get() = MouseLook(
@@ -316,13 +320,16 @@ object RotationManager : Manager<RotationRequest>(
 	}
 
 	@JvmStatic
-	val lockRotation: Rotation?
-		get() = runSafe {
-			val pitch = activeRotation.pitchF.takeIf { pitchRequest?.rotationConfig?.rotationMode == RotationMode.Lock }
-			val yaw = activeRotation.yawF.takeIf { yawRequest?.rotationConfig?.rotationMode == RotationMode.Lock }
-			if (pitch == null && yaw == null) return@runSafe null
-			Rotation(yaw ?: player.yaw, pitch ?: player.pitch)
-		}
+	fun lockRotationAt(tickProgress: Float): Rotation? = runSafe {
+		val yaw = yawRequest?.rotationConfig?.rotationMode == RotationMode.Lock
+		val pitch = pitchRequest?.rotationConfig?.rotationMode == RotationMode.Lock
+		if (!yaw && !pitch) return@runSafe null
+		val progress = tickProgress.toDouble()
+		Rotation(
+			if (yaw) lerp(progress, prevServerRotation.yaw, prevServerRotation.yaw + Rotation.wrap(serverRotation.yaw - prevServerRotation.yaw)) else player.getYaw(tickProgress).toDouble(),
+			if (pitch) lerp(progress, prevServerRotation.pitch, serverRotation.pitch) else player.getPitch(tickProgress).toDouble(),
+		)
+	}
 
 	@JvmStatic
 	val lockYaw: Double?

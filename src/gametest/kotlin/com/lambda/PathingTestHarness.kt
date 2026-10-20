@@ -21,6 +21,7 @@ import com.lambda.context.SafeContext
 import com.lambda.context.Automated
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingConfig
+import com.lambda.config.blocks.RotationConfig
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.session.PathingRequest
@@ -143,6 +144,7 @@ internal object PathingTestHarness {
         start: String = "0.5 100 0.5 0 0",
         maxPathingTicks: Int = MAX_PATHING_TICKS,
         onTick: ((Int) -> Unit)? = null,
+        rotation: RotationConfig? = null,
     ) {
         // Filtered out scenarios are skipped, but the world commands around them are not:
         // they build the terrain later scenarios stand on, so running a subset has to
@@ -156,7 +158,7 @@ internal object PathingTestHarness {
                 context, server, scenario, goal, minLegs, maxLegs, maxDeviation, expectedJumpDy,
                 requireJumpInput, minGapLaunches, minContinuousSegments, requireMovingSplices,
                 cameraYawDuringPlanning, plannerMaxFrames,
-                driftBeforeSubmit, start, maxPathingTicks, onTick,
+                driftBeforeSubmit, start, maxPathingTicks, onTick, rotation,
             )
         } catch (failure: IllegalStateException) {
             pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
@@ -194,6 +196,7 @@ internal object PathingTestHarness {
         start: String,
         maxPathingTicks: Int,
         onTick: ((Int) -> Unit)?,
+        rotation: RotationConfig?,
     ) {
         server.runCommand("/tp Steve $start")
         // A previous long-haul scenario may have moved the client watch center far
@@ -218,11 +221,14 @@ internal object PathingTestHarness {
             check(player.isOnGround) { "$scenario: player did not settle" }
             PathingService.clear()
             val base = AutomationConfig.DEFAULT.pathingConfig
-            val automated = if (plannerMaxFrames != null) {
+            val automated = if (plannerMaxFrames != null || rotation != null) {
                 object : Automated by AutomationConfig.DEFAULT {
-                    override val pathingConfig = object : PathingConfig by base {
-                        override val maxFrames = checkNotNull(plannerMaxFrames)
-                    }
+                    override val pathingConfig = plannerMaxFrames?.let { frames ->
+                        object : PathingConfig by base {
+                            override val maxFrames = frames
+                        }
+                    } ?: base
+                    override val rotationConfig = rotation ?: AutomationConfig.DEFAULT.rotationConfig
                 }
             } else {
                 AutomationConfig.DEFAULT

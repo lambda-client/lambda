@@ -23,7 +23,7 @@ internal class CorridorFollowerProgram(
 	private val parameters: TerminalApproach,
 	private val config: MotionConstraints,
 ) : ControlProgram {
-	private val maxYawChange = config.maxYawDegreesPerFrame
+	private val turning = config.turning
 	private val pursuit = PursuitTracker(stanceNodes.map { it.center() })
 	private val nodes = pursuit.nodes
 
@@ -84,12 +84,12 @@ internal class CorridorFollowerProgram(
 			forward = 1.0,
 			sprint = parameters.sprint,
 			jump = jump,
-			rotation = rotationToward(pursuit.target(PursuitTracker.DEFAULT_LOOK_AHEAD_NODES), observed, maxYawChange),
+			rotation = rotationToward(pursuit.target(PursuitTracker.DEFAULT_LOOK_AHEAD_NODES), observed, turning),
 		)
 	}
 
 	private fun coastInput(observed: MovementSimulationState, jump: Boolean) =
-		MovementSimulationInput(rotation = observed.rotation, jump = jump)
+		MovementSimulationInput(rotation = turning.turn(observed, observed.rotation), jump = jump)
 
 	private fun terminalApproachInput(
 		observed: MovementSimulationState,
@@ -108,15 +108,15 @@ internal class CorridorFollowerProgram(
 			terminalReleased = true
 			return coastInput(observed, jump)
 		}
-		val yawError = Rotation.wrap(yawTowards(goal, observed) - observed.rotation.yaw)
-		val yawDelta = yawError.coerceIn(-maxYawChange, maxYawChange)
+		val goalYaw = yawTowards(goal, observed)
+		val yawError = Rotation.wrap(goalYaw - observed.rotation.yaw)
 
 		val forward = if (abs(yawError) > TERMINAL_PIVOT_YAW_DEGREES) 0.0 else 1.0
 		return MovementSimulationInput(
 			forward = forward,
 			sprint = false,
 			jump = jump,
-			rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
+			rotation = turning.yawTo(observed, goalYaw),
 		)
 	}
 

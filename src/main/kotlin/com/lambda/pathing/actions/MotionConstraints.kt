@@ -1,7 +1,10 @@
 package com.lambda.pathing.actions
 
+import com.lambda.interaction.managers.rotating.MouseHand
+import com.lambda.interaction.managers.rotating.MouseLook
 import com.lambda.pathing.physics.FallLimits
 import com.lambda.pathing.physics.FallRule
+import com.lambda.pathing.physics.Turning
 
 data class MotionConstraints(
 	val maxFrames: Int = DEFAULT_MAX_FRAMES,
@@ -16,7 +19,11 @@ data class MotionConstraints(
 	val jumpPenaltyTicks: Double = 0.0,
 	val avoidLavaEdges: Boolean = false,
 	val airReserve: Int = SimpleMoveOptions.DEFAULT_AIR_RESERVE,
+	val look: MouseLook? = null,
+	val hand: MouseHand.Limits? = null,
 ) {
+	val turning: Turning = Turning(maxYawDegreesPerFrame, look, hand)
+
 	init {
 		require(maxFrames > 0)
 		require(maxYawDegreesPerFrame > 0.0 && maxYawDegreesPerFrame.isFinite())

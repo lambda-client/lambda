@@ -1,5 +1,7 @@
 package com.lambda.pathing.debug
 
+import com.lambda.interaction.managers.rotating.MouseHand
+import com.lambda.interaction.managers.rotating.MouseLook
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
@@ -250,6 +252,7 @@ internal object PlanDump {
 	private fun PlayerPhysicsProfile.dump(): String = listOf(
 		"profile", movementSpeed, sneakSpeedModifier, gravity, jumpStrength, stepHeight,
 		jumpBoostVelocityModifier, slowFalling, width, height, waterMovementEfficiency, dolphinsGrace, canSprint, canDrown, useItemSpeed,
+		look?.factor ?: "-",
 	).joinToString(" ")
 
 	private fun readProfile(parts: List<String>) = PlayerPhysicsProfile(
@@ -267,6 +270,7 @@ internal object PlanDump {
 		canSprint = parts.getOrNull(12)?.toBoolean() ?: true,
 		canDrown = parts.getOrNull(13)?.toBoolean() ?: true,
 		useItemSpeed = parts.getOrNull(14)?.toFloat() ?: Vanilla.USING_ITEM_SPEED_FACTOR,
+		look = parts.getOrNull(15)?.toDoubleOrNull()?.let(::MouseLook),
 	)
 
 	private fun SimpleMoveOptions.dump(): String = listOf(
@@ -316,6 +320,7 @@ internal object PlanDump {
 		sprintModes.joinToString(",").ifEmpty { "-" },
 		touchArrival, touchRestRadius, maxSafeFallDistance,
 		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier, avoidLavaEdges, airReserve,
+		look?.factor ?: "-", hand?.speed ?: "-", hand?.acceleration ?: "-", hand?.noise ?: "-",
 	).joinToString(" ")
 
 	private fun readSearchConfig(parts: List<String>) = MotionConstraints(
@@ -332,6 +337,10 @@ internal object PlanDump {
 		},
 		avoidLavaEdges = parts.getOrNull(SEARCH_FALL_LIMITS + 3)?.let { it == "true" || (it.toDoubleOrNull() ?: 0.0) > 0.0 } ?: false,
 		airReserve = parts.getOrNull(SEARCH_FALL_LIMITS + 4)?.toInt() ?: SimpleMoveOptions.DEFAULT_AIR_RESERVE,
+		look = parts.getOrNull(SEARCH_FALL_LIMITS + 5)?.toDoubleOrNull()?.let(::MouseLook),
+		hand = parts.getOrNull(SEARCH_FALL_LIMITS + 6)?.toDoubleOrNull()?.let { speed ->
+			MouseHand.Limits(speed, parts[SEARCH_FALL_LIMITS + 7].toDouble(), parts[SEARCH_FALL_LIMITS + 8].toDouble())
+		},
 	)
 
 	private fun MovementSimulationState.dump(keyword: String = "state"): String = listOf(
@@ -340,7 +349,7 @@ internal object PlanDump {
 		jumpingCooldown, horizontalCollision, collidedSoftly, verticalCollision,
 		velocityAffectingPos.x, velocityAffectingPos.y, velocityAffectingPos.z,
 		supportingBlockPos?.let { "${it.x} ${it.y} ${it.z}" } ?: "none",
-		touchingWater, waterHeight, eyeInWater, submergedInWater, swimming, air,
+		touchingWater, waterHeight, eyeInWater, submergedInWater, swimming, air, turn.yaw, turn.pitch,
 	).joinToString(" ")
 
 	private fun readState(parts: List<String>, profile: PlayerPhysicsProfile): MovementSimulationState {
@@ -370,6 +379,7 @@ internal object PlanDump {
 			submergedInWater = water.getOrNull(3)?.toBoolean() ?: false,
 			swimming = water.getOrNull(4)?.toBoolean() ?: false,
 			air = water.getOrNull(5)?.toInt() ?: Vanilla.MAX_AIR,
+			turn = Rotation(water.getOrNull(6)?.toDouble() ?: 0.0, water.getOrNull(7)?.toDouble() ?: 0.0),
 		)
 	}
 

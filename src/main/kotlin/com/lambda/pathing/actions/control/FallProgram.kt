@@ -15,7 +15,7 @@ internal class FallProgram(decision: TrajectoryDecision.Fall, context: ProgramCo
 	private val solution = decision.solution
 	private val origin = context.body.stance.center()
 	private val aim = decision.step.center()
-	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
+	private val turning = context.constraints.turning
 	private val airPlan = AirPlan.toward(context.body.stance, decision.step, solution, 0.0)
 
 	private var airborne = false
@@ -26,10 +26,10 @@ internal class FallProgram(decision: TrajectoryDecision.Fall, context: ProgramCo
 		if (!observed.onGround) airborne = true
 		if (airborne && observed.touchingWater) {
 			if (heldYaw.isNaN()) heldYaw = observed.rotation.yaw
-			return MovementSimulationInput(forward = if (swimOn) 1.0 else 0.0, jump = true, rotation = Rotation(heldYaw, observed.rotation.pitch))
+			return MovementSimulationInput(forward = if (swimOn) 1.0 else 0.0, jump = true, rotation = turning.turn(observed, Rotation(heldYaw, observed.rotation.pitch)))
 		}
 
-		val rotation = rotationToward(aim, observed, maxYawChange)
+		val rotation = rotationToward(aim, observed, turning)
 		if (airborne && !observed.onGround) {
 			airborneTicks++
 			val steered = airPlan?.steer(observed, rotation.yaw, airborneTicks)

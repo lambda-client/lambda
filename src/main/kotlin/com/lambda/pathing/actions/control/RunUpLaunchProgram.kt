@@ -7,6 +7,7 @@ import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.Turning
 
 internal class RunUpLaunchProgram(
 	private val takeoff: HorizontalPoint,
@@ -16,7 +17,7 @@ internal class RunUpLaunchProgram(
 	hopAlong: Double?,
 	private val hopHoldDelay: Int,
 	private val edgeAlong: Double?,
-	private val maxYawChange: Double,
+	private val turning: Turning,
 ) : ControlProgram {
 	private val jumpTargets = ArrayDeque(listOfNotNull(hopAlong, solution.launchOffset))
 
@@ -30,7 +31,7 @@ internal class RunUpLaunchProgram(
 		val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 		if (launched && observed.onGround && along > solution.launchOffset) landedAfterLaunch = true
 
-		val rotation = rotationToward(aim, observed, maxYawChange)
+		val rotation = rotationToward(aim, observed, turning)
 
 		if (landedAfterLaunch) return MovementSimulationInput(rotation = rotation)
 		if (launched && !observed.onGround) {

@@ -17,6 +17,7 @@
 
 package com.lambda.util.player.prediction
 
+import com.lambda.interaction.managers.rotating.MouseLook
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
@@ -39,6 +40,28 @@ import pathing.ProbeScenarios.PROFILE
 import pathing.of
 
 class MovementSimulatorTest {
+    @Test
+    fun `a profile with a mouse look turns in whole counts that replay exactly`() {
+        val look = MouseLook(MouseLook.factor(0.37))
+        val initial = MovementSimulationState.synthetic(
+            profile = PROFILE,
+            position = Vec3d.ZERO,
+            rotation = Rotation(17.3f, 4.1f),
+            velocity = Vec3d(0.0, -0.0784, 0.0),
+            onGround = true,
+        )
+        val simulator = MovementSimulator(PROFILE.copy(look = look), FlatGroundEnvironment, initial)
+        var previous = initial.rotation
+        for (target in listOf(Rotation(52.71, 4.1), Rotation(-140.2, 10.0), Rotation(-140.2, 10.0), Rotation(200.0, -3.3))) {
+            val turned = simulator.tickMovement(MovementSimulationInput(forward = 1.0, rotation = target)).rotation
+            val dx = look.countsX(Rotation.wrap(turned.yaw - previous.yaw))
+            val dy = look.countsY(turned.pitch - previous.pitch)
+            assertEquals(look.turn(previous, dx, dy), turned)
+            assertTrue(look.reaches(turned, target), "turned to $turned for $target")
+            previous = turned
+        }
+    }
+
     @Test
     fun `a fresh simulator replays an explicit input tape exactly`() {
         val initial = groundedState()

@@ -8,6 +8,7 @@ import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.Turning
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -53,35 +54,26 @@ internal fun airborneStrafe(
 internal fun yawTowards(target: HorizontalPoint, observed: MovementSimulationState): Double =
 	Math.toDegrees(atan2(target.z - observed.position.z, target.x - observed.position.x)) - 90.0
 
-internal fun yawStepTowards(desiredYaw: Double, observed: MovementSimulationState, maxYawChange: Double): Double =
-	Rotation.wrap(desiredYaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
+internal fun brakeToStop(heldYaw: Double, turning: Turning) =
+	ControlProgram { _, observed -> MovementSimulationInput(rotation = turning.turn(observed, Rotation(heldYaw, observed.rotation.pitch))) }
 
-internal fun pitchTowards(desiredPitch: Double, observed: MovementSimulationState, maxChange: Double): Double =
-	observed.rotation.pitch + (desiredPitch - observed.rotation.pitch).coerceIn(-maxChange, maxChange)
+internal fun treadWater(heldYaw: Double, turning: Turning) =
+	ControlProgram { _, observed -> MovementSimulationInput(jump = observed.touchingWater, rotation = turning.turn(observed, Rotation(heldYaw, observed.rotation.pitch))) }
 
-internal fun brakeToStop(heldYaw: Double) =
-	ControlProgram { _, observed -> MovementSimulationInput(rotation = Rotation(heldYaw, observed.rotation.pitch)) }
-
-internal fun treadWater(heldYaw: Double) =
-	ControlProgram { _, observed -> MovementSimulationInput(jump = observed.touchingWater, rotation = Rotation(heldYaw, observed.rotation.pitch)) }
-
-internal fun hover(center: HorizontalPoint, depth: Double, maxYawChange: Double) = ControlProgram { _, observed ->
+internal fun hover(center: HorizontalPoint, depth: Double, turning: Turning) = ControlProgram { _, observed ->
 	val jump = observed.position.y + observed.velocity.y * HOVER_COAST_TICKS < depth
 	val offsetX = center.x - (observed.position.x + observed.velocity.x * HOVER_COAST_TICKS)
 	val offsetZ = center.z - (observed.position.z + observed.velocity.z * HOVER_COAST_TICKS)
-	val level = Rotation(observed.rotation.yaw, 0.0)
 	if (observed.swimming || hypot(offsetX, offsetZ) <= HOVER_CENTERING) {
-		MovementSimulationInput(jump = jump, rotation = level)
+		MovementSimulationInput(jump = jump, rotation = turning.turn(observed, Rotation(observed.rotation.yaw, 0.0)))
 	} else {
 		val aim = HorizontalPoint(observed.position.x + offsetX, observed.position.y, observed.position.z + offsetZ)
-		MovementSimulationInput(forward = HOVER_INPUT, jump = jump, rotation = Rotation(rotationToward(aim, observed, maxYawChange).yaw, 0.0))
+		MovementSimulationInput(forward = HOVER_INPUT, jump = jump, rotation = turning.turn(observed, Rotation(yawTowards(aim, observed), 0.0)))
 	}
 }
 
-internal fun rotationToward(aim: HorizontalPoint, observed: MovementSimulationState, maxYawChange: Double): Rotation {
-	val yawDelta = yawStepTowards(yawTowards(aim, observed), observed, maxYawChange)
-	return Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch)
-}
+internal fun rotationToward(aim: HorizontalPoint, observed: MovementSimulationState, turning: Turning): Rotation =
+	turning.yawTo(observed, yawTowards(aim, observed))
 
 internal fun reachesLip(
 	takeoff: HorizontalPoint,

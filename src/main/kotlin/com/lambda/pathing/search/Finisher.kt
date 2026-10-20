@@ -109,7 +109,7 @@ internal class Finisher(
 	fun brakeToStop(anchor: ValueAnchor): Solution? = hoverBrake(anchor) ?: groundBrake(anchor) ?: floatBrake(anchor)
 
 	fun treadTape(anchor: ValueAnchor): Solution? {
-		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw), FLOAT_TAIL_FRAMES)
+		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw, config.turning), FLOAT_TAIL_FRAMES)
 		if (gated.failed) return null
 		val frames = gated.rollout.frames
 		val end = frames.indices.lastOrNull { settledAfloat(frames, it) } ?: return null
@@ -126,7 +126,7 @@ internal class Finisher(
 		val view = field.view
 		if (!DiveMovement.submerged(view, stance.x, stance.y, stance.z) || view.medium(stance.x, stance.y - 1, stance.z) != Medium.WATER) return null
 		val center = stance.center(environment)
-		val gated = gate.run(anchor.state, listOf(center), hover(center, stance.y + HOVER_DEPTH, config.maxYawDegreesPerFrame), HOVER_TAIL_FRAMES)
+		val gated = gate.run(anchor.state, listOf(center), hover(center, stance.y + HOVER_DEPTH, config.turning), HOVER_TAIL_FRAMES)
 		if (gated.failed) return null
 		var held = 0
 		for ((index, frame) in gated.rollout.frames.withIndex()) {
@@ -139,7 +139,7 @@ internal class Finisher(
 
 	private fun floatBrake(anchor: ValueAnchor): Solution? {
 		if (field.view.medium(anchor.stance.x, anchor.stance.y, anchor.stance.z) != Medium.WATER) return null
-		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw), FLOAT_TAIL_FRAMES, FLOAT_DIP)
+		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw, config.turning), FLOAT_TAIL_FRAMES, FLOAT_DIP)
 		if (gated.failed) return null
 		val frames = gated.rollout.frames
 		val end = frames.indices.lastOrNull { field.floatsAt(frames[it].state, anchor.stance.y) && settledAfloat(frames, it) } ?: return null
@@ -150,7 +150,7 @@ internal class Finisher(
 	private fun groundBrake(anchor: ValueAnchor): Solution? {
 		val gated = gate.run(
 			anchor.state, listOf(anchor.stance.center(environment)),
-			brakeToStop(anchor.state.rotation.yaw),
+			brakeToStop(anchor.state.rotation.yaw, config.turning),
 			BRAKE_TAIL_FRAMES,
 		)
 		if (gated.failed) return null

@@ -40,7 +40,7 @@ class RotationSettings(override val c: Config) : RotationConfig, ConfigBlock {
 
     var spread by c.setting("Spread", 10.0, 0.0..60.0, 0.1, "Spread of rotation speeds", unit = "°") { !instant }
 
-    var acceleration by c.setting("Acceleration", 30.0, 1.0..180.0, 0.5, "How much the rotation speed may change from one tick to the next", unit = "°") { !instant }
+    var acceleration by c.setting("Acceleration", 90.0, 1.0..180.0, 0.5, "How much the rotation speed may change from one tick to the next", unit = "°") { !instant }
 
     override val turnSpeed get() = if (instant) 180.0 else mean
 

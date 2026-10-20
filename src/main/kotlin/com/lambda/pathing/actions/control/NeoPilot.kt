@@ -1,5 +1,6 @@
 package com.lambda.pathing.actions.control
 
+import com.lambda.interaction.managers.rotating.MouseHand
 import com.lambda.pathing.actions.NeoTerrain
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.physics.Vanilla
@@ -11,6 +12,7 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -22,6 +24,8 @@ internal class NeoPilot(
 	private val groundHeading: Double,
 	private val preferredMargin: Double,
 	private val maxTurn: Double,
+	private val turnAcceleration: Double = Double.POSITIVE_INFINITY,
+	private val turnStep: Double = 0.0,
 ) {
 	class Command(val heading: Double, val jump: Boolean)
 
@@ -33,6 +37,7 @@ internal class NeoPilot(
 		var sideSpeed = 0.0
 		var upSpeed = 0.0
 		var heading = 0.0
+		var turnRate = 0.0
 		var grounded = false
 		var sprinting = true
 
@@ -44,6 +49,7 @@ internal class NeoPilot(
 			sideSpeed = other.sideSpeed
 			upSpeed = other.upSpeed
 			heading = other.heading
+			turnRate = other.turnRate
 			grounded = other.grounded
 			sprinting = other.sprinting
 		}
@@ -64,7 +70,7 @@ internal class NeoPilot(
 	fun command(
 		forward: Double, side: Double, up: Double,
 		forwardSpeed: Double, sideSpeed: Double, upSpeed: Double,
-		heading: Double, grounded: Boolean, sprinting: Boolean, launched: Boolean,
+		heading: Double, turnRate: Double, grounded: Boolean, sprinting: Boolean, launched: Boolean,
 	): Command {
 		start.forward = forward
 		start.side = side
@@ -73,6 +79,7 @@ internal class NeoPilot(
 		start.sideSpeed = sideSpeed
 		start.upSpeed = upSpeed
 		start.heading = heading
+		start.turnRate = turnRate
 		start.grounded = grounded
 		start.sprinting = sprinting
 		if (launched && grounded) return Command(towardLanding(start), jump = false)
@@ -146,7 +153,7 @@ internal class NeoPilot(
 		Math.toDegrees(atan2(landingSide + 0.5 - body.side, landingForward + 0.5 - body.forward))
 
 	private fun step(body: Body, target: Double, targetAlong: Double, targetAcross: Double, jump: Boolean, margin: Double): Boolean {
-		val heading = turned(body.heading, target)
+		val heading = turned(body, target)
 		val along: Double
 		val across: Double
 		if (heading == target && !targetAlong.isNaN()) {
@@ -228,11 +235,14 @@ internal class NeoPilot(
 		return acos(cosine.coerceIn(-1.0, 1.0)) < SOFT_COLLISION_MAX_ANGLE
 	}
 
-	private fun turned(current: Double, target: Double): Double {
-		var delta = (target - current) % 360.0
+	private fun turned(body: Body, target: Double): Double {
+		var delta = (target - body.heading) % 360.0
 		if (delta > 180.0) delta -= 360.0
 		if (delta <= -180.0) delta += 360.0
-		return current + delta.coerceIn(-maxTurn, maxTurn)
+		if (turnAcceleration.isInfinite()) return body.heading + delta.coerceIn(-maxTurn, maxTurn)
+		val rate = MouseHand.velocity(delta, 0.0, body.turnRate, 0.0, maxTurn, turnAcceleration).yaw
+		body.turnRate = if (turnStep > 0.0) (rate / turnStep).roundToInt() * turnStep else rate
+		return body.heading + body.turnRate
 	}
 
 	private fun landingTop(body: Body, rise: Double): Int {

@@ -94,7 +94,7 @@ object LadderCatchMovement : Movement {
 			sprint = decision.solution.sprint,
 			lookAheadNodes = 1,
 			launch = context.launch,
-			maxYawChange = context.constraints.maxYawDegreesPerFrame,
+			turning = context.constraints.turning,
 			airPlan = airPlan,
 			holdJumpInFlight = true,
 		)

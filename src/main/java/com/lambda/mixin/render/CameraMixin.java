@@ -71,7 +71,7 @@ public abstract class CameraMixin {
      */
     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V", shift = At.Shift.AFTER))
     private void injectQuickPerspectiveSwap(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
-        var rot = RotationManager.getLockRotation();
+        var rot = RotationManager.lockRotationAt(tickProgress);
         if (rot == null) return;
         if (FreeLook.INSTANCE.isEnabled()) {
             var newYaw = yaw;

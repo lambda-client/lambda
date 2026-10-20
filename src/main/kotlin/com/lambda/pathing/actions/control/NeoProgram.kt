@@ -11,7 +11,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 internal class NeoProgram(private val decision: TrajectoryDecision.Neo, context: ProgramContext) : ControlProgram {
-	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
+	private val turning = context.constraints.turning
+	private val hand = context.constraints.hand
 	private val origin = context.body.stance
 	private val pilot = run {
 		val dx = decision.step.x - origin.x
@@ -23,7 +24,9 @@ internal class NeoProgram(private val decision: TrajectoryDecision.Neo, context:
 			landingUp = decision.step.y - origin.y,
 			groundHeading = decision.groundHeading,
 			preferredMargin = decision.margin,
-			maxTurn = maxYawChange,
+			maxTurn = hand?.speed ?: context.constraints.maxYawDegreesPerFrame,
+			turnAcceleration = hand?.acceleration ?: Double.POSITIVE_INFINITY,
+			turnStep = context.constraints.look?.takeIf { hand != null }?.degreesPerCount ?: 0.0,
 		)
 	}
 	private var launched = false
@@ -33,9 +36,6 @@ internal class NeoProgram(private val decision: TrajectoryDecision.Neo, context:
 		val velocity = observed.velocity
 		val dx = position.x - origin.x - 0.5
 		val dz = position.z - origin.z - 0.5
-		val yaw = Math.toRadians(observed.rotation.yaw)
-		val facingX = -sin(yaw)
-		val facingZ = cos(yaw)
 		val command = pilot.command(
 			forward = dx * decision.forwardX + dz * decision.forwardZ + 0.5,
 			side = dx * decision.sideX + dz * decision.sideZ + 0.5,
@@ -43,13 +43,21 @@ internal class NeoProgram(private val decision: TrajectoryDecision.Neo, context:
 			forwardSpeed = velocity.x * decision.forwardX + velocity.z * decision.forwardZ,
 			sideSpeed = velocity.x * decision.sideX + velocity.z * decision.sideZ,
 			upSpeed = velocity.y,
-			heading = Math.toDegrees(atan2(facingX * decision.sideX + facingZ * decision.sideZ, facingX * decision.forwardX + facingZ * decision.forwardZ)),
+			heading = headingOf(observed.rotation.yaw),
+			turnRate = Rotation.wrap(headingOf(observed.rotation.yaw) - headingOf(observed.rotation.yaw - observed.turn.yaw)),
 			grounded = observed.onGround,
 			sprinting = !observed.horizontalCollision || observed.collidedSoftly,
 			launched = launched,
 		)
 		if (command.jump) launched = true
-		return MovementSimulationInput(forward = 1.0, sprint = true, jump = command.jump, rotation = turned(observed, yawOf(command.heading)))
+		return MovementSimulationInput(forward = 1.0, sprint = true, jump = command.jump, rotation = turning.yawTo(observed, yawOf(command.heading)))
+	}
+
+	private fun headingOf(yaw: Double): Double {
+		val radians = Math.toRadians(yaw)
+		val facingX = -sin(radians)
+		val facingZ = cos(radians)
+		return Math.toDegrees(atan2(facingX * decision.sideX + facingZ * decision.sideZ, facingX * decision.forwardX + facingZ * decision.forwardZ))
 	}
 
 	private fun yawOf(heading: Double): Double {
@@ -57,10 +65,5 @@ internal class NeoProgram(private val decision: TrajectoryDecision.Neo, context:
 		val x = cos(radians) * decision.forwardX + sin(radians) * decision.sideX
 		val z = cos(radians) * decision.forwardZ + sin(radians) * decision.sideZ
 		return Math.toDegrees(atan2(-x, z))
-	}
-
-	private fun turned(observed: MovementSimulationState, yaw: Double): Rotation {
-		val delta = Rotation.wrap(yaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
-		return Rotation(observed.rotation.yaw + delta, observed.rotation.pitch)
 	}
 }

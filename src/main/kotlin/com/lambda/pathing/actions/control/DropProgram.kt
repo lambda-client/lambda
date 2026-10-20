@@ -1,6 +1,5 @@
 package com.lambda.pathing.actions.control
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.TrajectoryDecision
@@ -18,7 +17,7 @@ internal class DropProgram(decision: TrajectoryDecision.Drop, context: ProgramCo
 	private val origin = context.body.stance.center()
 	private val takeoff = interpolate(context.body.stance.center(), decision.step.center(), solution.launchOffset)
 	private val aim = interpolate(context.body.stance.center(), decision.step.center(), solution.aimDistance)
-	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
+	private val turning = context.constraints.turning
 	private val flightLength = horizontalDistance(takeoff, aim)
 	private val edgeYaw = bearingBetween(origin, decision.step.center())
 
@@ -34,8 +33,7 @@ internal class DropProgram(decision: TrajectoryDecision.Drop, context: ProgramCo
 		if (!observed.onGround) airborne = true else if (airborne) landed = true
 
 		val passedAim = alongEdge(takeoff, aim, observed.position.x, observed.position.z) >= flightLength
-		val rotation = if (passedAim) Rotation(observed.rotation.yaw + yawStepTowards(edgeYaw, observed, maxYawChange), observed.rotation.pitch)
-		else rotationToward(aim, observed, maxYawChange)
+		val rotation = if (passedAim) turning.yawTo(observed, edgeYaw) else rotationToward(aim, observed, turning)
 
 		val sneak = !airborne && pinningToLip(observed)
 

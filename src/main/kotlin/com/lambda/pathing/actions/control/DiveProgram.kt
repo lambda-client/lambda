@@ -15,7 +15,7 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 	private val detour = decision.detour
 	private val surface = decision.surface
 	private var breathing = decision.breathe && !decision.detour
-	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
+	private val turning = context.constraints.turning
 	private val sprint = context.constraints.sprintModes.first()
 	private val targetX = decision.aim.x + 0.5
 	private val targetY = decision.aim.y + BODY_CENTER
@@ -40,14 +40,13 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 			else -> aheadYaw(observed)
 		}
 		val pitch = (-Math.toDegrees(atan2(dy, maxOf(hypot(dx, dz), MIN_HORIZONTAL)))).coerceIn(-MAX_PITCH, MAX_PITCH)
-		val step = yawStepTowards(yaw, observed, maxYawChange)
 		val coast = COAST_TICKS * observed.velocity.y
 		return MovementSimulationInput(
 			forward = 1.0,
 			sprint = sprint,
 			jump = if (observed.swimming) (!surface || shaft) && dy > maxOf(SWIM_MARGIN, coast) else dy > RISE_WITH_JUMP,
 			sneak = if (observed.swimming) dy < minOf(-SWIM_MARGIN, coast) else sprint && dy <= 0.0 && !observed.onGround,
-			rotation = Rotation(observed.rotation.yaw + step, pitchTowards(pitch, observed, maxYawChange)),
+			rotation = turning.turn(observed, Rotation(yaw, pitch)),
 		)
 	}
 
@@ -62,12 +61,12 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 	private fun breathe(observed: MovementSimulationState): MovementSimulationInput {
 		val dx = pocketX - observed.position.x
 		val dz = pocketZ - observed.position.z
-		if (hypot(dx, dz) <= POCKET_CENTERING) return MovementSimulationInput(jump = true, rotation = observed.rotation)
+		if (hypot(dx, dz) <= POCKET_CENTERING) return MovementSimulationInput(jump = true, rotation = turning.turn(observed, observed.rotation))
 		val yaw = Math.toDegrees(atan2(dz, dx)) - 90.0
 		return MovementSimulationInput(
 			forward = CENTERING_INPUT,
 			jump = true,
-			rotation = Rotation(observed.rotation.yaw + yawStepTowards(yaw, observed, maxYawChange), observed.rotation.pitch),
+			rotation = turning.yawTo(observed, yaw),
 		)
 	}
 

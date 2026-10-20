@@ -12,14 +12,13 @@ import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
 
 internal class ClimbProgram(private val decision: TrajectoryDecision.Climb, context: ProgramContext) : ControlProgram {
-	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
+	private val turning = context.constraints.turning
 	private val takeoff = context.body.stance.center()
 	private val aim = decision.step.center()
 	private val overLip = decision.holdForward && !decision.holdWhileClimbing && !decision.climbWithJump
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		val yawError = decision.yaw?.let { Rotation.wrap(it - observed.rotation.yaw) }
-		val yawDelta = yawError?.coerceIn(-maxYawChange, maxYawChange) ?: 0.0
 		val aligned = yawError == null || abs(yawError) <= ALIGNMENT_DEGREES
 
 		val forward = if (observed.onGround) {
@@ -45,7 +44,7 @@ internal class ClimbProgram(private val decision: TrajectoryDecision.Climb, cont
 		return MovementSimulationInput(
 			forward = forward,
 			jump = decision.climbWithJump,
-			rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
+			rotation = decision.yaw?.let { turning.yawTo(observed, it) } ?: turning.turn(observed, observed.rotation),
 		)
 	}
 

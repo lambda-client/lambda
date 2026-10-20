@@ -21,7 +21,7 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 	private val aim = decision.step.center()
 	private val solution = decision.solution
 	private val approach = solution.via?.let { takeoff + it } ?: aim
-	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
+	private val turning = context.constraints.turning
 	private val standingStart = solution.speed <= BounceSolver.STANDING_REST_SPEED
 	private var airborne = false
 	private var landed = false
@@ -42,7 +42,7 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 		val target = if (contacts == 0) approach else aim
 		val segmentStart = if (contacts == 0 || solution.via == null) takeoff else approach
 
-		val rotation = rotationToward(target, observed, maxYawChange)
+		val rotation = rotationToward(target, observed, turning)
 
 		var jump = false
 		val forward: Double

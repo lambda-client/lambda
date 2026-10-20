@@ -72,7 +72,7 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     override val allowNeoJumps by c.setting(
         "Neo Jumps", true,
         "Jump around the side of a wall that blocks a straight jump: run out past the wall's edge, " +
-            "jump beside it and steer back around it in the air. Needs sprinting and a turn speed of at least 90 degrees a tick.",
+            "jump beside it and steer back around it in the air. Needs sprinting, and a turn speed and turn acceleration of at least 90 degrees a tick.",
     )
 
     @Group(MOVES_GROUP)

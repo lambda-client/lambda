@@ -1,5 +1,7 @@
 package com.lambda.pathing.physics
 
+import com.lambda.interaction.managers.rotating.MouseLook
+import com.lambda.interaction.managers.rotating.Rotation
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.component.DataComponentTypes
@@ -32,8 +34,13 @@ data class PlayerPhysicsProfile(
 	val canSprint: Boolean = true,
 	val canDrown: Boolean = true,
 	val useItemSpeed: Float = Vanilla.USING_ITEM_SPEED_FACTOR,
+	val look: MouseLook? = null,
 ) {
 	val swimHeight: Double get() = if (standingEyeHeight < Vanilla.SWIM_HEIGHT) 0.0 else Vanilla.SWIM_HEIGHT
+
+	fun turn(from: Rotation, requested: Rotation?): Rotation = requested?.let { look?.nearest(from, it) ?: it } ?: from
+
+	fun turnBetween(from: Rotation, to: Rotation) = Rotation(Rotation.wrap(to.yaw - from.yaw), to.pitch - from.pitch)
 
 	fun isCompatibleWith(other: PlayerPhysicsProfile): Boolean =
 		movementSpeed.closeTo(other.movementSpeed) &&
@@ -55,7 +62,8 @@ data class PlayerPhysicsProfile(
 				dolphinsGrace == other.dolphinsGrace &&
 				canSprint == other.canSprint &&
 				canDrown == other.canDrown &&
-				useItemSpeed == other.useItemSpeed
+				useItemSpeed == other.useItemSpeed &&
+				look == other.look
 
 	private fun Double.closeTo(other: Double): Boolean =
 		abs(this - other) <= PROFILE_EPSILON * max(1.0, max(abs(this), abs(other)))

@@ -9,6 +9,8 @@
 
 package pathing
 
+import com.lambda.interaction.managers.rotating.MouseHand
+import com.lambda.interaction.managers.rotating.MouseLook
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
@@ -47,7 +49,7 @@ class NeoJumpTest {
 		return environment to Stance(goal.x, goal.y, goal.z)
 	}
 
-	private fun neo(layout: Layout, fx: Int = 1, fz: Int = 0, sx: Int = 0, sz: Int = 1, turnRate: Double = 180.0, runUp: Int = 3, landingLength: Int = 3): List<SimulatedTrajectoryFrame> {
+	private fun neo(layout: Layout, fx: Int = 1, fz: Int = 0, sx: Int = 0, sz: Int = 1, turnRate: Double = 180.0, runUp: Int = 3, landingLength: Int = 3, hand: MouseHand.Limits? = null): List<SimulatedTrajectoryFrame> {
 		val (environment, goal) = course(layout, fx, fz, sx, sz, runUp, landingLength)
 		val moves = ProbeScenarios.moveLibrary(SimpleMoveOptions(allowNeoJumps = true))
 		val start = Stance(-runUp * fx, 64, -runUp * fz)
@@ -59,8 +61,8 @@ class NeoJumpTest {
 
 		val yaw = Math.toDegrees(kotlin.math.atan2(-fx.toDouble(), fz.toDouble()))
 		val outcome = walkHorizon(
-			route, planner, resting(Vec3d(start.x + 0.5, 64.0, start.z + 0.5), yaw = yaw), PROFILE, environment,
-			MotionConstraints(maxYawDegreesPerFrame = turnRate),
+			route, planner, resting(Vec3d(start.x + 0.5, 64.0, start.z + 0.5), yaw = yaw), if (hand == null) PROFILE else PROFILE.copy(look = LOOK), environment,
+			if (hand == null) MotionConstraints(maxYawDegreesPerFrame = turnRate) else MotionConstraints(maxYawDegreesPerFrame = hand.speed, look = LOOK, hand = hand),
 			publish = { _, _ -> },
 			started = System.currentTimeMillis(),
 		)
@@ -105,6 +107,14 @@ class NeoJumpTest {
 	@Test
 	fun `a neo needs a quick turn`() {
 		neo(Layout(walls = listOf(1), landing = 2, rise = 0), turnRate = 90.0)
+	}
+
+	@Test
+	fun `a neo works with a human flick`() {
+		val hand = MouseHand.Limits(speed = 90.0, acceleration = 90.0, noise = 5.0)
+		neo(Layout(walls = listOf(1), landing = 2, rise = 0), hand = hand)
+		neo(Layout(walls = listOf(1), landing = 2, rise = 1), hand = hand)
+		neo(Layout(walls = listOf(1, 2), landing = 3, rise = 0), fx = 0, fz = 1, sx = -1, sz = 0, hand = hand)
 	}
 
 	@Test
@@ -166,6 +176,8 @@ class NeoJumpTest {
 	}
 
 	private companion object {
+		val LOOK = MouseLook(MouseLook.factor(0.5))
+
 		const val SPRINTING = 0.12
 
 		const val STILL = 0.05

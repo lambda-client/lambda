@@ -75,7 +75,7 @@ object JumpMovement : Movement {
 				hopAlong = decision.hopAlong,
 				hopHoldDelay = decision.hopHoldDelay,
 				edgeAlong = decision.edgeAlong,
-				maxYawChange = context.constraints.maxYawDegreesPerFrame,
+				turning = context.constraints.turning,
 			)
 		}
 		val launch = decision as TrajectoryDecision.Launch
@@ -94,7 +94,7 @@ object JumpMovement : Movement {
 			sprint = solution.sprint,
 			lookAheadNodes = PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
 			launch = context.launch,
-			maxYawChange = context.constraints.maxYawDegreesPerFrame,
+			turning = context.constraints.turning,
 			holdTicks = solution.heldForwardTicks,
 			airPlan = if (context.openLanding) null else AirPlan.toward(context.body.stance, step, solution, solution.lateralOffset),
 			via = solution.via?.let { nodes.first() + it },

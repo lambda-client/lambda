@@ -11,7 +11,7 @@ import kotlin.math.atan2
 import kotlin.math.hypot
 
 internal class SwimProgram(private val decision: TrajectoryDecision.Swim, context: ProgramContext) : ControlProgram {
-	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
+	private val turning = context.constraints.turning
 	private val pursuit = PursuitTracker(context.nodes)
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
@@ -20,24 +20,23 @@ internal class SwimProgram(private val decision: TrajectoryDecision.Swim, contex
 			forward = 1.0,
 			sprint = true,
 			sneak = !observed.swimming,
-			rotation = Rotation(observed.rotation.yaw + yawStepTowards(decision.yaw ?: observed.rotation.yaw, observed, maxYawChange), pitchTowards(STROKE_PITCH, observed, maxYawChange)),
+			rotation = turning.turn(observed, Rotation(decision.yaw ?: observed.rotation.yaw, STROKE_PITCH)),
 		)
-		val rotation = decision.yaw?.let { Rotation(observed.rotation.yaw + yawStepTowards(it, observed, maxYawChange), observed.rotation.pitch) }
-			?: rotationToward(pursuit.target(PursuitTracker.DEFAULT_LOOK_AHEAD_NODES), observed, maxYawChange)
+		val yaw = decision.yaw ?: yawTowards(pursuit.target(PursuitTracker.DEFAULT_LOOK_AHEAD_NODES), observed)
 		if (observed.swimming) {
 			val climbing = decision.movement == MovementId.EXIT_WATER && decision.step.y - observed.position.y > EXIT_CLIMB
 			return MovementSimulationInput(
 				forward = 1.0,
 				sprint = decision.sprint,
 				jump = climbing,
-				rotation = Rotation(rotation.yaw, pitchTowards(if (climbing) EXIT_PITCH else swimPitch(observed), observed, maxYawChange)),
+				rotation = turning.turn(observed, Rotation(yaw, if (climbing) EXIT_PITCH else swimPitch(observed))),
 			)
 		}
 		return MovementSimulationInput(
 			forward = 1.0,
 			jump = observed.touchingWater,
 			sprint = decision.sprint && !observed.eyeInWater,
-			rotation = rotation,
+			rotation = turning.yawTo(observed, yaw),
 		)
 	}
 
