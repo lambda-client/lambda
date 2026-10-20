@@ -233,7 +233,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		stepHeight: Double,
 	): Vec3d = VanillaBlockCollisionResolver.adjust(movement, boundingBox, onGround, stepHeight) { query, collisions ->
 		forEachCollisionShape(query) { pos, shape -> collisions.add(pos.x, pos.y, pos.z, shape) }
-	}.also { moved -> rejectUnsupportedContact(boundingBox.stretch(moved)) }
+	}.also { moved -> rejectUnsupportedContact(boundingBox, moved) }
 
 	override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? {
 		var best: BlockPos? = null
@@ -303,20 +303,50 @@ class SnapshotSimulationEnvironment internal constructor(
 		return exactBlock(pos) { store[it] }
 	}
 
-	private fun rejectUnsupportedContact(box: Box) {
+	private fun rejectUnsupportedContact(start: Box, moved: Vec3d) {
+		val box = start.stretch(moved)
 		val pinned = store
 		val entities = entityRef.cells
 		if (onRead == null && clearOfUnsupported(box, pinned) && (entities.isEmpty() || clearOfEntities(box, entities))) return
 		val sections = PinnedSections(pinned)
+		val end = start.offset(moved)
 		forEachCollisionCandidate(box) { pos ->
 			if (!box.intersectsUnitBlock(pos.x, pos.y, pos.z)) return@forEachCollisionCandidate
 			onRead?.invoke(pos)
 			val unsupported = exactBlock(pos, sections::at).unsupportedPhysics
 				?: ENTITY.takeIf { entities.contains(BlockPos.asLong(pos.x, pos.y, pos.z)) }
 				?: return@forEachCollisionCandidate
+			if (unsupported.kind == UnsupportedPhysicsKind.POWDER_SNOW && start.intersectsUnitBlock(pos.x, pos.y, pos.z) && !standsIn(start, pos) && !standsIn(end, pos)) {
+				return@forEachCollisionCandidate
+			}
 			throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
 		}
+		rejectRestingOnPowderSnow(end, sections)
 	}
+
+	private fun rejectRestingOnPowderSnow(end: Box, sections: PinnedSections) {
+		val y = Math.round(end.minY).toInt()
+		if (kotlin.math.abs(end.minY - y) > Vanilla.COLLISION_EPSILON) return
+		val cell = BlockPos.Mutable()
+		var powder: BlockPos? = null
+		var physics: UnsupportedPhysics? = null
+		for (x in MathHelper.floor(end.minX) until MathHelper.ceil(end.maxX)) for (z in MathHelper.floor(end.minZ) until MathHelper.ceil(end.maxZ)) {
+			cell.set(x, y - 1, z)
+			onRead?.invoke(cell)
+			val below = exactBlock(cell, sections::at)
+			val unsupported = below.unsupportedPhysics
+			if (unsupported?.kind == UnsupportedPhysicsKind.POWDER_SNOW) {
+				powder = cell.toImmutable()
+				physics = unsupported
+			} else if (!below.collisionShape.isEmpty) {
+				return
+			}
+		}
+		if (powder != null && physics != null) throw UnsupportedBlockPhysicsException(powder, physics)
+	}
+
+	private fun standsIn(box: Box, pos: BlockPos): Boolean =
+		MathHelper.floor((box.minX + box.maxX) * 0.5) == pos.x && MathHelper.floor(box.minY) == pos.y && MathHelper.floor((box.minZ + box.maxZ) * 0.5) == pos.z
 
 	private fun clearOfEntities(box: Box, entities: LongOpenHashSet): Boolean {
 		for (x in MathHelper.floor(box.minX)..MathHelper.floor(box.maxX)) {

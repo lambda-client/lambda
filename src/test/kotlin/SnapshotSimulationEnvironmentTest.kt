@@ -288,6 +288,41 @@ class SnapshotSimulationEnvironmentTest {
     }
 
     @Test
+    fun `landing on powder snow held up only by the neighbouring block is rejected`() {
+        val environment = environment(mapOf(BlockPos(0, 0, 0) to POWDER_SNOW, BlockPos(0, 0, -1) to SnapshotBlockPhysics.FULL_CUBE))
+        val body = Box(0.2, 1.2, -0.4, 0.8, 3.0, 0.2)
+
+        val failure = assertFailsWith<UnsupportedBlockPhysicsException> {
+            environment.adjustMovementForCollisions(Vec3d(0.0, -0.5, 0.65), body, onGround = false, stepHeight = 0.6)
+        }
+        assertEquals(BlockPos(0, 0, 0), failure.pos)
+        val partly = environment.adjustMovementForCollisions(Vec3d(0.0, -0.5, 0.3), body, onGround = false, stepHeight = 0.6)
+        assertClose(-0.2, partly.y)
+    }
+
+    @Test
+    fun `a jump may take off from an edge beside powder snow`() {
+        val environment = environment(mapOf(BlockPos(1, -1, 0) to POWDER_SNOW, BlockPos(0, -1, 0) to SnapshotBlockPhysics.FULL_CUBE))
+        val body = Box(0.2, 0.0, 0.2, 0.8, 1.8, 0.8)
+
+        assertEquals(Vec3d(0.5, 0.42, 0.0), environment.adjustMovementForCollisions(Vec3d(0.5, 0.42, 0.0), body, onGround = true, stepHeight = 0.6))
+    }
+
+    @Test
+    fun `a body may walk out of powder snow it already touches but never into it`() {
+        val environment = environment(mapOf(BlockPos(1, 0, 0) to POWDER_SNOW, BlockPos(0, -1, 0) to SnapshotBlockPhysics.FULL_CUBE))
+        val touching = Box(0.5, 0.0, 0.2, 1.1, 1.8, 0.8)
+
+        assertEquals(Vec3d(-0.2, 0.0, 0.0), environment.adjustMovementForCollisions(Vec3d(-0.2, 0.0, 0.0), touching, onGround = true, stepHeight = 0.6))
+        assertFailsWith<UnsupportedBlockPhysicsException> {
+            environment.adjustMovementForCollisions(Vec3d(0.3, 0.0, 0.0), Box(0.2, 0.0, 0.2, 0.8, 1.8, 0.8), onGround = true, stepHeight = 0.6)
+        }
+        assertFailsWith<UnsupportedBlockPhysicsException>("feet inside powder snow are slowed, which is not simulated") {
+            environment.adjustMovementForCollisions(Vec3d(0.3, 0.0, 0.0), touching, onGround = true, stepHeight = 0.6)
+        }
+    }
+
+    @Test
     fun `a step leaving the snapshot bounds is rejected`() {
         val tinyEnvironment = SnapshotSimulationEnvironment.synthetic(
             bounds = SimulationSnapshotBounds(0, 0, 0, 0, 0, 0),
@@ -321,5 +356,9 @@ class SnapshotSimulationEnvironmentTest {
     private companion object {
         val BOUNDS = SimulationSnapshotBounds(-3, -3, -3, 3, 4, 4)
 
+        val POWDER_SNOW = SnapshotBlockPhysics(
+            collisionShape = VoxelShapes.empty(),
+            unsupportedPhysics = UnsupportedPhysics(UnsupportedPhysicsKind.POWDER_SNOW),
+        )
     }
 }
