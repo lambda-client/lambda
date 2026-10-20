@@ -40,6 +40,7 @@ class MotionTemplate internal constructor(
 		val riseAdmission: ((Double) -> Boolean)? = null,
 		val momentumOnly: Boolean = false,
 		val runUpNeeded: ((Double) -> Boolean)? = null,
+		val exactOnly: Boolean = false,
 	)
 
 	init {
@@ -54,6 +55,8 @@ class MotionTemplate internal constructor(
 	internal val minimumTicks: Double = minOf(lowerBoundTicks, strideCost ?: lowerBoundTicks)
 
 	internal val bounceDrop: Int? get() = arc?.bounceDrop
+
+	internal val momentumOnly: Boolean get() = arc?.momentumOnly == true
 
 	private fun surfaceOffset(view: CoarseVoxelView, stance: Stance): Double =
 		view.surfaceOffset(stance.x, stance.y - 1, stance.z)
@@ -194,7 +197,7 @@ class MotionTemplate internal constructor(
 
 	internal fun stampProgram(): StampProgram? {
 		val spec = arc
-		if (spec?.bounceDrop != null) return null
+		if (spec?.bounceDrop != null || spec?.exactOnly == true) return null
 		val clauses = conditions.map { condition ->
 			StampProgram.Clause.of(condition.reads().distinct()) { condition.matches(it, 0, 0, 0) } ?: return null
 		}

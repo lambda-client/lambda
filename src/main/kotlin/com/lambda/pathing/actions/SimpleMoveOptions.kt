@@ -1,5 +1,6 @@
 package com.lambda.pathing.actions
 
+import com.lambda.pathing.actions.families.FallMovement
 import com.lambda.pathing.physics.FallLimits
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.snapshot.HazardRules
@@ -42,5 +43,15 @@ data class SimpleMoveOptions(
 		val DEFAULT_FRONTIER_TICKS_PER_BLOCK = 2.0 / CoarseMoveRates.SWIM_BLOCKS_PER_TICK
 
 		const val DEFAULT_AIR_RESERVE = 60
+
+		const val FULL_WALK_OFF_DEPTH = FallMovement.MIN_DROP - 1
+
+		const val FULL_DROP_SPAN = 4
+
+		const val TUNED_JUMP_SPAN = 5
+
+		const val FULL_JUMP_SPAN = 8
+
+		const val FULL_JUMP_DROP = FallMovement.MIN_DROP - 1
 	}
 }

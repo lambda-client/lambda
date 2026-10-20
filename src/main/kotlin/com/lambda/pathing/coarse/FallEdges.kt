@@ -6,6 +6,7 @@ import com.lambda.pathing.actions.MeasuredMotion
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.MotionTemplateId
 import com.lambda.pathing.actions.families.DiveMovement
+import com.lambda.pathing.actions.families.FallMovement
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
@@ -445,7 +446,7 @@ internal class FallEdges(
 	private fun key(stance: Stance): Long = PackedStance.pack(stance, SpeedClass.STOPPED)
 
 	companion object {
-		const val MIN_DROP = 4
+		const val MIN_DROP = FallMovement.MIN_DROP
 
 		const val MAX_DEPTH = 4096
 

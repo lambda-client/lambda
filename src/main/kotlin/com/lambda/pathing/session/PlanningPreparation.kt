@@ -82,31 +82,21 @@ internal fun preparePlanning(
 	@Suppress("NAME_SHADOWING")
 	val goal = resolveGoalStance(player, goal)
 	val resolvedWaypoints = waypoints.map { resolveGoalStance(player, it) }
-	val acceptedFallDamage = when {
-		!config.allowFallDamage -> 0
-		config.unlimitedFallDamage -> UNLIMITED_FALL_DAMAGE
-		else -> (config.maxFallDamage * Vanilla.HEALTH_PER_HEART).toInt()
-	}
+	val acceptedFallDamage = if (config.ignoreFallDamage) UNLIMITED_FALL_DAMAGE else (config.fallDamageLimit * Vanilla.HEALTH_PER_HEART).toInt()
 	val fallLimits = player.fallLimits(acceptedDamage = acceptedFallDamage)
 	val airReserve = (Vanilla.MAX_AIR - (config.diveSeconds * Vanilla.TICKS_PER_SECOND).roundToInt()).coerceIn(0, Vanilla.MAX_AIR - 1)
 	val profile = PlayerPhysicsProfile.capture(player).planned(config)
 	val sprints = config.allowSprint && !config.saveFood && profile.canSprint
 	val moveOptions = SimpleMoveOptions(
-		allowDiagonal = config.allowDiagonal,
-		allowStepUp = config.allowStepUp,
-		maxWalkOffDepth = config.maxWalkOffDepth,
-		maxDropSpan = config.maxDropSpan,
+		maxWalkOffDepth = SimpleMoveOptions.FULL_WALK_OFF_DEPTH,
+		maxDropSpan = SimpleMoveOptions.FULL_DROP_SPAN,
 		allowClimbing = config.allowClimbing,
 		allowSwimming = config.allowSwimming,
 		allowDiving = config.allowDiving,
-		allowJumpCandidates = config.allowJumpCandidates,
 		maxJumpSpan = config.maxJumpSpan,
-		maxJumpDrop = config.maxJumpDrop,
-		allowOffAxisJumps = config.allowOffAxisJumps,
-		allowDeepDropJumps = config.allowDeepDropJumps,
+		maxJumpDrop = SimpleMoveOptions.FULL_JUMP_DROP,
 		allowSlimeBounces = config.allowSlimeBounces,
 		maxBounceDrop = config.maxBounceDrop,
-		allowDeepFalls = config.allowDeepFalls,
 		allowNeoJumps = config.allowNeoJumps && sprints && turnSpeed >= NeoMovement.MIN_TURN_DEGREES_PER_FRAME,
 		fallLimits = fallLimits,
 		hazards = config.hazards,

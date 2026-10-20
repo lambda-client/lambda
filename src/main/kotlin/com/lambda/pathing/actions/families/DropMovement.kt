@@ -15,6 +15,7 @@ import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.landingRisk
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
@@ -31,15 +32,18 @@ object DropMovement : Movement {
 		for ((dx, dz) in StanceRules.CARDINALS) {
 			for (depth in 2..options.maxWalkOffDepth) spec(dx, dz, depth, context)?.let(::add)
 			for (span in 2..options.maxDropSpan) {
-				for (depth in 1..options.maxWalkOffDepth) spec(span * dx, span * dz, depth, context)?.let(::add)
+				for (depth in 1..options.maxWalkOffDepth) if (reachable(span * dx, span * dz, depth)) spec(span * dx, span * dz, depth, context)?.let(::add)
 			}
 		}
 		if (!options.allowDiagonal) return@buildList
 		for (dx in -options.maxDropSpan..options.maxDropSpan) for (dz in -options.maxDropSpan..options.maxDropSpan) {
 			if (dx == 0 || dz == 0 || abs(dx) != abs(dz) && !options.allowOffAxisJumps) continue
-			for (depth in 1..options.maxWalkOffDepth) spec(dx, dz, depth, context)?.let(::add)
+			for (depth in 1..options.maxWalkOffDepth) if (reachable(dx, dz, depth)) spec(dx, dz, depth, context)?.let(::add)
 		}
 	}
+
+	private fun reachable(dx: Int, dz: Int, depth: Int): Boolean =
+		maxOf(abs(dx), abs(dz)) <= ALWAYS_REACHED_SPAN || LaunchSolver.solve(Stance(0, 0, 0), Stance(dx, 0, dz), MODES, rise = -depth - 1.0).isNotEmpty()
 
 	private fun spec(dx: Int, dz: Int, depth: Int, context: MovementContext): TemplateSpec? = TemplateSpec(
 		dx = dx, dy = -depth, dz = dz,
@@ -82,4 +86,6 @@ object DropMovement : Movement {
 	override fun completed(context: CompletionContext): Boolean = context.airborne
 
 	private val MODES = LaunchMode.entries.filter { it.drops }
+
+	private const val ALWAYS_REACHED_SPAN = 2
 }

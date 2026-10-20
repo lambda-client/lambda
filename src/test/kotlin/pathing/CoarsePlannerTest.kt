@@ -251,6 +251,19 @@ class CoarsePlannerTest {
     }
 
     @Test
+    fun `a jump span above the tuned reach offers every longer jump a sprint makes, from momentum only`() {
+        val world = SyntheticView().apply {
+            this[VoxelPos(0, 0, 0)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(7, -3, 2)] = CoarseVoxel.FULL_BLOCK
+        }
+        fun jumps(span: Int) = moveLibrary(SimpleMoveOptions(maxJumpSpan = span)).edgesFrom(world, Stance(0, 1, 0))
+            .filter { it.to == Stance(7, -2, 2) && it.movement == MovementId.JUMP }
+        assertTrue(jumps(span = 5).isEmpty(), "the tuned reach stops short of a seven-block jump")
+        val long = assertNotNull(jumps(span = 8).singleOrNull(), "a sprint carries seven blocks across when landing three lower")
+        assertFalse(long.standingStart, "a jump past the tuned reach needs momentum")
+    }
+
+    @Test
     fun `a jump whose apex arc passes through a block is not proposed`() {
         // A four-stance gap the body would clear, but with a block sitting at the arc's
         // apex column (two out) at head-apex height (+3 above the takeoff feet). The old

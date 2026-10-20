@@ -20,35 +20,25 @@ import com.lambda.pathing.world.snapshot.HazardRules
  * plans under its own settings, exactly like its rotation config.
  */
 interface PathingConfig {
-    val allowDiagonal: Boolean
-    val allowStepUp: Boolean
     val allowSprint: Boolean
     val saveFood: Boolean
-    val maxWalkOffDepth: Int
-    val maxDropSpan: Int
     val allowClimbing: Boolean
     val allowSwimming: Boolean
     val allowDiving: Boolean
     val diveSeconds: Double
     val unlimitedAir: Boolean
-    val allowJumpCandidates: Boolean
     val maxJumpSpan: Int
-    val maxJumpDrop: Int
-    val allowOffAxisJumps: Boolean
-    val allowDeepDropJumps: Boolean
     val allowNeoJumps: Boolean
     val allowSlimeBounces: Boolean
     val maxBounceDrop: Int
-    val allowDeepFalls: Boolean
 
     val avoidFire: Boolean
     val avoidCacti: Boolean
     val sneakOnMagma: Boolean
     val avoidLavaEdges: Boolean
     val avoidMobs: Boolean
-    val allowFallDamage: Boolean
-    val maxFallDamage: Double
-    val unlimitedFallDamage: Boolean
+    val ignoreFallDamage: Boolean
+    val fallDamageLimit: Double
 
     val goalRadius: Double
     val touchArrival: Boolean

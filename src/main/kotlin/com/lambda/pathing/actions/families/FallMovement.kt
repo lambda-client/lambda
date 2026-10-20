@@ -107,6 +107,8 @@ object FallMovement : Movement {
 		return fall.solution.airTicks + fall.plungeTicks + APPROACH_FRAMES
 	}
 
+	const val MIN_DROP = 4
+
 	private const val LANDING_SLACK = 1
 
 	private const val PLUNGE_MARGIN = 1.0

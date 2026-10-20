@@ -29,6 +29,10 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 
 	private val departsStoppedOnly = BooleanArray(templates.size) { templates[it].movement in STOPPED_DEPARTURES }
 
+	private val departsMovingOnly = BooleanArray(templates.size) { templates[it].momentumOnly }
+
+	private val standingDepartures = PendingFilter { template -> !departsMovingOnly[template.id.value] }
+
 	private val arrival = Array(templates.size) { if (templates[it].movement in STOPPED_ARRIVALS) SpeedClass.STOPPED else SpeedClass.MOVING }
 
 	private val sharesNeighbor = templates.groupBy { listOf(it.dx, it.dy, it.dz, arrival[it.id.value].ordinal) }.values
@@ -78,6 +82,7 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 			PendingFilter { template ->
 				val id = template.id.value
 				if (speed == SpeedClass.MOVING && departsStoppedOnly[id]) return@PendingFilter false
+				if (speed == SpeedClass.STOPPED && departsMovingOnly[id]) return@PendingFilter false
 				val target = values.applyAsDouble(PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id]))
 				if (target < Double.POSITIVE_INFINITY) {
 					val ticks = template.minimumTicks * slowdown
@@ -87,7 +92,7 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 				false
 			}
 		}
-		edges.forEachEdgeFrom(node, wanted, visitor)
+		edges.forEachEdgeFrom(node, wanted ?: if (speed == SpeedClass.STOPPED) standingDepartures else null, visitor)
 		edges.forEachFallFrom(node) { _, fall ->
 			if (speed == SpeedClass.STOPPED && !fall.standingStart) return@forEachFallFrom
 			val ticks = if (speed == SpeedClass.MOVING) fall.ticks else fall.ticks + MeasuredMotion.startupLossTicks

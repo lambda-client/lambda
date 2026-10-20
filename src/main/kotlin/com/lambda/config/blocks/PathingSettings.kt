@@ -20,36 +20,12 @@ import com.lambda.pathing.search.SearchConfig
 
 class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(MOVES_GROUP)
-    override val allowDiagonal by c.setting(
-        "Diagonal Moves", true,
-        "Allow moves that are not straight along an axis: diagonal walks and steps, and diagonal or off-axis jumps and drops.",
-    )
-
-    @Group(MOVES_GROUP)
-    override val allowStepUp by c.setting("Step Up", true, "Allow one-block rises. They are jumped, not walked.")
-
-    @Group(MOVES_GROUP)
     override val allowSprint by c.setting("Allow Sprint", true, "Sprint wherever it is faster. Off, the walk never sprints.")
 
     @Group(MOVES_GROUP)
     override val saveFood by c.setting(
         "Save Food", false,
         "Spend as little hunger as possible: never sprint, and only jump where a jump saves more than a second over walking.",
-    )
-
-    @Group(MOVES_GROUP)
-    override val maxWalkOffDepth by c.setting(
-        "Max Walk Off Depth", 3, 0..8, 1,
-        "Deepest walk-off treated as an ordinary drop; deeper drops are Deep Falls. Landings that would hurt are still refused.",
-        unit = " blocks",
-    )
-
-    @Group(MOVES_GROUP)
-    override val maxDropSpan by c.setting(
-        "Max Drop Span", 2, 1..4, 1,
-        "How far a controlled drop may carry the body sideways while descending. " +
-            "A span of 1 is straight down onto the neighbouring block; 2 crosses a gap on the way down.",
-        unit = " blocks",
     )
 
     @Group(MOVES_GROUP)
@@ -85,49 +61,19 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     ) { allowSwimming && allowDiving && !unlimitedAir }
 
     @Group(MOVES_GROUP)
-    override val allowJumpCandidates by c.setting(
-        "Gap Jumps", true,
-        "Jump gaps and onto higher blocks, and slide down honey walls. Every jump is simulated before it is walked.",
-    )
-
-    @Group(MOVES_GROUP)
     override val maxJumpSpan by c.setting(
-        "Max Jump Span", 5, 2..5, 1,
-        "Longest jump considered, in blocks along each axis. Deep Drop Jumps may reach one block further when they land lower.",
+        "Max Jump Span", SimpleMoveOptions.TUNED_JUMP_SPAN, 2..SimpleMoveOptions.FULL_JUMP_SPAN, 1,
+        "Longest jump considered, in blocks along each axis. Up to 5 the walk takes the jumps it lands reliably from a stand " +
+            "or a short run-up; above 5 it also considers every longer jump a full sprint can make, at the cost of planning time.",
         unit = " blocks",
-    ) { allowJumpCandidates }
-
-    @Group(MOVES_GROUP)
-    override val maxJumpDrop by c.setting(
-        "Max Jump Drop", 2, 0..3, 1,
-        "Deepest lower landing a gap jump may target. Lets the planner take a straight " +
-            "descending parkour line instead of weaving around drops. Unsafe arcs are still " +
-            "refused by simulation.",
-        unit = " blocks",
-    ) { allowJumpCandidates }
-
-    @Group(MOVES_GROUP)
-    override val allowOffAxisJumps by c.setting(
-        "Off-Axis Jumps", true,
-        "Offer jumps, drops and ladder catches that land off the eight compass directions, like three across and one " +
-            "to the side, and slime bounces at any heading. Roughly doubles the graph's fan-out on open ground.",
     )
-
-    @Group(MOVES_GROUP)
-    override val allowDeepDropJumps by c.setting(
-        "Deep Drop Jumps", true,
-        "Offer descending jumps beyond the flat standing reach: a four-cell air gap " +
-            "with half a block of real drop, wide diagonals with a full block and a straight " +
-            "five-cell gap with a block and three quarters, taken only with momentum and only where " +
-            "nothing easier leads on.",
-    ) { allowJumpCandidates }
 
     @Group(MOVES_GROUP)
     override val allowNeoJumps by c.setting(
         "Neo Jumps", true,
         "Jump around the side of a wall that blocks a straight jump: run out past the wall's edge, " +
             "jump beside it and steer back around it in the air. Needs sprinting and a turn speed of at least 90 degrees a tick.",
-    ) { allowJumpCandidates }
+    )
 
     @Group(MOVES_GROUP)
     override val allowSlimeBounces by c.setting(
@@ -143,13 +89,6 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
             "and need less run-up, at the cost of a longer arc to simulate.",
         unit = " blocks",
     ) { allowSlimeBounces }
-
-    @Group(MOVES_GROUP)
-    override val allowDeepFalls by c.setting(
-        "Deep Falls", true,
-        "Fall from any height into water, onto hay bales, beds and slime, or onto any floor the fall damage " +
-            "settings accept, steering toward the landing on the way down.",
-    )
 
     @Group(HAZARDS_GROUP)
     override val avoidFire by c.setting(
@@ -186,25 +125,19 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(HAZARDS_GROUP)
-    override val allowFallDamage by c.setting(
-        "Fall Damage", false,
-        "Let landings cost health. Off, the walk only takes falls the player survives unhurt: into water, onto " +
-            "hay bales, beds and slime, and within its safe fall distance, fall damage multiplier, flight or Slow Falling.",
+    override val ignoreFallDamage by c.setting(
+        "Ignore Fall Damage", false,
+        "Take any fall however much it costs, even one the player would not survive. For servers or modes without fall damage.",
     )
 
     @Group(HAZARDS_GROUP)
-    override val maxFallDamage by c.setting(
-        "Max Fall Damage", 2.0, 0.5..10.0, 0.5,
-        "Health one landing may cost. Half a heart opens drops like nine blocks onto hay. A damaging landing " +
-            "makes the server correct the velocity, so the walk replans after it.",
+    override val fallDamageLimit by c.setting(
+        "Fall Damage Limit", 0.0, 0.0..10.0, 0.5,
+        "Health one landing may cost. At 0 the walk only takes falls the player survives unhurt: into water, onto hay " +
+            "bales, beds and slime, and within its safe fall distance. Half a heart opens drops like nine blocks onto hay; " +
+            "a damaging landing makes the server correct the velocity, so the walk replans after it.",
         unit = " hearts",
-    ) { allowFallDamage && !unlimitedFallDamage }
-
-    @Group(HAZARDS_GROUP)
-    override val unlimitedFallDamage by c.setting(
-        "Unlimited Fall Damage", false,
-        "Take any fall however much it costs, even one the player would not survive. For servers or modes without fall damage.",
-    ) { allowFallDamage }
+    ) { !ignoreFallDamage }
 
     @Group(ARRIVAL_GROUP)
     override val goalRadius by c.setting(
