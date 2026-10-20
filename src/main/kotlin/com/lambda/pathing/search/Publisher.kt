@@ -64,6 +64,8 @@ internal class Publisher(
 
 	private var deferredPlunge: ValueAnchor? = null
 
+	private var firstOffered: Solution? = null
+
 	fun forgetRefusedCommit() {
 		refusedCommit = null
 	}
@@ -103,6 +105,17 @@ internal class Publisher(
 		val treading = finisher.treadTape(root) ?: return refuse(Refusal.NO_BRAKE)
 		val certified = certifier.certify(treading) as? MotionPlanResult.Success ?: return refuse(Refusal.CERTIFY)
 		publish(root, tailAnchor(root, certified, root.collisionEvents), certified, arrives = false)
+	}
+
+	fun publishFirst(solution: Solution, sealable: Boolean) {
+		if (!live || sink == null || publications.tip != null || firstOffered === solution || !firstPublicationDue()) return
+		firstOffered = solution
+		for (candidate in solution.anchor.lineFrom(frontier.root)) {
+			if (candidate.elapsed < searchConfig.horizonCommitFrames) continue
+			if (field.guide(candidate.stance) <= FIRST_PUBLISH_MIN_REMAINING_TICKS) break
+			if (publishBraked(candidate) == null) return
+		}
+		if (sealable && incumbent.ready(solution)) publishFinal(solution)
 	}
 
 	fun publishDeferredPlunge() {

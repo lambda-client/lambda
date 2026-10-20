@@ -232,6 +232,7 @@ internal class SearchLoop(
 		}
 		if (publications.tip == null) publisher.publishDeferredPlunge()
 		if (publications.tip == null && frontier.hasParked) publisher.commit(urgent = false)
+		if (publications.tip == null) incumbent.best?.let { publisher.publishFirst(it, sealable = routeReachesFinalGoal()) }
 	}
 
 	private fun recoverFromDrain(): SearchExit? {
