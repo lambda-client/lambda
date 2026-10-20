@@ -15,35 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.simulation.processing.preprocessors.state
+package com.lambda.interaction.construction.simulation.processing.preprocessors.property.placement.post
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfoAccumulator
-import com.lambda.interaction.construction.simulation.processing.StateProcessor
+import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry.growthProperties
+import com.lambda.interaction.construction.simulation.processing.PropertyPostProcessor
 import net.minecraft.block.BlockState
-import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 
 @Suppress("unused")
-object GrowthStateProcessor : StateProcessor {
-	private val growthProperties = setOf(
-		Properties.AGE_1,
-		Properties.AGE_2,
-		Properties.AGE_3,
-		Properties.AGE_4,
-		Properties.AGE_5,
-		Properties.AGE_7,
-		Properties.AGE_15,
-		Properties.AGE_25,
-		Properties.STAGE
-	)
-
+object GrowthPostProcessor : PropertyPostProcessor {
 	override fun acceptsState(state: BlockState, targetState: BlockState) =
 		state.block == targetState.block && state != targetState &&
+				growthProperties.all { it !in state || state.get(it) <= targetState.get(it) } &&
 				state.entries.all { (property, value) -> property in growthProperties || targetState.entries[property] == value }
 
 	context(safeContext: SafeContext)
 	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
+		addIgnores(*growthProperties.toTypedArray())
 		omitInteraction()
 	}
 }

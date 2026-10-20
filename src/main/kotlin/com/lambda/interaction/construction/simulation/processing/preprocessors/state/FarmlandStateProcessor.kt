@@ -44,15 +44,11 @@ object FarmlandStateProcessor : StateProcessor {
 	private val sourceBlocks = listOf(Blocks.DIRT, Blocks.GRASS_BLOCK)
 
 	override fun acceptsState(state: BlockState, targetState: BlockState) =
-		targetState.block == Blocks.FARMLAND && state != targetState &&
-				(state.isReplaceable || state.block == Blocks.FARMLAND || state.block in tillResults)
+		targetState.block == Blocks.FARMLAND && state.block != targetState.block &&
+				(state.isReplaceable || state.block in tillResults)
 
 	context(safeContext: SafeContext)
 	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
-		if (state.block == Blocks.FARMLAND) {
-			omitInteraction()
-			return
-		}
 		val player = safeContext.player
 		noCaching()
 

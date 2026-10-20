@@ -65,14 +65,6 @@ object ProcessorRegistry : Loadable {
 		Properties.FLOWER_AMOUNT,
 		Properties.EAST_WALL_SHAPE, Properties.SOUTH_WALL_SHAPE, Properties.WEST_WALL_SHAPE, Properties.NORTH_WALL_SHAPE,
 		Properties.EAST_WIRE_CONNECTION, Properties.SOUTH_WIRE_CONNECTION, Properties.WEST_WIRE_CONNECTION, Properties.NORTH_WIRE_CONNECTION,
-		Properties.AGE_1,
-		Properties.AGE_2,
-		Properties.AGE_3,
-		Properties.AGE_4,
-		Properties.AGE_5,
-		Properties.AGE_7,
-		Properties.AGE_15,
-		Properties.AGE_25,
 		Properties.BITES,
 		Properties.CANDLES,
 		Properties.DELAY,
@@ -88,7 +80,6 @@ object ProcessorRegistry : Loadable {
 		Properties.NOTE,
 		Properties.PICKLES,
 		Properties.POWER,
-		Properties.STAGE,
 		Properties.CHARGES,
 		Properties.COMPARATOR_MODE,
 		Properties.INSTRUMENT,
@@ -121,6 +112,18 @@ object ProcessorRegistry : Loadable {
 		Properties.COMPARATOR_MODE,
 		Properties.OPEN,
 		Properties.NOTE
+	)
+
+	val growthProperties = setOf(
+		Properties.AGE_1,
+		Properties.AGE_2,
+		Properties.AGE_3,
+		Properties.AGE_4,
+		Properties.AGE_5,
+		Properties.AGE_7,
+		Properties.AGE_15,
+		Properties.AGE_25,
+		Properties.STAGE
 	)
 
 	override fun load() = "Loaded ${propertyPreProcessors.size} pre processors"
@@ -176,6 +179,7 @@ object ProcessorRegistry : Loadable {
 			complete()
 		}
 
+	// Hoes only till with air above, so things like short grass are broken before a crop goes in
 	private fun BlockState.canBeReplacedBy(expectedState: BlockState) = when {
 		expectedState.isIn(BlockTags.CROPS) -> isReplaceable && (isAir || !fluidState.isEmpty)
 		else -> isReplaceable
