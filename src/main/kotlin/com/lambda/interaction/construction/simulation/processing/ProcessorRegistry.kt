@@ -26,6 +26,7 @@ import com.lambda.util.BlockUtils.matches
 import com.lambda.util.ReflectionUtils.getInstances
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.tag.BlockTags
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 import java.util.*
@@ -64,14 +65,6 @@ object ProcessorRegistry : Loadable {
 		Properties.FLOWER_AMOUNT,
 		Properties.EAST_WALL_SHAPE, Properties.SOUTH_WALL_SHAPE, Properties.WEST_WALL_SHAPE, Properties.NORTH_WALL_SHAPE,
 		Properties.EAST_WIRE_CONNECTION, Properties.SOUTH_WIRE_CONNECTION, Properties.WEST_WIRE_CONNECTION, Properties.NORTH_WIRE_CONNECTION,
-		Properties.AGE_1,
-		Properties.AGE_2,
-		Properties.AGE_3,
-		Properties.AGE_4,
-		Properties.AGE_5,
-		Properties.AGE_7,
-		Properties.AGE_15,
-		Properties.AGE_25,
 		Properties.BITES,
 		Properties.CANDLES,
 		Properties.DELAY,
@@ -87,7 +80,6 @@ object ProcessorRegistry : Loadable {
 		Properties.NOTE,
 		Properties.PICKLES,
 		Properties.POWER,
-		Properties.STAGE,
 		Properties.CHARGES,
 		Properties.COMPARATOR_MODE,
 		Properties.INSTRUMENT,
@@ -120,6 +112,18 @@ object ProcessorRegistry : Loadable {
 		Properties.COMPARATOR_MODE,
 		Properties.OPEN,
 		Properties.NOTE
+	)
+
+	val growthProperties = setOf(
+		Properties.AGE_1,
+		Properties.AGE_2,
+		Properties.AGE_3,
+		Properties.AGE_4,
+		Properties.AGE_5,
+		Properties.AGE_7,
+		Properties.AGE_15,
+		Properties.AGE_25,
+		Properties.STAGE
 	)
 
 	override fun load() = "Loaded ${propertyPreProcessors.size} pre processors"
@@ -156,7 +160,7 @@ object ProcessorRegistry : Loadable {
 			}
 			if (!omitInteraction) {
 				if (state.block != expectedState.block) {
-					if (state.isReplaceable)  {
+					if (state.canBeReplacedBy(expectedState)) {
 						propertyPreProcessors.forEach { processor ->
 							if (processor.acceptsState(state, expectedState)) {
 								with(processor) { preProcess(state, expectedState, pos) }
@@ -174,6 +178,12 @@ object ProcessorRegistry : Loadable {
 			}
 			complete()
 		}
+
+	// Hoes only till with air above, so things like short grass are broken before a crop goes in
+	private fun BlockState.canBeReplacedBy(expectedState: BlockState) = when {
+		expectedState.isIn(BlockTags.CROPS) -> isReplaceable && (isAir || !fluidState.isEmpty)
+		else -> isReplaceable
+	}
 }
 
 data class PreProcessingData(val info: PreProcessingInfo, val pos: BlockPos)
