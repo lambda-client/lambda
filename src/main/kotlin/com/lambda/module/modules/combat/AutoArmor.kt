@@ -19,6 +19,7 @@ package com.lambda.module.modules.combat
 
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
+import com.lambda.config.hideBlockExcept
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
@@ -109,7 +110,10 @@ object AutoArmor : Module(
 
 	init {
 		setDefaultAutomationConfig()
-			.withEdits { hideAllExcept(::inventoryConfig) }
+			.withEdits {
+				hideAllExcept(::buildConfig, ::inventoryConfig)
+				hideBlockExcept(::buildConfig, buildConfig::inventoryLimit)
+			}
 
 		listen<TickEvent.Pre> {
 			if (!tickedThisTick) tick()
@@ -125,8 +129,8 @@ object AutoArmor : Module(
 		val armorSlots = findSlots(containerSelection = ArmorContainer.select())
 			?.toList()
 			?: return
-		
-val swappable =
+
+		val swappable =
 			findSlots(
 				stackSelection(StackSelection.UNBOUNDED) {
 					predicate { stack, _ -> stack.isEquipable(armorSlots) }

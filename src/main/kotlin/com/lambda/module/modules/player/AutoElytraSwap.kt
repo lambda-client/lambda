@@ -17,6 +17,9 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.automation.setDefaultAutomationConfig
+import com.lambda.config.hideAllExcept
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.container.containers.HotbarContainer
@@ -46,6 +49,11 @@ object AutoElytraSwap : Module(
 	val glideDelay by setting("Glide Delay", 0, 0..20, 1, "The delay, in ticks, between swapping to elytra, and starting to glide", unit = " ticks")
 
 	init {
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllExcept(buildConfig::inventoryLimit)
+			}
+
 		onDisable { restore() }
 	}
 
