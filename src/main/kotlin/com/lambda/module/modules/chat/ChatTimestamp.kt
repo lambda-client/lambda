@@ -20,13 +20,13 @@ package com.lambda.module.modules.chat
 import com.lambda.config.blocks.FormatterConfig
 import com.lambda.config.blocks.FormatterSettings
 import com.lambda.config.editTypedSettings
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.hide
 import com.lambda.config.withEdits
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.FormattingUtils.format
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
@@ -47,7 +47,11 @@ object ChatTimestamp : Module(
 ) {
 	private var color: Formatting by setting("Color", Formatting.GRAY)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
-	private val javaColor: Color get() = Color(color.colorValue!! and 16777215)
+	private val javaColor: Color
+		get() {
+			val rgb = color.colorValue ?: return Color.GRAY
+			return Color(rgb and 16777215)
+		}
 
 	val formatter by configBlock(FormatterSettings(this))
 		.withEdits {

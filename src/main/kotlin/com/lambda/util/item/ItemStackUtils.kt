@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.util.item
 
 import com.lambda.context.SafeContext
@@ -72,14 +74,30 @@ object ItemStackUtils {
         stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT)
             .filteredApply(attributeBaseValue(EntityAttributes.ATTACK_SPEED), EquipmentSlot.MAINHAND, EntityAttributes.ATTACK_SPEED)
 
+    const val NOTHING_MATCHED = -1
+
+    val Int.orZero get() = coerceAtLeast(0)
+
     val ItemStack.spaceLeft get() = maxCount - count
     val ItemStack.hasSpace get() = spaceLeft > 0
     val List<ItemStack>.spaceLeft get() = sumOf { it.spaceLeft }
     val List<Slot>.spaceLeft @JvmName("slotSpaceLeft") get() = sumOf { it.stack.spaceLeft }
-    val List<ItemStack>.empty: Int get() = count { it.isEmpty }
-    val List<Slot>.empty: Int @JvmName("slotEmpty") get() = count { it.stack.isEmpty }
-    val List<ItemStack>.count: Int get() = if (isEmpty()) -1 else sumOf { it.count }
-    val List<Slot>.count: Int @JvmName("slotCount") get() = if (isEmpty()) -1 else sumOf { it.stack.count }
+    val List<ItemStack>.emptySpace: Int get() = count { it.isEmpty }
+    val List<Slot>.emptySpace: Int @JvmName("emptySlotSpace") get() = count { it.stack.isEmpty }
+    val List<ItemStack>.count: Int get() = if (isEmpty()) NOTHING_MATCHED else sumOf { it.count }
+    val List<Slot>.count: Int @JvmName("slotCount") get() = if (isEmpty()) NOTHING_MATCHED else sumOf { it.stack.count }
+
+    fun ItemStack.count(countEmptyAsOne: Boolean): Int = if (isEmpty && countEmptyAsOne) 1 else count
+
+    fun List<ItemStack>.count(countEmptyAsOne: Boolean): Int =
+        if (isEmpty()) NOTHING_MATCHED
+        else sumOf { it.count(countEmptyAsOne) }
+
+    @JvmName("slotCountMatching")
+    fun List<Slot>.count(countEmptyAsOne: Boolean): Int =
+        if (isEmpty()) NOTHING_MATCHED
+        else sumOf { it.stack.count(countEmptyAsOne) }
+
     val List<ItemStack>.copy: List<ItemStack> get() = map { it.copy() }
 
     context(safeContext: SafeContext)
@@ -111,11 +129,11 @@ object ItemStackUtils {
         return listOf(copyWithCount(maxCount), copyWithCount(remainder))
     }
 
-    val ItemStack.shulkerBoxContents: List<ItemStack> by cacheable { stack ->
+    val ItemStack.shulkerBoxStacks: List<ItemStack> by cacheable { stack ->
         stack.components.get(DataComponentTypes.CONTAINER)?.stream()?.toList() ?: emptyList()
     }
 
-    val ItemStack.bundleContents: List<ItemStack> by cacheable { stack ->
+    val ItemStack.bundleStacks: List<ItemStack> by cacheable { stack ->
         stack.components.get(DataComponentTypes.BUNDLE_CONTENTS)?.stream()?.toList() ?: emptyList()
     }
 

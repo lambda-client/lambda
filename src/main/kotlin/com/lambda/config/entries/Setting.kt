@@ -31,6 +31,7 @@ import com.lambda.config.ConfigEntry
 import com.lambda.config.EntryCore
 import com.lambda.config.EntryLayer
 import com.lambda.config.MultipleLayerType
+import com.lambda.config.entries.Setting.ValueListener
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
@@ -229,42 +230,40 @@ abstract class Setting<T>(
 
 	override fun toString() = "Setting $name: $value"
 
-	companion object {
-		/**
-		 * Will only register changes of the variable, not the content of the variable!
-		 * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
-		 */
-		@ConfigEntryDsl
-		fun <S : Setting<T>, T> S.onValueChange(block: SafeContext.(from: T, to: T) -> Unit) =
-			apply {
-				listeners.add(ValueListener(true) { from, to ->
-					runSafe { block(from, to) }
-				})
-			}
-
-		@ConfigEntryDsl
-		fun <S : Setting<T>, T> S.onValueChangeUnsafe(block: (from: T, to: T) -> Unit) =
-			apply { listeners.add(ValueListener(true, block)) }
-
-		@ConfigEntryDsl
-		fun <S : Setting<T>, T> S.onValueSet(block: SafeContext.(from: T, to: T) -> Unit) =
-			apply {
-				listeners.add(ValueListener(false) { from, to ->
-					runSafe { block(from, to) }
-				})
-			}
-
-		@ConfigEntryDsl
-		fun <S : Setting<T>, T> S.onValueSetUnsafe(block: (from: T, to: T) -> Unit) =
-			apply { listeners.add(ValueListener(false, block)) }
-
-		@ConfigEntryDsl
-		fun <S : Setting<T>, T> S.disabled(predicate: () -> Boolean) =
-			apply { disabled = predicate }
-	}
-
 	class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 }
+
+/**
+ * Will only register changes of the variable, not the content of the variable!
+ * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
+ */
+@ConfigEntryDsl
+fun <S : Setting<T>, T> S.onValueChange(block: SafeContext.(from: T, to: T) -> Unit) =
+	apply {
+		listeners.add(ValueListener(true) { from, to ->
+			runSafe { block(from, to) }
+		})
+	}
+
+@ConfigEntryDsl
+fun <S : Setting<T>, T> S.onValueChangeUnsafe(block: (from: T, to: T) -> Unit) =
+	apply { listeners.add(ValueListener(true, block)) }
+
+@ConfigEntryDsl
+fun <S : Setting<T>, T> S.onValueSet(block: SafeContext.(from: T, to: T) -> Unit) =
+	apply {
+		listeners.add(ValueListener(false) { from, to ->
+			runSafe { block(from, to) }
+		})
+	}
+
+@ConfigEntryDsl
+fun <S : Setting<T>, T> S.onValueSetUnsafe(block: (from: T, to: T) -> Unit) =
+	apply { listeners.add(ValueListener(false, block)) }
+
+@ConfigEntryDsl
+fun <S : Setting<T>, T> S.disabled(predicate: () -> Boolean) =
+	apply { disabled = predicate }
 
 class SettingEntryLayer<T : Setting<U>, U>(
 	override val parent: EntryLayer.Multiple<Setting<*>>,

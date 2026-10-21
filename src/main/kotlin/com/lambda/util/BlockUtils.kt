@@ -101,181 +101,187 @@ import net.minecraft.util.math.Vec3i
 
 @Suppress("unused")
 object BlockUtils {
-    val signs = setOf(
-        Blocks.OAK_SIGN,
-        Blocks.BIRCH_SIGN,
-        Blocks.ACACIA_SIGN,
-        Blocks.CHERRY_SIGN,
-        Blocks.JUNGLE_SIGN,
-        Blocks.DARK_OAK_SIGN,
-        Blocks.MANGROVE_SIGN,
-        Blocks.BAMBOO_SIGN,
-        Blocks.CRIMSON_SIGN,
-        Blocks.WARPED_SIGN,
-        Blocks.SPRUCE_SIGN
-    )
+    val SIGNS =
+        setOf(
+            Blocks.OAK_SIGN,
+            Blocks.BIRCH_SIGN,
+            Blocks.ACACIA_SIGN,
+            Blocks.CHERRY_SIGN,
+            Blocks.JUNGLE_SIGN,
+            Blocks.DARK_OAK_SIGN,
+            Blocks.MANGROVE_SIGN,
+            Blocks.BAMBOO_SIGN,
+            Blocks.CRIMSON_SIGN,
+            Blocks.WARPED_SIGN,
+            Blocks.SPRUCE_SIGN
+        )
 
-    val wallSigns = setOf(
-        Blocks.OAK_WALL_SIGN,
-        Blocks.BIRCH_WALL_SIGN,
-        Blocks.ACACIA_WALL_SIGN,
-        Blocks.CHERRY_WALL_SIGN,
-        Blocks.JUNGLE_WALL_SIGN,
-        Blocks.DARK_OAK_WALL_SIGN,
-        Blocks.MANGROVE_WALL_SIGN,
-        Blocks.BAMBOO_WALL_SIGN,
-        Blocks.CRIMSON_WALL_SIGN,
-        Blocks.WARPED_WALL_SIGN,
-        Blocks.SPRUCE_WALL_SIGN
-    )
+    val WALL_SIGNS =
+        setOf(
+            Blocks.OAK_WALL_SIGN,
+            Blocks.BIRCH_WALL_SIGN,
+            Blocks.ACACIA_WALL_SIGN,
+            Blocks.CHERRY_WALL_SIGN,
+            Blocks.JUNGLE_WALL_SIGN,
+            Blocks.DARK_OAK_WALL_SIGN,
+            Blocks.MANGROVE_WALL_SIGN,
+            Blocks.BAMBOO_WALL_SIGN,
+            Blocks.CRIMSON_WALL_SIGN,
+            Blocks.WARPED_WALL_SIGN,
+            Blocks.SPRUCE_WALL_SIGN
+        )
 
-    val hangingSigns = setOf(
-        Blocks.OAK_HANGING_SIGN,
-        Blocks.BIRCH_HANGING_SIGN,
-        Blocks.ACACIA_HANGING_SIGN,
-        Blocks.CHERRY_HANGING_SIGN,
-        Blocks.JUNGLE_HANGING_SIGN,
-        Blocks.DARK_OAK_HANGING_SIGN,
-        Blocks.MANGROVE_HANGING_SIGN,
-        Blocks.BAMBOO_HANGING_SIGN,
-        Blocks.CRIMSON_HANGING_SIGN,
-        Blocks.WARPED_HANGING_SIGN,
-        Blocks.SPRUCE_HANGING_SIGN
-    )
+    val HANGING_SIGNS =
+        setOf(
+            Blocks.OAK_HANGING_SIGN,
+            Blocks.BIRCH_HANGING_SIGN,
+            Blocks.ACACIA_HANGING_SIGN,
+            Blocks.CHERRY_HANGING_SIGN,
+            Blocks.JUNGLE_HANGING_SIGN,
+            Blocks.DARK_OAK_HANGING_SIGN,
+            Blocks.MANGROVE_HANGING_SIGN,
+            Blocks.BAMBOO_HANGING_SIGN,
+            Blocks.CRIMSON_HANGING_SIGN,
+            Blocks.WARPED_HANGING_SIGN,
+            Blocks.SPRUCE_HANGING_SIGN
+        )
 
-    val hangingWallSigns = setOf(
-        Blocks.OAK_WALL_HANGING_SIGN,
-        Blocks.BIRCH_WALL_HANGING_SIGN,
-        Blocks.ACACIA_WALL_HANGING_SIGN,
-        Blocks.CHERRY_WALL_HANGING_SIGN,
-        Blocks.JUNGLE_WALL_HANGING_SIGN,
-        Blocks.DARK_OAK_WALL_HANGING_SIGN,
-        Blocks.MANGROVE_WALL_HANGING_SIGN,
-        Blocks.BAMBOO_WALL_HANGING_SIGN,
-        Blocks.CRIMSON_WALL_HANGING_SIGN,
-        Blocks.WARPED_WALL_HANGING_SIGN,
-        Blocks.SPRUCE_WALL_HANGING_SIGN
-    )
+    val HANGING_WALL_SIGNS =
+        setOf(
+            Blocks.OAK_WALL_HANGING_SIGN,
+            Blocks.BIRCH_WALL_HANGING_SIGN,
+            Blocks.ACACIA_WALL_HANGING_SIGN,
+            Blocks.CHERRY_WALL_HANGING_SIGN,
+            Blocks.JUNGLE_WALL_HANGING_SIGN,
+            Blocks.DARK_OAK_WALL_HANGING_SIGN,
+            Blocks.MANGROVE_WALL_HANGING_SIGN,
+            Blocks.BAMBOO_WALL_HANGING_SIGN,
+            Blocks.CRIMSON_WALL_HANGING_SIGN,
+            Blocks.WARPED_WALL_HANGING_SIGN,
+            Blocks.SPRUCE_WALL_HANGING_SIGN
+        )
 
-    val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
+    val ALL_SIGNS = SIGNS + WALL_SIGNS + HANGING_SIGNS + HANGING_WALL_SIGNS
 
-    val pottedBlocks = setOf(
-        Blocks.POTTED_WARPED_FUNGUS,
-        Blocks.POTTED_AZALEA_BUSH,
-        Blocks.POTTED_CLOSED_EYEBLOSSOM,
-        Blocks.POTTED_CACTUS,
-        Blocks.POTTED_PINK_TULIP,
-        Blocks.POTTED_FLOWERING_AZALEA_BUSH,
-        Blocks.POTTED_RED_TULIP,
-        Blocks.POTTED_CORNFLOWER,
-        Blocks.POTTED_DANDELION,
-        Blocks.POTTED_SPRUCE_SAPLING,
-        Blocks.POTTED_WHITE_TULIP,
-        Blocks.POTTED_OAK_SAPLING,
-        Blocks.POTTED_WITHER_ROSE,
-        Blocks.POTTED_PALE_OAK_SAPLING,
-        Blocks.POTTED_ACACIA_SAPLING,
-        Blocks.POTTED_BIRCH_SAPLING,
-        Blocks.POTTED_ALLIUM,
-        Blocks.POTTED_CRIMSON_FUNGUS,
-        Blocks.POTTED_CRIMSON_ROOTS,
-        Blocks.POTTED_JUNGLE_SAPLING,
-        Blocks.POTTED_DEAD_BUSH,
-        Blocks.POTTED_TORCHFLOWER,
-        Blocks.POTTED_BLUE_ORCHID,
-        Blocks.POTTED_BROWN_MUSHROOM,
-        Blocks.POTTED_BAMBOO,
-        Blocks.POTTED_MANGROVE_PROPAGULE,
-        Blocks.POTTED_CHERRY_SAPLING,
-        Blocks.POTTED_AZURE_BLUET,
-        Blocks.POTTED_DARK_OAK_SAPLING,
-        Blocks.POTTED_RED_MUSHROOM,
-        Blocks.POTTED_WARPED_ROOTS,
-        Blocks.POTTED_OPEN_EYEBLOSSOM,
-        Blocks.POTTED_ORANGE_TULIP,
-        Blocks.POTTED_OXEYE_DAISY,
-        Blocks.POTTED_POPPY,
-        Blocks.POTTED_LILY_OF_THE_VALLEY,
-        Blocks.POTTED_FERN
-    )
+    val POTTED_BLOCKS =
+        setOf(
+            Blocks.POTTED_WARPED_FUNGUS,
+            Blocks.POTTED_AZALEA_BUSH,
+            Blocks.POTTED_CLOSED_EYEBLOSSOM,
+            Blocks.POTTED_CACTUS,
+            Blocks.POTTED_PINK_TULIP,
+            Blocks.POTTED_FLOWERING_AZALEA_BUSH,
+            Blocks.POTTED_RED_TULIP,
+            Blocks.POTTED_CORNFLOWER,
+            Blocks.POTTED_DANDELION,
+            Blocks.POTTED_SPRUCE_SAPLING,
+            Blocks.POTTED_WHITE_TULIP,
+            Blocks.POTTED_OAK_SAPLING,
+            Blocks.POTTED_WITHER_ROSE,
+            Blocks.POTTED_PALE_OAK_SAPLING,
+            Blocks.POTTED_ACACIA_SAPLING,
+            Blocks.POTTED_BIRCH_SAPLING,
+            Blocks.POTTED_ALLIUM,
+            Blocks.POTTED_CRIMSON_FUNGUS,
+            Blocks.POTTED_CRIMSON_ROOTS,
+            Blocks.POTTED_JUNGLE_SAPLING,
+            Blocks.POTTED_DEAD_BUSH,
+            Blocks.POTTED_TORCHFLOWER,
+            Blocks.POTTED_BLUE_ORCHID,
+            Blocks.POTTED_BROWN_MUSHROOM,
+            Blocks.POTTED_BAMBOO,
+            Blocks.POTTED_MANGROVE_PROPAGULE,
+            Blocks.POTTED_CHERRY_SAPLING,
+            Blocks.POTTED_AZURE_BLUET,
+            Blocks.POTTED_DARK_OAK_SAPLING,
+            Blocks.POTTED_RED_MUSHROOM,
+            Blocks.POTTED_WARPED_ROOTS,
+            Blocks.POTTED_OPEN_EYEBLOSSOM,
+            Blocks.POTTED_ORANGE_TULIP,
+            Blocks.POTTED_OXEYE_DAISY,
+            Blocks.POTTED_POPPY,
+            Blocks.POTTED_LILY_OF_THE_VALLEY,
+            Blocks.POTTED_FERN
+        )
 
-    val interactionBlocks = setOf(
-        AbstractCauldronBlock::class,
-        AbstractFurnaceBlock::class,
-        AbstractSignBlock::class,
-        AnvilBlock::class,
-        BarrelBlock::class,
-        BeaconBlock::class,
-        BedBlock::class,
-        BeehiveBlock::class,
-        BellBlock::class,
-        BrewingStandBlock::class,
-        ButtonBlock::class,
-        CakeBlock::class,
-        CampfireBlock::class,
-        CandleBlock::class,
-        CandleCakeBlock::class,
-        CartographyTableBlock::class,
-        CaveVinesBodyBlock::class,
-        CaveVinesHeadBlock::class,
-        ChestBlock::class,
-        ChiseledBookshelfBlock::class,
-        CommandBlock::class,
-        ComparatorBlock::class,
-        ComposterBlock::class,
-        CrafterBlock::class,
-        CraftingTableBlock::class,
-        DaylightDetectorBlock::class,
-        DecoratedPotBlock::class,
-        DispenserBlock::class,
-        DropperBlock::class,
-        DoorBlock::class,
-        DragonEggBlock::class,
-        EnchantingTableBlock::class,
-        EnderChestBlock::class,
-        FenceBlock::class,
-        FenceGateBlock::class,
-        FlowerPotBlock::class,
-        GrindstoneBlock::class,
-        HopperBlock::class,
-        JigsawBlock::class,
-        JukeboxBlock::class,
-        LecternBlock::class,
-        LeverBlock::class,
-        LightBlock::class,
-        LoomBlock::class,
-        NoteBlock::class,
-        PistonExtensionBlock::class,
-        PumpkinBlock::class,
-        RedstoneOreBlock::class,
-        RedstoneWireBlock::class,
-        RepeaterBlock::class,
-        RespawnAnchorBlock::class,
-        ShulkerBoxBlock::class,
-        SmithingTableBlock::class,
-        StonecutterBlock::class,
-        StructureBlock::class,
-        SweetBerryBushBlock::class,
-        TntBlock::class,
-        TrapdoorBlock::class
-    )
+    val INTERACTION_BLOCKS =
+        setOf(
+            AbstractCauldronBlock::class,
+            AbstractFurnaceBlock::class,
+            AbstractSignBlock::class,
+            AnvilBlock::class,
+            BarrelBlock::class,
+            BeaconBlock::class,
+            BedBlock::class,
+            BeehiveBlock::class,
+            BellBlock::class,
+            BrewingStandBlock::class,
+            ButtonBlock::class,
+            CakeBlock::class,
+            CampfireBlock::class,
+            CandleBlock::class,
+            CandleCakeBlock::class,
+            CartographyTableBlock::class,
+            CaveVinesBodyBlock::class,
+            CaveVinesHeadBlock::class,
+            ChestBlock::class,
+            ChiseledBookshelfBlock::class,
+            CommandBlock::class,
+            ComparatorBlock::class,
+            ComposterBlock::class,
+            CrafterBlock::class,
+            CraftingTableBlock::class,
+            DaylightDetectorBlock::class,
+            DecoratedPotBlock::class,
+            DispenserBlock::class,
+            DropperBlock::class,
+            DoorBlock::class,
+            DragonEggBlock::class,
+            EnchantingTableBlock::class,
+            EnderChestBlock::class,
+            FenceBlock::class,
+            FenceGateBlock::class,
+            FlowerPotBlock::class,
+            GrindstoneBlock::class,
+            HopperBlock::class,
+            JigsawBlock::class,
+            JukeboxBlock::class,
+            LecternBlock::class,
+            LeverBlock::class,
+            LightBlock::class,
+            LoomBlock::class,
+            NoteBlock::class,
+            PistonExtensionBlock::class,
+            PumpkinBlock::class,
+            RedstoneOreBlock::class,
+            RedstoneWireBlock::class,
+            RepeaterBlock::class,
+            RespawnAnchorBlock::class,
+            ShulkerBoxBlock::class,
+            SmithingTableBlock::class,
+            StonecutterBlock::class,
+            StructureBlock::class,
+            SweetBerryBushBlock::class,
+            TntBlock::class,
+            TrapdoorBlock::class
+        )
 
-    val fluids = listOf(
-        Fluids.LAVA,
-        Fluids.FLOWING_LAVA,
-        Fluids.WATER,
-        Fluids.FLOWING_WATER,
-        Fluids.EMPTY,
-    )
+    val FLUIDS =
+        listOf(
+            Fluids.LAVA,
+            Fluids.FLOWING_LAVA,
+            Fluids.WATER,
+            Fluids.FLOWING_WATER,
+            Fluids.EMPTY,
+        )
 
     fun SafeContext.blockState(pos: BlockPos): BlockState = world.getBlockState(pos)
     fun SafeContext.fluidState(pos: BlockPos): FluidState = world.getFluidState(pos)
     fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
 
     fun BlockState.matches(state: BlockState, ignoredProperties: Collection<Property<*>> = emptySet()) =
-        this.block == state.block && this.properties.all {
-            this[it] == state[it] || it in ignoredProperties
-        }
+        this.block == state.block &&
+                this.properties.all { this[it] == state[it] || it in ignoredProperties }
 
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, breakThreshold: Float): Boolean {
         val ticksNeeded = 1 / (blockState.calcBlockBreakingDelta(player, world, blockPos) / breakThreshold)

@@ -24,7 +24,7 @@ import com.lambda.event.EventFlow
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.network.NetworkHandler.updateToken
 import com.lambda.network.api.v1.endpoints.linkDiscord
 import com.lambda.threading.runConcurrent

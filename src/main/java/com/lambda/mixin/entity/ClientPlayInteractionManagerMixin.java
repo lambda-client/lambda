@@ -20,9 +20,10 @@ package com.lambda.mixin.entity;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.PlayerEvent;
-import com.lambda.interaction.handlers.BaritoneHandler;
-import com.lambda.interaction.managers.inventory.InventoryManager;
-import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.interaction.handler.handlers.BaritoneHandler;
+import com.lambda.interaction.manager.managers.inventory.InventoryManager;
+import com.lambda.interaction.manager.managers.rotating.RotationManager;
+import com.lambda.module.modules.client.Client;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -111,6 +112,17 @@ public class ClientPlayInteractionManagerMixin {
         if (EventFlow.post(click).isCanceled()) ci.cancel();
     }
 
+    @Inject(method = "clickSlot", at = @At("TAIL"))
+    public void clickSlotTail(int syncId, int slotId, int button, SlotActionType actionType, PlayerEntity player, CallbackInfo ci) {
+        if (syncId != player.currentScreenHandler.syncId) return;
+        EventFlow.post(new PlayerEvent.SlotClick.Post(syncId, slotId, button, actionType, player.currentScreenHandler));
+    }
+
+    @ModifyExpressionValue(method = "clickSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/screen/ScreenHandler;getRevision()I"))
+    private int modifyClickSlotRevision(int originalRevision) {
+        return Client.INSTANCE.getAvoidInventoryDesync() ? -1 : originalRevision;
+    }
+
     /**
      * Posts {@link InventoryEvent.HotbarSlot.Update} and returns the event value as the selected slot
      * <pre>{@code
@@ -144,7 +156,7 @@ public class ClientPlayInteractionManagerMixin {
     @WrapMethod(method = "createPlayer(Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/stat/StatHandler;Lnet/minecraft/client/recipebook/ClientRecipeBook;)Lnet/minecraft/client/network/ClientPlayerEntity;")
     private ClientPlayerEntity wrapCreatePlayer(ClientWorld world, StatHandler statHandler, ClientRecipeBook recipeBook, Operation<ClientPlayerEntity> original) {
         var player = original.call(world, statHandler, recipeBook);
-        InventoryManager.INSTANCE.setScreenHandler(player.playerScreenHandler);
+        InventoryManager.onSetScreenHandler(player.playerScreenHandler);
         return player;
     }
 }

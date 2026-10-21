@@ -19,7 +19,6 @@ package com.lambda.module
 
 import com.lambda.config.settings.complex.Bind
 import com.lambda.gui.Layout
-import com.lambda.module.tag.ModuleTag
 import java.awt.Color
 
 abstract class HudModule(

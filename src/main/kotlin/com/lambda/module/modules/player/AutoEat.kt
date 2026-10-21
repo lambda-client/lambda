@@ -17,18 +17,18 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.EatConfig.Companion.reasonEating
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
+import com.lambda.module.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.tasks.EatTask.Companion.eat
-import com.lambda.task.wrappers.thenAction
+import com.lambda.task.start
+import com.lambda.task.tasks.eat
+import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 
 @Suppress("unused")
@@ -49,7 +49,9 @@ object AutoEat : Module(
             val reason = runSafeAutomated { reasonEating() }
             if (eatTask != null || !reason.shouldEat()) return@listen
 
-            eatTask = eat().thenAction { eatTask = null }.run()
+            eatTask = eat()
+                .thenAction { eatTask = null }
+                .start()
         }
 
         onDisable {

@@ -18,7 +18,7 @@
 package com.lambda.module.modules.world
 
 import com.lambda.config.Group
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.editTypedSettings
 import com.lambda.config.hideAllExcept
@@ -35,20 +35,19 @@ import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.ContainerHandler.transfer
-import com.lambda.interaction.handlers.breaking.RebreakHandler
-import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
-import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
-import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.moveStack
+import com.lambda.interaction.manager.managers.breaking.breakRequest
+import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.EnchantmentUtils.getEnchantment
-import com.lambda.util.item.ItemStackUtils.empty
+import com.lambda.util.item.ItemStackUtils.emptySpace
 import com.lambda.util.item.ItemStackUtils.hasSpace
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import net.minecraft.block.BlockState
@@ -80,11 +79,11 @@ object EnderChestFarmer : Module(
 
 	private val SafeContext.inventoryFull
 		get() = player.hotbarAndInventoryStacks.let { stacks ->
-			stacks.empty == 0 && stacks.none { it.item == Items.OBSIDIAN && it.hasSpace }
+			stacks.emptySpace == 0 && stacks.none { it.item == Items.OBSIDIAN && it.hasSpace }
 		}
 
 	private val SafeContext.hasEnderChests
-		get() = Items.ENDER_CHEST.select().filterStacks(player.hotbarAndInventoryStacks).isNotEmpty()
+		get() = Items.ENDER_CHEST.select().filter(player.hotbarAndInventoryStacks).isNotEmpty()
 
 	private val SafeContext.missingPickaxe: String?
 		get() {
@@ -146,10 +145,7 @@ object EnderChestFarmer : Module(
 		}
 
 		onDisable {
-			farmPos?.let { pos ->
-				this@EnderChestFarmer.info("Mined ${obsidianCount - startObsidian} obsidian")
-				if (RebreakHandler.reBreak?.context?.blockPos == pos) RebreakHandler.clearRebreak()
-			}
+			this@EnderChestFarmer.info("Mined ${obsidianCount - startObsidian} obsidian")
 			farmPos = null
 			pendingActions.clear()
 		}
@@ -211,7 +207,7 @@ object EnderChestFarmer : Module(
 			.map { if (it is Dependent) it.lastDependency else it }
 			.filterIsInstance<GenericResult.WrongItemSelection>()
 			.firstOrNull() ?: return false
-		wrongItem.neededSelection.transfer(HotbarContainer)
+		wrongItem.neededSelection.moveStack(toSelection = HotbarContainer.select())
 		return true
 	}
 }

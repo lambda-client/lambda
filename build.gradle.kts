@@ -196,7 +196,7 @@ dependencies {
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
 
 	// DevLogin
-//	modRuntimeOnly("com.ptsmods:devlogin:3.5.1:fabric")
+	modRuntimeOnly("com.ptsmods:devlogin:3.5.1:fabric")
 
     // Test implementations
     testImplementation(kotlin("test"))

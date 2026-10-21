@@ -63,7 +63,7 @@ class ChunkedRenderer(
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
 
 	init {
-		owner.listenUnsafe<WorldEvent.BlockUpdate.Client> { event ->
+		owner.listenUnsafe<WorldEvent.BlockUpdate.Client>(alwaysListen = true) { event ->
 			val pos = event.pos
 			val world = mc.world ?: return@listenUnsafe
 			world.getWorldChunk(pos)?.chunkData?.markDirty()
@@ -77,9 +77,9 @@ class ChunkedRenderer(
 			if (zInChunk == 15) world.getWorldChunk(pos.south())?.chunkData?.markDirty()
 		}
 
-		owner.listenUnsafe<WorldEvent.ChunkEvent.Load> { event -> event.chunk.chunkData.markDirty() }
-		owner.listenUnsafe<WorldEvent.ChunkEvent.Unload> { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
-		owner.listenUnsafe<WorldEvent.Leave> { clear() }
+		owner.listenUnsafe<WorldEvent.ChunkEvent.Load>(alwaysListen = true) { event -> event.chunk.chunkData.markDirty() }
+		owner.listenUnsafe<WorldEvent.ChunkEvent.Unload>(alwaysListen = true) { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
+		owner.listenUnsafe<WorldEvent.Leave>(alwaysListen = true) { clear() }
 
 		owner.listenConcurrentlyUnsafe<TickEvent.Pre> {
 			if (pauseUpdates()) return@listenConcurrentlyUnsafe

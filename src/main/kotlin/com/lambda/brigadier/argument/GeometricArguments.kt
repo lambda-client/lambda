@@ -167,9 +167,8 @@ fun <S> rotation(name: String): DefaultArgumentConstructor<S, RotationArgumentTy
 @BrigadierDsl
 fun <S> swizzle(
     name: String,
-): DefaultArgumentConstructor<S, SwizzleArgumentType> {
-    return argument(name, SwizzleArgumentType.swizzle())
-}
+): DefaultArgumentConstructor<S, SwizzleArgumentType> =
+    argument(name, SwizzleArgumentType.swizzle())
 
 /**
  * Creates a block pos argument with [name] as the parameter name.
@@ -177,9 +176,8 @@ fun <S> swizzle(
 @BrigadierDsl
 fun <S> blockPos(
     name: String,
-): DefaultArgumentConstructor<S, BlockPosArgumentType> {
-    return argument(name, BlockPosArgumentType.blockPos())
-}
+): DefaultArgumentConstructor<S, BlockPosArgumentType> =
+    argument(name, BlockPosArgumentType.blockPos())
 
 /**
  * Creates a column pos argument with [name] as the parameter name.
@@ -187,9 +185,8 @@ fun <S> blockPos(
 @BrigadierDsl
 fun <S> columnPos(
     name: String,
-): DefaultArgumentConstructor<S, ColumnPosArgumentType> {
-    return argument(name, ColumnPosArgumentType.columnPos())
-}
+): DefaultArgumentConstructor<S, ColumnPosArgumentType> =
+    argument(name, ColumnPosArgumentType.columnPos())
 
 /**
  * Creates a vec2 argument with [name] as the parameter name.
@@ -200,9 +197,8 @@ fun <S> columnPos(
 fun <S> vec2(
     name: String,
     centerIntegers: Boolean = false,
-): DefaultArgumentConstructor<S, Vec2ArgumentType> {
-    return argument(name, Vec2ArgumentType.vec2(centerIntegers))
-}
+): DefaultArgumentConstructor<S, Vec2ArgumentType> =
+    argument(name, Vec2ArgumentType.vec2(centerIntegers))
 
 /**
  * Creates a vec3 argument with [name] as the parameter name.
@@ -213,6 +209,5 @@ fun <S> vec2(
 fun <S> vec3(
     name: String,
     centerIntegers: Boolean = false,
-): DefaultArgumentConstructor<S, Vec3ArgumentType> {
-    return argument(name, Vec3ArgumentType.vec3(centerIntegers))
-}
+): DefaultArgumentConstructor<S, Vec3ArgumentType> =
+    argument(name, Vec3ArgumentType.vec3(centerIntegers))

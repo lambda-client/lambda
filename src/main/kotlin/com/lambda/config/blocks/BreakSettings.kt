@@ -28,7 +28,7 @@ import com.lambda.config.blocks.BreakConfig.SwapMode
 import com.lambda.config.blocks.BreakConfig.SwingMode
 import com.lambda.config.blocks.BreakConfig.WhitelistMode
 import com.lambda.config.blocks.BuildConfig.SwingType
-import com.lambda.config.entries.Setting.Companion.onValueChangeUnsafe
+import com.lambda.config.entries.onValueChangeUnsafe
 import com.lambda.config.hide
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
