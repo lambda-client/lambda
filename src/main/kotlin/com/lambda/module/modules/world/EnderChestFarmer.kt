@@ -21,7 +21,6 @@ import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.editTypedSettings
-import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.context.AutomatedSafeContext
@@ -48,11 +47,13 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.logError
+import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.empty
 import com.lambda.util.item.ItemStackUtils.hasSpace
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
+import net.minecraft.enchantment.Enchantments
 import net.minecraft.item.Items
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
@@ -85,6 +86,25 @@ object EnderChestFarmer : Module(
 	private val SafeContext.hasEnderChests
 		get() = Items.ENDER_CHEST.select().filterStacks(player.hotbarAndInventoryStacks).isNotEmpty()
 
+	private val SafeContext.missingPickaxe: String?
+		get() {
+			val silkTouch = when {
+				breakConfig.avoidSilkTouch -> false
+				breakConfig.forceSilkTouch -> true
+				else -> null
+			}
+			val found = player.hotbarAndInventoryStacks.any { stack ->
+				stack.isSuitableFor(Blocks.ENDER_CHEST.defaultState) &&
+						(silkTouch == null || (stack.getEnchantment(Enchantments.SILK_TOUCH) > 0) == silkTouch)
+			}
+			return if (found) null
+			else when (silkTouch) {
+				true -> "You need a pickaxe with Silk Touch"
+				false -> "You need a pickaxe without Silk Touch"
+				null -> "You need a pickaxe"
+			}
+		}
+
 	private val BlockState.farmable
 		get() = isOf(Blocks.ENDER_CHEST) || isReplaceable
 
@@ -99,12 +119,12 @@ object EnderChestFarmer : Module(
 					}
 				}
 				breakConfig.apply {
-					editTypedSettings(::rebreak, ::avoidSilkTouch) {
+					::rebreak.editSetting {
 						defaultValue(true)
 						hide()
 					}
+					::avoidSilkTouch.editSetting { defaultValue(true) }
 					editTypedSettings(::doubleBreak, ::avoidFluids, ::avoidSupporting) { defaultValue(false) }
-					hide(::forceSilkTouch)
 				}
 				hotbarConfig::keepTicks.editSetting { defaultValue(0) }
 			}
@@ -113,6 +133,11 @@ object EnderChestFarmer : Module(
 			val pos = player.blockPos.offset(player.horizontalFacing)
 			if (!blockState(pos).farmable) {
 				this@EnderChestFarmer.logError("The block in front of you must be air or an ender chest")
+				disable()
+				return@onEnable
+			}
+			missingPickaxe?.let {
+				this@EnderChestFarmer.logError(it)
 				disable()
 				return@onEnable
 			}
@@ -133,6 +158,11 @@ object EnderChestFarmer : Module(
 			val pos = farmPos ?: return@listen
 			if (inventoryFull) {
 				this@EnderChestFarmer.info("Inventory is full")
+				disable()
+				return@listen
+			}
+			missingPickaxe?.let {
+				this@EnderChestFarmer.logError(it)
 				disable()
 				return@listen
 			}
