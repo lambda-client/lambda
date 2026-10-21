@@ -135,7 +135,10 @@ object DiveMovement : Movement {
 					val nx = x + SIDE_X[side]
 					val ny = y + SIDE_Y[side]
 					val nz = z + SIDE_Z[side]
-					if (view.medium(nx, ny, nz) != Medium.WATER) continue
+					if (view.medium(nx, ny, nz) != Medium.WATER) {
+						if (SIDE_Y[side] == 0 && airRoom(view, nx, ny, nz)) return true
+						continue
+					}
 					val index = scratch.index(nx - from.x, ny - from.y, nz - from.z)
 					if (seen[index] == stamp) continue
 					seen[index] = stamp
@@ -147,6 +150,9 @@ object DiveMovement : Movement {
 		}
 		return false
 	}
+
+	private fun airRoom(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
+		exit(view.voxel(x, y, z)) && view.voxel(x, y + 1, z).let { it.medium != Medium.WATER && it.medium != Medium.UNKNOWN && it.centerPassable }
 
 	private class AirScratch {
 		val seen = ShortArray(WIDTH * WIDTH * WIDTH)
@@ -311,7 +317,7 @@ object DiveMovement : Movement {
 
 	const val AIR_REACH_BLOCKS = 20
 
-	private const val MAX_SEARCH_CELLS = 512
+	private const val MAX_SEARCH_CELLS = 4096
 
 	private const val DIVE_DESCENT_ALLOWANCE = 48.0
 

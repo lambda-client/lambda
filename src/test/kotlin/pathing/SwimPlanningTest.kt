@@ -93,6 +93,21 @@ class SwimPlanningTest {
 		assertTrue(crossing.plan.frames.indices.none { crossing.plan.tape[it].forward == 0.0 && crossing.plan.frames[it].state.eyeInWater }, "treading water keeps the eyes above the surface")
 	}
 
+	@Test
+	fun `a plunge below the floating level resumes from the float instead of treading out the hold tape`() {
+		val crossing = crossLongPool(stallTicks = 0, start = ::plunged)
+		assertTrue(crossing.floating < MAX_PLUNGE_FLOAT_FRAMES, "the hold tape must offer roots at the level the body floats at: $crossing")
+	}
+
+	private fun plunged(environment: SnapshotSimulationEnvironment): MovementSimulationState {
+		val simulator = MovementSimulator(ProbeScenarios.PROFILE, environment, resting(Vec3d(-1.5, 64.0, 0.5), -90.0))
+		repeat(PLUNGE_SEARCH_TICKS) { tick ->
+			val state = simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true, jump = tick == 2, rotation = Rotation(-90.0, 0.0)))
+			if (state.touchingWater && state.velocity.y < 0.0 && state.position.y < 63.0) return state
+		}
+		error("the run-up never sank below the surface level")
+	}
+
 	private class Crossing(val plan: TrajectoryPlan, val executor: VirtualExecutor, val afloat: Int) {
 		val floating = plan.frames.indices.count { plan.tape[it].forward == 0.0 && plan.frames[it].state.touchingWater }
 
@@ -100,9 +115,10 @@ class SwimPlanningTest {
 	}
 
 	/** Crosses a pool forty blocks long behind a slow search; the planner thread starves once a mid-pool tape is out. */
-	private fun crossLongPool(stallTicks: Int): Crossing {
+	private fun crossLongPool(stallTicks: Int, start: (SnapshotSimulationEnvironment) -> MovementSimulationState = { resting(Vec3d(-1.5, 64.0, 0.5), -90.0) }): Crossing {
 		val environment = pool(width = 40)
-		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 64, 0), Stance(42, 64, 0))
+		val initial = start(environment)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance.of(initial.position, initial.onGround), Stance(42, 64, 0))
 		assertTrue(planner.repair().converged, "the long pool must converge")
 		planner.expandSearchField()
 		val route = assertNotNull(planner.routePlan(0L), "the long pool must carry a route")
@@ -110,7 +126,7 @@ class SwimPlanningTest {
 		val executor = VirtualExecutor(clock)
 		var afloat = 0
 		val outcome = walkHorizon(
-			route, planner, resting(Vec3d(-1.5, 64.0, 0.5), -90.0), ProbeScenarios.PROFILE, environment, MotionConstraints(),
+			route, planner, initial, ProbeScenarios.PROFILE, environment, MotionConstraints(),
 			execution = executor, clock = clock, started = System.currentTimeMillis(),
 			publish = { path, _ ->
 				executor.offer(path)
@@ -215,6 +231,10 @@ class SwimPlanningTest {
 		const val SLOW_SEARCH_MICROS = 20_000L
 
 		const val STALL_AFTER_AFLOAT_TAPES = 2
+
+		const val PLUNGE_SEARCH_TICKS = 80
+
+		const val MAX_PLUNGE_FLOAT_FRAMES = 120
 
 		const val MAX_OPEN_WATER_STRETCH = 1.02
 

@@ -5,6 +5,7 @@ import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.Via
 import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.world.CoarseVoxelView
 
 interface BodyState {
@@ -80,6 +81,7 @@ class ProgramContext(
 	val constraints: MotionConstraints,
 	val launch: LaunchTrigger?,
 	val openLanding: Boolean,
+	val world: SimulationEnvironment,
 )
 
 class CompletionContext(

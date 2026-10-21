@@ -618,7 +618,7 @@ class MovementSimulator(
 	}
 
 	private fun adjustMovementForSneaking(movement: Vec3d): Vec3d {
-		if (!isSneaking || !onGround || movement.y > 0.0) return movement
+		if (!isSneaking || movement.y > 0.0 || !onGround && !(touchingWater && !isSpaceUnderFeetEmpty(0.0, 0.0))) return movement
 
 		var dx = movement.x
 		var dz = movement.z

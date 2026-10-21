@@ -7,6 +7,7 @@ import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.Vanilla
+import net.minecraft.util.math.Box
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -24,6 +25,7 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 	private val pocketY = decision.step.y.toDouble()
 	private val pocketZ = (if (detour) decision.step.z else context.body.stance.z) + 0.5
 	private val nodes = context.nodes
+	private val world = context.world
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		if (detour) {
@@ -45,10 +47,20 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 			forward = 1.0,
 			sprint = sprint,
 			jump = if (observed.swimming) (!surface || shaft) && dy > maxOf(SWIM_MARGIN, coast) else dy > RISE_WITH_JUMP,
-			sneak = if (observed.swimming) dy < minOf(-SWIM_MARGIN, coast) else sprint && dy <= 0.0 && !observed.onGround,
+			sneak = (if (observed.swimming) dy < minOf(-SWIM_MARGIN, coast) else sprint && dy <= 0.0 && !observed.onGround) && !clippedOverDrop(observed),
 			rotation = turning.turn(observed, Rotation(yaw, pitch)),
 		)
 	}
+
+	private fun clippedOverDrop(observed: MovementSimulationState): Boolean {
+		val box = observed.boundingBox
+		return !world.isSpaceEmpty(underfoot(box)) && world.isSpaceEmpty(underfoot(box.offset(targetX - observed.position.x, 0.0, targetZ - observed.position.z)))
+	}
+
+	private fun underfoot(box: Box): Box = Box(
+		box.minX + Vanilla.COLLISION_EPSILON, box.minY - Vanilla.STEP_HEIGHT - Vanilla.COLLISION_EPSILON, box.minZ + Vanilla.COLLISION_EPSILON,
+		box.maxX - Vanilla.COLLISION_EPSILON, box.minY, box.maxZ - Vanilla.COLLISION_EPSILON,
+	)
 
 	private fun aheadYaw(observed: MovementSimulationState): Double {
 		val ahead = nodes.firstOrNull { hypot(it.x - observed.position.x, it.z - observed.position.z) > AHEAD_RADIUS } ?: return observed.rotation.yaw

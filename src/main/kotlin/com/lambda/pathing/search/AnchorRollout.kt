@@ -103,6 +103,7 @@ internal class AnchorRollout(
 				constraints = config,
 				launch = launch,
 				openLanding = openLanding(action.step),
+				world = anchor.worldOver(environment),
 			)
 		)
 		return PreparedRollout(

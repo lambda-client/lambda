@@ -348,7 +348,7 @@ class PathingSession internal constructor(
 
 	internal fun SafeContext.airborne(): Boolean = !player.isOnGround && !player.isTouchingWater && !player.isClimbing
 
-	internal fun SafeContext.treadInput() = MovementSimulationInput(jump = player.isTouchingWater)
+	internal fun SafeContext.treadInput() = MovementSimulationInput(jump = player.isTouchingWater, rotation = afloatStart?.state?.rotation)
 
 	internal class AfloatStart(val state: MovementSimulationState, val age: Int)
 

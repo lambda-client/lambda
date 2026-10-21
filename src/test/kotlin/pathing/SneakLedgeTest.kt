@@ -51,6 +51,31 @@ class SneakLedgeTest {
         )
     }
 
+    @Test
+    fun `a sneaking body sinking onto a submerged lip is clipped before it lands`() {
+        val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+        for (x in -4..12) for (z in -2..2) {
+            blocks[BlockPos(x, 54, z)] = SnapshotBlockPhysics.FULL_CUBE
+            for (y in 55..66) blocks[BlockPos(x, y, z)] = if (x <= 3 && y == 62) SnapshotBlockPhysics.FULL_CUBE else SnapshotBlockPhysics.water(1.0f)
+        }
+        val simulator = MovementSimulator(
+            profile = PROFILE,
+            environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-10, -64, -8, 40, 80, 8), blocks),
+            initialState = MovementSimulationState.synthetic(
+                profile = PROFILE,
+                position = Vec3d(DECK_EDGE_X, DECK_Y + 0.45, 0.5),
+                rotation = FACING_EAST,
+                onGround = false,
+            ).copy(velocity = Vec3d(0.15, 0.0, 0.0)),
+        )
+        repeat(TICKS) {
+            simulator.tickMovement(MovementSimulationInput(forward = 1.0, sneak = true, rotation = FACING_EAST))
+        }
+        val position = simulator.state.position
+        assertTrue(position.y >= DECK_Y - 1.0E-6, "a sneaking body must settle on the submerged deck, but ended at $position")
+        assertTrue(position.x < DECK_EDGE_X + BODY_HALF_WIDTH, "a sneaking body must stay overlapping the deck, but reached x = ${position.x}")
+    }
+
     /** Walks east off a deck that ends at x = 4, with or without sneak held. */
     private fun runToEdge(sneak: Boolean): Vec3d {
         val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()

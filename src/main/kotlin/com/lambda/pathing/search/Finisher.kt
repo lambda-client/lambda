@@ -111,13 +111,29 @@ internal class Finisher(
 		}
 	}
 
-	fun brakeToStop(anchor: ValueAnchor): Solution? = hoverBrake(anchor) ?: groundBrake(anchor) ?: floatBrake(anchor)
+	fun brakeToStop(anchor: ValueAnchor): Solution? = (hoverBrake(anchor) ?: groundBrake(anchor) ?: floatBrake(anchor))?.takeUnless(::restsBeforeLongDive)
+
+	private fun restsBeforeLongDive(solution: Solution): Boolean {
+		val state = solution.tailFrames.lastOrNull()?.state ?: solution.anchor.state
+		if (state.onGround || !state.touchingWater) return false
+		val view = field.view
+		var underwater = 0.0
+		for ((from, to) in field.chain(stanceOf(state), null, DIVE_LOOKAHEAD).zipWithNext()) {
+			if (!DiveMovement.submerged(view, to.x, to.y, to.z)) {
+				if (underwater > 0.0) return false
+				continue
+			}
+			underwater += hypot(hypot((to.x - from.x).toDouble(), (to.y - from.y).toDouble()), (to.z - from.z).toDouble())
+			if (underwater > LONG_DIVE_BLOCKS) return true
+		}
+		return false
+	}
 
 	fun treadTape(anchor: ValueAnchor): Solution? {
 		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw, config.turning), FLOAT_TAIL_FRAMES, world = anchor.worldOver(environment))
 		if (gated.failed) return null
 		val frames = gated.rollout.frames
-		val end = frames.indices.lastOrNull { settledAfloat(frames, it) } ?: return null
+		val end = frames.indices.lastOrNull { settledAfloat(frames, it) && !frames[it].state.eyeInWater } ?: return null
 		if (end < FLOAT_TAIL_FRAMES - FLOAT_END_SLACK_FRAMES) return null
 		return Solution(anchor, frames.take(end + 1), closing)
 	}
@@ -226,6 +242,8 @@ internal class Finisher(
 		const val MAX_FINISH_SWEEPS = 64
 		val STEP_UP_JUMP_LEADS = listOf(0.30, 0.55, 0.80, 1.05)
 		const val FINISH_CHAIN_LENGTH = 24
+		const val DIVE_LOOKAHEAD = 48
+		const val LONG_DIVE_BLOCKS = 16.0
 
 		const val BRAKE_TAIL_FRAMES = 64
 

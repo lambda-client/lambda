@@ -255,8 +255,9 @@ internal class Publisher(
 			)
 		}
 		if (!frames.last().state.onGround) {
+			val level = stanceOf(frames.last().state).y
 			for (until in parent.elapsed + 1 until frames.size) {
-				if (until - link.elapsed >= HOLD_LINK_FRAMES && field.floatsAt(frames[until - 1].state, parent.stance.y)) linkTo(until)
+				if (until - link.elapsed >= HOLD_LINK_FRAMES && field.floatsAt(frames[until - 1].state, level)) linkTo(until)
 			}
 		}
 		linkTo(frames.size)

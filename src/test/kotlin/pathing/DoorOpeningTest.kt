@@ -9,6 +9,7 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.PublishedPath
@@ -229,6 +230,22 @@ class DoorOpeningTest {
 	}
 
 	@Test
+	fun `an air room behind an open door deep under a lake is reached through a flooded tunnel`() {
+		MinecraftBootstrap.ensure()
+		val states = HashMap<BlockPos, BlockState>()
+		for (x in -4..TUNNEL + 12) for (z in -4..10) for (y in 38..62) states[BlockPos(x, y, z)] = Blocks.STONE.defaultState
+		for (x in 0..7) for (z in 0..7) for (y in 40..62) states[BlockPos(x, y, z)] = Blocks.WATER.defaultState
+		for (x in 8 until 8 + TUNNEL) for (z in 2..5) for (y in 40..42) states[BlockPos(x, y, z)] = Blocks.WATER.defaultState
+		door(states, BlockPos(8 + TUNNEL, 40, 3), Direction.EAST, open = true)
+		for (x in 9 + TUNNEL..10 + TUNNEL) for (z in 2..5) for (y in 40..41) states.remove(BlockPos(x, y, z))
+		val environment = environmentOf(states, bounds = SimulationSnapshotBounds(-8, 34, -8, TUNNEL + 16, 72, 14))
+		val planner = CoarsePlanner(environment, ProbeScenarios.moveLibrary(SimpleMoveOptions(hazards = hazards)), Stance(-2, 63, 3), Stance(10 + TUNNEL, 40, 3))
+		assertTrue(planner.repair().converged, "the route must converge")
+		val route = assertNotNull(planner.routePlan(0L), "the room must be reachable under water")
+		assertTrue(route.edges.any { it.movement == MovementId.EXIT_WATER && it.to == Stance(8 + TUNNEL, 40, 3) }, "the route leaves the water through the door: ${route.edges.map { "${it.movement}->${it.to}" }}")
+	}
+
+	@Test
 	fun `a live walk never comes to rest on a trapdoor it still has to open`() {
 		MinecraftBootstrap.ensure()
 		for (micros in LIVE_MICROS_PER_EXPANSION) {
@@ -368,7 +385,7 @@ class DoorOpeningTest {
 		states[lower.up()] = state.with(DoorBlock.HALF, DoubleBlockHalf.UPPER)
 	}
 
-	private fun environmentOf(states: Map<BlockPos, BlockState>, hazards: HazardRules = this.hazards): SnapshotSimulationEnvironment {
+	private fun environmentOf(states: Map<BlockPos, BlockState>, hazards: HazardRules = this.hazards, bounds: SimulationSnapshotBounds = this.bounds): SnapshotSimulationEnvironment {
 		val sampler = BlockPhysicsSampler(StatesView(states), hazards)
 		return SnapshotSimulationEnvironment.synthetic(bounds, states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) })
 	}
@@ -390,6 +407,7 @@ class DoorOpeningTest {
 		val STEP_GATE = BlockPos(9, 64, 0)
 		val CLOSING = MotionConstraints(openDoors = true, closeDoors = true)
 		val LIVE_MICROS_PER_EXPANSION = listOf(150L, 350L, 640L, 1000L, 1300L)
+		const val TUNNEL = 12
 		const val CRUISE_FRAMES = 8
 		const val SLACK_FRAMES = 3
 	}

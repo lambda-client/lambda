@@ -14,6 +14,7 @@ import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
+import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.canStandAt
 import com.lambda.pathing.world.edit.Flips
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
@@ -308,6 +309,7 @@ class MotionTemplate internal constructor(
 		for (along in floor(from).toInt()..floor(to).toInt()) for (side in lane - 1..lane + 1) for (cellY in floor(bottom).toInt()..floor(top).toInt()) {
 			val cellX = if (alongX) along else side
 			val cellZ = if (alongX) side else along
+			if (view.medium(cellX, cellY, cellZ) == Medium.WATER) continue
 			val boxes = view.collisionBoxes(cellX, cellY, cellZ) ?: continue
 			for (box in boxes.indices step 6) {
 				val minAlong = if (alongX) boxes[box] + cellX else boxes[box + 2] + cellZ
