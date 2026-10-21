@@ -31,6 +31,7 @@ import net.minecraft.util.math.ChunkPos
 import java.net.InetSocketAddress
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.EnumMap
 import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.exists
@@ -39,7 +40,26 @@ import kotlin.io.path.notExists
 object ContainerSerializer {
 	private const val ENDER_CHEST_FILE = "ender_chest.json"
 
-	private val index = mutableMapOf<ChunkPos, MutableMap<BlockPos, ContainerType>>()
+	private val index =
+		mutableMapOf<Dimension, MutableMap<ChunkPos, MutableMap<ContainerType, MutableSet<BlockPos>>>>()
+
+	val serializedContainers =
+		sequence {
+			val worldDir = currentWorldDirectory() ?: return@sequence
+			ensureIndex()
+
+			index.forEach { (dimension, chunks) ->
+				val dimensionDir = worldDir.resolve(dimension.name)
+				chunks.forEach { (_, byType) ->
+					byType.forEach { (type, positions) ->
+						positions.forEach { pos ->
+							val file = dimensionDir.resolve(containerFileName(pos, type))
+							readContainer(file)?.let { yield(it) }
+						}
+					}
+				}
+			}
+		}
 
 	@Volatile
 	private var indexed = false
@@ -64,51 +84,37 @@ object ContainerSerializer {
 	}
 
 	fun savedIn(chunk: ChunkPos): Map<BlockPos, ContainerType> {
-		ensureIndex()
-		val positions = index[chunk] ?: return emptyMap()
-		return positions.toMap()
+		val dimension = mc.world?.dim ?: return emptyMap()
+		return savedIn(dimension, chunk)
 	}
 
-	val serializedContainers =
-		sequence {
-			val worldDir = currentWorldDirectory() ?: return@sequence
-			if (worldDir.notExists()) return@sequence
-
-			val dimensionDirectories =
-				runCatching {
-					Files.newDirectoryStream(worldDir).use { stream ->
-						stream.filter { Files.isDirectory(it) }
-					}
-				}.onFailure {
-					LOG.warn("Failed to list saved container dimensions", it)
-				}.getOrDefault(emptyList())
-
-			dimensionDirectories.forEach { dir ->
-				dir.toFile().walkTopDown().forEach { file ->
-					if (file.isFile && file.name.endsWith(".json") && file.name != ENDER_CHEST_FILE) {
-						yield(readContainer(file.toPath()) ?: return@forEach)
-					}
-				}
+	fun savedIn(dimension: Dimension, chunk: ChunkPos): Map<BlockPos, ContainerType> {
+		ensureIndex()
+		val byType = index[dimension]?.get(chunk) ?: return emptyMap()
+		return buildMap {
+			byType.forEach { (type, positions) ->
+				positions.forEach { put(it, type) }
 			}
 		}
+	}
 
 	@Synchronized
 	fun saveContainer(container: PlacedContainer) {
 		ensureIndex()
-		val dir = ensureDirectory(currentContainerDirectory()) ?: return
+		val worldDir = currentWorldDirectory() ?: return
+		val dir = ensureDirectory(worldDir.resolve(container.dimension.name)) ?: return
 		val file = dir.resolve(containerFileName(container.pos, container.type))
 		mapper.writeValue(file, container)
-		record(container.pos, container.type)
+		record(container.dimension, container.pos, container.type)
 	}
 
 	@Synchronized
 	fun removeContainer(pos: BlockPos) {
-		val dir = currentContainerDirectory() ?: return
+		val worldDir = currentWorldDirectory() ?: return
+		val dimension = mc.world?.dim ?: return
 		ensureIndex()
-		val chunk = ChunkPos(pos.x shr 4, pos.z shr 4)
-		val type = index[chunk]?.remove(pos) ?: return
-		index[chunk]?.let { if (it.isEmpty()) index.remove(chunk) }
-		dir.resolve(containerFileName(pos, type)).deleteIfExists()
+		val type = removeRecord(dimension, pos) ?: return
+		worldDir.resolve(dimension.name).resolve(containerFileName(pos, type)).deleteIfExists()
 	}
 
 	fun saveEnderChest() {
@@ -163,63 +169,75 @@ object ContainerSerializer {
 		return FolderRegistry.containers.resolve(folder)
 	}
 
-	private fun currentContainerDirectory(): Path? {
-		val dir = currentWorldDirectory() ?: return null
-		val dimension = mc.world?.dim ?: return null
-		return dir.resolve(dimension.name)
-	}
-
 	private fun ensureIndex() {
-		val dir = currentContainerDirectory() ?: return
-		if (indexed && indexedDirectory == dir) return
+		val worldDir = currentWorldDirectory() ?: return
+		if (indexed && indexedDirectory == worldDir) return
 		synchronized(this) {
-			if (indexed && indexedDirectory == dir) return
+			if (indexed && indexedDirectory == worldDir) return
 			index.clear()
 			indexed = false
-			indexedDirectory = dir
+			indexedDirectory = worldDir
 
-			if (dir.notExists()) {
+			if (worldDir.notExists()) {
 				indexed = true
 				return
 			}
-			val files =
+			val dimensionDirectories =
 				runCatching {
-					Files.newDirectoryStream(dir, "*.json").use { stream -> stream.toList() }
+					Files.newDirectoryStream(worldDir).use { stream ->
+						stream.filter { Files.isDirectory(it) }
+					}
 				}.onFailure {
-					LOG.warn("Failed to list saved containers", it)
+					LOG.warn("Failed to list saved container dimensions", it)
 				}.getOrDefault(emptyList())
 
 			var migrated = 0
-			files.forEach { path ->
-				runCatching {
-					val name = path.fileName.toString()
-					if (name == ENDER_CHEST_FILE) return@runCatching
-					val parts = name.removeSuffix(".json").split('_')
-					val chunkX = parts[0].toIntOrNull() ?: return@runCatching
-					val chunkZ = parts[1].toIntOrNull() ?: return@runCatching
-					val pos = BlockPos(
-						parts.getOrNull(2)?.toIntOrNull() ?: return@runCatching,
-						parts.getOrNull(3)?.toIntOrNull() ?: return@runCatching,
-						parts.getOrNull(4)?.toIntOrNull() ?: return@runCatching
-					)
-					if (chunkX != pos.x shr 4 || chunkZ != pos.z shr 4) return@runCatching
+			dimensionDirectories.forEach dimensionLoop@{ dir ->
+				val dimension = Dimension.entries.firstOrNull { it.name == dir.fileName.toString() }
+					?: return@dimensionLoop
+				val files =
+					runCatching {
+						Files.newDirectoryStream(dir, "*.json").use { stream -> stream.toList() }
+					}.onFailure {
+						LOG.warn("Failed to list saved containers in ${dir.fileName}", it)
+					}.getOrDefault(emptyList())
 
-					val named = parts.getOrNull(5)?.let { token -> ContainerType.entries.firstOrNull { it.name == token } }
-					val type = named
-						?: run {
-							val stored = readContainer(path)
-							if (stored == null) {
-								LOG.warn("Dropping unreadable container file $name")
-								Files.deleteIfExists(path)
-								return@runCatching
+				files.forEach fileLoop@{ path ->
+					runCatching {
+						val name = path.fileName.toString()
+						if (name == ENDER_CHEST_FILE) return@fileLoop
+						val parts = name.removeSuffix(".json").split('_')
+						val chunkX = parts[0].toIntOrNull() ?: return@fileLoop
+						val chunkZ = parts[1].toIntOrNull() ?: return@fileLoop
+						val pos =
+							BlockPos(
+								parts.getOrNull(2)?.toIntOrNull() ?: return@fileLoop,
+								parts.getOrNull(3)?.toIntOrNull() ?: return@fileLoop,
+								parts.getOrNull(4)?.toIntOrNull() ?: return@fileLoop
+							)
+						if (chunkX != pos.x shr 4 || chunkZ != pos.z shr 4) return@fileLoop
+
+						val named = parts
+							.getOrNull(5)
+							?.let { token ->
+								ContainerType.entries.firstOrNull { it.name == token }
 							}
-							Files.move(path, dir.resolve(containerFileName(pos, stored.type)))
-							migrated++
-							stored.type
-						}
-					record(pos, type)
-				}.onFailure {
-					LOG.warn("Failed to index saved container $path", it)
+						val type = named
+							?: run {
+								val stored = readContainer(path)
+								if (stored == null) {
+									LOG.warn("Dropping unreadable container file $name")
+									Files.deleteIfExists(path)
+									return@fileLoop
+								}
+								Files.move(path, dir.resolve(containerFileName(pos, stored.type)))
+								migrated++
+								stored.type
+							}
+						record(dimension, pos, type)
+					}.onFailure {
+						LOG.warn("Failed to index saved container $path", it)
+					}
 				}
 			}
 			if (migrated > 0) LOG.info("Named $migrated saved container(s) with their container type")
@@ -234,8 +252,23 @@ object ContainerSerializer {
 			LOG.warn("Failed to read container from ${file.fileName}", it)
 		}.getOrNull()
 
-	private fun record(pos: BlockPos, type: ContainerType) {
-		index.getOrPut(ChunkPos(pos.x shr 4, pos.z shr 4)) { HashMap() }[pos] = type
+	private fun record(dimension: Dimension, pos: BlockPos, type: ContainerType) {
+		index.getOrPut(dimension) { HashMap() }
+			.getOrPut(ChunkPos(pos.x shr 4, pos.z shr 4)) { EnumMap(ContainerType::class.java) }
+			.getOrPut(type) { HashSet() }
+			.add(pos)
+	}
+
+	private fun removeRecord(dimension: Dimension, pos: BlockPos): ContainerType? {
+		val chunk = ChunkPos(pos.x shr 4, pos.z shr 4)
+		val chunks = index[dimension] ?: return null
+		val byType = chunks[chunk] ?: return null
+		val entry = byType.entries.firstOrNull { pos in it.value } ?: return null
+		entry.value.remove(pos)
+		if (entry.value.isEmpty()) byType.remove(entry.key)
+		if (byType.isEmpty()) chunks.remove(chunk)
+		if (chunks.isEmpty()) index.remove(dimension)
+		return entry.key
 	}
 
 	private fun containerFileName(pos: BlockPos, type: ContainerType): String {

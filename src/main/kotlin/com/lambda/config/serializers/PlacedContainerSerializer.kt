@@ -2,7 +2,6 @@
 
 package com.lambda.config.serializers
 
-import com.lambda.Lambda.mc
 import com.lambda.config.FallbackDeserializer
 import com.lambda.config.FallbackSerializer
 import com.lambda.config.JsonOps
@@ -11,7 +10,6 @@ import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.container.containers.external.ChestContainer
 import com.lambda.interaction.container.containers.external.DoubleChestContainer
 import com.lambda.interaction.container.containers.external.PlacedShulkerBoxContainer
-import com.lambda.util.extension.dim
 import com.lambda.util.world.Dimension
 import net.minecraft.block.Blocks
 import net.minecraft.item.ItemStack

@@ -48,11 +48,10 @@ import kotlin.io.path.exists
  * Pins the per-world/per-dimension container storage layout:
  *
  * 1. Overworld and Nether chests at the same chunk are saved under separate dimension folders.
- * 2. The in-memory index follows the current dimension without rejoining the world.
+ * 2. The in-memory index is keyed by dimension, so it can be queried across dimensions.
  * 3. The ender chest stays at the world folder because its contents are dimension-independent.
  * 4. Container searches see every dimension by default and can be restricted with [ContainerSelection].
  */
-@Suppress("UnstableApiUsage")
 object ContainerStorageGameTest : FabricClientGameTest {
     private const val PLAYER = "Steve"
 
@@ -106,6 +105,13 @@ object ContainerStorageGameTest : FabricClientGameTest {
             val overworldIndex = savedPositions(context)
             if (overworldIndex != setOf(overworldPos)) {
                 fail("overworld index should contain only $overworldPos but got $overworldIndex")
+            }
+
+            val netherIndexFromOverworld = context.computeOnClient<Map<BlockPos, ContainerType>, RuntimeException> {
+                ContainerSerializer.savedIn(Dimension.Nether, ChunkPos(0, 0))
+            }
+            if (netherIndexFromOverworld != mapOf(netherPos to ContainerType.Chest)) {
+                fail("nether index should remain available from overworld but got $netherIndexFromOverworld")
             }
 
             val dimensions = context.computeOnClient<Map<Dimension, Set<BlockPos>>, RuntimeException> {

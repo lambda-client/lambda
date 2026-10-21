@@ -69,7 +69,6 @@ import net.minecraft.util.math.BlockPos
  * Scenarios never throw mid-way; all expectation failures are collected and reported together at the end so one
  * run gives the full picture.
  */
-@Suppress("UnstableApiUsage")
 object ContainerTransferGameTest : FabricClientGameTest {
 	private const val PLAYER = "Steve"
 	private const val TRANSFER_TIMEOUT = 20 * 40
@@ -333,6 +332,13 @@ object ContainerTransferGameTest : FabricClientGameTest {
 				predicate { it.isAt(positions) }
 			}
 		}
+
+		fun orderedChests(vararg labels: String): ContainerSelection =
+			chests(*labels).mutate {
+				sortedWith(compareBy { container ->
+					labels.indexOfFirst { label -> container.isAt(placed.getValue(label).toSet()) }
+				})
+			}
 
 		/** Runs [block] on the client with an automated context, for reading selections directly. */
 		fun <R> clientQuery(block: context(Automated) SafeContext.() -> R): R? {
@@ -835,7 +841,7 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			chest("A", stone(64), stone(1))
 			chest("B", *Array(26) { dirt(64) })
 			chest("C")
-			val outcome = transfer(STONE.select(65), chests("A"), chests("B", "C"), stackSelection { isEmpty() })
+			val outcome = transfer(STONE.select(65), chests("A"), orderedChests("B", "C"), stackSelection { isEmpty() })
 			expectSuccess(outcome)
 			val after = expectClean()
 			expectEquals(64, after.chest("B", STONE), "stone in B")
