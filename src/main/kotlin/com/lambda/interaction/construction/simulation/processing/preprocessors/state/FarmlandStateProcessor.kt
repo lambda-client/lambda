@@ -75,8 +75,8 @@ object FarmlandStateProcessor : StateProcessor {
 	}
 
 	private fun ClientPlayerEntity.findHoe(): Item? =
-		mainHandStack.item.takeIf { it in ItemUtils.hoes }
-			?: hotbarAndInventoryStacks.firstOrNull { it.item in ItemUtils.hoes }?.item
+		mainHandStack.item.takeIf { it in ItemUtils.HOES }
+			?: hotbarAndInventoryStacks.firstOrNull { it.item in ItemUtils.HOES }?.item
 
 	private fun ClientPlayerEntity.carries(item: Item) =
 		hotbarAndInventoryStacks.any { it.item == item }
