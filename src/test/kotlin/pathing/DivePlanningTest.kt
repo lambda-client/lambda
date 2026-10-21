@@ -212,6 +212,15 @@ class DivePlanningTest {
 	}
 
 	@Test
+	fun `a body drifting out of a lifting column is lifted by the cells its box held after the vertical step`() {
+		fun sink(kind: BubbleColumn?): Double {
+			val start = afloat(Vec3d(1.25, 65.3, 0.5), air = Vanilla.MAX_AIR).copy(velocity = Vec3d(0.1, -0.1, 0.0))
+			return MovementSimulator(ProbeScenarios.PROFILE, pool(kind), start).tickMovement(MovementSimulationInput(rotation = Rotation(0.0, 0.0))).velocity.y
+		}
+		assertEquals(sink(null) + 2 * Vanilla.BUBBLE_LIFT, sink(BubbleColumn.LIFT), 1e-9, "vanilla collides the box one axis at a time, so the cells left sideways still lift")
+	}
+
+	@Test
 	fun `a dragging column pulls the body to the floor`() {
 		val environment = column(BubbleColumn.DRAG)
 		val simulator = MovementSimulator(ProbeScenarios.PROFILE, environment, afloat(Vec3d(0.5, 69.0, 0.5), air = Vanilla.MAX_AIR))
@@ -400,6 +409,19 @@ class DivePlanningTest {
 	}
 
 	/** A sealed one-block column of bubbles from y 61 to 70 under open air. */
+	private fun pool(kind: BubbleColumn?): SnapshotSimulationEnvironment {
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -3..3) for (z in -3..3) {
+			blocks[BlockPos(x, 60, z)] = SnapshotBlockPhysics.FULL_CUBE
+			for (y in 61..69) blocks[BlockPos(x, y, z)] = when {
+				kind != null && x == 0 && z == 0 -> bubble(kind)
+				y == 69 -> SnapshotBlockPhysics.water()
+				else -> SnapshotBlockPhysics.water(1.0f)
+			}
+		}
+		return SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-6, 50, -6, 6, 80, 6), blocks)
+	}
+
 	private fun column(kind: BubbleColumn): SnapshotSimulationEnvironment {
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
 		for (x in -1..1) for (z in -1..1) {

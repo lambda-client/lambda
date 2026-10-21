@@ -111,10 +111,7 @@ class PathingSession internal constructor(
 		}
 		if (state is State.Rehearsing && rehearsal?.performing != true) return
 		if (state is State.Settling) return with(alignment) { settle() }
-		if (state is State.Planning) {
-			if (afloatStart != null) tickInput = treadInput()
-			return
-		}
+		if (state is State.Planning) return tread()
 		if (state is State.Aligning) return with(alignment) { align() }
 
 		waypointRoute.primeNextLeg(player, request, replay?.path)
@@ -348,7 +345,11 @@ class PathingSession internal constructor(
 
 	internal fun SafeContext.airborne(): Boolean = !player.isOnGround && !player.isTouchingWater && !player.isClimbing
 
-	internal fun SafeContext.treadInput() = MovementSimulationInput(jump = player.isTouchingWater, rotation = afloatStart?.state?.rotation)
+	internal fun SafeContext.tread() {
+		val held = afloatStart?.state?.rotation ?: return
+		tickInput = MovementSimulationInput(jump = player.isTouchingWater, rotation = held)
+		face(held.yaw, held.pitch)
+	}
 
 	internal class AfloatStart(val state: MovementSimulationState, val age: Int)
 

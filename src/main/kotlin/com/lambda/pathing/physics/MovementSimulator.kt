@@ -4,8 +4,10 @@ import com.lambda.util.math.DOWN
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
@@ -46,8 +48,11 @@ class MovementSimulator(
 	private var swimming = initialState.swimming
 	private var air = initialState.air
 	private val cell = BlockPos.Mutable()
-	private var lastMovementY = 0.0
 	private var tickStartBox = initialState.boundingBox
+	private var sweepFrom: Vec3d? = null
+	private var sweepDelta = Vec3d.ZERO
+	private var sweepOrder = Vec3d.ZERO
+	private val collided = LongOpenHashSet()
 
 	val state: MovementSimulationState
 		get() = MovementSimulationState(
@@ -186,6 +191,7 @@ class MovementSimulator(
 		}
 
 		tickStartBox = boundingBox
+		sweepFrom = null
 		travel(
 			forwardSpeed = movementInput.y.toDouble(),
 			strafeSpeed = movementInput.x.toDouble(),
@@ -411,9 +417,11 @@ class MovementSimulator(
 
 		val moved = movement.lengthSquared()
 		if (moved > Vanilla.MIN_MOVEMENT_SQUARED || requested.lengthSquared() - moved < Vanilla.MIN_MOVEMENT_SQUARED) {
+			sweepFrom = position
+			sweepDelta = movement
+			sweepOrder = requested
 			position += movement
 		}
-		lastMovementY = movement.y
 
 		val xCollide = !MathHelper.approximatelyEquals(movement.x, requested.x)
 		val yCollide = movement.y != requested.y
@@ -454,12 +462,6 @@ class MovementSimulator(
 
 	private fun tickBlockCollision() {
 		dampenSlimeStep()
-		applyBubbleColumns()
-		slideOnHoney()
-	}
-
-	private fun slideOnHoney() {
-		if (onGround) return
 		val start = tickStartBox.contract(Vanilla.BUBBLE_CONTRACTION.toDouble())
 		val end = boundingBox.contract(Vanilla.BUBBLE_CONTRACTION.toDouble())
 		val x0 = MathHelper.floor(minOf(start.minX, end.minX))
@@ -468,19 +470,82 @@ class MovementSimulator(
 		val x1 = MathHelper.floor(maxOf(start.maxX, end.maxX))
 		val y1 = MathHelper.floor(maxOf(start.maxY, end.maxY))
 		val z1 = MathHelper.floor(maxOf(start.maxZ, end.maxZ))
-		if (!environment.mayContainHoney(x0, y0, z0, x1, y1, z1)) return
-		for (y in y0..y1) for (x in x0..x1) for (z in z0..z1) {
-			if (!start.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0) &&
-				!end.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)
-			) continue
-			if (!environment.honey(cell.set(x, y, z)) || !slidesOn(x, y, z)) continue
-			val fall = preGravityFall(velocity.y)
-			velocity = if (fall < Vanilla.HONEY_SLIDE_BRAKE) {
-				val brake = Vanilla.HONEY_SLIDE_VELOCITY / fall
-				Vec3d(velocity.x * brake, postGravityFall(Vanilla.HONEY_SLIDE_VELOCITY), velocity.z * brake)
+		val bubbles = environment.mayContainBubbles(x0, y0, z0, x1, y1, z1)
+		val honey = !onGround && environment.mayContainHoney(x0, y0, z0, x1, y1, z1)
+		if (!bubbles && !honey) return
+		forEachCollidedCell { x, y, z, inside ->
+			if (bubbles && inside) pushByBubbles(x, y, z)
+			if (honey) slideOnHoney(x, y, z)
+		}
+	}
+
+	private inline fun forEachCollidedCell(action: (Int, Int, Int, Boolean) -> Unit) {
+		collided.clear()
+		val from = sweepFrom
+		if (from == null || sweepDelta.lengthSquared() <= 0.0) {
+			forEachCell(boundingBox.contract(Vanilla.BUBBLE_CONTRACTION.toDouble())) { x, y, z -> action(x, y, z, true) }
+			return
+		}
+		val zFirst = abs(sweepOrder.x) < abs(sweepOrder.z)
+		var at: Vec3d = from
+		for (axis in if (zFirst) SWEEP_YZX else SWEEP_YXZ) {
+			val step = axis.choose(sweepDelta.x, sweepDelta.y, sweepDelta.z)
+			if (step == 0.0) continue
+			val next = at.offset(axis.positiveDirection, step)
+			val delta = next.subtract(at)
+			val end = normalizedBoundingBox().offset(next).contract(Vanilla.BUBBLE_CONTRACTION.toDouble())
+			if (delta.lengthSquared() < Vanilla.BLOCK_SWEEP_STILL_SQUARED.toDouble()) {
+				forEachCell(end) { x, y, z -> if (collided.add(BlockPos.asLong(x, y, z))) action(x, y, z, true) }
 			} else {
-				Vec3d(velocity.x, postGravityFall(Vanilla.HONEY_SLIDE_VELOCITY), velocity.z)
+				val long = at.squaredDistanceTo(next) > Vanilla.BLOCK_SWEEP_LONG * Vanilla.BLOCK_SWEEP_LONG
+				val start = end.offset(delta.multiply(-1.0))
+				forEachCellInCollisionOrder(start, delta) { x, y, z ->
+					if (collided.add(BlockPos.asLong(x, y, z))) action(x, y, z, long || end.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0))
+				}
+				forEachCellInCollisionOrder(if (long) start.union(end) else end, delta) { x, y, z ->
+					if (collided.add(BlockPos.asLong(x, y, z))) action(x, y, z, true)
+				}
 			}
+			at = next
+		}
+	}
+
+	private inline fun forEachCell(box: Box, action: (Int, Int, Int) -> Unit) {
+		for (z in MathHelper.floor(box.minZ)..MathHelper.floor(box.maxZ)) {
+			for (y in MathHelper.floor(box.minY)..MathHelper.floor(box.maxY)) {
+				for (x in MathHelper.floor(box.minX)..MathHelper.floor(box.maxX)) action(x, y, z)
+			}
+		}
+	}
+
+	private inline fun forEachCellInCollisionOrder(box: Box, velocity: Vec3d, action: (Int, Int, Int) -> Unit) {
+		val minX = MathHelper.floor(box.minX)
+		val minY = MathHelper.floor(box.minY)
+		val minZ = MathHelper.floor(box.minZ)
+		val maxX = MathHelper.floor(box.maxX)
+		val maxY = MathHelper.floor(box.maxY)
+		val maxZ = MathHelper.floor(box.maxZ)
+		val zFirst = abs(velocity.x) < abs(velocity.z)
+		for (dy in 0..maxY - minY) {
+			val y = if (velocity.y >= 0.0) minY + dy else maxY - dy
+			for (outer in 0..(if (zFirst) maxZ - minZ else maxX - minX)) {
+				for (inner in 0..(if (zFirst) maxX - minX else maxZ - minZ)) {
+					val dx = if (zFirst) inner else outer
+					val dz = if (zFirst) outer else inner
+					action(if (velocity.x >= 0.0) minX + dx else maxX - dx, y, if (velocity.z >= 0.0) minZ + dz else maxZ - dz)
+				}
+			}
+		}
+	}
+
+	private fun slideOnHoney(x: Int, y: Int, z: Int) {
+		if (!environment.honey(cell.set(x, y, z)) || !slidesOn(x, y, z)) return
+		val fall = preGravityFall(velocity.y)
+		velocity = if (fall < Vanilla.HONEY_SLIDE_BRAKE) {
+			val brake = Vanilla.HONEY_SLIDE_VELOCITY / fall
+			Vec3d(velocity.x * brake, postGravityFall(Vanilla.HONEY_SLIDE_VELOCITY), velocity.z * brake)
+		} else {
+			Vec3d(velocity.x, postGravityFall(Vanilla.HONEY_SLIDE_VELOCITY), velocity.z)
 		}
 	}
 
@@ -505,29 +570,18 @@ class MovementSimulator(
 		velocity = Vec3d(velocity.x * drag, velocity.y, velocity.z * drag)
 	}
 
-	private fun applyBubbleColumns() {
-		val box = boundingBox.contract(Vanilla.BUBBLE_CONTRACTION.toDouble())
-		val x0 = MathHelper.floor(box.minX)
-		val y0 = MathHelper.floor(box.minY)
-		val z0 = MathHelper.floor(box.minZ)
-		val x1 = MathHelper.floor(box.maxX)
-		val y1 = MathHelper.floor(box.maxY)
-		val z1 = MathHelper.floor(box.maxZ)
-		if (!environment.mayContainBubbles(x0, y0, z0, x1, y1, z1)) return
-		val ys = if (lastMovementY >= 0.0) y0..y1 else y1 downTo y0
-		for (y in ys) for (x in x0..x1) for (z in z0..z1) {
-			val bubbles = environment.water(cell.set(x, y, z))?.bubbles ?: continue
-			val surface = environment.water(cell.set(x, y + 1, z)) == null &&
-					environment.isSpaceEmpty(Box(cell).contract(Vanilla.POSE_CLEARANCE))
-			val vy = velocity.y
-			val pushed = when {
-				bubbles == BubbleColumn.LIFT && surface -> minOf(Vanilla.BUBBLE_SURFACE_LIFT_MAX, vy + Vanilla.BUBBLE_SURFACE_LIFT)
-				bubbles == BubbleColumn.LIFT -> minOf(Vanilla.BUBBLE_LIFT_MAX, vy + Vanilla.BUBBLE_LIFT)
-				surface -> maxOf(-Vanilla.BUBBLE_SURFACE_DRAG_MAX, vy - Vanilla.BUBBLE_DRAG)
-				else -> maxOf(-Vanilla.BUBBLE_DRAG_MAX, vy - Vanilla.BUBBLE_DRAG)
-			}
-			velocity = Vec3d(velocity.x, pushed, velocity.z)
+	private fun pushByBubbles(x: Int, y: Int, z: Int) {
+		val bubbles = environment.water(cell.set(x, y, z))?.bubbles ?: return
+		val surface = environment.water(cell.set(x, y + 1, z)) == null &&
+				environment.isSpaceEmpty(Box(cell).contract(Vanilla.POSE_CLEARANCE))
+		val vy = velocity.y
+		val pushed = when {
+			bubbles == BubbleColumn.LIFT && surface -> minOf(Vanilla.BUBBLE_SURFACE_LIFT_MAX, vy + Vanilla.BUBBLE_SURFACE_LIFT)
+			bubbles == BubbleColumn.LIFT -> minOf(Vanilla.BUBBLE_LIFT_MAX, vy + Vanilla.BUBBLE_LIFT)
+			surface -> maxOf(-Vanilla.BUBBLE_SURFACE_DRAG_MAX, vy - Vanilla.BUBBLE_DRAG)
+			else -> maxOf(-Vanilla.BUBBLE_DRAG_MAX, vy - Vanilla.BUBBLE_DRAG)
 		}
+		velocity = Vec3d(velocity.x, pushed, velocity.z)
 	}
 
 	private fun eyeInBubbles(): Boolean =
@@ -666,5 +720,10 @@ class MovementSimulator(
 			scaled.y,
 			scaled.z * cos + scaled.x * sin,
 		)
+	}
+
+	private companion object {
+		val SWEEP_YZX = listOf(Direction.Axis.Y, Direction.Axis.Z, Direction.Axis.X)
+		val SWEEP_YXZ = listOf(Direction.Axis.Y, Direction.Axis.X, Direction.Axis.Z)
 	}
 }
