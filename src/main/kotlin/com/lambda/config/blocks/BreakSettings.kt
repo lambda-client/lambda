@@ -28,6 +28,7 @@ import com.lambda.config.blocks.BreakConfig.SwapMode
 import com.lambda.config.blocks.BreakConfig.SwingMode
 import com.lambda.config.blocks.BreakConfig.WhitelistMode
 import com.lambda.config.blocks.BuildConfig.SwingType
+import com.lambda.config.entries.Setting.Companion.onValueChangeUnsafe
 import com.lambda.config.hide
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
@@ -72,7 +73,10 @@ class BreakSettings(override val c: Config) : BreakConfig, ConfigBlock {
 	// Tool
 	override val efficientOnly by c.setting("Efficient Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { swapMode.isEnabled() }
 	override val suitableToolsOnly by c.setting("Suitable Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { swapMode.isEnabled() }
-	override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { swapMode.isEnabled() }
+	override var forceSilkTouch: Boolean by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { swapMode.isEnabled() }
+		.onValueChangeUnsafe { _, to -> if (to) avoidSilkTouch = false }
+	override var avoidSilkTouch: Boolean by c.setting("Avoid Silk Touch", false, "Never use silk touch tools when breaking blocks") { swapMode.isEnabled() }
+		.onValueChangeUnsafe { _, to -> if (to) forceSilkTouch = false }
 	override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks") { swapMode.isEnabled() }
 	override val minFortuneLevel by c.setting("Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { swapMode.isEnabled() && forceFortunePickaxe }
 
