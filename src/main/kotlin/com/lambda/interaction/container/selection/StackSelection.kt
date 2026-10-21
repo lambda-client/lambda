@@ -214,6 +214,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 		val EVERYTHING = StackSelection(UNBOUNDED) { _, _ -> true }
 		val NOTHING = StackSelection { _, _ -> false }
 		val ALL_EMPTY = stackSelection(UNBOUNDED) { isEmpty(); countEmptyAsOne() }
+		val ALL_NOT_EMPTY = stackSelection(UNBOUNDED) { notEmpty() }
 	}
 }
 

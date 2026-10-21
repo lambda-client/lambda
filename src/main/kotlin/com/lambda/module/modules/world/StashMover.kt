@@ -44,7 +44,6 @@ import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
-import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
@@ -515,7 +514,7 @@ object StashMover : Module(
 				if (packet !is PlayerPositionLookS2CPacket) return@listen
 				val allMoved =
 					!stacksAvailable(
-						stackSelection { notEmpty() },
+						StackSelection.ALL_EMPTY,
 						ContainerSelection.HOTBAR_AND_INVENTORY
 					)
 				if (finished && allMoved) {
@@ -613,7 +612,7 @@ object StashMover : Module(
 			if (!rotationRequest.done || rotation dist RotationManager.serverRotation > 0.001) return
 			val throwSlots =
 				findSlots(
-					stackSelection(StackSelection.UNBOUNDED) { notEmpty() },
+					StackSelection.ALL_NOT_EMPTY,
 					ContainerSelection.HOTBAR_AND_INVENTORY
 				).orEmpty()
 					.toList()
@@ -645,7 +644,7 @@ object StashMover : Module(
 				if (screenHandler.containerStacks.all { !it.isEmpty }) {
 					putContainers.remove(container)
 					filledContainers.add(container)
-					if (stacksAvailable(stackSelection { notEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY)) {
+					if (stacksAvailable(StackSelection.ALL_NOT_EMPTY, ContainerSelection.HOTBAR_AND_INVENTORY)) {
 						moverState = MoverState.OpeningPutContainer
 						return
 					}
@@ -797,9 +796,9 @@ object StashMover : Module(
 					return
 				}
 
-			openContainer(pos).thenAction {
-				onOpened(pos)
-			}.start()
+			openContainer(pos)
+				.thenAction { onOpened(pos) }
+				.start()
 		}
 
 		private fun SafeContext.moveFromContainerToContainer(
