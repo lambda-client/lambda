@@ -38,6 +38,7 @@ import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.task.RootTask
@@ -324,6 +325,17 @@ object ContainerTransferGameTest : FabricClientGameTest {
 		}
 
 		// ---- running the task ----------------------------------------------------------------------------
+
+		fun position(label: String) = singles.getValue(label).first
+
+		fun openAndKeepScreen(label: String): Outcome =
+			runTask(OPEN_TIMEOUT) { with(automated) { openContainer(position(label)) } }
+
+		fun closeScreenAndWait() {
+			onClient { it.player?.closeHandledScreen() }
+			context.waitFor({ it.currentScreen == null }, OPEN_TIMEOUT)
+			context.waitTicks(2)
+		}
 
 		fun chests(vararg labels: String): ContainerSelection {
 			val positions = labels.flatMap { placed.getValue(it) }.toSet()
@@ -1162,6 +1174,29 @@ object ContainerTransferGameTest : FabricClientGameTest {
 			expectEquals(0, after.chest("C", DIRT) + after.chest("C", OAK_PLANKS), "items left in C")
 			expectEquals(0, after.player(STONE) + after.player(DIRT) + after.player(OAK_PLANKS),
 				"nothing stranded with the player")
+		},
+
+		scenario("opening a second chest while another screen is open updates the new chest") {
+			chest("A", stone(1))
+			chest("C", dirt(1))
+			val secondPos = position("C")
+
+			expectSuccess(openAndKeepScreen("A"))
+			expectSuccess(openAndKeepScreen("C"))
+
+			expectEquals(
+				secondPos,
+				clientQuery { ContainerHandler.lastInteractedBlockEntity?.pos },
+				"last interacted block entity"
+			)
+			expectEquals(
+				secondPos,
+				clientQuery { ContainerHandler.accessedPlacedContainer?.pos },
+				"accessed placed container"
+			)
+
+			closeScreenAndWait()
+			expectClean()
 		},
 
 		// Last on purpose: a task that never settles leaves "open container" packets in flight.

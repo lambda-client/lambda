@@ -113,7 +113,6 @@ object ContainerHandler : Loadable {
 				lastInteractedBlockEntity = null
 				interactedSyncId = 0
 			}
-			pendingInteractedBlockEntity = null
 			accessedPlacedContainer = null
 		}
 
