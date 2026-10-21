@@ -47,6 +47,7 @@ object Client : Module(
 
 	@Tab(DEBUG_TAB) val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager")
 	@Tab(DEBUG_TAB) val verboseDebug by setting("Verbose Debug", false, "Prints more, and more detailed, debug logs")
+	@Tab(DEBUG_TAB) val showInvisibleTasks by setting("Show Invisible Tasks", false, "Shows utility tasks such as chaining wrappers in the Task Flow HUD")
 
 	@Volatile
 	var drawables = listOf<Drawable>()

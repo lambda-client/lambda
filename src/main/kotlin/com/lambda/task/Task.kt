@@ -29,7 +29,6 @@ import com.lambda.task.tasks.wrappers.withRecovery
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.Nameable
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -43,6 +42,8 @@ abstract class Task<R> : Nameable, Muteable {
 	val size: Int get() = subTasks.sumOf { it.size } + 1
 
 	override val isMuted: Boolean get() = state == State.Paused || state == State.Init
+
+	open val isInvisible = false
 
 	private val successCallbacks = mutableListOf<SafeContext.(R) -> Unit>()
 	private val completionCallbacks = mutableListOf<SafeContext.() -> Unit>()
@@ -281,20 +282,43 @@ abstract class Task<R> : Nameable, Muteable {
 		return this
 	}
 
-	override fun toString() =
-		buildString { appendTaskTree(this@Task) }
+	override fun toString() = taskTree()
 
-	private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0, maxEntries: Int = 10) {
+	fun taskTree(showInvisible: Boolean = false) =
+		buildString { appendTaskTree(this@Task, showInvisible = showInvisible) }
+
+	private fun StringBuilder.appendTaskTree(
+		task: Task<*>,
+		level: Int = 0,
+		maxEntries: Int = 10,
+		showInvisible: Boolean = false
+	) {
 		if (task.state == State.Cancelled) return
-		appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.name}] ${(task.age * 50).milliseconds}" else "")
-		val left = task.subTasks.size - maxEntries
+		if (!showInvisible && task.isInvisible) {
+			task.displaySubTasks(false).forEach {
+				appendTaskTree(it, level, maxEntries, false)
+			}
+			return
+		}
+		appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.name}] $duration" else "")
+		val subTasks = task.displaySubTasks(showInvisible)
+		val left = subTasks.size - maxEntries
 		if (left > 0) {
 			appendLine("${" ".repeat((level + 1) * 4)}...and $left more tasks")
 		}
-		task.subTasks.takeLast(maxEntries).forEach {
-			appendTaskTree(it, level + 1)
+		subTasks.takeLast(maxEntries).forEach {
+			appendTaskTree(it, level + 1, maxEntries, showInvisible)
 		}
 	}
+
+	private fun Task<*>.displaySubTasks(showInvisible: Boolean): List<Task<*>> =
+		subTasks.flatMap { subTask ->
+			when {
+				subTask.state == State.Cancelled -> emptyList()
+				!showInvisible && subTask.isInvisible -> subTask.displaySubTasks(false)
+				else -> listOf(subTask)
+			}
+		}
 }
 
 typealias TaskGenerator<R, R2> = SafeContext.(R) -> Task<R2>

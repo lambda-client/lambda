@@ -36,6 +36,7 @@ class SoftFailTask<R> @Ta5kBuilder internal constructor(
     private val innerTask: Task<R>,
 ) : Task<R?>() {
     override val name get() = "Soft fail protection for ${innerTask.name}"
+    override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask

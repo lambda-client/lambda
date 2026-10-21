@@ -53,6 +53,7 @@ class OnFailTask<R> @Ta5kBuilder internal constructor(
 	private val onFailTaskGenerator: TaskGenerator<Throwable, *>
 ) : Task<R?>() {
 	override val name get() = "On fail task for ${innerTask.name}"
+	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask
@@ -83,6 +84,7 @@ class OnFailOrNullTask<R> @Ta5kBuilder internal constructor(
 	private val onFailTaskGenerator: TaskOrNullGenerator<Throwable, *>
 ) : Task<R?>() {
 	override val name get() = "On fail task for ${innerTask.name}"
+	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask
@@ -116,6 +118,7 @@ class RecoveryTask<R> @Ta5kBuilder internal constructor(
 	private val recoveryTaskGenerator: TaskGenerator<Throwable, R>,
 ) : Task<R>() {
 	override val name get() = "Recovery task in case of failure for ${innerTask.name}"
+	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask
@@ -147,6 +150,7 @@ class OptionalRecoveryTask<R> @Ta5kBuilder internal constructor(
 	private val recoveryTaskGenerator: TaskOrNullGenerator<Throwable, R>,
 ) : Task<R?>() {
 	override val name get() = "Optional recovery task in case of failure for ${innerTask.name}"
+	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask

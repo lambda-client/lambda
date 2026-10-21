@@ -51,6 +51,7 @@ class SequencedActionTask<R, R2> @Ta5kBuilder internal constructor(
 	private val action: SafeContext.(R) -> R2,
 ) : Task<R2>() {
 	override val name get() = "Performing action after ${innerTask.name}"
+	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask

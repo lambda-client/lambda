@@ -20,6 +20,7 @@ package com.lambda.module.modules.hud
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
+import com.lambda.module.modules.client.Client
 import com.lambda.task.RootTask
 
 @Suppress("unused")
@@ -28,6 +29,6 @@ object TaskFlowHud : HudModule(
     tag = ModuleTag.HUD,
 ) {
     override fun ImGuiBuilder.buildLayout() {
-        text(RootTask.toString())
+        text(RootTask.taskTree(Client.showInvisibleTasks))
     }
 }

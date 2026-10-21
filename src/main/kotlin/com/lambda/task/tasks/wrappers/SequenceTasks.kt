@@ -57,6 +57,7 @@ class SequencedTask<R, R2> @Ta5kBuilder internal constructor(
 	private val nextTaskGenerator: TaskGenerator<R, R2>,
 ) : Task<R2>() {
 	override val name get() = "Chaining ${firstTask.name}"
+	override val isInvisible = true
 	var second: Task<R2>? = null
 
 	override fun SafeContext.onStart() {
@@ -82,6 +83,7 @@ class OptionalSequencedTask<R, R2> @Ta5kBuilder internal constructor(
 	private val nextTaskGenerator: TaskOrNullGenerator<R, R2>
 ) : Task<R2?>() {
 	override val name get() = "Chaining ${firstTask.name}"
+	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		firstTask
@@ -106,6 +108,7 @@ class TaskOrNullTask<R> @Ta5kBuilder internal constructor(
 	private val taskOrNullSupplier: TaskOrNullSupplier<R>
 ) : Task<R?>() {
 	override val name get() = "Optional task"
+	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		taskOrNullSupplier()

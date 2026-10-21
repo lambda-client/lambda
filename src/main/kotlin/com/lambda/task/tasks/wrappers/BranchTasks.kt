@@ -46,6 +46,7 @@ class BranchTask<R, R2> @Ta5kBuilder internal constructor(
 	private val onFailureGenerator: TaskGenerator<Throwable, R2>
 ) : Task<R2>() {
 	override val name get() = "Branching task for ${innerTask.name}"
+	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask
@@ -78,6 +79,7 @@ class OptionalBranchTask<R, R2> @Ta5kBuilder internal constructor(
 	private val onFailureGenerator: TaskOrNullGenerator<Throwable, R2>
 ) : Task<R2?>() {
 	override val name get() = "Optional branching task for ${innerTask.name}"
+	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask
