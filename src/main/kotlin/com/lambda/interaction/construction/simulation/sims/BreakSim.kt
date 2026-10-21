@@ -145,6 +145,7 @@ class BreakSim internal constructor(simInfo: SimInfo)
 				if (breakConfig.efficientOnly) isEfficientForBreaking(state)
 				if (breakConfig.suitableToolsOnly) isSuitableForBreaking(state)
 				if (breakConfig.forceSilkTouch) withEnchantment(Enchantments.SILK_TOUCH)
+				if (breakConfig.avoidSilkTouch) withoutEnchantment(Enchantments.SILK_TOUCH)
 				if (breakConfig.forceFortunePickaxe) withEnchantment(Enchantments.FORTUNE)
 				sortedWith {
 					compareByDescending<StackAndSlot<*>> {
