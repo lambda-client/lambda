@@ -64,7 +64,8 @@ class ContainerSelection @ContainerDslMarker internal constructor(
     val containersBlacklist: Collection<Container> = emptyList(),
     val accessScope: AccessScope = AccessScope.Both,
     val comparator: Comparator<Container> = compareBy { it.type },
-    val dimensions: Set<Dimension> = emptySet()
+    val dimensionWhitelist: Set<Dimension> = emptySet(),
+    val dimensionBlacklist: Set<Dimension> = emptySet()
 ) {
     @ContainerDslMarker
     fun bestMatch(containers: Iterable<Container>) = filter(containers).firstOrNull()
@@ -117,7 +118,8 @@ class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
         this.containersBlacklist.addAll(selection.containersBlacklist)
         this.accessScope = selection.accessScope
         this.comparator = selection.comparator
-        this.dimensions.addAll(selection.dimensions)
+        this.dimensionWhitelist.addAll(selection.dimensionWhitelist)
+        this.dimensionBlacklist.addAll(selection.dimensionBlacklist)
     }
 
     private var selector: (Container) -> Boolean = { true }
@@ -126,7 +128,8 @@ class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
     private val containersBlacklist = mutableListOf<Container>()
     private var accessScope: AccessScope = AccessScope.Both
     private var comparator: Comparator<Container>? = null
-    private val dimensions = mutableSetOf<Dimension>()
+    private val dimensionWhitelist = mutableSetOf<Dimension>()
+    private val dimensionBlacklist = mutableSetOf<Dimension>()
 
     fun withContainers(vararg containers: Container) {
         loadedContainers.addAll(containers)
@@ -175,28 +178,34 @@ class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
     }
 
     fun inAnyDimension(vararg dimensions: Dimension) {
+        dimensionWhitelist.addAll(dimensions)
         appendSelector { it !is PlacedContainer || it.dimension in dimensions }
     }
 
     fun inAnyDimension(dimensions: Iterable<Dimension>) {
+        dimensionWhitelist.addAll(dimensions)
         appendSelector { it !is PlacedContainer || it.dimension in dimensions }
     }
 
     fun noneOfDimensions(vararg dimensions: Dimension) {
+        dimensionBlacklist.addAll(dimensions)
         appendSelector { it !is PlacedContainer || it.dimension !in dimensions }
     }
 
     fun noneOfDimensions(dimensions: Iterable<Dimension>) {
+        dimensionBlacklist.addAll(dimensions)
         appendSelector { it !is PlacedContainer || it.dimension !in dimensions }
     }
 
     fun inCurrentDimension() {
         val dimension = mc.world?.dim ?: Dimension.Unknown
+        dimensionWhitelist.add(dimension)
         appendSelector { it.dimension == dimension }
     }
 
     fun notInCurrentDimension() {
         val dimension = mc.world?.dim ?: Dimension.Unknown
+        dimensionBlacklist.add(dimension)
         appendSelector { it.dimension != dimension }
     }
 
@@ -275,7 +284,8 @@ class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
                 .takeUnless { it == null }
                 ?.thenBy { it.type }
                 ?: compareBy { it.type },
-            dimensions = dimensions.toSet()
+            dimensionWhitelist = dimensionWhitelist.toSet(),
+            dimensionBlacklist = dimensionBlacklist.toSet()
         )
 }
 

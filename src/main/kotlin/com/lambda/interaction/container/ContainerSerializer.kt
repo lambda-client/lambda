@@ -31,7 +31,7 @@ import net.minecraft.util.math.ChunkPos
 import java.net.InetSocketAddress
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.EnumMap
+import java.util.*
 import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.exists
@@ -64,6 +64,25 @@ object ContainerSerializer {
 	@Volatile
 	private var indexed = false
 	private var indexedDirectory: Path? = null
+
+	fun serializedByDimensions(vararg dimensions: Dimension) =
+		sequence {
+			val worldDir = currentWorldDirectory() ?: return@sequence
+			ensureIndex()
+
+			index.forEach { (dimension, chunks) ->
+				if (dimension !in dimensions) return@forEach
+				val dimensionDir = worldDir.resolve(dimension.name)
+				chunks.forEach { (_, byType) ->
+					byType.forEach { (type, positions) ->
+						positions.forEach { pos ->
+							val file = dimensionDir.resolve(containerFileName(pos, type))
+							readContainer(file)?.let { yield(it) }
+						}
+					}
+				}
+			}
+		}
 
 	fun prepareIndex() {
 		synchronized(this) {

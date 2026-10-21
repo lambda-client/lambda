@@ -58,6 +58,7 @@ import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.player.SlotUtils.typeSafe
+import com.lambda.util.world.Dimension
 import net.minecraft.block.ChestBlock
 import net.minecraft.block.ShulkerBoxBlock
 import net.minecraft.block.entity.BlockEntity
@@ -277,6 +278,15 @@ object ContainerHandler : Loadable {
 
 		val compiled = compileContainers.asSequence()
 		val placedSeq = sequenceOf(accessedPlacedContainer).filterNotNull()
+		val savedContainers =
+			if (selection.dimensionWhitelist.isEmpty() && selection.dimensionBlacklist.isEmpty()) {
+				ContainerSerializer.serializedContainers
+			} else {
+				val dimensions = selection.dimensionWhitelist.ifEmpty { Dimension.entries }
+				ContainerSerializer.serializedByDimensions(
+					*dimensions.filterNot { it in selection.dimensionBlacklist }.toTypedArray()
+				)
+			}
 
 		val baseContainers =
 			when (selection.scope) {
@@ -285,7 +295,7 @@ object ContainerHandler : Loadable {
 				ContainerSearchScope.Compiled -> compiled
 				ContainerSearchScope.Player -> compiled - EnderChestContainer
 				ContainerSearchScope.All -> compiled + placedSeq +
-						ContainerSerializer.serializedContainers.filter { diskContainer ->
+						savedContainers.filter { diskContainer ->
 							val accessed = accessedPlacedContainer
 							accessed == null || !diskContainer.haveMatchingInventories(accessed)
 						}
