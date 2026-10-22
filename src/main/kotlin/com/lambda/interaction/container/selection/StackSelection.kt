@@ -329,6 +329,13 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		appendSelector { stack, _ -> stack.name.string != name }
 	}
 
+	fun withContents(contents: List<ItemStack>) {
+		appendSelector { stack, _ ->
+			val stacks = stack.shulkerBoxStacks
+			stacks.size == contents.size && stacks.zip(contents).all { (a, b) -> ItemStack.areEqual(a, b) }
+		}
+	}
+
 	fun ofAnyStacks(stacks: Iterable<ItemStack>) {
 		appendSelector { stack, _ -> stacks.contains(stack) }
 	}
