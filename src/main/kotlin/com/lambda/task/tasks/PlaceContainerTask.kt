@@ -30,9 +30,11 @@ import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.math.distSq
 import net.minecraft.block.ChestBlock
+import net.minecraft.block.FallingBlock
 import net.minecraft.entity.mob.ShulkerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
@@ -65,6 +67,7 @@ class PlaceContainerTask @Ta5kBuilder internal constructor(
                 .map { it.blockPos }
                 .asSequence()
                 .filter { !ManagerUtils.isPosBlocked(it) }
+                .filter { !FallingBlock.canFallThrough(blockState(it.down())) }
                 .flatMap {
                     it.toStructure(TargetState.Stack(slot.stack))
                         .sim()
