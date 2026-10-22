@@ -101,8 +101,7 @@ class PlaceContainerTask @Ta5kBuilder internal constructor(
         }
         in SHULKER_BOXES -> {
             val box = ShulkerEntity
-                .calculateBoundingBox(0.5f, direction, 0.0f, blockPos.toBottomCenterPos())
-                .offset(blockPos)
+                .calculateBoundingBox(1.0f, direction, 0.0f, 0.5f, blockPos.toBottomCenterPos())
                 .contract(1.0E-6)
 
             world.isSpaceEmpty(box)
