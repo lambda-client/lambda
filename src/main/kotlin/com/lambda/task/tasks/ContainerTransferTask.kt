@@ -394,13 +394,13 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				stackSelection {
 					predicate { candidate, _ -> !candidate.isEmpty && candidate.hasSpace && candidate.sameItemAs(stack) }
 					canInsert(stack)
-					sortedWith(baseToSelection.comparator)
+					baseToSelection.comparator?.let { sortedWith(it) }
 				}
 			) ?: toContainer.findReplaceSlot(
 				stack,
 				stackSelection(StackSelection.UNBOUNDED) {
 					isEmpty()
-					sortedWith(baseToSelection.comparator)
+					baseToSelection.comparator?.let { sortedWith(it) }
 				}
 			) ?: findSwappableSlot(fromSlot, toContainer)
 		}
