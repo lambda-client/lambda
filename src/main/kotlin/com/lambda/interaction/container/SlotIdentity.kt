@@ -27,9 +27,11 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
 sealed interface SlotIdentity {
-	data class Player(val index: Int) : SlotIdentity
-	data class Placed(val positions: Set<BlockPos>, val index: Int) : SlotIdentity
-	data class Ender(val index: Int) : SlotIdentity
+	val index: Int
+
+	data class Player(override val index: Int) : SlotIdentity
+	data class Placed(val positions: Set<BlockPos>, override val index: Int) : SlotIdentity
+	data class Ender(override val index: Int) : SlotIdentity
 
 	context(safeContext: SafeContext)
 	fun resolve(): Slot? {
@@ -62,6 +64,9 @@ sealed interface SlotIdentity {
 		if (live.isEmpty || stack.isEmpty) return false
 		return live.item == stack.item && live.name.string == stack.name.string
 	}
+
+	context(safeContext: SafeContext)
+	fun isEmpty() = resolve()?.stack?.isEmpty == true
 }
 
 fun Slot.identity(): SlotIdentity? {

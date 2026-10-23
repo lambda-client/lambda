@@ -106,6 +106,7 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 		if (gone.isNotEmpty()) {
 			drops.removeAll(gone.toSet())
 			BaritoneHandler.cancel()
+			lastGoal = null
 		}
 
 		val target = drops.firstOrNull()

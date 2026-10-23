@@ -208,6 +208,9 @@ class InteractSim internal constructor(simInfo: InteractSimInfo)
 				countEmptyAsOne()
 				alwaysWholeStacks()
 				item?.let { isItem(it) }
+				(targetState as? TargetState.Stack)?.let { target ->
+					sortedWith { compareByDescending { it.stack === target.itemStack } }
+				}
 				sortedWith { compareByDescending { it.slot?.index == player.inventory.selectedSlot } }
 			}
 

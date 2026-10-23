@@ -26,6 +26,7 @@ import com.lambda.interaction.container.ExternalContainer
 import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
+import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
@@ -40,6 +41,7 @@ import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.placeContainer
 import com.lambda.task.tasks.transfer
 import com.lambda.task.tasks.wrappers.actionTask
+import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
 import com.lambda.task.tasks.wrappers.thenOrNull
@@ -47,7 +49,6 @@ import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
-import net.minecraft.block.Block
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
@@ -58,7 +59,7 @@ data class ShulkerBoxContainer(
 	val shulkerItem: Item,
 	override var stacks: List<ItemStack>,
 	override val containedIn: Container,
-	override val index: Int,
+	override val slotIdentity: SlotIdentity,
 ) : NestedContainer(ContainerType.ShulkerBox), ExternalContainer {
 	override val slots
 		get(): List<Slot> =
@@ -70,7 +71,7 @@ data class ShulkerBoxContainer(
 			highlighted(itemName)
 			literal(" in ")
 			highlighted(containedIn.name)
-			literal(" in slot index $index")
+			literal(" in slot index ${slotIdentity.index}")
 		}
 
 	override val isAccessed = false
@@ -83,23 +84,20 @@ data class ShulkerBoxContainer(
 		automated: Automated
 	) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
-			val slotIdentity = containedIn.slots.find { it.index == index }?.identity()
-			val stackSelection = stackSelection {
+			val selection = stackSelection {
 				isItem(shulkerItem)
 				withName(itemName)
-				if (slotIdentity != null) sortedBySlotMatch(slotIdentity)
+				sortedBySlotMatch(slotIdentity)
 				sortedByBestContentMatch(stacks)
-				sortedByRecentChange()
 			}
 			taskOrNull {
 				if (containedIn == HotbarContainer) null
-				else stackSelection.transfer(containedIn.select(ContainerSearchScope.Loaded), HotbarContainer.select())
-			}.then {
-				placeContainer(findSlot(stackSelection, HotbarContainer.select()))
+				else selection.transfer(containedIn.select(ContainerSearchScope.Loaded), HotbarContainer.select())
+			}.then { result ->
+				placeContainer(findSlot(result?.stackSelection ?: selection, HotbarContainer.select()))
 			}.then { pos ->
-				openContainer(pos).onSuccess {
-					val placed = PlacedShulkerBoxContainer(pos, Block.getBlockFromItem(shulkerItem), null, stacks)
-					success(OpenedShulkerBoxContext(placed))
+				openContainer<PlacedShulkerBoxContainer>(pos).onSuccess {
+					success(OpenedShulkerBoxContext(it))
 				}
 			}.start()
 		}
@@ -116,40 +114,40 @@ data class ShulkerBoxContainer(
 			}.then {
 				breakAndCollect(container.pos)
 			}.thenOrNull { outcome ->
-				if (containedIn !is ExternalContainer) return@thenOrNull null
-
 				val pickedUp = outcome.pickups
 					.asSequence()
 					.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
 					.firstNotNullOfOrNull { it.slot }
+				val inContainer = pickedUp != null && containedIn.slots.any { it.identity() == pickedUp }
+				if (inContainer && !slotIdentity.isEmpty()) return@thenOrNull null
 
 				stackSelection {
 					isItem(shulkerItem)
 					withName(itemName)
-					if (pickedUp != null) sortedBySlotMatch(pickedUp)
-					sortedByBestContentMatch(stacks)
+					if (pickedUp != null) predicate { _, slot -> slot?.identity() == pickedUp }
+					sortedByBestContentMatch(container.stacks)
 					sortedByRecentChange()
 				}.transfer(
 					ContainerSelection.HOTBAR_AND_INVENTORY,
 					containedIn.select(ContainerSearchScope.Loaded),
 					stackSelection {
+						isEmpty()
 						sortedByMatches {
 							stackSelection {
-								predicate { _, slot -> slot?.index == index }
-								isEmpty()
+								predicate { _, slot -> slot?.identity() == slotIdentity }
 							}
 						}
 					},
 					allowQuickMove = false
-				)
+				).softFail()
 			}
 		}
 	}
 
-	override fun hashCode() = hash(containedIn.hashCode(), index)
+	override fun hashCode() = hash(containedIn.hashCode(), slotIdentity)
 
 	override fun equals(other: Any?) =
 		other is ShulkerBoxContainer &&
 				containedIn == other.containedIn &&
-				index == other.index
+				slotIdentity == other.slotIdentity
 }

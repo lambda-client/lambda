@@ -79,7 +79,7 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 		override fun SafeContext.onStart() {
 			findBlock(Blocks.ENDER_CHEST, inventoryConfig.enderChestSearchRadius).withBranch(
 				onSuccess = { pos ->
-					openContainer(pos).onSuccess {
+					openContainer<EnderChestContainer>(pos).onSuccess {
 						success(OpenedEnderChestContext(null))
 					}
 				},
@@ -87,7 +87,7 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 					acquireStack(Items.ENDER_CHEST.select())
 						.then { placeContainer(findSlot(it, HotbarContainer.select())) }
 						.then { pos ->
-							openContainer(pos).onSuccess {
+							openContainer<EnderChestContainer>(pos).onSuccess {
 								success(OpenedEnderChestContext(pos))
 							}
 						}

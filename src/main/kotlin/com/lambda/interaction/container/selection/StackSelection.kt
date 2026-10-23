@@ -485,6 +485,11 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		sortedWith(comparatorSupplier())
 	}
 
+	fun sortedFirstWith(comparatorSupplier: () -> Comparator<StackAndSlot<*>>) {
+		val newComparator = comparatorSupplier()
+		comparator = comparator?.let { newComparator.thenComparing(it) } ?: newComparator
+	}
+
 	fun sortedByMatches(stackSelection: StackSelection) {
 		sortedWith {
 			compareByDescending { stackSelection.matches(it) }

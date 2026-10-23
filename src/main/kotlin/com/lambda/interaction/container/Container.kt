@@ -23,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
 import com.lambda.interaction.container.containers.CursorContainer
+import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
@@ -114,14 +115,20 @@ abstract class Container(
 
     fun scanStacksForNestedContainers() {
         stacks.forEachIndexed { index, stack ->
-            if (stack.item in SHULKER_BOXES) {
+            val slotIdentity =
+                when (this) {
+                    is EnderChestContainer -> SlotIdentity.Ender(index)
+                    is PlacedContainer -> SlotIdentity.Placed(positions, index)
+                    else -> null
+                }
+            if (stack.item in SHULKER_BOXES && slotIdentity != null) {
                 storedContainers[index] =
                     ShulkerBoxContainer(
                         stack.name.string,
                         stack.item,
                         stack.shulkerBoxStacks,
                         this,
-                        index
+                        slotIdentity
                     ).also { it.scanStacksForNestedContainers() }
             } else storedContainers.remove(index)
         }

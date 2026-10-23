@@ -42,7 +42,7 @@ import net.minecraft.item.ItemStack
 object HotbarManager : Manager<HotbarRequest>(1) {
 	private var activeRequest: HotbarRequest? = null
 	@JvmStatic var activeSlot: Int = -1
-	private var requestStage: Event? = null
+	private var activeRequestStage: Event? = null
 
 	val serverSlot get() = runSafe {
 		interaction.lastSelectedSlot
@@ -114,7 +114,7 @@ object HotbarManager : Manager<HotbarRequest>(1) {
 	private fun AutomatedSafeContext.setActiveRequest(request: HotbarRequest) {
 		maxSwapsThisTick = hotbarConfig.swapsPerTick
 		activeRequest = request
-		requestStage = tickStage
+		activeRequestStage = tickStage
 	}
 
 	/**
@@ -151,7 +151,7 @@ object HotbarManager : Manager<HotbarRequest>(1) {
 	private fun SafeContext.checkResetSwap() {
 		activeRequest?.let { active ->
 			if (active.keepTicks <= 0) {
-				if (active.keepTicks == 0 && active.activeRequestAge > 0 && tickStage != requestStage) return
+				if (active.keepTicks == 0 && tickStage != activeRequestStage) return
 				if (active.hotbarConfig.swapMode == SwapMode.Permanent) {
 					activeRequest = null
 					activeSlot = -1

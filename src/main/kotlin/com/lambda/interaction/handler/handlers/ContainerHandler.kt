@@ -45,6 +45,7 @@ import com.lambda.interaction.container.containers.external.DoubleChestContainer
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.containers.external.PlacedShulkerBoxContainer
 import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
+import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.containerSelection
@@ -130,7 +131,7 @@ object ContainerHandler : Loadable {
 			pendingInteractedBlockEntity = null
 		}
 
-		listen<InventoryEvent.FullUpdate> { onContainerUpdate() }
+		listen<InventoryEvent.FullUpdate>(priority = { Int.MAX_VALUE }) { onContainerUpdate() }
 		listen<PlayerEvent.SlotClick.Post> { onContainerUpdate() }
 
 		listen<WorldEvent.BlockUpdate.Client> { event ->
@@ -412,14 +413,15 @@ object ContainerHandler : Loadable {
 		slots.forEach { slot ->
 			val stack = slot.stack
 			val index = slot.index
-			if (stack.item in SHULKER_BOXES) {
+			val slotIdentity = slot.identity()
+			if (stack.item in SHULKER_BOXES && slotIdentity != null) {
 				storedContainers[index] =
 					ShulkerBoxContainer(
 						stack.name.string,
 						stack.item,
 						stack.shulkerBoxStacks,
 						this,
-						index
+						slotIdentity
 					).also { it.scanContainerContents() }
 			} else storedContainers.remove(index)
 		}
