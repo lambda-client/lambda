@@ -88,6 +88,7 @@ data class ShulkerBoxContainer(
 				isItem(shulkerItem)
 				withName(itemName)
 				if (slotIdentity != null) sortedBySlotMatch(slotIdentity)
+				sortedByBestContentMatch(stacks)
 				sortedByRecentChange()
 			}
 			taskOrNull {
