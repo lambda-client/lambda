@@ -26,17 +26,15 @@ import com.lambda.interaction.container.ExternalContainer
 import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
-import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.task.tasks.acquireStack
 import com.lambda.task.tasks.breakAndCollect
 import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.placeContainer
@@ -53,7 +51,6 @@ import net.minecraft.block.Block
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
-import net.minecraft.util.math.BlockPos
 import java.util.Objects.hash
 
 data class ShulkerBoxContainer(
@@ -76,9 +73,7 @@ data class ShulkerBoxContainer(
 			literal(" in slot index $index")
 		}
 
-	private var placed: PlacedShulkerBoxContainer? = null
-
-	override val isAccessed get() = placed?.isAccessed == true
+	override val isAccessed = false
 
 	@Ta5kBuilder
 	context(automated: Automated)
@@ -88,42 +83,43 @@ data class ShulkerBoxContainer(
 		automated: Automated
 	) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
-			acquireStack(
-				stackSelection {
-					sortedWith { compareByDescending { it.slot?.index == index } }
-					isItem(shulkerItem)
-					withName(itemName)
-					withContents(stacks)
-				}
-			).then {
-				placeContainer(findSlot(it, HotbarContainer.select()))
+			val slotIdentity = containedIn.slots.find { it.index == index }?.identity()
+			val stackSelection = stackSelection {
+				isItem(shulkerItem)
+				withName(itemName)
+				if (slotIdentity != null) sortedBySlotMatch(slotIdentity)
+				sortedByRecentChange()
+			}
+			taskOrNull {
+				if (containedIn == HotbarContainer) null
+				else stackSelection.transfer(containedIn.select(ContainerSearchScope.Loaded), HotbarContainer.select())
+			}.then {
+				placeContainer(findSlot(stackSelection, HotbarContainer.select()))
 			}.then { pos ->
 				openContainer(pos).onSuccess {
-					placed = PlacedShulkerBoxContainer(pos, Block.getBlockFromItem(shulkerItem), null, stacks)
-					success(OpenedShulkerBoxContext(pos))
+					val placed = PlacedShulkerBoxContainer(pos, Block.getBlockFromItem(shulkerItem), null, stacks)
+					success(OpenedShulkerBoxContext(placed))
 				}
 			}.start()
 		}
 	}
 
 	inner class OpenedShulkerBoxContext(
-		val blockPos: BlockPos,
+		override val container: PlacedShulkerBoxContainer,
 	) : OpenedContainerContext {
 		context(automated: Automated)
 		override fun close(): Task<*> {
 			return taskOrNull {
-				if (!isAccessed) null
+				if (!container.isAccessed) null
 				else actionTask { player.closeHandledScreen() }
-			}.then {
-				placed = null
-				breakAndCollect(blockPos)
-			}
+			}.then { breakAndCollect(container.pos) }
 				.thenOrNull { outcome ->
+					if (containedIn !is ExternalContainer) return@thenOrNull null
+
 					val pickedUp = outcome.pickups
 						.asSequence()
 						.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
 						.firstNotNullOfOrNull { it.slot }
-					if (pickedUp != null && containedIn.slots.any { it.identity() == pickedUp }) return@thenOrNull null
 
 					stackSelection {
 						isItem(shulkerItem)
@@ -132,7 +128,7 @@ data class ShulkerBoxContainer(
 						sortedByBestContentMatch(stacks)
 						sortedByRecentChange()
 					}.transfer(
-						ContainerSelection.HOTBAR_AND_INVENTORY.mutate { noneOf(containedIn) },
+						ContainerSelection.HOTBAR_AND_INVENTORY,
 						containedIn.select(ContainerSearchScope.Loaded),
 						stackSelection {
 							sortedByMatches {

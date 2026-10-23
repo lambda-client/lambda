@@ -25,7 +25,9 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.manager.ManagerUtils
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
@@ -87,6 +89,7 @@ class PlaceContainerTask @Ta5kBuilder internal constructor(
             .toStructure(TargetState.Stack(slot.stack))
             .toBlueprint()
             .build(finishOnDone = true, collectDrops = false)
+            .onPreTick { slot in HotbarContainer.slots && !this.hotbarRequest(slot.index).submit().done }
             .onSuccess { success(containerPosition) }
             .start()
     }

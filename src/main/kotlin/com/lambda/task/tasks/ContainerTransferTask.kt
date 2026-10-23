@@ -224,10 +224,11 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					}
 
 		return taskOrNull { from.access() }.then { fromContext ->
+			val fromContainer = fromContext?.container ?: from
 			taskOrNull { to.access() }.then { toContext ->
 				MoveTask(
-					fromContainers = listOf(from),
-					toContainers = toContainers,
+					fromContainers = listOf(fromContainer),
+					toContainers = toContext?.container?.let { listOf(it) } ?: toContainers,
 					fromSelection = fromStack,
 					toSelection = toStack,
 					limit = remaining
@@ -239,7 +240,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 						}
 					toContext?.close()
 				}.thenOrNull {
-					if (from.count(fromStack) <= 0) {
+					if (fromContainer.count(fromStack) <= 0) {
 						fromQueue.removeAll { it.haveMatchingInventories(from) }
 					}
 					fromContext?.close()
@@ -251,8 +252,9 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private fun tripChain(from: Container): Task<*> =
 		taskOrNull { from.access() }
 			.then { fromContext ->
+				val fromContainer = fromContext?.container ?: from
 				MoveTask(
-					fromContainers = listOf(from),
+					fromContainers = listOf(fromContainer),
 					toContainers = stagingContainers,
 					fromSelection = fromStack,
 					toSelection = StackSelection.EVERYTHING,
@@ -261,7 +263,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					trackResult = false
 				).thenOrNull { pulled ->
 					staged += pulled
-					if (from.count(fromStack) <= 0) {
+					if (fromContainer.count(fromStack) <= 0) {
 						fromQueue.removeAll { it.haveMatchingInventories(from) }
 					}
 					fromContext?.close()
@@ -276,15 +278,16 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 		return taskOrNull { to.access() }
 			.then { toContext ->
+				val toContainer = toContext?.container ?: to
 				MoveTask(
 					fromContainers = stagingContainers,
-					toContainers = listOf(to),
+					toContainers = listOf(toContainer),
 					fromSelection = fromStack,
 					toSelection = toStack,
 					limit = pushLimit
 				).thenOrNull { pushed ->
 					staged = (staged - pushed).coerceAtLeast(0)
-					if (pushed <= 0 || !canReceive(to)) {
+					if (pushed <= 0 || !canReceive(toContainer)) {
 						toQueue.removeAll { it.haveMatchingInventories(to) }
 					}
 					toContext?.close()
