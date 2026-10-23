@@ -71,7 +71,6 @@ import com.lambda.interaction.manager.managers.breaking.BreakManager.updatePrePr
 import com.lambda.interaction.manager.managers.breaking.SwapInfo.Companion.getSwapInfo
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequest
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
-import com.lambda.interaction.manager.managers.interacting.InteractManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequest
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
@@ -298,7 +297,6 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 */
 	override fun AutomatedSafeContext.handleRequest(request: BreakRequest) {
 		if (activeRequest != null || request.contexts.isEmpty()) return
-		if (InteractManager.activeThisTick) return
 
 		activeRequest = request
 		processRequest(request)

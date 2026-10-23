@@ -135,7 +135,6 @@ object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 	 */
 	override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
 		if (activeRequest != null || request.contexts.isEmpty()) return
-		if (BreakManager.activeThisTick) return
 
 		activeRequest = request
 		processRequest(request)
