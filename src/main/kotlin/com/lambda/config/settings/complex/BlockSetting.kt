@@ -24,10 +24,17 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.config.serializers.BlockSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.ImGuiListClipper
+import com.lambda.imgui.callback.ImListClipperCallback
+import com.lambda.imgui.flag.ImGuiChildFlags
+import com.lambda.imgui.flag.ImGuiPopupFlags
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.block.Block
 import net.minecraft.command.CommandRegistryAccess
+import net.minecraft.registry.Registries
 
 class BlockSetting(
 	name: String,
@@ -37,7 +44,46 @@ class BlockSetting(
 	visibility: () -> Boolean,
 	defaultValue: Block
 ) : Setting<Block>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {}
+	private var searchFilter = ""
+
+	override fun ImGuiBuilder.buildLayout() {
+		val popupId = "##$name-popup"
+
+		button("$name: ${BlockSerializer.stringify(value)}") {
+			ImGui.openPopup(popupId)
+		}
+		lambdaTooltip(description)
+
+		ImGui.setNextWindowSizeConstraints(350f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
+		popupContextItem(popupId, ImGuiPopupFlags.None) {
+			inputText("##$name-SearchBox", ::searchFilter)
+
+			val q = searchFilter.trim()
+			val filtered = Registries.BLOCK
+				.filter { q.isEmpty() || BlockSerializer.stringify(it).contains(q, ignoreCase = true) }
+
+			child(
+				strId = "##$name-List",
+				width = 700f,
+				height = 200f,
+				childFlags = ImGuiChildFlags.Border or ImGuiChildFlags.ResizeX or ImGuiChildFlags.ResizeY,
+			) {
+				val callback = object : ImListClipperCallback() {
+					override fun accept(index: Int) {
+						val block = filtered.getOrNull(index) ?: return
+						selectable(
+							label = BlockSerializer.stringify(block),
+							selected = block == value
+						) {
+							value = block
+							closeCurrentPopup()
+						}
+					}
+				}
+				ImGuiListClipper.forEach(filtered.size, callback)
+			}
+		}
+	}
 
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(blockState(name, registry)) { argument ->
