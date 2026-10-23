@@ -127,6 +127,7 @@ data class BuildOutcome(
 )
 
 data class BuildStatus(
+	val structure: Structure,
 	val pickedUpTypes: Set<Item>,
 	val dropsPending: List<ItemStack>
 )
@@ -168,7 +169,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 	}
 
 	@Ta5kBuilder
-	fun onPreTick(callback: context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Boolean) =
+	fun onTickPre(callback: context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Boolean) =
 		apply { preTickCallbacks.add(callback) }
 
 	init {
@@ -273,6 +274,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 		if (preTickCallbacks.isEmpty()) return false
 		val status =
 			BuildStatus(
+				structure = blueprint.structure,
 				pickedUpTypes = pickupTypes,
 				dropsPending = dropsToCollect.map { it.stack.copy() }
 			)
