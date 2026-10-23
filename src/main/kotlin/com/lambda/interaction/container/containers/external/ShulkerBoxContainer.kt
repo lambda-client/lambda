@@ -112,35 +112,36 @@ data class ShulkerBoxContainer(
 			return taskOrNull {
 				if (!container.isAccessed) null
 				else actionTask { player.closeHandledScreen() }
-			}.then { breakAndCollect(container.pos) }
-				.thenOrNull { outcome ->
-					if (containedIn !is ExternalContainer) return@thenOrNull null
+			}.then {
+				breakAndCollect(container.pos)
+			}.thenOrNull { outcome ->
+				if (containedIn !is ExternalContainer) return@thenOrNull null
 
-					val pickedUp = outcome.pickups
-						.asSequence()
-						.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
-						.firstNotNullOfOrNull { it.slot }
+				val pickedUp = outcome.pickups
+					.asSequence()
+					.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
+					.firstNotNullOfOrNull { it.slot }
 
+				stackSelection {
+					isItem(shulkerItem)
+					withName(itemName)
+					if (pickedUp != null) sortedBySlotMatch(pickedUp)
+					sortedByBestContentMatch(stacks)
+					sortedByRecentChange()
+				}.transfer(
+					ContainerSelection.HOTBAR_AND_INVENTORY,
+					containedIn.select(ContainerSearchScope.Loaded),
 					stackSelection {
-						isItem(shulkerItem)
-						withName(itemName)
-						if (pickedUp != null) sortedBySlotMatch(pickedUp)
-						sortedByBestContentMatch(stacks)
-						sortedByRecentChange()
-					}.transfer(
-						ContainerSelection.HOTBAR_AND_INVENTORY,
-						containedIn.select(ContainerSearchScope.Loaded),
-						stackSelection {
-							sortedByMatches {
-								stackSelection {
-									predicate { _, slot -> slot?.index == index }
-									isEmpty()
-								}
+						sortedByMatches {
+							stackSelection {
+								predicate { _, slot -> slot?.index == index }
+								isEmpty()
 							}
-						},
-						allowQuickMove = false
-					)
-				}
+						}
+					},
+					allowQuickMove = false
+				)
+			}
 		}
 	}
 
