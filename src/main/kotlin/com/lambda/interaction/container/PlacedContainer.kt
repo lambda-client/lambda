@@ -28,4 +28,6 @@ abstract class PlacedContainer(
 	abstract val pos: BlockPos
 	abstract val stash: StashContainer?
 	open val positions: Set<BlockPos> get() = setOf(pos)
+
+	override fun slotIdentity(index: Int) = SlotIdentity.Placed(positions, index)
 }

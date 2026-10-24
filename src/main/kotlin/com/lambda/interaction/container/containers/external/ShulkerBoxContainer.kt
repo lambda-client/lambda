@@ -26,7 +26,6 @@ import com.lambda.interaction.container.ExternalContainer
 import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
-import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
@@ -59,7 +58,7 @@ data class ShulkerBoxContainer(
 	val shulkerItem: Item,
 	override var stacks: List<ItemStack>,
 	override val containedIn: Container,
-	override val slotIdentity: SlotIdentity,
+	override val index: Int,
 ) : NestedContainer(ContainerType.ShulkerBox), ExternalContainer {
 	override val slots
 		get(): List<Slot> =
@@ -71,7 +70,7 @@ data class ShulkerBoxContainer(
 			highlighted(itemName)
 			literal(" in ")
 			highlighted(containedIn.name)
-			literal(" in slot index ${slotIdentity.index}")
+			literal(" in slot index $index")
 		}
 
 	override val isAccessed = false
@@ -87,7 +86,7 @@ data class ShulkerBoxContainer(
 			val selection = stackSelection {
 				isItem(shulkerItem)
 				withName(itemName)
-				sortedBySlotMatch(slotIdentity)
+				slotIdentity?.let { sortedBySlotMatch(it) }
 				sortedByBestContentMatch(stacks)
 			}
 			taskOrNull {
@@ -114,12 +113,13 @@ data class ShulkerBoxContainer(
 			}.then {
 				breakAndCollect(container.pos)
 			}.thenOrNull { outcome ->
+				val ownSlot = slotIdentity ?: return@thenOrNull null
 				val pickedUp = outcome.pickups
 					.asSequence()
 					.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
 					.firstNotNullOfOrNull { it.slot }
 				val inContainer = pickedUp != null && containedIn.slots.any { it.identity() == pickedUp }
-				if (inContainer && !slotIdentity.isEmpty()) return@thenOrNull null
+				if (inContainer && !ownSlot.isEmpty()) return@thenOrNull null
 
 				stackSelection {
 					isItem(shulkerItem)
@@ -134,7 +134,7 @@ data class ShulkerBoxContainer(
 						isEmpty()
 						sortedByMatches {
 							stackSelection {
-								predicate { _, slot -> slot?.identity() == slotIdentity }
+								predicate { _, slot -> slot?.identity() == ownSlot }
 							}
 						}
 					},
@@ -144,10 +144,10 @@ data class ShulkerBoxContainer(
 		}
 	}
 
-	override fun hashCode() = hash(containedIn.hashCode(), slotIdentity)
+	override fun hashCode() = hash(containedIn.hashCode(), index)
 
 	override fun equals(other: Any?) =
 		other is ShulkerBoxContainer &&
 				containedIn == other.containedIn &&
-				slotIdentity == other.slotIdentity
+				index == other.index
 }

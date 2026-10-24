@@ -20,6 +20,7 @@ package com.lambda.interaction.container.containers
 import com.lambda.Lambda.mc
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.SlotIdentity
 import com.lambda.util.player.SlotUtils.inventorySlots
 import com.lambda.util.player.SlotUtils.inventoryStacks
 import com.lambda.util.text.buildText
@@ -35,4 +36,6 @@ object InventoryContainer : Container(ContainerType.Inventory) {
         set(_) {}
 
     override val description = buildText { literal("Inventory") }
+
+    override fun slotIdentity(index: Int) = SlotIdentity.Player(index)
 }

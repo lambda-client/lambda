@@ -25,6 +25,7 @@ import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.ExternalContainer
 import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
+import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
@@ -66,6 +67,8 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 				blockEntity is EnderChestBlockEntity &&
 						mc.player?.currentScreenHandler?.typeSafe == ScreenHandlerType.GENERIC_9X3
 			} ?: false
+
+	override fun slotIdentity(index: Int) = SlotIdentity.Ender(index)
 
 	@Ta5kBuilder
 	context(automated: Automated)

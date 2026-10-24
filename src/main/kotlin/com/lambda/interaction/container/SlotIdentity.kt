@@ -27,11 +27,9 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
 sealed interface SlotIdentity {
-	val index: Int
-
-	data class Player(override val index: Int) : SlotIdentity
-	data class Placed(val positions: Set<BlockPos>, override val index: Int) : SlotIdentity
-	data class Ender(override val index: Int) : SlotIdentity
+	data class Player(val index: Int) : SlotIdentity
+	data class Placed(val positions: Set<BlockPos>, val index: Int) : SlotIdentity
+	data class Ender(val index: Int) : SlotIdentity
 
 	context(safeContext: SafeContext)
 	fun resolve(): Slot? {

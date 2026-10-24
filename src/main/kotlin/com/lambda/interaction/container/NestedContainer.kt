@@ -21,7 +21,9 @@ import com.lambda.context.Automated
 
 abstract class NestedContainer(type: ContainerType) : Container(type), ExternalContainer {
 	abstract val containedIn: Container
-	abstract val slotIdentity: SlotIdentity
+	abstract val index: Int
+
+	val slotIdentity get() = containedIn.slotIdentity(index)
 
 	override val dimension get() = containedIn.dimension
 
