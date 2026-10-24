@@ -65,7 +65,7 @@ object Scaffold : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				buildConfig.apply {
-					editTypedSettings(::pathing, ::collectDrops, ::spleefEntities) {
+					editTypedSettings(::pathing, ::spleefEntities) {
 						defaultValue(false)
 						hide()
 					}

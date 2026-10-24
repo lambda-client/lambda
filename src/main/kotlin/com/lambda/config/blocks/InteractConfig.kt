@@ -25,7 +25,7 @@ interface InteractConfig : ActionConfig {
 	val airPlace: AirPlaceMode
 	val axisRotateSetting: Boolean
 	val axisRotate get() = rotate && airPlace.isEnabled && axisRotateSetting
-	val interactConfirmationMode: InteractConfirmationMode
+	val interactConfirmation: InteractConfirmationMode
 	val interactDelay: Int
 	val interactionsPerTick: Int
 	val swing: Boolean

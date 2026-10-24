@@ -351,14 +351,14 @@ object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 
 		sendInteractPacket(hand, hitResult)
 
-		if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.None) {
+		if (interactConfig.interactConfirmation != InteractConfig.InteractConfirmationMode.None) {
 			InteractInfo(interactContext, request.pendingInteractions, request.onPlace, interactConfig).startPending()
 		}
 
 		val itemStack = itemPlacementContext.stack
 		itemStack.decrementUnlessCreative(1, player)
 
-		if (interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
+		if (interactConfig.interactConfirmation == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
 			return ActionResult.SUCCESS
 
 		// TODO: Implement restriction checks (e.g., world height) to prevent unnecessary server requests when the
@@ -376,7 +376,7 @@ object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 
 		if (interactConfig.sounds) placeSound(state, blockPos)
 
-		if (interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.None) {
+		if (interactConfig.interactConfirmation == InteractConfig.InteractConfirmationMode.None) {
 			request.onPlace?.invoke(this, interactContext.blockPos)
 		}
 

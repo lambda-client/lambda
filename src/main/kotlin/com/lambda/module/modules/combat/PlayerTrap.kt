@@ -62,8 +62,7 @@ object PlayerTrap : Module(
 				buildConfig.apply {
 					editTypedSettings(
 						::pathing,
-						::spleefEntities,
-						::collectDrops
+						::spleefEntities
 					) { defaultValue(false); hide() }
 				}
 				hideBlock(::eatConfig)

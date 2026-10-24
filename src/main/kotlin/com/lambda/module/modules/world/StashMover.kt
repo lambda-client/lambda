@@ -186,7 +186,7 @@ object StashMover : Module(
 			.withEdits {
 				buildConfig.apply {
 					editTypedSettings(::pathing, ::checkSideVisibility) { defaultValue(true) }
-					hide(::pathing, ::collectDrops, ::spleefEntities, ::entityReach)
+					hide(::pathing, ::spleefEntities, ::entityReach)
 					hideBlock(::eatConfig)
 				}
 				breakConfig.apply {

@@ -144,7 +144,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 
 	private var breakDelay = 0
 	private var oldGrimBreakDelay = 0
-	var bypassingOldGrimBreakDelay = false
+	private var bypassingOldGrimBreakDelay = false
 	var breaksThisTick = 0
 	private var maxBreaksThisTick = 0
 
@@ -190,8 +190,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 					}
 					info.request.onStop?.invoke(this@listen, info.context.blockPos)
 					info.internalOnBreak()
-					if (info.callbacksCompleted)
-						RebreakHandler.offerRebreak(info)
+					if (info.callbacksCompleted) RebreakHandler.offerRebreak(info)
 					else info.startPending()
 					info.nullify()
 				}

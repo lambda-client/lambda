@@ -112,7 +112,7 @@ object EnderChestFarmer : Module(
 			.withEdits {
 				hideAllExcept(::buildConfig, ::breakConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
 				buildConfig.apply {
-					editTypedSettings(::pathing, ::collectDrops, ::spleefEntities) {
+					editTypedSettings(::pathing, ::spleefEntities) {
 						defaultValue(false)
 						hide()
 					}

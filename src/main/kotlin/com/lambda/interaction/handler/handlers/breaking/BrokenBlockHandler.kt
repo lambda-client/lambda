@@ -27,7 +27,6 @@ import com.lambda.interaction.construction.simulation.processing.ProcessorRegist
 import com.lambda.interaction.handler.PostActionHandler
 import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.reBreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
-import com.lambda.interaction.manager.managers.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.manager.managers.breaking.BreakManager.matchesBlockItem
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
@@ -111,12 +110,8 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 				}
 				pendingActions.refresh(pending)
 				pending.internalOnBreak()
-				if (pending.callbacksCompleted) {
-					pending.stopPending()
-					if (lastPosStarted == pending.context.blockPos) {
-						RebreakHandler.offerRebreak(pending)
-					}
-				}
+				if (pending.callbacksCompleted) pending.stopPending()
+	            RebreakHandler.offerRebreak(pending)
 				return@listen
 			}
 		}
@@ -135,9 +130,6 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 				pending.internalOnItemDrop(entity)
 				if (pending.callbacksCompleted) {
 					pending.stopPending()
-					if (lastPosStarted == pending.context.blockPos) {
-						RebreakHandler.offerRebreak(pending)
-					}
 				}
 			}
 		}

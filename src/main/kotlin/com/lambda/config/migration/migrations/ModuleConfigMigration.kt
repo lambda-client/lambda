@@ -54,5 +54,13 @@ object ModuleConfigMigration : StepConfigMigration() {
 			if (loaderBranch.asString() != "Snapshot") return@step
 			settings.asObject().put("Loader Branch", "Dev")
 		}
+
+		step(3, 4) { root ->
+			val highwayTools = root.get("Highway Tools") ?: return@step
+			if (!highwayTools.isObject) return@step
+			val settings = highwayTools.get("Settings") ?: return@step
+			if (!settings.isObject) return@step
+
+		}
 	}
 }

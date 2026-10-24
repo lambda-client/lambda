@@ -80,7 +80,7 @@ import kotlin.math.sqrt
 @Ta5kBuilder
 fun Automated.build(
 	finishOnDone: Boolean = true,
-	collectDrops: Boolean = buildConfig.collectDrops,
+	collectDrops: Boolean = false,
 	lifeMaintenance: Boolean = false,
 	async: Boolean = false,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
@@ -91,7 +91,7 @@ fun Automated.build(
 context(automated: Automated)
 fun Structure.build(
 	finishOnDone: Boolean = true,
-	collectDrops: Boolean = automated.buildConfig.collectDrops,
+	collectDrops: Boolean = false,
 	lifeMaintenance: Boolean = false,
 	async: Boolean = false,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
@@ -101,7 +101,7 @@ fun Structure.build(
 context(automated: Automated)
 fun Blueprint.build(
 	finishOnDone: Boolean = true,
-	collectDrops: Boolean = automated.buildConfig.collectDrops,
+	collectDrops: Boolean = false,
 	lifeMaintenance: Boolean = false,
 	async: Boolean = false,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
@@ -152,7 +152,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 	private val dropsToCollect = mutableSetOf<ItemEntity>()
 	private val pickups = mutableListOf<PickedUpItem>()
 	private val pickupTypes = mutableSetOf<Item>()
-	private val preTickCallbacks = mutableListOf<context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Boolean>()
+	private val preTickCallbacks = mutableListOf<context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Task<*>?>()
 
 	private val onItemDrop: ((item: ItemEntity) -> Unit)?
 		get() = if (collectDrops) { item ->
@@ -169,7 +169,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 	}
 
 	@Ta5kBuilder
-	fun onTickPre(callback: context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Boolean) =
+	fun onTickPre(callback: context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Task<*>?) =
 		apply { preTickCallbacks.add(callback) }
 
 	init {
@@ -279,12 +279,8 @@ class BuildTask @Ta5kBuilder internal constructor(
 				dropsPending = dropsToCollect.map { it.stack.copy() }
 			)
 		preTickCallbacks.forEach { callback ->
-			val veto = runCatching { callback(status) }
-				.getOrElse {
-					failure(it)
-					return true
-				}
-			if (veto) return true
+			val task = runCatching { callback(status) }.getOrNull()
+			if (task != null) return true
 		}
 		return false
 	}

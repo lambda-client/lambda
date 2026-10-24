@@ -17,18 +17,25 @@
 
 package com.lambda.module.modules.world
 
+import com.lambda.config.Group
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.build
+import com.lambda.task.tasks.farmEnderChests
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -40,6 +47,7 @@ import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
+import net.minecraft.item.Items
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
@@ -50,20 +58,30 @@ object HighwayTools : Module(
     description = "Auto highway builder",
     tag = ModuleTag.WORLD,
 ) {
+	private const val PAVEMENT_GROUP = "Pavement"
+	private const val FLOOR_GROUP = "Floor"
+	private const val WALL_GROUP = "Wall"
+	private const val CEILING_GROUP = "Ceiling"
+
     private val height by setting("Height", 4, 2..10, 1)
     private val width by setting("Width", 6, 1..30, 1)
-    private val pavement by setting("Pavement", Material.Block, "Material for the pavement")
-    private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }
-    private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { pavement != Material.None }
-    private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }
-    private val floor by setting("Floor", Material.None, "Material for the floor")
-    private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }
-    private val rightWall by setting("Right Wall", Material.None, "Build the right wall")
-    private val leftWall by setting("Left Wall", Material.None, "Build the left wall")
-    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block || leftWall == Material.Block }
-    private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling")
-    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }
-    private val replaceableSolids by setting("Replaceable Solids", setOf(Blocks.MAGMA_BLOCK, Blocks.SOUL_SAND))
+
+	@Group(PAVEMENT_GROUP) private val pavement by setting("Pavement", Material.Block, "Material for the pavement")
+    @Group(PAVEMENT_GROUP) private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }
+	@Group(PAVEMENT_GROUP) private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }
+
+	@Group(FLOOR_GROUP) private val floor by setting("Floor", Material.None, "Material for the floor")
+	@Group(FLOOR_GROUP) private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }
+
+	@Group(WALL_GROUP) private val rightWall by setting("Right Wall", Material.None, "Build the right wall")
+	@Group(WALL_GROUP) private val leftWall by setting("Left Wall", Material.None, "Build the left wall")
+	@Group(WALL_GROUP) private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block || leftWall == Material.Block }
+
+	@Group(CEILING_GROUP) private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling")
+	@Group(CEILING_GROUP) private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }
+
+	private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { pavement != Material.None }
+	private val replaceableSolids by setting("Replaceable Solids", setOf(Blocks.MAGMA_BLOCK, Blocks.SOUL_SAND))
     private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)")
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once")
 
@@ -77,9 +95,9 @@ object HighwayTools : Module(
         override val displayName: String,
         override val description: String
     ): NamedEnum, Describable {
-        None("None", "Wont pave the highway"),
-        Solid("Solid", "Paves the highway with solid blocks. Will use any full block available. Useful if you only want to make sure that the highway is encased."),
-        Block("Block", "Paves the highway with a specific block. Will use the block you specified in the settings"),
+        None("None", "Wont change anything"),
+        Solid("Solid", "Places solid blocks. Will use any full block available. Useful if you only want to make sure that the highway is encased."),
+        Block("Block", "Places a specific block. Will use the block you specified in the settings"),
     }
 
 	@Suppress("unused")
@@ -114,24 +132,51 @@ object HighwayTools : Module(
     }
 
     private fun buildHighway() {
-        runningTask = propagatingBlueprint {
-	        if (distance !in 0..distanceMoved) {
-		        var structure = emptyStructure()
-		        val slice = generateSlice()
-		        repeat(sliceSize) {
-			        structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
-			        val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
-			        currentPos = currentPos.add(vec)
-		        }
-		        distanceMoved += sliceSize
-		        structure
-	        } else {
-		        this@HighwayTools.info("Highway built")
-		        disable()
-		        emptyStructure()
-	        }
-        }.build(collectDrops = buildConfig.collectDrops, lifeMaintenance = true)
-            .start()
+        runningTask =
+	        propagatingBlueprint {
+	            if (distance !in 0..distanceMoved) {
+			        var structure = emptyStructure()
+			        val slice = generateSlice()
+			        repeat(sliceSize) {
+				        structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
+				        val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
+				        currentPos = currentPos.add(vec)
+			        }
+			        distanceMoved += sliceSize
+			        structure
+	            } else {
+			        this@HighwayTools.info("Highway built")
+			        disable()
+			        emptyStructure()
+	            }
+            }.build(lifeMaintenance = true)
+				.onTickPre { buildStatus ->
+					val remainingObi = buildStatus.structure
+						.count {
+							it.value.getState(it.key).isOf(Blocks.OBSIDIAN) &&
+								!blockState(it.key).isOf(Blocks.OBSIDIAN)
+						}
+		            val obiOnPlayer =
+						with(this@HighwayTools) {
+							val obiSelection = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
+							findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
+								.sumOf { it.count(obiSelection) }
+						}
+
+		            if (obiOnPlayer < remainingObi) {
+			            val empty =
+							with(this@HighwayTools) {
+								findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
+									.sumOf { it.spaceLeft(StackSelection.ALL_EMPTY) }
+							}
+
+						with(this@HighwayTools) {
+							farmEnderChests(((empty - 1) * 8))
+								.start()
+						}
+		            } else null
+	            }
+                .start()
     }
 
     private fun generateSlice(): Structure {

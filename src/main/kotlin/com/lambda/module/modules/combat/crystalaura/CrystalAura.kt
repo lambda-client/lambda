@@ -165,7 +165,7 @@ object CrystalAura : Module(
                 hideAllExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
                 buildConfig.apply {
 	                hide(
-		                ::pathing, ::collectDrops, ::spleefEntities,
+		                ::pathing, ::spleefEntities,
 		                ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
 	                )
                 }

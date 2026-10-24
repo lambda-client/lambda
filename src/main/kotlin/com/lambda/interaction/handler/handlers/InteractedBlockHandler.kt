@@ -32,11 +32,11 @@ import com.lambda.util.collections.LimitedDecayQueue
 
 internal object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 	override val pendingActions = LimitedDecayQueue<InteractInfo>(
-		AutomationConfig.Companion.DEFAULT.buildConfig.maxPendingActions,
-		AutomationConfig.Companion.DEFAULT.buildConfig.actionTimeout * 50L
+		AutomationConfig.DEFAULT.buildConfig.maxPendingActions,
+		AutomationConfig.DEFAULT.buildConfig.actionTimeout * 50L
 	) {
 		if (Client.verboseDebug) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-		if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {
+		if (it.interactConfig.interactConfirmation != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {
 			runSafe {
 				world.setBlockState(it.context.blockPos, it.context.cachedState)
 			}
@@ -63,7 +63,7 @@ internal object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 
 					pending.stopPending()
 
-					if (pending.interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
+					if (pending.interactConfig.interactConfirmation == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
 						with(pending.context) { placeSound(expectedState, blockPos) }
 					pending.onPlace?.invoke(this, pending.context.blockPos)
 				}

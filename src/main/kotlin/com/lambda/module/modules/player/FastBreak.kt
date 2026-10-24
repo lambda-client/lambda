@@ -50,7 +50,6 @@ object FastBreak : Module(
 						::pathing,
 						::spleefEntities,
 						::maxBuildDependencies,
-						::collectDrops,
 						::blockReach,
 						::entityReach,
 						::breakBlocks,

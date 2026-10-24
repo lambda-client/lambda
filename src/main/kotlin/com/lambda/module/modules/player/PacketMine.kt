@@ -112,7 +112,6 @@ object PacketMine : Module(
 						::pathing,
 						::spleefEntities,
 						::maxBuildDependencies,
-						::collectDrops,
 						::entityReach,
 						::breakBlocks,
 						::interactBlocks,
