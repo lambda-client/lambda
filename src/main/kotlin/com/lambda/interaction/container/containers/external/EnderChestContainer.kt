@@ -99,7 +99,7 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 	class OpenedEnderChestContext(
 		val blockPos: BlockPos?
 	) : OpenedContainerContext {
-		context(_: Automated)
+		context(automated: Automated)
 		override fun close() =
 			taskOrNull {
 				if (isAccessed) actionTask { player.closeHandledScreen() }

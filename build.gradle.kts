@@ -45,7 +45,7 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
 }.map { (k, v) -> k.toString() to v.toString() }.toMap().toMutableMap()
 
 plugins {
-    kotlin("jvm") version "2.3.0"
+    kotlin("jvm") version "2.3.21"
     id("org.jetbrains.dokka") version "2.1.0"
     id("fabric-loom") version "1.17-SNAPSHOT"
     id("com.gradleup.shadow") version "9.3.0"
@@ -237,6 +237,8 @@ tasks {
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility", "-Xannotation-default-target=param-property")
+        // DSL markers on functions are kept for IDE highlighting, https://youtrack.jetbrains.com/issue/KT-83668
+        freeCompilerArgs.add("-Xwarning-level=DSL_MARKER_APPLIED_TO_WRONG_TARGET:disabled")
     }
 
     jvmToolchain(21)

@@ -35,7 +35,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.transfer
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runSafeAutomatedOrNull
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
@@ -53,7 +53,7 @@ object TransferCommand : LambdaCommand(
                 required(string("from")) { from ->
                     suggests { ctx, builder ->
                         val selection = stack(ctx).value().item.select(amount(ctx).value())
-                        AutomationConfig.DEFAULT.runSafeAutomated {
+                        AutomationConfig.DEFAULT.runSafeAutomatedOrNull {
                             val containers =
                                 findContainers(
                                     containerSelection {
@@ -73,7 +73,7 @@ object TransferCommand : LambdaCommand(
                     required(string("to")) { to ->
                         suggests { ctx, builder ->
                             val selection = stack(ctx).value().item.select(amount(ctx).value())
-                            AutomationConfig.DEFAULT.runSafeAutomated {
+                            AutomationConfig.DEFAULT.runSafeAutomatedOrNull {
                                 val containers =
                                     findContainers(
                                         containerSelection {
@@ -91,7 +91,7 @@ object TransferCommand : LambdaCommand(
                             } ?: builder.buildFuture()
                         }
                         executeWithResult {
-                            AutomationConfig.DEFAULT.runSafeAutomated {
+                            AutomationConfig.DEFAULT.runSafeAutomatedOrNull {
                                 val fromSelection =
                                     containerSelection {
                                         predicate { it.name == from().value().split(".").first().trim() }
