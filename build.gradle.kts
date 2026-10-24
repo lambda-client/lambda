@@ -237,6 +237,8 @@ tasks {
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility", "-Xannotation-default-target=param-property")
+        // DSL markers on functions are kept for IDE highlighting, https://youtrack.jetbrains.com/issue/KT-83668
+        freeCompilerArgs.add("-Xwarning-level=DSL_MARKER_APPLIED_TO_WRONG_TARGET:disabled")
     }
 
     jvmToolchain(21)
