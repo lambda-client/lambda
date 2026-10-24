@@ -23,6 +23,8 @@ import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.actionTask
 
 interface OpenedContainerContext {
+	val container: Container? get() = null
+
 	@Ta5kBuilder
 	context(automated: Automated)
 	fun close(): Task<*>?

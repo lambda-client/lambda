@@ -130,7 +130,7 @@ object ContainerHandler : Loadable {
 			pendingInteractedBlockEntity = null
 		}
 
-		listen<InventoryEvent.FullUpdate> { onContainerUpdate() }
+		listen<InventoryEvent.FullUpdate>(priority = { Int.MAX_VALUE }) { onContainerUpdate() }
 		listen<PlayerEvent.SlotClick.Post> { onContainerUpdate() }
 
 		listen<WorldEvent.BlockUpdate.Client> { event ->
@@ -412,7 +412,7 @@ object ContainerHandler : Loadable {
 		slots.forEach { slot ->
 			val stack = slot.stack
 			val index = slot.index
-			if (stack.item in SHULKER_BOXES) {
+			if (stack.item in SHULKER_BOXES && slotIdentity(index) != null) {
 				storedContainers[index] =
 					ShulkerBoxContainer(
 						stack.name.string,

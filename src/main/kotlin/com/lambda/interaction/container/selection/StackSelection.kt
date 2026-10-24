@@ -68,7 +68,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 	val shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.Both,
 	val countEmptyAsOne: Boolean = false,
 	val alwaysWholeStacks: Boolean = false,
-	val comparator: Comparator<StackAndSlot<*>> = compareBy { it.stack.count },
+	val comparator: Comparator<StackAndSlot<*>>? = null,
 	val selector: (ItemStack, Slot?) -> Boolean,
 ) {
 	val optimalStack = itemStack ?: item?.let { ItemStack(it, count) }
@@ -127,7 +127,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 		.asSequence()
 		.filter(::matches)
 		.let {
-			if (sorted)
+			if (sorted && comparator != null)
 				it.map { StackAndSlot(it, null) }
 					.sortedWith(comparator)
 					.map { it.stack }
@@ -149,7 +149,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 		.filter { it.identity() !in blacklistedSlots }
 		.filter(::matches)
 		.let {
-			if (sorted)
+			if (sorted && comparator != null)
 				it.map { StackAndSlot(it.stack, it) }
 					.sortedWith(comparator)
 					.map { it.slot }
@@ -171,7 +171,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 		.filter { it.slot?.identity() !in blacklistedSlots }
 		.filter(::matches)
 		.let {
-			if (sorted) it.sortedWith(comparator)
+			if (sorted && comparator != null) it.sortedWith(comparator)
 			else it
 		}
 		.toList()
@@ -485,6 +485,11 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		sortedWith(comparatorSupplier())
 	}
 
+	fun sortedFirstWith(comparatorSupplier: () -> Comparator<StackAndSlot<*>>) {
+		val newComparator = comparatorSupplier()
+		comparator = comparator?.let { newComparator.thenComparing(it) } ?: newComparator
+	}
+
 	fun sortedByMatches(stackSelection: StackSelection) {
 		sortedWith {
 			compareByDescending { stackSelection.matches(it) }
@@ -605,7 +610,7 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 			shulkerBoxScope,
 			countEmptyAsOne,
 			alwaysWholeStacks,
-			comparator ?: compareBy { it.stack.count },
+			comparator,
 			selector
 		)
 

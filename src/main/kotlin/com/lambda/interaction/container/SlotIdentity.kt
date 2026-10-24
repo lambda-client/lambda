@@ -62,6 +62,9 @@ sealed interface SlotIdentity {
 		if (live.isEmpty || stack.isEmpty) return false
 		return live.item == stack.item && live.name.string == stack.name.string
 	}
+
+	context(safeContext: SafeContext)
+	fun isEmpty() = resolve()?.stack?.isEmpty == true
 }
 
 fun Slot.identity(): SlotIdentity? {

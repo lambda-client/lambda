@@ -80,7 +80,7 @@ data class ChestContainer(
 		automated: Automated
 	) : OpenContainerTask<OpenedContainerContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
-			openContainer(pos)
+			openContainer<ChestContainer>(pos)
 				.onSuccess { success(BasicOpenedContainerContext(::isAccessed)) }
 				.start()
 		}

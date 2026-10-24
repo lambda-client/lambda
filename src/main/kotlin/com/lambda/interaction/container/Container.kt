@@ -84,6 +84,8 @@ abstract class Container(
 
     open val isAccessed get() = true
 
+    open fun slotIdentity(index: Int): SlotIdentity? = null
+
     context(_: SafeContext)
     fun descriptionAndStock(selection: StackSelection) =
         buildText {
@@ -114,7 +116,7 @@ abstract class Container(
 
     fun scanStacksForNestedContainers() {
         stacks.forEachIndexed { index, stack ->
-            if (stack.item in SHULKER_BOXES) {
+            if (stack.item in SHULKER_BOXES && slotIdentity(index) != null) {
                 storedContainers[index] =
                     ShulkerBoxContainer(
                         stack.name.string,
