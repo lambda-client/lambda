@@ -45,7 +45,7 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
 }.map { (k, v) -> k.toString() to v.toString() }.toMap().toMutableMap()
 
 plugins {
-    kotlin("jvm") version "2.3.0"
+    kotlin("jvm") version "2.3.21"
     id("org.jetbrains.dokka") version "2.1.0"
     id("fabric-loom") version "1.17-SNAPSHOT"
     id("com.gradleup.shadow") version "9.3.0"

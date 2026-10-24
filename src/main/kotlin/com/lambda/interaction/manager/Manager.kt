@@ -27,6 +27,7 @@ import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.ManagerUtils.accumulatedManagerPriority
 import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runSafeAutomatedOrNull
 import kotlin.reflect.KClass
 
 /**
@@ -116,7 +117,7 @@ abstract class Manager<R : Request>(
 			return request
 		}
 
-		request.runSafeAutomated {
+		request.runSafeAutomatedOrNull {
 			handleRequest(request)
 			request.fresh = false
 		}

@@ -58,7 +58,7 @@ inline fun <T> Automated.runSafeAutomated(automated: Automated = this, block: Au
  * The context contains various settings for various systems.
  */
 @JvmName("runSafeAutomated1")
-inline fun <T> Automated.runSafeAutomated(block: AutomatedSafeContext.() -> T): T? {
+inline fun <T> Automated.runSafeAutomatedOrNull(block: AutomatedSafeContext.() -> T): T? {
     return AutomatedSafeContext.create(SafeContext.create() ?: return null, this).run(block)
 }
 
