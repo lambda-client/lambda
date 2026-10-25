@@ -41,6 +41,7 @@ import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
 import java.util.*
+import kotlin.math.min
 import kotlin.time.Instant
 
 @ContainerDslMarker
@@ -209,7 +210,13 @@ class StackSelection @ContainerDslMarker internal constructor(
 
 	@ContainerDslMarker
 	fun emptySpace(slots: Iterable<Slot>) =
-		slots.sumOf { if (it.stack.isEmpty && canInsert(it)) optimalStack?.count ?: 0 else 0 }
+		slots.sumOf { slot ->
+			if (slot.stack.isEmpty && canInsert(slot)) {
+				optimalStack?.let {
+					min(it.maxCount, slot.maxItemCount)
+				} ?: slot.maxItemCount
+			} else 0
+		}
 
 	companion object {
 		const val UNBOUNDED = -1
