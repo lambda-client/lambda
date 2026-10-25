@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.container
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler
 import net.minecraft.block.entity.EnderChestBlockEntity
@@ -31,9 +32,8 @@ sealed interface SlotIdentity {
 	data class Placed(val positions: Set<BlockPos>, val index: Int) : SlotIdentity
 	data class Ender(val index: Int) : SlotIdentity
 
-	context(safeContext: SafeContext)
 	fun resolve(): Slot? {
-		val handler = safeContext.player.currentScreenHandler
+		val handler = mc.player?.currentScreenHandler ?: return null
 		val (key, ender) = currentContainerAnchor()
 		return resolveIn(handler.slots, key, ender)
 	}

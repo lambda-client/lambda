@@ -22,10 +22,9 @@ import com.lambda.context.Automated
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.container.Container
-import com.lambda.interaction.container.containers.external.EnderChestContainer
+import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.interaction.handler.handlers.ContainerHandler.accessedPlacedContainer
+import com.lambda.interaction.handler.handlers.ContainerHandler
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
@@ -43,25 +42,20 @@ context(automated: Automated)
 fun openContainer(
     blockPos: BlockPos,
     sides: Set<Direction> = Direction.entries.toSet()
-) = OpenContainerTask(blockPos, sides, automated) { it }
+) = OpenContainerTask<PlacedContainer>(blockPos, sides, automated)
 
 @Ta5kBuilder
 @JvmName("openTypedContainer")
 context(automated: Automated)
-inline fun <reified T : Container> openContainer(
+fun <T : PlacedContainer> openContainer(
     blockPos: BlockPos,
     sides: Set<Direction> = Direction.entries.toSet()
-) = OpenContainerTask(blockPos, sides, automated) {
-    val container = accessedPlacedContainer?.takeIf { blockPos in it.positions }
-        ?: EnderChestContainer.takeIf { it.isAccessed }
-    container as? T
-}
+) = OpenContainerTask<T>(blockPos, sides, automated)
 
-class OpenContainerTask<R : Any> @Ta5kBuilder @PublishedApi internal constructor(
+class OpenContainerTask<R : PlacedContainer> @Ta5kBuilder @PublishedApi internal constructor(
     private val blockPos: BlockPos,
     private val sides: Set<Direction>,
-    automated: Automated,
-    private val result: (ScreenHandler) -> R?
+    automated: Automated
 ) : Task<R>(), Automated by automated {
     override val name get() = "${containerState.description()} at ${blockPos.toShortString()}"
 
@@ -105,9 +99,11 @@ class OpenContainerTask<R : Any> @Ta5kBuilder @PublishedApi internal constructor
         listen<InventoryEvent.FullUpdate> {
             if (containerState != State.SlotLoading) return@listen
 
-            screenHandler?.let { handler ->
-                result(handler)?.let { success(it) }
-                    ?: failure("No matching container was indexed at ${blockPos.toShortString()}")
+            runCatching {
+                @Suppress("unchecked_cast")
+                success(ContainerHandler.accessedPlacedContainer as R)
+            }.onFailure {
+                failure(IllegalStateException("Opened container was not of the specified type"))
             }
         }
 

@@ -25,7 +25,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.activeRequest
-import com.lambda.interaction.manager.managers.hotbar.HotbarManager.activeSlot
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.setActiveRequest
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.setActiveSlot
 import com.lambda.threading.runSafe

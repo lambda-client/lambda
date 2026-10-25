@@ -27,11 +27,11 @@ import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.HotbarContainer
-import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
+import com.lambda.interaction.handler.handlers.ContainerHandler.slotsAvailable
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
@@ -40,7 +40,6 @@ import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.placeContainer
 import com.lambda.task.tasks.transfer
 import com.lambda.task.tasks.wrappers.actionTask
-import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
 import com.lambda.task.tasks.wrappers.thenOrNull
@@ -118,13 +117,17 @@ data class ShulkerBoxContainer(
 					.asSequence()
 					.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
 					.firstNotNullOfOrNull { it.slot }
-				val inContainer = pickedUp != null && containedIn.slots.any { it.identity() == pickedUp }
+				val inContainer = pickedUp != null &&
+						slotsAvailable(
+							pickedUp.select(),
+							containedIn.select(ContainerSearchScope.Loaded)
+						)
 				if (inContainer && !ownSlot.isEmpty()) return@thenOrNull null
 
 				stackSelection {
 					isItem(shulkerItem)
 					withName(itemName)
-					if (pickedUp != null) predicate { _, slot -> slot?.identity() == pickedUp }
+					if (pickedUp != null) isSlot(pickedUp)
 					sortedByBestContentMatch(container.stacks)
 					sortedByRecentChange()
 				}.transfer(
@@ -134,12 +137,12 @@ data class ShulkerBoxContainer(
 						isEmpty()
 						sortedByMatches {
 							stackSelection {
-								predicate { _, slot -> slot?.identity() == ownSlot }
+								isSlot(ownSlot)
 							}
 						}
 					},
 					allowQuickMove = false
-				).softFail()
+				)
 			}
 		}
 	}

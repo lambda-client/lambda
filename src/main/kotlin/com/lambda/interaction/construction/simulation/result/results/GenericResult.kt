@@ -31,7 +31,6 @@ import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.task.tasks.transfer
-import net.minecraft.client.data.TextureMap.side
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box

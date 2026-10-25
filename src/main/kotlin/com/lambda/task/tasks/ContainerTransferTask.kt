@@ -30,7 +30,6 @@ import com.lambda.interaction.container.containers.CursorContainer
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.selectContainers
@@ -374,7 +373,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					toContainers.firstNotNullOfOrNull { toContainer ->
 						if (!fromContainer.canSwapWith(toContainer)) return@firstNotNullOfOrNull null
 						findToSlot(fromSlot, toContainer)
-							?.takeIf { !toContainer.haveMatchingInventories(fromContainer) || it.isPreferredOver(fromSlot) }
+							?.takeIf { !toContainer.haveMatchingInventories(fromContainer) || it.index != fromSlot.index }
 							?.let { toSlot ->
 								SlotPair(fromContainer, fromSlot, toContainer, toSlot)
 							}
@@ -410,11 +409,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			if (!allowReplace) return null
 			return toContainer.findReplaceSlot(fromSlot.stack, swappableSelection)?.takeIf { fromSlot.canInsert(it.stack) }
 		}
-
-		private fun Slot.isPreferredOver(other: Slot) =
-			baseToSelection.comparator
-				?.compare(StackAndSlot(stack, this), StackAndSlot(other.stack, other))
-				?.let { it < 0 } == true
 
 		private fun AutomatedSafeContext.move(pair: SlotPair, atMost: Int): Boolean {
 			val stack = pair.fromSlot.stack

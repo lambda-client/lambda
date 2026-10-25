@@ -49,6 +49,9 @@ fun Item.select(count: Int = 1) = stackSelection(count) { isItem(this@select) }
 @ContainerDslMarker
 fun ItemStack.select(count: Int = 1) = stackSelection(count) { isItemStack(this@select) }
 
+@ContainerDslMarker
+fun SlotIdentity.select(count: Int = resolve()?.stack?.count ?: 1) = stackSelection { isSlot(this@select) }
+
 fun stackSelection(
 	count: Int = 1,
 	builder: StackSelectionBuilder.() -> Unit = {}
@@ -206,7 +209,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 
 	@ContainerDslMarker
 	fun emptySpace(slots: Iterable<Slot>) =
-		slots.count { it.stack.isEmpty && canInsert(it) }
+		slots.sumOf { if (it.stack.isEmpty && canInsert(it)) optimalStack?.count ?: 0 else 0 }
 
 	companion object {
 		const val UNBOUNDED = -1
@@ -475,6 +478,22 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 	fun cannotInsert() {
 		val optimal = itemStack ?: item?.let { ItemStack(it, count) }
 		optimal?.let { cannotInsert(it) }
+	}
+
+	fun isSlot(slot: SlotIdentity) {
+		appendSelector { _, slot -> slot?.identity() == slot }
+	}
+
+	fun notSlot(slot: SlotIdentity) {
+		appendSelector { _, slot -> slot?.identity() != slot }
+	}
+
+	fun ofAnySlots(vararg slots: SlotIdentity) {
+		appendSelector { _, slot -> slot?.identity() in slots }
+	}
+
+	fun noneOfSlots(vararg slots: SlotIdentity) {
+		appendSelector { _, slot -> slot?.identity() !in slots }
 	}
 
 	fun sortedWith(newComparator: Comparator<StackAndSlot<*>>) {
