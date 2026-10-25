@@ -29,7 +29,7 @@ import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.eat
 import com.lambda.task.tasks.wrappers.thenAction
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runAutomated
 
 @Suppress("unused")
 object AutoEat : Module(
@@ -46,7 +46,7 @@ object AutoEat : Module(
 		    }
 
         listen<TickEvent.Pre> {
-            val reason = runSafeAutomated { reasonEating() }
+            val reason = runAutomated { reasonEating() }
             if (eatTask != null || !reason.shouldEat()) return@listen
 
             eatTask = eat()

@@ -32,7 +32,7 @@ import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager
 import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.manager.managers.breaking.BreakRequest
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runAutomated
 import com.lambda.util.player.PlayerUtils.swingHand
 import net.minecraft.util.Hand
 
@@ -88,7 +88,7 @@ internal object RebreakHandler {
 	 * @return In what way this block can be rebroken.
 	 */
 	context(_: SafeContext)
-	fun BreakInfo.getRebreakPotential() = request.runSafeAutomated {
+	fun BreakInfo.getRebreakPotential() = request.runAutomated {
 		reBreak?.let { reBreak ->
 			val stack = if (breakConfig.swapMode.isEnabled())
 				swapStack
@@ -111,15 +111,15 @@ internal object RebreakHandler {
 	 * @return A [RebreakResult] to indicate how the update has been processed.
 	 */
 	context(_: SafeContext)
-	fun handleUpdate(ctx: BreakContext, request: BreakRequest) = request.runSafeAutomated {
-		val reBreak = this@RebreakHandler.reBreak ?: return@runSafeAutomated RebreakResult.Ignored
+	fun handleUpdate(ctx: BreakContext, request: BreakRequest) = request.runAutomated {
+		val reBreak = this@RebreakHandler.reBreak ?: return@runAutomated RebreakResult.Ignored
 
 		reBreak.updateInfo(ctx, request)
 
 		val breakDelta = reBreak.calcBreakDelta()
 		val breakTicks = reBreak.breakingTicks - breakConfig.fudgeFactor
-		return@runSafeAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
-			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@runSafeAutomated RebreakResult.Ignored
+		return@runAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
+			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@runAutomated RebreakResult.Ignored
 			if (breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
 				destroyBlock(reBreak)
 			}

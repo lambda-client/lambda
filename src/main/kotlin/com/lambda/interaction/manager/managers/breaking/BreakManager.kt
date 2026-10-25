@@ -73,9 +73,9 @@ import com.lambda.interaction.manager.managers.hotbar.HotbarRequest
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.interacting.InteractManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequest
+import com.lambda.threading.runAutomated
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
-import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
@@ -238,7 +238,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 						if (!config.renders) return@immediateRenderer
 						val swapMode = config.swapMode
 						val breakDelta =
-							info.request.runSafeAutomated {
+							info.request.runAutomated {
 								val useActiveStack = info.type != RedundantSecondary && swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start
 								info.calcBreakDelta(if (useActiveStack) activeStack else player.mainHandStack).toDouble()
 							}
@@ -363,7 +363,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see canAccept
 	 * @see BreakInfo.updateInfo
 	 */
-	private fun SafeContext.populateFrom(request: BreakRequest) = request.runSafeAutomated {
+	private fun SafeContext.populateFrom(request: BreakRequest) = request.runAutomated {
 		// Sanitize the new breaks
 		val newBreaks = request.contexts
 			.distinctBy { it.blockPos }
@@ -461,7 +461,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see initNewBreak
 	 */
 	private fun SafeContext.processNewBreak(request: BreakRequest): Boolean =
-		request.runSafeAutomated {
+		request.runAutomated {
 			if (tickStage !in request.breakConfig.tickStageMask) return false
 			if (breakDelay > 0) return false
 			if (breakConfig.breakMode == BreakMode.OldGrim && !bypassingOldGrimBreakDelay && oldGrimBreakDelay > 0) return false
@@ -540,7 +540,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 		// Cancelled but double breaking so requires break manager to continue the simulation
 		val abandonedInfo = abandonedBreak ?: return
 
-		abandonedInfo.request.runSafeAutomated {
+		abandonedInfo.request.runAutomated {
 			abandonedInfo.context.blockPos
 				.toStructure(TargetState.Empty)
 				.sim()
@@ -568,7 +568,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 						info.nullify()
 						return@forEach
 					}
-					info.request.runSafeAutomated {
+					info.request.runAutomated {
 						val breakDelta = info.calcBreakDelta()
 						val ticksToBreak = 1.0 / breakDelta
 						val ticksPast = info.breakingTicks - ticksToBreak
@@ -632,12 +632,12 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	}
 
 	context(_: SafeContext)
-	private fun BreakInfo.updatePreProcessing() = request.runSafeAutomated {
+	private fun BreakInfo.updatePreProcessing() = request.runAutomated {
 		shouldProgress = !progressedThisTick
 				&& tickStage in breakConfig.tickStageMask
 				&& (rotated || type != Primary)
 
-		if (updatedPreProcessingThisTick) return@runSafeAutomated
+		if (updatedPreProcessingThisTick) return@runAutomated
 		updatedPreProcessingThisTick = true
 
 		swapStack = player.inventory.getStack(context.hotbarIndex)
@@ -694,7 +694,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see net.minecraft.client.network.ClientPlayerInteractionManager.updateBlockBreakingProgress
 	 */
 	private fun SafeContext.updateBreakProgress(info: BreakInfo): Unit =
-		info.request.runSafeAutomated {
+		info.request.runAutomated {
 			val ctx = info.context
 			info.progressedThisTick = true
 

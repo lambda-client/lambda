@@ -28,7 +28,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.ManagerUtils
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
@@ -62,7 +62,7 @@ class PlaceContainerTask @Ta5kBuilder internal constructor(
             return
         }
 
-        val results = runSafeAutomated {
+        val results = runAutomated {
             BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
                 .map { it.blockPos }
                 .asSequence()

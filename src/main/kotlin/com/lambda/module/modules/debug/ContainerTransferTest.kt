@@ -31,7 +31,7 @@ import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.task.start
 import com.lambda.task.tasks.transfer
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.math.distSq
@@ -77,7 +77,7 @@ object ContainerTransferTest : Module(
                 info("Destination container set to $pos. Starting transfer task...")
                 event.cancel()
                 
-                runSafeAutomated {
+                runAutomated {
                     val from = sourcePos
                     if (from != null) startTransferTask(from, pos)
                 }

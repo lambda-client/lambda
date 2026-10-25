@@ -25,7 +25,7 @@ import com.lambda.interaction.handler.handlers.breaking.RebreakHandler
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runAutomated
 
 /**
  * A simple data class to store info about when the [BreakManager] should swap tool.
@@ -43,7 +43,7 @@ data class SwapInfo(
 		 * Calculates the contents and returns a [SwapInfo].
 		 */
 		context(_: SafeContext)
-		fun BreakInfo.getSwapInfo() = request.runSafeAutomated {
+		fun BreakInfo.getSwapInfo() = request.runAutomated {
 			val breakDelta = calcBreakDelta(swapStack)
 
 			val threshold = getBreakThreshold()

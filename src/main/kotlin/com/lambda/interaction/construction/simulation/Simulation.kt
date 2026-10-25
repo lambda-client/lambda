@@ -23,7 +23,7 @@ import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Drawable
-import com.lambda.threading.runSafeAutomatedOrNull
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
@@ -48,7 +48,7 @@ data class Simulation(
             val pov = pos.toView()
             val isOutOfBounds = blueprint.isOutOfBounds(pov)
             val isTooFar = blueprint.getClosestPointTo(pov).distanceTo(pov) > 10.0
-            return@getOrPut runSafeAutomatedOrNull {
+            return@getOrPut runSafeAutomated {
                 if (isOutOfBounds && isTooFar) return@getOrPut emptySet()
                 val blockPos = pos.toBlockPos()
                 val isWalkable = blockState(blockPos.down()).isSideSolidFullSquare(world, blockPos, Direction.UP)

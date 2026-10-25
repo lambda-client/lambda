@@ -52,9 +52,9 @@ import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.softFail
+import com.lambda.threading.runAutomated
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
-import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getClosestPointTo
 import com.lambda.util.EntityUtils.getPositionsWithinBox
@@ -176,14 +176,14 @@ class BuildTask @Ta5kBuilder internal constructor(
 
 		listen<TickEvent.Post> {
 			if (checkEmpty() || !async) return@listen
-			runSafeAutomated {
+			runAutomated {
 				if (preSim()) return@listen
 				startSimulation()
 			}
 		}
 
 		listen<TickEvent.Pre> {
-			runSafeAutomated {
+			runAutomated {
 				if (async) {
 					if (job != null) {
 						runBlocking { job?.join(); job = null }
@@ -253,7 +253,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 
 	private fun AutomatedSafeContext.preSim(): Boolean {
 		if (runPreTick()) return true
-		if (lifeMaintenance && runSafeAutomated { reasonEating() }.shouldEat()) {
+		if (lifeMaintenance && runAutomated { reasonEating() }.shouldEat()) {
 			eat().start()
 			return true
 		}

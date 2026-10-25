@@ -35,7 +35,7 @@ import com.lambda.interaction.handler.handlers.GlideHandler.swapped
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.AutoArmor
-import com.lambda.threading.runSafeAutomatedOrNull
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.PlayerUtils.canGlideWithChestPiece
 import net.minecraft.screen.slot.Slot
@@ -78,7 +78,7 @@ object AutoElytraSwap : Module(
 			.getOrNull(1)
 			?: return false
 		val sourceContainer = if (swapSlot.index in 0..8) HotbarContainer else InventoryContainer
-		return runSafeAutomatedOrNull {
+		return runSafeAutomated {
 			ArmorContainer.swap(chestplateSlot, swapSlot, sourceContainer)
 		} ?: false
 	}

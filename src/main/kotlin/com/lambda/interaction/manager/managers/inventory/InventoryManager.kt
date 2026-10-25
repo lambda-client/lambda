@@ -36,8 +36,8 @@ import com.lambda.interaction.manager.managers.inventory.InventoryManager.indexI
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.onInventoryUpdate
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
+import com.lambda.threading.runAutomated
 import com.lambda.threading.runSafe
-import com.lambda.threading.runSafeAutomated
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.item.ItemStack
@@ -149,7 +149,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 	 */
 	private fun SafeContext.processActiveRequest() {
 		val active = activeRequest ?: return
-		active.runSafeAutomated {
+		active.runAutomated {
 			if (tickStage !in active.inventoryConfig.tickStageMask && active.nowOrNothing) return
 			val iterator = actions.iterator()
 			while (iterator.hasNext()) {

@@ -34,7 +34,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runAutomated
 import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
@@ -78,7 +78,7 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 		}
 
 		listen<TickEvent.Pre> {
-			runSafeAutomated {
+			runAutomated {
 				pollNextItem()
 			}
 		}

@@ -30,7 +30,7 @@ import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.interaction.handler.handlers.moveStack
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runAutomated
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
@@ -67,7 +67,7 @@ object AutoTotem : Module(
 
             val swapWhileHolding = !ignoreWhenHolding || player.mainHandStack.item != Items.TOTEM_OF_UNDYING
             if (swapWhileHolding && player.offHandStack.item != Items.TOTEM_OF_UNDYING) {
-                runSafeAutomated {
+                runAutomated {
                     Items.TOTEM_OF_UNDYING
                         .select()
                         .moveStack(
