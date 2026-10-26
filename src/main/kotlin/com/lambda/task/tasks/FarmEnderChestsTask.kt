@@ -149,7 +149,8 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 						.interactRequest(pendingInteractions)
 						?.submit(true)
 				}
-				if (state.breakReady) {
+
+				if (blockState(pos).breakReady) {
 					pos.toStructure(TargetState.Empty)
 						.sim()
 						.breakRequest(pendingInteractions) {
