@@ -75,7 +75,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 	val comparator: Comparator<StackAndSlot<*>>? = null,
 	val selector: (ItemStack, Slot?) -> Boolean,
 ) {
-	val optimalStack = itemStack ?: item?.let { ItemStack(it, count) }
+	val optimalStack = itemStack ?: item?.let { ItemStack(it, it.maxCount) }
 
 	val isUnbounded: Boolean get() = count < 0
 
@@ -214,7 +214,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 			if (slot.stack.isEmpty && canInsert(slot)) {
 				optimalStack?.let {
 					min(it.maxCount, slot.maxItemCount)
-				} ?: slot.maxItemCount
+				} ?: slot.maxItemCount.coerceAtMost(64)
 			} else 0
 		}
 
