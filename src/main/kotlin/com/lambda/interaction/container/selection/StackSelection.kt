@@ -51,7 +51,7 @@ fun Item.select(count: Int = 1) = stackSelection(count) { isItem(this@select) }
 fun ItemStack.select(count: Int = 1) = stackSelection(count) { isItemStack(this@select) }
 
 @ContainerDslMarker
-fun SlotIdentity.select(count: Int = resolve()?.stack?.count ?: 1) = stackSelection { isSlot(this@select) }
+fun SlotIdentity.select(count: Int = resolve()?.stack?.count ?: 1) = stackSelection(count) { isSlot(this@select) }
 
 fun stackSelection(
 	count: Int = 1,
@@ -488,11 +488,11 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 	}
 
 	fun isSlot(slot: SlotIdentity) {
-		appendSelector { _, slot -> slot?.identity() == slot }
+		appendSelector { _, s -> s?.identity() == slot }
 	}
 
 	fun notSlot(slot: SlotIdentity) {
-		appendSelector { _, slot -> slot?.identity() != slot }
+		appendSelector { _, s -> s?.identity() != slot }
 	}
 
 	fun ofAnySlots(vararg slots: SlotIdentity) {
@@ -509,11 +509,6 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 
 	fun sortedWith(comparatorSupplier: () -> Comparator<StackAndSlot<*>>) {
 		sortedWith(comparatorSupplier())
-	}
-
-	fun sortedFirstWith(comparatorSupplier: () -> Comparator<StackAndSlot<*>>) {
-		val newComparator = comparatorSupplier()
-		comparator = comparator?.let { newComparator.thenComparing(it) } ?: newComparator
 	}
 
 	fun sortedByMatches(stackSelection: StackSelection) {

@@ -195,7 +195,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private fun buildResult() =
 		TransferResult(
 			fromStack.mutate {
-				sortedFirstWith {
+				sortedWith {
 					compareByDescending { stackAndSlot ->
 						val slot = stackAndSlot.slot
 						slot != null &&
