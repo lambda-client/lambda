@@ -146,7 +146,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 	 * [actions] is empty, the request is set to done, and the onComplete callback is invoked.
 	 * The [activeRequest] is then set to null.
 	 */
-	private fun processActiveRequest() {
+	private fun SafeContext.processActiveRequest() {
 		val active = activeRequest ?: return
 		active.runSafeAutomated {
 			if (tickStage !in active.inventoryConfig.tickStageMask && active.nowOrNothing) return
