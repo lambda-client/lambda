@@ -55,6 +55,7 @@ import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getClosestPointTo
 import com.lambda.util.EntityUtils.getPositionsWithinBox
@@ -254,7 +255,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 
 	private fun AutomatedSafeContext.preSim(): Boolean {
 		if (runPreTick()) return true
-		if (lifeMaintenance && runSafeAutomated { reasonEating() }.shouldEat()) {
+		if (lifeMaintenance && withSafeAutomated { reasonEating() }.shouldEat()) {
 			eat().start()
 			return true
 		}

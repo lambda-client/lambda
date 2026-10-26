@@ -27,12 +27,12 @@ import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.handler.handlers.PacketLimitHandler
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.reBreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager
 import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.manager.managers.breaking.BreakRequest
 import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.player.PlayerUtils.swingHand
 import net.minecraft.util.Hand
 
@@ -88,7 +88,7 @@ internal object RebreakHandler {
 	 * @return In what way this block can be rebroken.
 	 */
 	context(_: SafeContext)
-	fun BreakInfo.getRebreakPotential() = request.runSafeAutomated {
+	fun BreakInfo.getRebreakPotential() = request.withSafeAutomated {
 		reBreak?.let { reBreak ->
 			val stack = if (breakConfig.swapMode.isEnabled())
 				swapStack

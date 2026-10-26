@@ -31,6 +31,7 @@ import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import net.minecraft.item.ItemStack
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
@@ -50,7 +51,7 @@ class EatTask @Ta5kBuilder internal constructor(
     private var holdingUse = false
 
     override fun SafeContext.onStart() {
-        reason = runSafeAutomated { reasonEating() }
+        reason = withSafeAutomated { reasonEating() }
     }
 
     init {

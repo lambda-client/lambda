@@ -17,7 +17,6 @@
 
 package com.lambda
 
-import com.lambda.Lambda.mapper
 import com.lambda.config.Deserializer
 import com.lambda.config.FallbackDeserializer
 import com.lambda.config.FallbackSerializer

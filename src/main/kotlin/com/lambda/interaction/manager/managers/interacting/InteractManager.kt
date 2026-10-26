@@ -41,7 +41,6 @@ import com.lambda.interaction.manager.managers.interacting.InteractManager.activ
 import com.lambda.interaction.manager.managers.interacting.InteractManager.maxInteractionsThisTick
 import com.lambda.interaction.manager.managers.interacting.InteractManager.populateFrom
 import com.lambda.interaction.manager.managers.interacting.InteractManager.potentialInteractions
-import com.lambda.interaction.manager.managers.interacting.InteractManager.processRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.modules.world.AutoSign
 import com.lambda.threading.runConcurrent

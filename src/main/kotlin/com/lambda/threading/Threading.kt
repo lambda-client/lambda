@@ -49,7 +49,7 @@ inline fun <T> runSafe(block: SafeContext.() -> T): T? =
  */
 @JvmName("runSafeAutomated0")
 context(safeContext: SafeContext)
-inline fun <T> Automated.runSafeAutomated(automated: Automated = this, block: AutomatedSafeContext.() -> T): T =
+inline fun <T> Automated.withSafeAutomated(automated: Automated = this, block: AutomatedSafeContext.() -> T): T =
     AutomatedSafeContext.create(safeContext, automated).run(block)
 
 /**
