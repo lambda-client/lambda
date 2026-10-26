@@ -36,7 +36,7 @@ import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
@@ -111,7 +111,7 @@ object KillAura : Module(
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
                 var rotated = true
-                if (rotate) runAutomated {
+                if (rotate) withSafeAutomated {
                     val rotationRequest = lookAtEntity(entity)?.rotation?.let { rotationRequest { rotation(it) } }?.submit() ?: return@listen
                     rotated = rotationRequest.done && entity === prevEntity && validServerRot
                     prevEntity = entity

@@ -37,7 +37,7 @@ import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode
 import com.lambda.util.math.setAlpha
@@ -202,7 +202,7 @@ object AirPlace : Module(
 		if (player.inventory.selectedStack.item !is BlockItem) return false
 		placementPos?.let { pos ->
 			placementState?.let { state ->
-				runAutomated {
+				withSafeAutomated {
 					request = mapOf(pos to TargetState.State(state))
 						.sim()
 						.interactRequest(pendingInteractions)

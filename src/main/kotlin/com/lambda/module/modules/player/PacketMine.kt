@@ -40,8 +40,8 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runAutomated
 import com.lambda.threading.runSafe
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -221,7 +221,7 @@ object PacketMine : Module(
 
 	private fun SafeContext.requestBreakManager(requestPositions: Collection<BlockPos?>, reBreaking: Boolean = false) {
 		if (requestPositions.count { it != null } <= 0) return
-		val breakContexts = runAutomated {
+		val breakContexts = withSafeAutomated {
 			requestPositions
 				.filterNotNull()
 				.associateWith { TargetState.Empty }

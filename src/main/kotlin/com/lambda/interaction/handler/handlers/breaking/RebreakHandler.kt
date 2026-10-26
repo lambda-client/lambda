@@ -32,7 +32,7 @@ import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager
 import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.manager.managers.breaking.BreakRequest
-import com.lambda.threading.runAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.player.PlayerUtils.swingHand
 import net.minecraft.util.Hand
 
@@ -88,7 +88,7 @@ internal object RebreakHandler {
 	 * @return In what way this block can be rebroken.
 	 */
 	context(_: SafeContext)
-	fun BreakInfo.getRebreakPotential() = request.runAutomated {
+	fun BreakInfo.getRebreakPotential() = request.withSafeAutomated {
 		reBreak?.let { reBreak ->
 			val stack = if (breakConfig.swapMode.isEnabled())
 				swapStack
@@ -111,15 +111,15 @@ internal object RebreakHandler {
 	 * @return A [RebreakResult] to indicate how the update has been processed.
 	 */
 	context(_: SafeContext)
-	fun handleUpdate(ctx: BreakContext, request: BreakRequest) = request.runAutomated {
-		val reBreak = this@RebreakHandler.reBreak ?: return@runAutomated RebreakResult.Ignored
+	fun handleUpdate(ctx: BreakContext, request: BreakRequest) = request.withSafeAutomated {
+		val reBreak = this@RebreakHandler.reBreak ?: return@withSafeAutomated RebreakResult.Ignored
 
 		reBreak.updateInfo(ctx, request)
 
 		val breakDelta = reBreak.calcBreakDelta()
 		val breakTicks = reBreak.breakingTicks - breakConfig.fudgeFactor
-		return@runAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
-			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@runAutomated RebreakResult.Ignored
+		return@withSafeAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
+			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@withSafeAutomated RebreakResult.Ignored
 			if (breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
 				destroyBlock(reBreak)
 			}

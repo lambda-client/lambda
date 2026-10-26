@@ -49,8 +49,8 @@ import com.lambda.module.modules.combat.crystalaura.CrystalAura.swap
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.swapHand
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraExploding.explodeInternal
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraPlacing.placeInternal
-import com.lambda.threading.runAutomated
 import com.lambda.threading.runSafe
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.math.distSq
 import com.lambda.util.math.getHitVec
 import com.lambda.util.math.plus
@@ -125,7 +125,7 @@ class Opportunity(
 		val selection = stackSelection { isItem(Items.END_CRYSTAL) }
 		if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != Items.END_CRYSTAL) ||
 			(swapHand == Hand.OFF_HAND && player.offHandStack.item != Items.END_CRYSTAL)
-		) automated.runAutomated {
+		) automated.withSafeAutomated {
 			if (!swap) return@runSafe
 			val itemToUse: ItemStack? = if (player.mainHandStack.item == Items.END_CRYSTAL) {
 				crystalHand = Hand.MAIN_HAND

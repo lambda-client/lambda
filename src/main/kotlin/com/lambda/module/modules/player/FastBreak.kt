@@ -30,7 +30,7 @@ import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runAutomated
+import com.lambda.threading.withSafeAutomated
 import java.util.concurrent.ConcurrentLinkedQueue
 
 @Suppress("unused")
@@ -85,7 +85,7 @@ object FastBreak : Module(
 		listen<PlayerEvent.Attack.Block> { it.cancel() }
 		listen<PlayerEvent.Breaking.Update> { event ->
 			event.cancel()
-			runAutomated {
+			withSafeAutomated {
 				breakRequest(listOf(event.pos), pendingActions)?.submit()
 			}
 		}

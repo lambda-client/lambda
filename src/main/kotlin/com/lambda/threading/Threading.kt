@@ -48,7 +48,7 @@ inline fun <T> runSafe(block: SafeContext.() -> T): T? =
  * The context contains various settings for various systems.
  */
 context(safeContext: SafeContext)
-inline fun <T> Automated.runAutomated(automated: Automated = this, block: AutomatedSafeContext.() -> T): T =
+inline fun <T> Automated.withSafeAutomated(automated: Automated = this, block: AutomatedSafeContext.() -> T): T =
     AutomatedSafeContext.create(safeContext, automated).run(block)
 
 /**

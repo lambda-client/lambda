@@ -27,7 +27,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.softFail
-import com.lambda.threading.runAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.item
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
@@ -48,7 +48,7 @@ class AcquirePlacedBlockTask @Ta5kBuilder internal constructor(
 
 	init {
 		listen<TickEvent.Pre> {
-			runAutomated {
+			withSafeAutomated {
 				val slot = findSlot(block.item.select(), ContainerSelection.HOTBAR_AND_INVENTORY)
 					?: run {
 						failure("No $block found in range or hotbar/inventory!")

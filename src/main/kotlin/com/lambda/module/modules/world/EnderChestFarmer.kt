@@ -42,7 +42,7 @@ import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.logError
@@ -168,7 +168,7 @@ object EnderChestFarmer : Module(
 				disable()
 				return@listen
 			}
-			runAutomated {
+			withSafeAutomated {
 				if (state.isOf(Blocks.ENDER_CHEST)) breakEnderChest(pos)
 				else placeEnderChest(pos)
 			}

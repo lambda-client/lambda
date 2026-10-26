@@ -37,7 +37,7 @@ import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.wrappers.thenAction
-import com.lambda.threading.runAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.CommunicationUtils.info
@@ -212,7 +212,7 @@ object AutoVillagerCycle : Module(
 			return
 		}
 
-		runAutomated {
+		withSafeAutomated {
 			buildTask = lecternPos.toStructure(TargetState.Block(Blocks.LECTERN))
 				.toBlueprint()
 				.build(finishOnDone = true)
@@ -251,7 +251,7 @@ object AutoVillagerCycle : Module(
 			return
 		}
 
-		runAutomated {
+		withSafeAutomated {
 			lookAtEntity(villager)?.let {
 				val done = rotationRequest {
 					rotation(it.rotation)
@@ -276,7 +276,7 @@ object AutoVillagerCycle : Module(
 		val state = blockState(lecternPos)
 
 		if (!state.isEmpty) {
-			buildTask = runAutomated {
+			buildTask = withSafeAutomated {
 				lecternPos.toStructure(TargetState.Empty)
 					.build(finishOnDone = true)
 					.thenAction { switchState(CycleState.PlaceLectern) }

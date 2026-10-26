@@ -26,8 +26,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.ManagerUtils.accumulatedManagerPriority
-import com.lambda.threading.runAutomated
 import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import kotlin.reflect.KClass
 
 /**
@@ -80,7 +80,7 @@ abstract class Manager<R : Request>(
             tickStage = stage
             queuedRequest?.let { request ->
                 if (tickStage !in request.tickStageMask) return@let
-                request.runAutomated { handleRequest(request) }
+                request.withSafeAutomated { handleRequest(request) }
                 request.fresh = false
                 queuedRequest = null
             }
