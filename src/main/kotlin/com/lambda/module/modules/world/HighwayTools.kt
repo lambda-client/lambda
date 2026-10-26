@@ -167,7 +167,7 @@ object HighwayTools : Module(
 			            val empty =
 							with(this@HighwayTools) {
 								findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
-									.sumOf { it.spaceLeft(StackSelection.ALL_EMPTY) }
+									.sumOf { it.count(StackSelection.ALL_EMPTY) }
 							}
 
 						with(this@HighwayTools) {

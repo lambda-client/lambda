@@ -134,16 +134,14 @@ abstract class Container(
     open fun count(selection: StackSelection) =
 		slots
 			.takeUnless { it.isEmpty() }
-			?.let {
-				selection.filter(it, false).count(selection.countEmptyAsOne)
-			} ?: selection.filter(stacks, false).count(selection.countEmptyAsOne)
+			?.let { selection.filter(it, false).count(selection.countEmptyAsOne) }
+            ?: selection.filter(stacks, false).count(selection.countEmptyAsOne)
 
     open fun spaceLeft(selection: StackSelection) =
         slots
             .takeUnless { it.isEmpty() }
-            ?.let {
-                selection.filter(it, false).spaceLeft + selection.emptySpace(it)
-            } ?: (selection.filter(stacks, false).spaceLeft + stacks.emptySpace)
+            ?.let { selection.filter(it, false).spaceLeft + selection.emptySpace(it) }
+            ?: (selection.filter(stacks, false).spaceLeft + stacks.emptySpace)
 
     open fun findSlots(selection: StackSelection) = selection.filter(slots)
 
