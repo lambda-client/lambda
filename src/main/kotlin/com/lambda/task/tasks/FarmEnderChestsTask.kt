@@ -19,6 +19,7 @@ package com.lambda.task.tasks
 
 import com.lambda.config.blocks.BreakConfig
 import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
+import com.lambda.config.blocks.ItemPickupConfig
 import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.blocks.InteractConfig.InteractConfirmationMode
 import com.lambda.context.Automated
@@ -38,6 +39,7 @@ import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
@@ -53,21 +55,21 @@ context(automated: Automated)
 fun farmEnderChests(
 	stopAfterMined: Int = -1,
 	stopOnFull: Boolean = true,
-	pathfind: Boolean = true,
+	dropPickupConfig: ItemPickupConfig = ItemPickupConfig.DEFAULT
 ) = FarmEnderChestsTask(
 	stopAfterMined,
 	stopOnFull,
-	pathfind,
+	dropPickupConfig,
 	automated
 )
 
 class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 	val stopAfterMined: Int = -1,
 	val stopIfFull: Boolean = true,
-	pathfind: Boolean = true,
+	val dropPickupConfig: ItemPickupConfig = ItemPickupConfig.DEFAULT,
 	automated: Automated
 ) : Task<Unit>(), Automated by automated {
-	override val name = "Farming ender chests"
+	override val name = "Farming Ender Chests"
 
 	private var pos: BlockPos? = null
 	private var startObsidian = 0
@@ -116,23 +118,33 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 		listen<TickEvent.Input.Post> {
 			drops.removeIf { it !in world.entities }
 
-			if (stopIfFull) {
-				val obiSpaceLeft = findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
-					.sumOf { it.spaceLeft(obiSelection) }
-				if (obiSpaceLeft < 8) success()
-			}
-
-			if (stopAfterMined in 0..broken) {
-				if (drops.isNotEmpty()) return@listen
-				success()
-			}
-
 			val pos = pos
 				?: run {
 					failure("Farm position null")
 					return@listen
 				}
 			val state = blockState(pos)
+
+			if (!state.breakReady) {
+				if (stopIfFull) {
+					val obiSpaceLeft = findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
+						.sumOf { it.spaceLeft(obiSelection) }
+					if (obiSpaceLeft < 8) success()
+				}
+
+				if (dropPickupConfig.shouldPickup(drops)) {
+					pickup()
+					return@listen
+				}
+
+				if (stopAfterMined in 0..broken) {
+					if (drops.isNotEmpty() && dropPickupConfig.pickupDrops) {
+						pickup()
+						return@listen
+					}
+					success()
+				}
+			}
 
 			if (!state.echestFarmable) {
 				failure("Farm position blocked")
@@ -153,6 +165,7 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 						.sim()
 						.breakRequest(pendingInteractions) {
 							onStop { broken++ }
+							onReBreak { broken++ }
 							onItemDrop { drops.add(it) }
 						}
 						?.submit(true)
@@ -166,6 +179,12 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 			.sim()
 			.interactRequest(pendingInteractions)
 			?.submit(true)
+
+	private fun pickup() {
+		collectDrops(drops)
+			.softFail()
+			.start()
+	}
 
 	private fun SafeContext.updateFarmPos() {
 		pos = potentialFarmPositions.first { blockState(it).echestFarmable }

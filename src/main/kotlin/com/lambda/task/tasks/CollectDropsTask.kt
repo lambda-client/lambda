@@ -17,7 +17,6 @@
 
 package com.lambda.task.tasks
 
-import baritone.api.pathing.goals.GoalBlock
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.event.events.PacketEvent
@@ -28,7 +27,6 @@ import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.stackSelection
-import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
@@ -40,7 +38,6 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.s2c.play.ItemPickupAnimationS2CPacket
 import net.minecraft.screen.slot.Slot
-import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentHashMap
 
 @Ta5kBuilder
@@ -67,11 +64,8 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 	private val packets = ConcurrentHashMap<Int, Int>()
 	private val lost = mutableMapOf<ItemEntity, Int?>()
 	private var selfId = -1
-	private var lastGoal: BlockPos? = null
 
 	init {
-		onCompletion { BaritoneHandler.cancel() }
-
 		listen<PacketEvent.Receive.Pre> { event ->
 			val packet = event.packet as? ItemPickupAnimationS2CPacket ?: return@listen
 			packets[packet.entityId] = packet.collectorEntityId
@@ -104,26 +98,18 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 		}
 		if (gone.isNotEmpty()) {
 			drops.removeAll(gone.toSet())
-			BaritoneHandler.cancel()
 		}
 
 		val target = drops.firstOrNull()
 		if (target == null) {
 			if (closingAge.isEmpty()) {
-				BaritoneHandler.cancel()
 				if (lost.isEmpty()) success(pickups.toList())
 				else failure(describeLost())
 			}
 			return
 		}
 
-		val emptySlotAvailable =
-			stacksAvailable(
-				stackSelection(StackSelection.UNBOUNDED) {
-					isEmpty()
-				},
-				ContainerSelection.HOTBAR_AND_INVENTORY
-			)
+		val emptySlotAvailable = stacksAvailable(StackSelection.ALL_EMPTY, ContainerSelection.HOTBAR_AND_INVENTORY)
 		if (!emptySlotAvailable) {
 			val slotToThrow =
 				findSlot(
@@ -141,10 +127,7 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 			return
 		}
 
-		if (target.blockPos != lastGoal) {
-			lastGoal = target.blockPos
-			BaritoneHandler.setGoalAndPath(GoalBlock(target.blockPos))
-		}
+		travelTo(target.blockPos).start()
 	}
 
 	private fun AutomatedSafeContext.liveStacks() =
@@ -197,10 +180,11 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 		return take
 	}
 
-	private fun matchesDrop(stack: ItemStack, snap: ItemStack): Boolean {
-		if (stack.isEmpty || snap.isEmpty) return false
-		return stack.item == snap.item && stack.name.string == snap.name.string
-	}
+	private fun matchesDrop(stack: ItemStack, snap: ItemStack) =
+		!stack.isEmpty &&
+				!snap.isEmpty &&
+				stack.item == snap.item &&
+				stack.name.string == snap.name.string
 
 	private fun ageClosing() {
 		closingAge.entries.toList().forEach { (drop, age) ->

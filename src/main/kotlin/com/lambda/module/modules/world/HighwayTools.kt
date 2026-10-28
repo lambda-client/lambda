@@ -156,24 +156,27 @@ object HighwayTools : Module(
 							it.value.getState(it.key).isOf(Blocks.OBSIDIAN) &&
 								!blockState(it.key).isOf(Blocks.OBSIDIAN)
 						}
+					val obiSelection = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
 		            val obiOnPlayer =
 						with(this@HighwayTools) {
-							val obiSelection = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
 							findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
 								.sumOf { it.count(obiSelection) }
 						}
 
 		            if (obiOnPlayer < remainingObi) {
-			            val empty =
+			            val obiSpace =
 							with(this@HighwayTools) {
 								findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
-									.sumOf { it.count(StackSelection.ALL_EMPTY) }
+									.sumOf { it.spaceLeft(obiSelection) }
 							}
 
-						with(this@HighwayTools) {
-							farmEnderChests(((empty - 1) * 8))
-								.start()
-						}
+			            if (obiSpace < 8) null
+			            else {
+				            with(this@HighwayTools) {
+					            farmEnderChests(obiSpace / 8)
+						            .start()
+				            }
+			            }
 		            } else null
 	            }
                 .start()
