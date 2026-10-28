@@ -46,7 +46,7 @@ sealed class TargetState : StateMatcher {
             ignoredProperties: Collection<Property<*>>
         ) = state.isEmpty
 
-        context(_: AutomatedSafeContext)
+        context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos): ItemStack = ItemStack.EMPTY
 
         context(automatedSafeContext: AutomatedSafeContext)
@@ -65,10 +65,10 @@ sealed class TargetState : StateMatcher {
             ignoredProperties: Collection<Property<*>>
         ) = state.isAir
 
-        context(_: AutomatedSafeContext)
+        context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos): ItemStack = ItemStack.EMPTY
 
-        context(_: AutomatedSafeContext)
+        context(automatedSafeContext: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = Blocks.AIR.defaultState
 
         override fun isEmpty() = true
@@ -95,7 +95,7 @@ sealed class TargetState : StateMatcher {
                 ) ?: ItemStack(Items.NETHERRACK)
             }
 
-        context(_: AutomatedSafeContext)
+        context(automatedSafeContext: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = getStack(pos).item.block.defaultState
 
         override fun isEmpty() = false
@@ -121,7 +121,7 @@ sealed class TargetState : StateMatcher {
                     ?: ItemStack(Items.NETHERRACK)
             }
 
-        context(_: AutomatedSafeContext)
+        context(automatedSafeContext: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = getStack(pos).item.block.defaultState
 
         override fun isEmpty() = false
@@ -141,7 +141,7 @@ sealed class TargetState : StateMatcher {
         override fun getStack(pos: BlockPos): ItemStack =
 			blockState.block.getPickStack(automatedSafeContext.world, pos, blockState, true)
 
-        context(_: AutomatedSafeContext)
+        context(automatedSafeContext: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = blockState
 
         override fun isEmpty() = blockState.isEmpty
@@ -161,7 +161,7 @@ sealed class TargetState : StateMatcher {
         override fun getStack(pos: BlockPos): ItemStack =
             block.getPickStack(automatedSafeContext.world, pos, block.defaultState, true)
 
-        context(_: AutomatedSafeContext)
+        context(automatedSafeContext: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = block.defaultState
 
         override fun isEmpty() = block.defaultState.isEmpty
@@ -179,10 +179,10 @@ sealed class TargetState : StateMatcher {
             ignoredProperties: Collection<Property<*>>
         ) = state.block == block
 
-        context(_: AutomatedSafeContext)
+        context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos): ItemStack = itemStack
 
-        context(_: AutomatedSafeContext)
+        context(automatedSafeContext: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = block.defaultState
 
         override fun isEmpty() = block.defaultState.isEmpty

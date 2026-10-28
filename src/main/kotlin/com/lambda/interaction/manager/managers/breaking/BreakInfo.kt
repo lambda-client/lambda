@@ -28,7 +28,7 @@ import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Rebr
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.RedundantSecondary
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.entity.ItemEntity
@@ -129,7 +129,7 @@ data class BreakInfo(
 		val item =
 			if (breakConfig.swapMode.isEnabled() && breakConfig.swapMode != BreakConfig.SwapMode.Start) swapStack
 			else player.mainHandStack
-		val breakDelta = request.runSafeAutomated { calcBreakDelta(item) }
+		val breakDelta = request.withSafeAutomated { calcBreakDelta(item) }
 		val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
 		return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1
 	}
