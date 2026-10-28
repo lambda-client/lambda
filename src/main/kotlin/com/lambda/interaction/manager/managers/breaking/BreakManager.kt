@@ -191,8 +191,8 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 					}
 					info.request.onStop?.invoke(this@listen, info.context.blockPos)
 					info.internalOnBreak()
-					if (info.callbacksCompleted) RebreakHandler.offerRebreak(info)
-					else info.startPending()
+					RebreakHandler.offerRebreak(info)
+					if (!info.callbacksCompleted) info.startPending()
 					info.nullify()
 				}
 		}
@@ -614,11 +614,8 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 			BreakConfirmationMode.None -> {
 				destroyBlock(info)
 				info.internalOnBreak()
-				if (!info.callbacksCompleted) {
-					info.startPending()
-				} else {
-					RebreakHandler.offerRebreak(info)
-				}
+				RebreakHandler.offerRebreak(info)
+				if (!info.callbacksCompleted) info.startPending()
 			}
 			BreakConfirmationMode.BreakThenAwait -> {
 				destroyBlock(info)

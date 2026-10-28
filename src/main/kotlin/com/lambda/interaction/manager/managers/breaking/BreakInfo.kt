@@ -82,24 +82,26 @@ data class BreakInfo(
 
 	// Post Processing
 	var broken = false; private set
-	private val items = mutableListOf<ItemEntity>()
+	val drops = mutableListOf<ItemEntity>()
 	var predictedDrops: Set<Item> = emptySet()
 	var guaranteesDrop: Boolean = true
 	var dropPredictionComplete: Boolean = true
 	val callbacksCompleted
-		get() = broken && (request.onItemDrop == null || items.isNotEmpty() || !guaranteesDrop)
+		get() = broken && request.onItemDrop == null
+	val validBreak
+		get() = broken && (request.onItemDrop == null || !guaranteesDrop || drops.isNotEmpty())
 
 	context(safeContext: SafeContext)
 	fun internalOnBreak() {
 		if (type != Rebreak) broken = true
-		items.forEach { item ->
+		drops.forEach { item ->
 			request.onItemDrop?.invoke(safeContext, item)
 		}
 	}
 
 	context(safeContext: SafeContext)
 	fun internalOnItemDrop(item: ItemEntity) {
-		if (type != Rebreak) items.add(item)
+		if (type != Rebreak) drops.add(item)
 		if (broken || type == Rebreak) {
 			request.onItemDrop?.invoke(safeContext, item)
 		}
@@ -114,7 +116,7 @@ data class BreakInfo(
 
 	fun resetCallbacks() {
 		broken = false
-		items.clear()
+		drops.clear()
 	}
 
 	fun tickChecks() {

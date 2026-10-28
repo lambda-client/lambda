@@ -66,11 +66,12 @@ internal object RebreakHandler {
 	fun offerRebreak(info: BreakInfo) {
 		if (!info.rebreakable) return
 
-		reBreak = info.apply {
-			type = BreakInfo.BreakType.Rebreak
-			breaking = true
-			resetCallbacks()
-		}
+		reBreak = info
+			.apply {
+				type = BreakInfo.BreakType.Rebreak
+				breaking = true
+				resetCallbacks()
+			}
 		info.request.onReBreakStart?.invoke(safeContext, info.context.blockPos)
 	}
 
@@ -88,22 +89,23 @@ internal object RebreakHandler {
 	 * @return In what way this block can be rebroken.
 	 */
 	context(_: SafeContext)
-	fun BreakInfo.getRebreakPotential() = request.withSafeAutomated {
-		reBreak?.let { reBreak ->
-			val stack = if (breakConfig.swapMode.isEnabled())
-				swapStack
-			else player.mainHandStack
-			val breakDelta = calcBreakDelta(stack)
-			val possible = reBreak.breakConfig.rebreak &&
-					context.blockPos == reBreak.context.blockPos
-			val instant = (reBreak.breakingTicks - breakConfig.fudgeFactor) * breakDelta >= breakConfig.breakThreshold
-			when {
-				possible && instant -> RebreakPotential.Instant
-				possible -> RebreakPotential.PartialProgress
-				else -> RebreakPotential.None
-			}
-		} ?: RebreakPotential.None
-	}
+	fun BreakInfo.getRebreakPotential() =
+		request.withSafeAutomated {
+			reBreak?.let { reBreak ->
+				val stack = if (breakConfig.swapMode.isEnabled())
+					swapStack
+				else player.mainHandStack
+				val breakDelta = calcBreakDelta(stack)
+				val possible = reBreak.breakConfig.rebreak &&
+						context.blockPos == reBreak.context.blockPos
+				val instant = (reBreak.breakingTicks - breakConfig.fudgeFactor) * breakDelta >= breakConfig.breakThreshold
+				when {
+					possible && instant -> RebreakPotential.Instant
+					possible -> RebreakPotential.PartialProgress
+					else -> RebreakPotential.None
+				}
+			} ?: RebreakPotential.None
+		}
 
 	/**
 	 * Updates the current [reBreak] with a fresh [BreakContext], and attempts to rebreak the block if possible.
@@ -111,29 +113,30 @@ internal object RebreakHandler {
 	 * @return A [RebreakResult] to indicate how the update has been processed.
 	 */
 	context(_: SafeContext)
-	fun handleUpdate(ctx: BreakContext, request: BreakRequest) = request.runSafeAutomated {
-		val reBreak = this@RebreakHandler.reBreak ?: return@runSafeAutomated RebreakResult.Ignored
+	fun handleUpdate(ctx: BreakContext, request: BreakRequest) =
+		request.withSafeAutomated {
+			val reBreak = this@RebreakHandler.reBreak ?: return@withSafeAutomated RebreakResult.Ignored
 
-		reBreak.updateInfo(ctx, request)
+			reBreak.updateInfo(ctx, request)
 
-		val breakDelta = reBreak.calcBreakDelta()
-		val breakTicks = reBreak.breakingTicks - breakConfig.fudgeFactor
-		return@runSafeAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
-			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@runSafeAutomated RebreakResult.Ignored
-			if (breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
-				destroyBlock(reBreak)
+			val breakDelta = reBreak.calcBreakDelta()
+			val breakTicks = reBreak.breakingTicks - breakConfig.fudgeFactor
+			return@withSafeAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
+				if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@withSafeAutomated RebreakResult.Ignored
+				if (breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
+					destroyBlock(reBreak)
+				}
+				reBreak.stopBreakPacket()
+				PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
+				if (breakConfig.swing.isEnabled()) {
+					swingHand(breakConfig.swingType, Hand.MAIN_HAND)
+				}
+				BreakManager.breaksThisTick++
+				RebreakResult.Rebroke
+			} else {
+				RebreakResult.StillBreaking(reBreak)
 			}
-			reBreak.stopBreakPacket()
-			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
-			if (breakConfig.swing.isEnabled()) {
-				swingHand(breakConfig.swingType, Hand.MAIN_HAND)
-			}
-			BreakManager.breaksThisTick++
-			RebreakResult.Rebroke
-		} else {
-			RebreakResult.StillBreaking(reBreak)
 		}
-	}
 }
 
 enum class RebreakPotential {

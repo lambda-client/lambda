@@ -28,7 +28,6 @@ import com.lambda.interaction.handler.PostActionHandler
 import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.reBreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager.matchesBlockItem
-import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
@@ -63,7 +62,7 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 			if (!info.broken) {
 				val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
 				if (verboseDebug) this@BrokenBlockHandler.warn(message)
-			} else if (!Client.ignoreItemDropWarnings) {
+			} else if (!info.validBreak) {
 				val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
 				if (verboseDebug) this@BrokenBlockHandler.warn(message)
 			}
@@ -72,7 +71,7 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 				world.setBlockState(info.context.blockPos, info.context.cachedState)
 			}
 
-			info.request.onCancel?.invoke(this, info.context.blockPos)
+			if (!info.validBreak) info.request.onCancel?.invoke(this, info.context.blockPos)
 		}
 		info.pendingInteractionsList.remove(info.context)
 	}
@@ -110,7 +109,7 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 				}
 				pendingActions.refresh(pending)
 				pending.internalOnBreak()
-				if (pending.callbacksCompleted) pending.stopPending()
+				if (pending.request.onItemDrop == null) pending.stopPending()
 	            RebreakHandler.offerRebreak(pending)
 				return@listen
 			}
@@ -128,9 +127,6 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 						} ?: return@runGameScheduled
 
 				pending.internalOnItemDrop(entity)
-				if (pending.callbacksCompleted) {
-					pending.stopPending()
-				}
 			}
 		}
 	}
