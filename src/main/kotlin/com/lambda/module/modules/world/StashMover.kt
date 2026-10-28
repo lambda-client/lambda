@@ -62,7 +62,7 @@ import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.wrappers.thenAction
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
@@ -897,7 +897,7 @@ object StashMover : Module(
 				failure("Pearl button position does not contain a button!")
 			}
 			return if (!buttonState.get(Properties.POWERED)) {
-				StashMover.runSafeAutomated {
+				StashMover.withSafeAutomated {
 					mapOf(pos to TargetState.State(buttonState.with(Properties.POWERED, true)))
 						.build()
 				}

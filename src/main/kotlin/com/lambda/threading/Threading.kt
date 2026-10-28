@@ -43,21 +43,19 @@ inline fun <T> runSafe(block: SafeContext.() -> T): T? =
     SafeContext.create()?.run(block)
 
 /**
- * Runs the [block] in an automated context.
+ * Runs the [block] in an automated context, using the [SafeContext] already in scope.
  *
  * The context contains various settings for various systems.
  */
-@JvmName("runSafeAutomated0")
 context(safeContext: SafeContext)
 inline fun <T> Automated.withSafeAutomated(automated: Automated = this, block: AutomatedSafeContext.() -> T): T =
     AutomatedSafeContext.create(safeContext, automated).run(block)
 
 /**
- * Runs the [block] in an automated context.
+ * Runs the [block] in an automated context, creating a [SafeContext] first.
  *
  * The context contains various settings for various systems.
  */
-@JvmName("runSafeAutomated1")
 inline fun <T> Automated.runSafeAutomated(block: AutomatedSafeContext.() -> T): T? {
     return AutomatedSafeContext.create(SafeContext.create() ?: return null, this).run(block)
 }
