@@ -32,6 +32,7 @@ import com.lambda.threading.withSafeAutomated
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.entity.ItemEntity
+import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
@@ -81,21 +82,24 @@ data class BreakInfo(
 
 	// Post Processing
 	var broken = false; private set
-	private var item: ItemEntity? = null
+	private val items = mutableListOf<ItemEntity>()
+	var predictedDrops: Set<Item> = emptySet()
+	var guaranteesDrop: Boolean = true
+	var dropPredictionComplete: Boolean = true
 	val callbacksCompleted
-		get() = broken && (request.onItemDrop == null || item != null)
+		get() = broken && (request.onItemDrop == null || items.isNotEmpty() || !guaranteesDrop)
 
 	context(safeContext: SafeContext)
 	fun internalOnBreak() {
 		if (type != Rebreak) broken = true
-		item?.let { item ->
+		items.forEach { item ->
 			request.onItemDrop?.invoke(safeContext, item)
 		}
 	}
 
 	context(safeContext: SafeContext)
 	fun internalOnItemDrop(item: ItemEntity) {
-		if (type != Rebreak) this.item = item
+		if (type != Rebreak) items.add(item)
 		if (broken || type == Rebreak) {
 			request.onItemDrop?.invoke(safeContext, item)
 		}
@@ -110,7 +114,7 @@ data class BreakInfo(
 
 	fun resetCallbacks() {
 		broken = false
-		item = null
+		items.clear()
 	}
 
 	fun tickChecks() {

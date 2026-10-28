@@ -75,12 +75,13 @@ import com.lambda.interaction.manager.managers.rotating.RotationRequest
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
+import com.lambda.util.BlockDropPredictor
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.extension.tickDelta
-import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
 import com.lambda.util.player.PlayerUtils.gamemode
 import com.lambda.util.player.PlayerUtils.swingHand
@@ -202,7 +203,6 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				val entity = it.entity
 				if (entity !is ItemEntity) return@runGameScheduled
 
-				// ToDo: Proper item drop prediction system
 				RebreakHandler.reBreak?.let { reBreak ->
 					if (matchesBlockItem(reBreak, entity)) return@runGameScheduled
 				}
@@ -236,7 +236,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 						if (!config.renders) return@immediateRenderer
 						val swapMode = config.swapMode
 						val breakDelta =
-							info.request.runSafeAutomated {
+							info.request.withSafeAutomated {
 								val useActiveStack = info.type != RedundantSecondary && swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start
 								info.calcBreakDelta(if (useActiveStack) activeStack else player.mainHandStack).toDouble()
 							}
@@ -360,7 +360,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see canAccept
 	 * @see BreakInfo.updateInfo
 	 */
-	private fun SafeContext.populateFrom(request: BreakRequest) = request.runSafeAutomated {
+	private fun SafeContext.populateFrom(request: BreakRequest) = request.withSafeAutomated {
 		// Sanitize the new breaks
 		val newBreaks = request.contexts
 			.distinctBy { it.blockPos }
@@ -458,7 +458,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see initNewBreak
 	 */
 	private fun SafeContext.processNewBreak(request: BreakRequest): Boolean =
-		request.runSafeAutomated {
+		request.withSafeAutomated {
 			if (tickStage !in request.breakConfig.tickStageMask) return false
 			if (breakDelay > 0) return false
 			if (breakConfig.breakMode == BreakMode.OldGrim && !bypassingOldGrimBreakDelay && oldGrimBreakDelay > 0) return false
@@ -537,7 +537,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 		// Cancelled but double breaking so requires break manager to continue the simulation
 		val abandonedInfo = abandonedBreak ?: return
 
-		abandonedInfo.request.runSafeAutomated {
+		abandonedInfo.request.withSafeAutomated {
 			abandonedInfo.context.blockPos
 				.toStructure(TargetState.Empty)
 				.sim()
@@ -600,6 +600,15 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see nullify
 	 */
 	private fun AutomatedSafeContext.onBlockBreak(info: BreakInfo) {
+		val prediction =
+			BlockDropPredictor.predictDrops(
+				info.context.cachedState,
+				player.mainHandStack,
+				info.context.blockPos
+			)
+		info.predictedDrops = prediction.items
+		info.guaranteesDrop = prediction.guaranteesDrop
+		info.dropPredictionComplete = prediction.isComplete
 		info.request.onStop?.invoke(this, info.context.blockPos)
 		when (breakConfig.breakConfirmation) {
 			BreakConfirmationMode.None -> {
@@ -691,7 +700,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see net.minecraft.client.network.ClientPlayerInteractionManager.updateBlockBreakingProgress
 	 */
 	private fun SafeContext.updateBreakProgress(info: BreakInfo): Unit =
-		info.request.runSafeAutomated {
+		info.request.withSafeAutomated {
 			val ctx = info.context
 			info.progressedThisTick = true
 
@@ -906,7 +915,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 */
 	fun matchesBlockItem(info: BreakInfo, entity: ItemEntity): Boolean {
 		val inRange = info.context.blockPos.toCenterPos().isInRange(entity.pos, 0.5)
-		val correctMaterial = info.context.cachedState.block == entity.stack.item.block
+		val correctMaterial = !info.dropPredictionComplete || entity.stack.item in info.predictedDrops
 		return inRange && correctMaterial
 	}
 

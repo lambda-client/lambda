@@ -84,7 +84,7 @@ data class InteractRequest(
 
 	override val done: Boolean
 		get() = runSafe {
-			contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
+			contexts.all { it.expectedState.matches(blockState(it.blockPos), it.preProcessingInfo.ignore) }
 		} == true
 
 	@InteractRequestMarker

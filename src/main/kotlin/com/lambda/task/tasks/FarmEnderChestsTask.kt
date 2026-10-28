@@ -22,6 +22,7 @@ import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.blocks.InteractConfig.InteractConfirmationMode
 import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -106,11 +107,7 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 		}
 
 	override fun SafeContext.onStart() {
-		pos = potentialFarmPositions.first { blockState(it).echestFarmable }
-			?: run {
-				failure("All potential farm positions exhausted")
-				return
-			}
+		updateFarmPos()
 		startObsidian = findContainers(ContainerSelection.PLAYER)
 			.sumOf { it.count(obiSelection) }
 	}
@@ -144,10 +141,11 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 
 			runSafeAutomated {
 				if (state.placeReady) {
-					pos.toStructure(TargetState.Block(Blocks.ENDER_CHEST))
-						.sim()
-						.interactRequest(pendingInteractions)
-						?.submit(true)
+					val placeRequest = placeRequest(pos)
+					if (placeRequest == null) {
+						updateFarmPos()
+						placeRequest(pos)
+					}
 				}
 
 				if (blockState(pos).breakReady) {
@@ -161,5 +159,19 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 				}
 			}
 		}
+	}
+
+	private fun AutomatedSafeContext.placeRequest(pos: BlockPos) =
+		pos.toStructure(TargetState.Block(Blocks.ENDER_CHEST))
+			.sim()
+			.interactRequest(pendingInteractions)
+			?.submit(true)
+
+	private fun SafeContext.updateFarmPos() {
+		pos = potentialFarmPositions.first { blockState(it).echestFarmable }
+			?: run {
+				failure("All potential farm positions exhausted")
+				return
+			}
 	}
 }
