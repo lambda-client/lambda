@@ -31,7 +31,6 @@ import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager
 import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.manager.managers.breaking.BreakRequest
-import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.withSafeAutomated
 import com.lambda.util.player.PlayerUtils.swingHand
 import net.minecraft.util.Hand
@@ -60,7 +59,7 @@ internal object RebreakHandler {
 
 	/**
 	 * Tests to see if the [BreakInfo] can be accepted. If not, nothing happens. Otherwise,
-	 * the [reBreak] is set, and the [com.lambda.interaction.managers.breaking.BreakRequest.onReBreakStart] callback is invoked.
+	 * the [reBreak] is set, and the [com.lambda.interaction.manager.managers.breaking.BreakRequest.onReBreakStart] callback is invoked.
 	 */
 	context(safeContext: SafeContext)
 	fun offerRebreak(info: BreakInfo) {
@@ -70,7 +69,6 @@ internal object RebreakHandler {
 			.apply {
 				type = BreakInfo.BreakType.Rebreak
 				breaking = true
-				resetCallbacks()
 			}
 		info.request.onReBreakStart?.invoke(safeContext, info.context.blockPos)
 	}

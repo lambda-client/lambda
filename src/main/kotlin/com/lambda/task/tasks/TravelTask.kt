@@ -37,6 +37,7 @@ class TravelTask @Ta5kBuilder internal constructor(
 	private var idleTicks = 0
 
 	override fun SafeContext.onStart() {
+		if (checkFinish()) return
 		BaritoneHandler.setGoalAndPath(GoalBlock(toPos))
 	}
 
@@ -44,6 +45,8 @@ class TravelTask @Ta5kBuilder internal constructor(
 		onCompletion { BaritoneHandler.cancel() }
 
 		listen<TickEvent.Pre> {
+			if (checkFinish()) return@listen
+
 			idleTicks =
 				if (BaritoneHandler.isActive) 0
 				else idleTicks + 1
@@ -54,6 +57,12 @@ class TravelTask @Ta5kBuilder internal constructor(
 			}
 		}
 	}
+
+	private fun SafeContext.checkFinish(): Boolean =
+		if (player.blockPos == toPos) {
+			success(toPos)
+			true
+		} else false
 
 	companion object {
 		const val RE_PATH_TICKS = 20

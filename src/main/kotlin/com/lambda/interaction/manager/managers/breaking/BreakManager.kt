@@ -133,7 +133,10 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 			?: StackSelection.EVERYTHING
 
 	override val blockedPositions
-		get() = activeInfos.map { it.context.blockPos } + pendingActions.map { it.context.blockPos }
+		get() = activeInfos.map { it.context.blockPos } +
+				pendingActions.mapNotNull { info ->
+					info.context.blockPos.takeIf { !info.validBreak }
+				}
 
 	private var activeRequest: BreakRequest? = null
 
@@ -772,8 +775,9 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 					if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
 				}
 
+				val sendStopBreak = info.type == Primary
 				onBlockBreak(info)
-				if (info.type == Primary) {
+				if (sendStopBreak) {
 					info.stopBreakPacket()
 					PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 				}

@@ -25,10 +25,10 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
-import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
@@ -109,8 +109,10 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 			return
 		}
 
-		val emptySlotAvailable = stacksAvailable(StackSelection.ALL_EMPTY, ContainerSelection.HOTBAR_AND_INVENTORY)
-		if (!emptySlotAvailable) {
+		val pickupSelection = target.stack.item.select(1)
+		val pickupPossible = findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
+			.any { it.spaceLeft(pickupSelection) >= 1 }
+		if (!pickupPossible) {
 			val slotToThrow =
 				findSlot(
 					stackSelection { ofAnyItems(inventoryConfig.disposables) },

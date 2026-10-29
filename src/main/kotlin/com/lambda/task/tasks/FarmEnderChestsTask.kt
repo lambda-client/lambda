@@ -35,6 +35,7 @@ import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
+import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.task.Task
@@ -144,11 +145,17 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 					}
 					success()
 				}
-			}
 
-			if (!state.echestFarmable) {
-				failure("Farm position blocked")
-				return@listen
+				if (!state.echestFarmable) {
+					failure("Farm position blocked")
+					return@listen
+				}
+
+				val enderChestsAvailable = stacksAvailable(Items.ENDER_CHEST.select(1))
+				if (!enderChestsAvailable) {
+					failure("No Ender Chests available to place")
+					return@listen
+				}
 			}
 
 			runSafeAutomated {

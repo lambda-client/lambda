@@ -35,6 +35,7 @@ import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.farmEnderChests
+import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
@@ -174,6 +175,7 @@ object HighwayTools : Module(
 			            else {
 				            with(this@HighwayTools) {
 					            farmEnderChests(obiSpace / 8)
+						            .softFail()
 						            .start()
 				            }
 			            }

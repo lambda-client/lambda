@@ -93,7 +93,7 @@ data class BreakInfo(
 
 	context(safeContext: SafeContext)
 	fun internalOnBreak() {
-		if (type != Rebreak) broken = true
+		broken = true
 		drops.forEach { item ->
 			request.onItemDrop?.invoke(safeContext, item)
 		}
@@ -101,7 +101,7 @@ data class BreakInfo(
 
 	context(safeContext: SafeContext)
 	fun internalOnItemDrop(item: ItemEntity) {
-		if (type != Rebreak) drops.add(item)
+		drops.add(item)
 		if (broken || type == Rebreak) {
 			request.onItemDrop?.invoke(safeContext, item)
 		}
@@ -112,11 +112,6 @@ data class BreakInfo(
 		this.context = context
 		request?.let { this.request = it }
 		if (type == RedundantSecondary) type = Secondary
-	}
-
-	fun resetCallbacks() {
-		broken = false
-		drops.clear()
 	}
 
 	fun tickChecks() {
