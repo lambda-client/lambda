@@ -125,7 +125,7 @@ object PlacedContainerDeserializer : FallbackDeserializer<PlacedContainer>(Place
                 else -> return null
             }
         
-        container.scanStacksForNestedContainers()
+        container.scanContainerContents()
         return container
     }
 }

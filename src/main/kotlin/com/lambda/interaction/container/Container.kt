@@ -23,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
 import com.lambda.interaction.container.containers.CursorContainer
+import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
@@ -114,9 +115,15 @@ abstract class Container(
         this.stacks = slots
     }
 
-    fun scanStacksForNestedContainers() {
-        stacks.forEachIndexed { index, stack ->
-            if (stack.item in SHULKER_BOXES && slotIdentity(index) != null) {
+    fun scanContainerContents() {
+        // Containers loaded from disk have no slots, so they go by their stacks. The offhand has none outside the
+        // inventory screen either, but its stack isn't numbered like its slot, so it's skipped until it has one
+        val indexed =
+            slots.takeUnless { it.isEmpty() }?.map { it.index to it.stack }
+                ?: stacks.takeUnless { this is OffhandContainer }?.mapIndexed { index, stack -> index to stack }
+                ?: return
+        indexed.forEach { (index, stack) ->
+            if (stack.item in SHULKER_BOXES) {
                 storedContainers[index] =
                     ShulkerBoxContainer(
                         stack.name.string,
@@ -124,7 +131,7 @@ abstract class Container(
                         stack.shulkerBoxStacks,
                         this,
                         index
-                    ).also { it.scanStacksForNestedContainers() }
+                    ).also { it.scanContainerContents() }
             } else storedContainers.remove(index)
         }
     }

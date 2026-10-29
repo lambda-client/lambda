@@ -86,6 +86,7 @@ data class ShulkerBoxContainer(
 				isItem(shulkerItem)
 				withName(itemName)
 				slotIdentity?.let { sortedBySlotMatch(it) }
+					?: sortedWith { compareByDescending { it.slot?.index == index } }
 				sortedByBestContentMatch(stacks)
 			}
 			taskOrNull {
