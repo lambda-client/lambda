@@ -43,7 +43,7 @@ import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
 import com.lambda.task.tasks.wrappers.thenOrNull
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.item.ItemStackUtils.hasSpace
@@ -343,7 +343,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 		init {
 			listen<TickEvent.Pre> {
-				runSafeAutomated {
+				withSafeAutomated {
 					do {
 						val done = tick()
 					} while (!done)

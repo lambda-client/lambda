@@ -31,7 +31,7 @@ import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import net.minecraft.item.ItemStack
@@ -94,7 +94,7 @@ object ToolSaver : Module(
 
 			if (swaps.isEmpty()) return@listen
 
-			runSafeAutomated {
+			withSafeAutomated {
 				swaps.forEach { (endangered, swapWith) ->
 					HotbarContainer.swap(endangered, swapWith, InventoryContainer)
 				}

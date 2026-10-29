@@ -33,7 +33,7 @@ interface OpenedContainerContext {
 open class BasicOpenedContainerContext(
 	private val isAccessed: () -> Boolean
 ) : OpenedContainerContext {
-	context(_: Automated)
+	context(automated: Automated)
 	final override fun close() =
 		if (!isAccessed()) null
 		else actionTask { player.closeHandledScreen() }

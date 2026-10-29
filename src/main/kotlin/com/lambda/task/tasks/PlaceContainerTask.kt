@@ -28,11 +28,13 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.ManagerUtils
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.math.distSq
 import net.minecraft.block.ChestBlock
+import net.minecraft.block.FallingBlock
 import net.minecraft.entity.mob.ShulkerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
@@ -60,11 +62,12 @@ class PlaceContainerTask @Ta5kBuilder internal constructor(
             return
         }
 
-        val results = runSafeAutomated {
+        val results = withSafeAutomated {
             BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
                 .map { it.blockPos }
                 .asSequence()
                 .filter { !ManagerUtils.isPosBlocked(it) }
+                .filter { !FallingBlock.canFallThrough(blockState(it.down())) }
                 .flatMap {
                     it.toStructure(TargetState.Stack(slot.stack))
                         .sim()
@@ -101,8 +104,7 @@ class PlaceContainerTask @Ta5kBuilder internal constructor(
         }
         in SHULKER_BOXES -> {
             val box = ShulkerEntity
-                .calculateBoundingBox(0.5f, direction, 0.0f, blockPos.toBottomCenterPos())
-                .offset(blockPos)
+                .calculateBoundingBox(1.0f, direction, 0.0f, 0.5f, blockPos.toBottomCenterPos())
                 .contract(1.0E-6)
 
             world.isSpaceEmpty(box)

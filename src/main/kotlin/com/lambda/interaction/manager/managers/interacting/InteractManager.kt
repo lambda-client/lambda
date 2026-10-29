@@ -44,8 +44,8 @@ import com.lambda.interaction.manager.managers.interacting.InteractManager.poten
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.modules.world.AutoSign
 import com.lambda.threading.runConcurrent
-import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.item.ItemUtils.blockItem
@@ -123,7 +123,7 @@ object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 
 	override fun SafeContext.onOpen() {
 		activeRequest?.let {
-			it.runSafeAutomated { processRequest(it) }
+			it.withSafeAutomated { processRequest(it) }
 		}
 	}
 

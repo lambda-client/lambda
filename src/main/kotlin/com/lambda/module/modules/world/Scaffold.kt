@@ -37,7 +37,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findStack
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.InputUtils.isSatisfied
@@ -88,7 +88,7 @@ object Scaffold : Module(
 			if (alreadySupported) return@listen
 			val offset = if (descend.isSatisfied()) descendAmount else 0
 			val beneath = playerSupport.down(offset)
-			runSafeAutomated {
+			withSafeAutomated {
 				scaffoldPositions(beneath)
 					.associateWith { TargetState.State(stack.item.block.defaultState) }
 					.sim()

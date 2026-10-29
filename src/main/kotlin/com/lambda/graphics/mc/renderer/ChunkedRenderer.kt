@@ -59,7 +59,7 @@ class ChunkedRenderer(
 	private val WorldChunk.chunkData
 		get() = chunkMap.getOrPut(chunkKey) { ChunkData(this) }
 
-	private val rebuildQueue = ConcurrentLinkedDeque<ChunkData>()
+	private val rebuildSet = ConcurrentHashMap.newKeySet<ChunkData>()
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
 
 	init {
@@ -78,15 +78,20 @@ class ChunkedRenderer(
 		}
 
 		owner.listenUnsafe<WorldEvent.ChunkEvent.Load>(alwaysListen = true) { event -> event.chunk.chunkData.markDirty() }
-		owner.listenUnsafe<WorldEvent.ChunkEvent.Unload>(alwaysListen = true) { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
+		owner.listenUnsafe<WorldEvent.ChunkEvent.Unload>(alwaysListen = true) { event ->
+			chunkMap.remove(event.chunk.chunkKey)?.let { chunkData ->
+				rebuildSet.remove(chunkData)
+				chunkData.clearData()
+			}
+		}
 		owner.listenUnsafe<WorldEvent.Leave>(alwaysListen = true) { clear() }
 
 		owner.listenConcurrentlyUnsafe<TickEvent.Pre> {
 			if (pauseUpdates()) return@listenConcurrentlyUnsafe
-			val queueSize = rebuildQueue.size
-			val polls = minOf(Client.chunkRebuildsPerTick, queueSize)
 			val depth = depthTest()
-			repeat(polls) { rebuildQueue.poll()?.rebuild(depth) }
+			rebuildSet.take(Client.chunkRebuildsPerTick).forEach { chunkData ->
+				if (rebuildSet.remove(chunkData)) chunkData.rebuild(depth)
+			}
 		}
 
 		owner.listenUnsafe<TickEvent.Pre> {
@@ -107,7 +112,7 @@ class ChunkedRenderer(
 	}
 
 	fun rebuild() {
-		rebuildQueue.clear()
+		rebuildSet.clear()
 		mc.world?.chunkManager?.chunks?.let { chunks ->
 			val chunkCount = chunks.chunks.length()
 			(0 until chunkCount).forEach { index ->
@@ -115,13 +120,13 @@ class ChunkedRenderer(
 				chunkMap.putIfAbsent(chunk.chunkKey, ChunkData(chunk))
 			}
 		}
-		rebuildQueue.addAll(chunkMap.values)
+		rebuildSet.addAll(chunkMap.values)
 	}
 
 	fun clear() {
 		chunkMap.values.forEach { it.clearData() }
 		chunkMap.clear()
-		rebuildQueue.clear()
+		rebuildSet.clear()
 		uploadQueue.clear()
 	}
 
@@ -163,7 +168,7 @@ class ChunkedRenderer(
 		val renderer = RegionRenderer()
 
 		fun markDirty() {
-			if (!rebuildQueue.contains(this)) rebuildQueue.add(this)
+			rebuildSet.add(this)
 		}
 
 		fun rebuild(depthTest: Boolean) {

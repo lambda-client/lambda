@@ -42,7 +42,7 @@ object OffhandContainer : Container(ContainerType.OffHand) {
 
     override fun slotIdentity(index: Int) = SlotIdentity.Player(index)
 
-    context(_: SafeContext)
+    context(safeContext: SafeContext)
     override fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {
         swapWithHotbar(toSlot.id, 40)
     }

@@ -28,7 +28,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.accessedPlacedCo
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.withSafeAutomated
 import com.lambda.util.TickTimer
 import com.lambda.util.player.RotationUtils.lookAtBlock
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -122,7 +122,7 @@ class OpenContainerTask<R : Any> @Ta5kBuilder @PublishedApi internal constructor
 
             if (containerState != State.Scoping && containerState != State.Pathing) return@listen
 
-            val checkedHit = runSafeAutomated { lookAtBlock(blockPos, sides) }
+            val checkedHit = withSafeAutomated { lookAtBlock(blockPos, sides) }
                 ?: run {
                     containerState = State.Pathing
                     if (!BaritoneHandler.isActive) BaritoneHandler.setGoalAndPath(GoalNear(blockPos, 3))

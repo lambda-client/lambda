@@ -64,9 +64,7 @@ open class AutomationConfig(
 
 @AutomationConfigMarker
 context(module: Module)
-fun IMutableAutomationConfig.setDefaultAutomationConfig(
-	name: String = module.name
-) = AutomationConfig("$name Automation Config").also { this.defaultAutomationConfig = it }
+fun IMutableAutomationConfig.setDefaultAutomationConfig() = this.setDefaultAutomationConfig(module.name)
 
 @AutomationConfigMarker
 fun IMutableAutomationConfig.setDefaultAutomationConfig(
