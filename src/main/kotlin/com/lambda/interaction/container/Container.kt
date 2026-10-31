@@ -59,6 +59,7 @@ abstract class Container(
 
     abstract val slots: List<Slot>
     abstract var stacks: List<ItemStack>
+    open val stacksMatchSlots get() = this is ExternalContainer
     val storedContainers = mutableMapOf<Int, NestedContainer>()
 
     open val dimension = Dimension.Unknown
@@ -114,11 +115,11 @@ abstract class Container(
         this.stacks = slots
     }
 
-    open fun scanContainerContents() {
-        // A container that isn't open has no slots, so it goes by its stacks
+    fun scanContainerContents() {
         val indexed =
             slots.takeUnless { it.isEmpty() }?.map { it.index to it.stack }
-                ?: stacks.mapIndexed { index, stack -> index to stack }
+                ?: stacks.takeIf { stacksMatchSlots }?.mapIndexed { index, stack -> index to stack }
+                ?: return
         indexed.forEach { (index, stack) ->
             if (stack.item in SHULKER_BOXES) {
                 storedContainers[index] =

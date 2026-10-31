@@ -42,10 +42,6 @@ object OffhandContainer : Container(ContainerType.OffHand) {
 
     override fun slotIdentity(index: Int) = SlotIdentity.Player(index)
 
-    override fun scanContainerContents() {
-        if (slots.isNotEmpty()) super.scanContainerContents()
-    }
-
     context(safeContext: SafeContext)
     override fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {
         swapWithHotbar(toSlot.id, 40)
