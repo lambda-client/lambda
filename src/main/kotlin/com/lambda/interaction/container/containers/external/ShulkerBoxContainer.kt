@@ -28,10 +28,10 @@ import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
+import com.lambda.interaction.handler.handlers.ContainerHandler.slotsAvailable
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
@@ -42,6 +42,7 @@ import com.lambda.task.tasks.transfer
 import com.lambda.task.tasks.wrappers.actionTask
 import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
+import com.lambda.task.tasks.wrappers.thenOrNull
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
@@ -49,7 +50,6 @@ import com.lambda.util.text.literal
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
-import net.minecraft.util.math.BlockPos
 import java.util.Objects.hash
 
 data class ShulkerBoxContainer(
@@ -82,67 +82,69 @@ data class ShulkerBoxContainer(
 		automated: Automated
 	) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
-			transfer(
-				stackSelection {
-					sortedWith { compareByDescending { it.slot?.index == index } }
-					isItem(shulkerItem)
-					withName(itemName)
-					sortedByBestContentMatch(stacks)
-				},
-				containedIn.select(ContainerSearchScope.Loaded),
-				HotbarContainer.select()
-			).then { result ->
-				placeContainer(
-					findSlot(
-						result.stackSelection.mutate {
-							sortedByRecentChange()
-						},
-						result.containerSelection
-					)
-				)
+			val selection = stackSelection {
+				isItem(shulkerItem)
+				withName(itemName)
+				slotIdentity?.let { sortedBySlotMatch(it) }
+					?: sortedWith { compareByDescending { it.slot?.index == index } }
+				sortedByBestContentMatch(stacks)
+			}
+			taskOrNull {
+				if (containedIn == HotbarContainer) null
+				else selection.transfer(containedIn.select(ContainerSearchScope.Loaded), HotbarContainer.select())
+			}.then { result ->
+				placeContainer(findSlot(result?.stackSelection ?: selection, HotbarContainer.select()))
 			}.then { pos ->
-				openContainer(pos).onSuccess {
-					success(OpenedShulkerBoxContext(pos))
+				openContainer<PlacedShulkerBoxContainer>(pos).onSuccess {
+					success(OpenedShulkerBoxContext(it))
 				}
 			}.start()
 		}
 	}
 
 	inner class OpenedShulkerBoxContext(
-		val blockPos: BlockPos,
+		override val container: PlacedShulkerBoxContainer,
 	) : OpenedContainerContext {
 		context(automated: Automated)
 		override fun close(): Task<*> {
 			return taskOrNull {
-				if (!isAccessed) null
+				if (!container.isAccessed) null
 				else actionTask { player.closeHandledScreen() }
-			}.then { breakAndCollect(blockPos) }
-				.then { outcome ->
-					val pickedUp = outcome.pickups
-						.asSequence()
-						.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
-						.firstNotNullOfOrNull { it.slot }
+			}.then {
+				breakAndCollect(container.pos)
+			}.thenOrNull { outcome ->
+				val ownSlot = slotIdentity ?: return@thenOrNull null
+				val pickedUp = outcome.pickups
+					.asSequence()
+					.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
+					.firstNotNullOfOrNull { it.slot }
+				val inContainer = pickedUp != null &&
+						slotsAvailable(
+							pickedUp.select(),
+							containedIn.select(ContainerSearchScope.Loaded)
+						)
+				if (inContainer && !ownSlot.isEmpty()) return@thenOrNull null
 
+				stackSelection {
+					isItem(shulkerItem)
+					withName(itemName)
+					if (pickedUp != null) isSlot(pickedUp)
+					sortedByBestContentMatch(container.stacks)
+					sortedByRecentChange()
+				}.transfer(
+					ContainerSelection.HOTBAR_AND_INVENTORY,
+					containedIn.select(ContainerSearchScope.Loaded),
 					stackSelection {
-						isItem(shulkerItem)
-						withName(itemName)
-						if (pickedUp != null) sortedBySlotMatch(pickedUp)
-						sortedByBestContentMatch(stacks)
-						sortedByRecentChange()
-					}.transfer(
-						ContainerSelection.HOTBAR_AND_INVENTORY,
-						containedIn.select(ContainerSearchScope.Loaded),
-						stackSelection {
-							sortedByMatches {
-								stackSelection {
-									predicate { _, slot -> slot?.index == index }
-									isEmpty()
-								}
+						isEmpty()
+						sortedByMatches {
+							stackSelection {
+								isSlot(ownSlot)
 							}
-						},
-						allowQuickMove = false
-					)
-				}
+						}
+					},
+					allowQuickMove = false
+				)
+			}
 		}
 	}
 

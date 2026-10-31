@@ -44,7 +44,6 @@ import com.lambda.interaction.container.containers.external.ChestContainer
 import com.lambda.interaction.container.containers.external.DoubleChestContainer
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.containers.external.PlacedShulkerBoxContainer
-import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.containerSelection
@@ -55,8 +54,6 @@ import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.extension.containerStacks
 import com.lambda.util.item.ItemStackUtils.count
-import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
-import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.player.SlotUtils.typeSafe
 import com.lambda.util.world.Dimension
 import net.minecraft.block.ChestBlock
@@ -130,7 +127,7 @@ object ContainerHandler : Loadable {
 			pendingInteractedBlockEntity = null
 		}
 
-		listen<InventoryEvent.FullUpdate> { onContainerUpdate() }
+		listen<InventoryEvent.FullUpdate>(priority = { Int.MAX_VALUE }) { onContainerUpdate() }
 		listen<PlayerEvent.SlotClick.Post> { onContainerUpdate() }
 
 		listen<WorldEvent.BlockUpdate.Client> { event ->
@@ -405,23 +402,6 @@ object ContainerHandler : Loadable {
 					ContainerSerializer.saveContainer(it)
 				}
 			}
-		}
-	}
-
-	private fun Container.scanContainerContents() {
-		slots.forEach { slot ->
-			val stack = slot.stack
-			val index = slot.index
-			if (stack.item in SHULKER_BOXES) {
-				storedContainers[index] =
-					ShulkerBoxContainer(
-						stack.name.string,
-						stack.item,
-						stack.shulkerBoxStacks,
-						this,
-						index
-					).also { it.scanContainerContents() }
-			} else storedContainers.remove(index)
 		}
 	}
 }

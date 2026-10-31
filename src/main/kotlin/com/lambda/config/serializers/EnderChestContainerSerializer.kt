@@ -84,7 +84,7 @@ object EnderChestContainerDeserializer : Deserializer<EnderChestContainer>(Ender
             } else decodedStacks
 
         EnderChestContainer.update(stacks)
-        EnderChestContainer.scanStacksForNestedContainers()
+        EnderChestContainer.scanContainerContents()
         return EnderChestContainer
     }
 }

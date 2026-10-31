@@ -92,8 +92,8 @@ data class DoubleChestContainer(
 			val rightDist = rightPos distSq player.pos
 			val closestPos = if (leftDist <= rightDist) leftPos else rightPos
 			val farthestPos = if (leftDist > rightDist) leftPos else rightPos
-			openContainer(closestPos)
-				.withRecovery { openContainer(farthestPos) }
+			openContainer<DoubleChestContainer>(closestPos)
+				.withRecovery { openContainer<DoubleChestContainer>(farthestPos) }
 				.onSuccess { success(BasicOpenedContainerContext(::isAccessed)) }
 				.start()
 		}

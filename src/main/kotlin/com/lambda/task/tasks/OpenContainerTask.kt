@@ -22,7 +22,9 @@ import com.lambda.context.Automated
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.ContainerHandler.accessedPlacedContainer
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
@@ -39,16 +41,27 @@ import net.minecraft.util.math.Direction
 context(automated: Automated)
 fun openContainer(
     blockPos: BlockPos,
-    waitForSlotLoad: Boolean = true,
     sides: Set<Direction> = Direction.entries.toSet()
-) = OpenContainerTask(blockPos, waitForSlotLoad, sides, automated)
+) = OpenContainerTask(blockPos, sides, automated) { it }
 
-class OpenContainerTask @Ta5kBuilder internal constructor(
+@Ta5kBuilder
+@JvmName("openTypedContainer")
+context(automated: Automated)
+inline fun <reified T : PlacedContainer> openContainer(
+    blockPos: BlockPos,
+    sides: Set<Direction> = Direction.entries.toSet()
+) = OpenContainerTask(blockPos, sides, automated) {
+    accessedPlacedContainer?.takeIf { blockPos in it.positions } as? T
+}
+
+// TODO: Open containers found in the world (built with empty stacks until they're opened) instead of a position and a
+//  result callback, once PlacedContainer is generic over an enum of types
+class OpenContainerTask<R : Any> @Ta5kBuilder @PublishedApi internal constructor(
     private val blockPos: BlockPos,
-    private val waitForSlotLoad: Boolean = true,
-    private val sides: Set<Direction> = Direction.entries.toSet(),
-    automated: Automated
-) : Task<ScreenHandler>(), Automated by automated {
+    private val sides: Set<Direction>,
+    automated: Automated,
+    private val result: (ScreenHandler) -> R?
+) : Task<R>(), Automated by automated {
     override val name get() = "${containerState.description()} at ${blockPos.toShortString()}"
 
     private var screenHandler: ScreenHandler? = null
@@ -79,8 +92,6 @@ class OpenContainerTask @Ta5kBuilder internal constructor(
 
             screenHandler = it.screenHandler
             containerState = State.SlotLoading
-
-            if (!waitForSlotLoad) success(it.screenHandler)
         }
 
         listen<InventoryEvent.Close> {
@@ -93,8 +104,9 @@ class OpenContainerTask @Ta5kBuilder internal constructor(
         listen<InventoryEvent.FullUpdate> {
             if (containerState != State.SlotLoading) return@listen
 
-            screenHandler?.let {
-                success(it)
+            screenHandler?.let { handler ->
+                result(handler)?.let { success(it) }
+                    ?: failure("No matching container was indexed at ${blockPos.toShortString()}")
             }
         }
 

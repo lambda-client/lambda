@@ -67,6 +67,7 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 	private val packets = ConcurrentHashMap<Int, Int>()
 	private val lost = mutableMapOf<ItemEntity, Int?>()
 	private var selfId = -1
+	private var idleTicks = 0
 	private var lastGoal: BlockPos? = null
 
 	init {
@@ -105,6 +106,7 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 		if (gone.isNotEmpty()) {
 			drops.removeAll(gone.toSet())
 			BaritoneHandler.cancel()
+			lastGoal = null
 		}
 
 		val target = drops.firstOrNull()
@@ -141,8 +143,10 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 			return
 		}
 
-		if (target.blockPos != lastGoal) {
+		idleTicks = if (BaritoneHandler.isActive) 0 else idleTicks + 1
+		if (target.blockPos != lastGoal || idleTicks >= REPATH_TICKS) {
 			lastGoal = target.blockPos
+			idleTicks = 0
 			BaritoneHandler.setGoalAndPath(GoalBlock(target.blockPos))
 		}
 	}
@@ -230,5 +234,6 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 
 	private companion object {
 		const val CLOSE_GRACE_TICKS = 20
+		const val REPATH_TICKS = 20
 	}
 }

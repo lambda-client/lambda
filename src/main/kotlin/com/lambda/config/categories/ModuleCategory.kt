@@ -18,7 +18,6 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
-import com.lambda.config.categories.ModuleCategory.name
 import com.lambda.util.FolderRegistry
 import java.io.File
 
