@@ -20,10 +20,6 @@
 package com.lambda.gui.dsl
 
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.gui.dsl.ImGuiBuilder.onItemClick
-import com.lambda.gui.dsl.ImGuiBuilder.onItemHover
-import com.lambda.gui.dsl.ImGuiBuilder.openPopup
-import com.lambda.gui.dsl.ImGuiBuilder.text
 import com.lambda.imgui.ImDrawList
 import com.lambda.imgui.ImFont
 import com.lambda.imgui.ImGui

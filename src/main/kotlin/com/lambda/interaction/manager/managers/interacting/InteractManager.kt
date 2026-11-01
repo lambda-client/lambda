@@ -41,7 +41,6 @@ import com.lambda.interaction.manager.managers.interacting.InteractManager.activ
 import com.lambda.interaction.manager.managers.interacting.InteractManager.maxInteractionsThisTick
 import com.lambda.interaction.manager.managers.interacting.InteractManager.populateFrom
 import com.lambda.interaction.manager.managers.interacting.InteractManager.potentialInteractions
-import com.lambda.interaction.manager.managers.interacting.InteractManager.processRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.modules.world.AutoSign
 import com.lambda.threading.runConcurrent
@@ -71,6 +70,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
+import kotlin.time.Duration.Companion.milliseconds
 
 object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 	private var activeRequest: InteractRequest? = null
@@ -215,7 +215,7 @@ object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 				if (ctx.preProcessingInfo.placing && expectedState.block is AbstractSignBlock) {
 					cancellingSignScreens++
 					runConcurrent {
-						delay(AutoSign.signWriteDelay)
+						delay(AutoSign.signWriteDelay.milliseconds)
 						runSafeGameScheduled {
 							connection.sendPacket {
 								UpdateSignC2SPacket(ctx.blockPos, true, "", "", "", "")

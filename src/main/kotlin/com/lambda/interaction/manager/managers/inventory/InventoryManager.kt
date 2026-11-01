@@ -33,7 +33,6 @@ import com.lambda.interaction.manager.managers.inventory.InventoryManager.action
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.filter
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.indexInventoryChanges
-import com.lambda.interaction.manager.managers.inventory.InventoryManager.onInventoryUpdate
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runSafe

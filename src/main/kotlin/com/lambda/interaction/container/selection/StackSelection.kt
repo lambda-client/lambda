@@ -41,6 +41,7 @@ import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
 import java.util.*
+import kotlin.math.min
 import kotlin.time.Instant
 
 @ContainerDslMarker
@@ -48,6 +49,9 @@ fun Item.select(count: Int = 1) = stackSelection(count) { isItem(this@select) }
 
 @ContainerDslMarker
 fun ItemStack.select(count: Int = 1) = stackSelection(count) { isItemStack(this@select) }
+
+@ContainerDslMarker
+fun SlotIdentity.select(count: Int = resolve()?.stack?.count ?: 1) = stackSelection(count) { isSlot(this@select) }
 
 fun stackSelection(
 	count: Int = 1,
@@ -68,10 +72,10 @@ class StackSelection @ContainerDslMarker internal constructor(
 	val shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.Both,
 	val countEmptyAsOne: Boolean = false,
 	val alwaysWholeStacks: Boolean = false,
-	val comparator: Comparator<StackAndSlot<*>> = compareBy { it.stack.count },
+	val comparator: Comparator<StackAndSlot<*>>? = null,
 	val selector: (ItemStack, Slot?) -> Boolean,
 ) {
-	val optimalStack = itemStack ?: item?.let { ItemStack(it, count) }
+	val optimalStack = itemStack ?: item?.let { ItemStack(it, it.maxCount) }
 
 	val isUnbounded: Boolean get() = count < 0
 
@@ -127,7 +131,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 		.asSequence()
 		.filter(::matches)
 		.let {
-			if (sorted)
+			if (sorted && comparator != null)
 				it.map { StackAndSlot(it, null) }
 					.sortedWith(comparator)
 					.map { it.stack }
@@ -149,7 +153,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 		.filter { it.identity() !in blacklistedSlots }
 		.filter(::matches)
 		.let {
-			if (sorted)
+			if (sorted && comparator != null)
 				it.map { StackAndSlot(it.stack, it) }
 					.sortedWith(comparator)
 					.map { it.slot }
@@ -171,7 +175,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 		.filter { it.slot?.identity() !in blacklistedSlots }
 		.filter(::matches)
 		.let {
-			if (sorted) it.sortedWith(comparator)
+			if (sorted && comparator != null) it.sortedWith(comparator)
 			else it
 		}
 		.toList()
@@ -206,7 +210,13 @@ class StackSelection @ContainerDslMarker internal constructor(
 
 	@ContainerDslMarker
 	fun emptySpace(slots: Iterable<Slot>) =
-		slots.count { it.stack.isEmpty && canInsert(it) }
+		slots.sumOf { slot ->
+			if (slot.stack.isEmpty && canInsert(slot)) {
+				optimalStack?.let {
+					min(it.maxCount, slot.maxItemCount)
+				} ?: slot.maxItemCount.coerceAtMost(64)
+			} else 0
+		}
 
 	companion object {
 		const val UNBOUNDED = -1
@@ -477,6 +487,26 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		optimal?.let { cannotInsert(it) }
 	}
 
+	fun isSlot(slot: SlotIdentity) {
+		whitelistedSlots.add(slot)
+		appendSelector { _, s -> s?.identity() == slot }
+	}
+
+	fun notSlot(slot: SlotIdentity) {
+		blacklistedSlots.add(slot)
+		appendSelector { _, s -> s?.identity() != slot }
+	}
+
+	fun ofAnySlots(vararg slots: SlotIdentity) {
+		whitelistedSlots.addAll(slots)
+		appendSelector { _, slot -> slot?.identity() in slots }
+	}
+
+	fun noneOfSlots(vararg slots: SlotIdentity) {
+		blacklistedSlots.addAll(slots)
+		appendSelector { _, slot -> slot?.identity() !in slots }
+	}
+
 	fun sortedWith(newComparator: Comparator<StackAndSlot<*>>) {
 		comparator = comparator?.thenComparing(newComparator) ?: newComparator
 	}
@@ -605,7 +635,7 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 			shulkerBoxScope,
 			countEmptyAsOne,
 			alwaysWholeStacks,
-			comparator ?: compareBy { it.stack.count },
+			comparator,
 			selector
 		)
 

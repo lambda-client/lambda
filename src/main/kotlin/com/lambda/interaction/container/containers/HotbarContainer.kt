@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.util.player.SlotUtils.hotbarSlots
 import com.lambda.util.player.SlotUtils.hotbarStacks
@@ -38,6 +39,8 @@ object HotbarContainer : Container(ContainerType.Hotbar) {
     override val swapMethodPriority = 9
 
     override val description = buildText { literal("Hotbar") }
+
+    override fun slotIdentity(index: Int) = SlotIdentity.Player(index)
 
     context(safeContext: SafeContext)
     override fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {

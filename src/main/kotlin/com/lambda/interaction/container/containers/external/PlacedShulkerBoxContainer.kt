@@ -80,7 +80,7 @@ class PlacedShulkerBoxContainer(
 		automated: Automated
 	) : OpenContainerTask<BasicOpenedContainerContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
-			openContainer(pos)
+			openContainer<PlacedShulkerBoxContainer>(pos)
 				.onSuccess { success(BasicOpenedContainerContext(::isAccessed)) }
 				.start()
 		}

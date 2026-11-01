@@ -28,8 +28,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.slerpPitch
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.slerpYaw
-import com.lambda.interaction.manager.managers.rotating.RotationManager.activeRotation
-import com.lambda.interaction.manager.managers.rotating.RotationManager.serverRotation
 import com.lambda.interaction.manager.managers.rotating.RotationManager.updateActiveRotation
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.rotation

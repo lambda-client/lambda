@@ -20,11 +20,11 @@ package com.lambda.interaction.manager.managers.hotbar
 import com.lambda.config.blocks.HotbarConfig.SwapMode
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
+import com.lambda.event.Event
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.activeRequest
-import com.lambda.interaction.manager.managers.hotbar.HotbarManager.activeSlot
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.setActiveRequest
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.setActiveSlot
 import com.lambda.threading.runSafe
@@ -41,6 +41,7 @@ import net.minecraft.item.ItemStack
 object HotbarManager : Manager<HotbarRequest>(1) {
 	private var activeRequest: HotbarRequest? = null
 	@JvmStatic var activeSlot: Int = -1
+	private var activeRequestStage: Event? = null
 
 	val serverSlot get() = runSafe {
 		interaction.lastSelectedSlot
@@ -112,6 +113,7 @@ object HotbarManager : Manager<HotbarRequest>(1) {
 	private fun AutomatedSafeContext.setActiveRequest(request: HotbarRequest) {
 		maxSwapsThisTick = hotbarConfig.swapsPerTick
 		activeRequest = request
+		activeRequestStage = tickStage
 	}
 
 	/**
@@ -148,6 +150,7 @@ object HotbarManager : Manager<HotbarRequest>(1) {
 	private fun SafeContext.checkResetSwap() {
 		activeRequest?.let { active ->
 			if (active.keepTicks <= 0) {
+				if (active.keepTicks == 0 && tickStage != activeRequestStage) return
 				if (active.hotbarConfig.swapMode == SwapMode.Permanent) {
 					activeRequest = null
 					activeSlot = -1
