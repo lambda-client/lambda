@@ -94,7 +94,7 @@ class InvRequestBuilder internal constructor(
 					sh.syncId,
 					-1, 0, 0,
 					action,
-					Int2ObjectOpenHashMap<ItemStackHash>(),
+					Int2ObjectOpenHashMap(),
 					ItemStackHash.fromItemStack(sh.cursorStack, connection.componentHasher)
 				)
 			}

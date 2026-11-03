@@ -17,7 +17,6 @@
 
 package com.lambda.task.tasks
 
-import com.lambda.config.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -55,7 +54,6 @@ import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
-import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getClosestPointTo
 import com.lambda.util.EntityUtils.getPositionsWithinBox
@@ -82,43 +80,39 @@ import kotlin.math.sqrt
 fun Automated.build(
 	finishOnDone: Boolean = true,
 	collectDrops: Boolean = false,
-	lifeMaintenance: Boolean = false,
 	async: Boolean = false,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
 	blueprint: () -> Blueprint
-) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, async, this, buildResultFilter)
+) = BuildTask(blueprint(), finishOnDone, collectDrops, async, this, buildResultFilter)
 
 @Ta5kBuilder
 context(automated: Automated)
 fun Structure.build(
 	finishOnDone: Boolean = true,
 	collectDrops: Boolean = false,
-	lifeMaintenance: Boolean = false,
 	async: Boolean = false,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, async, automated, buildResultFilter)
+) = BuildTask(toBlueprint(), finishOnDone, collectDrops, async, automated, buildResultFilter)
 
 @Ta5kBuilder
 context(automated: Automated)
 fun Blueprint.build(
 	finishOnDone: Boolean = true,
 	collectDrops: Boolean = false,
-	lifeMaintenance: Boolean = false,
 	async: Boolean = false,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, async, automated, buildResultFilter)
+) = BuildTask(this, finishOnDone, collectDrops, async, automated, buildResultFilter)
 
 @Ta5kBuilder
 context(automated: Automated)
 fun breakAndCollect(
 	blockPos: BlockPos,
 	finishOnDone: Boolean = true,
-	lifeMaintenance: Boolean = false,
 	async: Boolean = false,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
 ) = BuildTask(
 	blockPos.toStructure(TargetState.Empty).toBlueprint(),
-	finishOnDone, true, lifeMaintenance, async, automated, buildResultFilter
+	finishOnDone, true, async, automated, buildResultFilter
 )
 
 data class BuildOutcome(
@@ -137,7 +131,6 @@ class BuildTask @Ta5kBuilder internal constructor(
 	private val blueprint: Blueprint,
 	private val finishOnDone: Boolean,
 	private val collectDrops: Boolean,
-	private val lifeMaintenance: Boolean,
 	private val async: Boolean,
 	automated: Automated,
 	private val buildResultFilter: SafeContext.(BuildResult) -> Boolean,
@@ -255,10 +248,6 @@ class BuildTask @Ta5kBuilder internal constructor(
 
 	private fun AutomatedSafeContext.preSim(): Boolean {
 		if (runPreTick()) return true
-		if (lifeMaintenance && withSafeAutomated { reasonEating() }.shouldEat()) {
-			eat().start()
-			return true
-		}
 
 		if (blueprint is TickingBlueprint) {
 			blueprint.tick()
@@ -289,7 +278,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 	private fun SafeContext.currentPickups(): List<PickedUpItem> {
 		if (pickups.isEmpty()) return emptyList()
 		val latest = LinkedHashMap<SlotIdentity, ItemStack>()
-		pickups.forEach { pickup -> pickup.slot?.let { latest[it] = pickup.stack } }
+		pickups.forEach { latest[it.slot] = it.stack }
 		return latest.entries
 			.filter { (slot, stack) -> slot.holds(stack) }
 			.map { (slot, stack) -> PickedUpItem(stack.copy(), slot) }
@@ -387,7 +376,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 	private fun AutomatedSafeContext.collectDrops(): Boolean {
 		if (dropsToCollect.isEmpty()) return false
 		if (pendingInteractions.isNotEmpty()) return true
-		collectDrops(dropsToCollect)
+		pickupItems(dropsToCollect)
 			.onSuccess {
 				pickups.addAll(it)
 				pickupTypes.addAll(it.map { it.stack.item })

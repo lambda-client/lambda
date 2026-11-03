@@ -19,20 +19,25 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.Group
 import com.lambda.config.automation.setDefaultAutomationConfig
-import com.lambda.config.editTypedSettings
+import com.lambda.config.blocks.checkEat
+import com.lambda.config.editSetting
 import com.lambda.config.withEdits
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
-import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
+import com.lambda.interaction.construction.blueprint.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
+import com.lambda.interaction.handler.handlers.ContainerHandler.count
+import com.lambda.interaction.handler.handlers.ContainerHandler.spaceLeft
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.task.Task
+import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.start
+import com.lambda.task.tasks.BuildStatus
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.farmEnderChests
 import com.lambda.task.tasks.wrappers.softFail
@@ -55,20 +60,21 @@ import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3i
 
 object HighwayTools : Module(
-    name = "HighwayTools",
-    description = "Auto highway builder",
-    tag = ModuleTag.WORLD,
+	name = "HighwayTools",
+	description = "Auto highway builder",
+	tag = ModuleTag.WORLD,
 ) {
 	private const val PAVEMENT_GROUP = "Pavement"
 	private const val FLOOR_GROUP = "Floor"
 	private const val WALL_GROUP = "Wall"
 	private const val CEILING_GROUP = "Ceiling"
+	private const val ECHEST_GROUP = "EChest Farming"
 
-    private val height by setting("Height", 4, 2..10, 1)
-    private val width by setting("Width", 6, 1..30, 1)
+	private val height by setting("Height", 4, 2..10, 1)
+	private val width by setting("Width", 6, 1..30, 1)
 
 	@Group(PAVEMENT_GROUP) private val pavement by setting("Pavement", Material.Block, "Material for the pavement")
-    @Group(PAVEMENT_GROUP) private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }
+	@Group(PAVEMENT_GROUP) private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }
 	@Group(PAVEMENT_GROUP) private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }
 
 	@Group(FLOOR_GROUP) private val floor by setting("Floor", Material.None, "Material for the floor")
@@ -81,224 +87,238 @@ object HighwayTools : Module(
 	@Group(CEILING_GROUP) private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling")
 	@Group(CEILING_GROUP) private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }
 
+	@Group(ECHEST_GROUP) private val farmEnderChests by setting("Farm Ender Chests", true, "Farms Ender Chests for obsidian when running low")
+	@Group(ECHEST_GROUP) private val minDisposableStacks by setting("Min Disposable Items", 576, 0..1728, 1, "Minimum disposable items to keep in the inventory for highway building when farming Ender Chests") { farmEnderChests }
+
 	private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { pavement != Material.None }
 	private val replaceableSolids by setting("Replaceable Solids", setOf(Blocks.MAGMA_BLOCK, Blocks.SOUL_SAND))
-    private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)")
-    private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once")
+	private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)")
+	private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once")
 
-    private var octant = EightWayDirection.NORTH
-    private var distanceMoved = 0
-    private var startPos = BlockPos.ORIGIN
-    private var currentPos = BlockPos.ORIGIN
-    private var runningTask: Task<*>? = null
+	private var octant = EightWayDirection.NORTH
+	private var distanceMoved = 0
+	private var startPos = BlockPos.ORIGIN
+	private var currentPos = BlockPos.ORIGIN
+	private var runningTask: Task<*>? = null
 
-    enum class Material(
-        override val displayName: String,
-        override val description: String
-    ): NamedEnum, Describable {
-        None("None", "Wont change anything"),
-        Solid("Solid", "Places solid blocks. Will use any full block available. Useful if you only want to make sure that the highway is encased."),
-        Block("Block", "Places a specific block. Will use the block you specified in the settings"),
-    }
+	enum class Material(
+		override val displayName: String,
+		override val description: String
+	) : NamedEnum, Describable {
+		None("None", "Wont change anything"),
+		Solid("Solid", "Places solid blocks. Will use any full block available. Useful if you only want to make sure that the highway is encased."),
+		Block("Block", "Places a specific block. Will use the block you specified in the settings"),
+	}
 
 	@Suppress("unused")
-    enum class Corner(
-        override val displayName: String,
-        override val description: String
-    ): NamedEnum, Describable {
-        None("None", "Wont fill the corner block of the highway pavement below the rims."),
-        Solid("Solid", "Fills the corner block of the highway pavement below the rims with solid blocks."),
-    }
+	enum class Corner(
+		override val displayName: String,
+		override val description: String
+	) : NamedEnum, Describable {
+		None("None", "Wont fill the corner block of the highway pavement below the rims."),
+		Solid("Solid", "Fills the corner block of the highway pavement below the rims with solid blocks."),
+	}
 
-    init {
+	init {
 		setDefaultAutomationConfig()
 			.withEdits {
-				buildConfig.apply {
-					editTypedSettings(::pathing) { defaultValue(true) }
+				buildConfig::pathing.editSetting { defaultValue(true) }
+			}
+
+		onEnable {
+			octant = player.octant
+			startPos = player.blockPos
+			currentPos = startPos
+			buildHighway()
+		}
+
+		onDisable {
+			runningTask?.cancel()
+			runningTask = null
+			distanceMoved = 0
+			BaritoneHandler.cancel()
+		}
+	}
+
+	@Ta5kBuilder
+	private fun buildHighway() {
+		runningTask = highwayBlueprint()
+			.build()
+			.onTickPre {
+				checkEat()
+					?.softFail()
+					?.start()
+			}
+			.onTickPre {
+				checkFarmEnderChests(it)
+					?.softFail()
+					?.start()
+			}
+			.start()
+	}
+
+	private fun highwayBlueprint() =
+		propagatingBlueprint {
+			if (distance !in 0..distanceMoved) {
+				var structure = emptyStructure()
+				val slice = generateSlice()
+				repeat(sliceSize) {
+					structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
+					val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
+					currentPos = currentPos.add(vec)
 				}
-            }
+				distanceMoved += sliceSize
+				structure
+			} else {
+				this@HighwayTools.info("Highway built")
+				disable()
+				emptyStructure()
+			}
+		}
 
-        onEnable {
-            octant = player.octant
-            startPos = player.blockPos
-            currentPos = startPos
-            buildHighway()
-        }
-        onDisable {
-            runningTask?.cancel()
-            runningTask = null
-            distanceMoved = 0
-            BaritoneHandler.cancel()
-        }
-    }
+	@Ta5kBuilder
+	private fun AutomatedSafeContext.checkFarmEnderChests(buildStatus: BuildStatus): Task<*>? {
+		if (!farmEnderChests) return null
 
-    private fun buildHighway() {
-        runningTask =
-	        propagatingBlueprint {
-	            if (distance !in 0..distanceMoved) {
-			        var structure = emptyStructure()
-			        val slice = generateSlice()
-			        repeat(sliceSize) {
-				        structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
-				        val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
-				        currentPos = currentPos.add(vec)
-			        }
-			        distanceMoved += sliceSize
-			        structure
-	            } else {
-			        this@HighwayTools.info("Highway built")
-			        disable()
-			        emptyStructure()
-	            }
-            }.build(lifeMaintenance = true)
-				.onTickPre { buildStatus ->
-					val remainingObi = buildStatus.structure
-						.count {
-							it.value.getState(it.key).isOf(Blocks.OBSIDIAN) &&
-								!blockState(it.key).isOf(Blocks.OBSIDIAN)
-						}
-					val obiSelection = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
-		            val obiOnPlayer =
-						with(this@HighwayTools) {
-							findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
-								.sumOf { it.count(obiSelection) }
-						}
+		val remainingObi = buildStatus.structure
+			.count {
+				it.value.getState(it.key).isOf(Blocks.OBSIDIAN) &&
+						!blockState(it.key).isOf(Blocks.OBSIDIAN)
+			}
+		val obiSelection = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
+		val obiOnPlayer = count(obiSelection, ContainerSelection.HOTBAR_AND_INVENTORY)
 
-		            if (obiOnPlayer < remainingObi) {
-			            val obiSpace =
-							with(this@HighwayTools) {
-								findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
-									.sumOf { it.spaceLeft(obiSelection) }
-							}
+		return if (obiOnPlayer < remainingObi) {
+			val obiSpace = spaceLeft(obiSelection, ContainerSelection.HOTBAR_AND_INVENTORY)
 
-			            if (obiSpace < 8) null
-			            else {
-				            with(this@HighwayTools) {
-					            farmEnderChests(obiSpace / 8)
-						            .softFail()
-						            .start()
-				            }
-			            }
-		            } else null
-	            }
-                .start()
-    }
+			if (obiSpace < 8) null
+			else {
+				with(this@HighwayTools) {
+					farmEnderChests(obiSpace / 8)
+				}
+			}
+		} else null
+	}
 
-    private fun generateSlice(): Structure {
-        val structure = mutableMapOf<BlockPos, TargetState>()
-        val orthogonal = octant.rotateClockwise(2)
-        val center = (width / 2.0).floorToInt()
+	private fun generateSlice(): Structure {
+		val structure = mutableMapOf<BlockPos, TargetState>()
+		val orthogonal = octant.rotateClockwise(2)
+		val center = (width / 2.0).floorToInt()
 
-        // Hole
-        structure += generateDirectionalTube(
-	        orthogonal,
-	        width,
-	        height,
-	        -center,
-	        0,
-        ).associateWith { TargetState.Air }
+		// Hole
+		structure += generateDirectionalTube(
+			orthogonal,
+			width,
+			height,
+			-center,
+			0,
+		).associateWith { TargetState.Air }
 
-        if (pavement != Material.None) {
-            structure += generateDirectionalTube(
-	            orthogonal,
-	            width,
-	            1,
-	            -center,
-	            0,
-            ).associateWith { target(pavement, pavementMaterial) }
+		if (pavement != Material.None) {
+			structure += generateDirectionalTube(
+				orthogonal,
+				width,
+				1,
+				-center,
+				0,
+			).associateWith { target(pavement, pavementMaterial) }
 
-            // Left rim
-            structure += generateDirectionalTube(
-	            orthogonal,
-	            1,
-	            rimHeight,
-	            -center + width - 1,
-	            1,
-            ).associateWith { target(pavement, pavementMaterial) }
+			// Left rim
+			structure += generateDirectionalTube(
+				orthogonal,
+				1,
+				rimHeight,
+				-center + width - 1,
+				1,
+			).associateWith { target(pavement, pavementMaterial) }
 
-            // Right rim
-            structure += generateDirectionalTube(
-	            orthogonal,
-	            1,
-	            rimHeight,
-	            -center,
-	            1,
-            ).associateWith { target(pavement, pavementMaterial) }
+			// Right rim
+			structure += generateDirectionalTube(
+				orthogonal,
+				1,
+				rimHeight,
+				-center,
+				1,
+			).associateWith { target(pavement, pavementMaterial) }
 
-            if (cornerBlock == Corner.None && rimHeight > 0) {
-                // Support for the left rim
-                structure += generateDirectionalTube(
-	                orthogonal,
-	                1,
-	                1,
-	                -center + width - 1,
-	                0,
-                ).associateWith { TargetState.Support(Direction.UP) }
+			if (cornerBlock == Corner.None && rimHeight > 0) {
+				// Support for the left rim
+				structure += generateDirectionalTube(
+					orthogonal,
+					1,
+					1,
+					-center + width - 1,
+					0,
+				).associateWith { TargetState.Support(Direction.UP) }
 
-                // Support for the right rim
-                structure += generateDirectionalTube(
-	                orthogonal,
-	                1,
-	                1,
-	                -center,
-	                0,
-                ).associateWith { TargetState.Support(Direction.UP) }
-            }
-        }
+				// Support for the right rim
+				structure += generateDirectionalTube(
+					orthogonal,
+					1,
+					1,
+					-center,
+					0,
+				).associateWith { TargetState.Support(Direction.UP) }
+			}
+		}
 
-        if (ceiling != Material.None) {
-            structure += generateDirectionalTube(
-	            orthogonal,
-	            width,
-	            1,
-	            -center,
-	            height,
-            ).associateWith { target(ceiling, ceilingMaterial) }
-        }
+		if (ceiling != Material.None) {
+			structure += generateDirectionalTube(
+				orthogonal,
+				width,
+				1,
+				-center,
+				height,
+			).associateWith { target(ceiling, ceilingMaterial) }
+		}
 
-        val wallElevation = if (pavement != Material.None) rimHeight else 0 + if (pavement != Material.None) 1 else 0
-        if (rightWall != Material.None) {
-            structure += generateDirectionalTube(
-	            orthogonal,
-	            1,
-	            height - wallElevation,
-	            -center + width,
-	            wallElevation,
-            ).associateWith { target(rightWall, wallMaterial) }
-        }
+		val wallElevation =
+			if (pavement != Material.None) rimHeight
+			else 0 + if (pavement != Material.None) 1 else 0
 
-        if (leftWall != Material.None) {
-            structure += generateDirectionalTube(
-	            orthogonal,
-	            1,
-	            height - wallElevation,
-	            -center - 1,
-	            wallElevation,
-            ).associateWith { target(leftWall, wallMaterial) }
-        }
+		if (rightWall != Material.None) {
+			structure += generateDirectionalTube(
+				orthogonal,
+				1,
+				height - wallElevation,
+				-center + width,
+				wallElevation,
+			).associateWith { target(rightWall, wallMaterial) }
+		}
 
-        if (floor != Material.None) {
-            structure += generateDirectionalTube(
-	            orthogonal,
-	            width,
-	            1,
-	            -center,
-	            -1,
-            ).associateWith { target(floor, floorMaterial) }
-        }
+		if (leftWall != Material.None) {
+			structure += generateDirectionalTube(
+				orthogonal,
+				1,
+				height - wallElevation,
+				-center - 1,
+				wallElevation,
+			).associateWith { target(leftWall, wallMaterial) }
+		}
 
-        val transformed = when {
-            pavement != Material.None -> structure.moveY(-1)
-            else -> structure
-        }
+		if (floor != Material.None) {
+			structure += generateDirectionalTube(
+				orthogonal,
+				width,
+				1,
+				-center,
+				-1,
+			).associateWith { target(floor, floorMaterial) }
+		}
 
-        return transformed
-    }
+		val transformed =
+			when {
+				pavement != Material.None -> structure.moveY(-1)
+				else -> structure
+			}
 
-    private fun target(target: Material, material: Block) =
-        when (target) {
-            Material.Solid -> TargetState.Solid(replaceableSolids)
-            Material.Block -> TargetState.Block(material)
-            else -> throw IllegalStateException("Invalid material")
-        }
+		return transformed
+	}
+
+	private fun target(target: Material, material: Block) =
+		when (target) {
+			Material.Solid -> TargetState.Solid(replaceableSolids)
+			Material.Block -> TargetState.Block(material)
+			else -> throw IllegalStateException("Invalid material")
+		}
 }

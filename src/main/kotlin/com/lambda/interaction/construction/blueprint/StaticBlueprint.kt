@@ -19,10 +19,8 @@ package com.lambda.interaction.construction.blueprint
 
 import com.lambda.util.extension.Structure
 
-data class StaticBlueprint(
-    override val structure: Structure,
-) : Blueprint() {
+fun Structure.toBlueprint() = StaticBlueprint(this)
+
+data class StaticBlueprint(override val structure: Structure) : Blueprint() {
     override fun toString() = "Static Blueprint at ${center?.toShortString()}"
 }
-
-fun Structure.toBlueprint() = StaticBlueprint(this)

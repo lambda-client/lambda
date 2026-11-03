@@ -21,6 +21,7 @@ import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import net.minecraft.entity.Entity
+import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.data.TrackedData
 
@@ -63,6 +64,20 @@ sealed class EntityEvent {
     data class Removal(
         val entity: Entity,
         val removalReason: Entity.RemovalReason,
+    ) : Event
+
+    /**
+     * Represents an entity collecting an item drop, posted on the main thread before the client
+     * applies it.
+     *
+     * @property item The collected drop, still holding its stack.
+     * @property collector The entity that collected it, or null when the client does not know it.
+     * @property amount The amount the server reports as collected.
+     */
+    data class ItemPickupAnimation(
+        val item: ItemEntity,
+        val collector: Entity?,
+        val amount: Int,
     ) : Event
 
     /**

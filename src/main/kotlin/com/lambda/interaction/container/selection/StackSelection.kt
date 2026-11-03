@@ -267,6 +267,26 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		blacklistedSlots.addAll(stackSelection.whitelistedSlots)
 	}
 
+	fun isSlot(slot: SlotIdentity) {
+		whitelistedSlots.add(slot)
+		appendSelector { _, s -> s?.identity() == slot }
+	}
+
+	fun notSlot(slot: SlotIdentity) {
+		blacklistedSlots.add(slot)
+		appendSelector { _, s -> s?.identity() != slot }
+	}
+
+	fun ofAnySlots(vararg slots: SlotIdentity) {
+		whitelistedSlots.addAll(slots)
+		appendSelector { _, slot -> slot?.identity() in slots }
+	}
+
+	fun noneOfSlots(vararg slots: SlotIdentity) {
+		blacklistedSlots.addAll(slots)
+		appendSelector { _, slot -> slot?.identity() !in slots }
+	}
+
 	fun isItem(item: Item) {
 		this.item = item
 		appendSelector { stack, _ -> stack.item == item }
@@ -346,15 +366,13 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 
 	fun isEfficientForBreaking(blockState: BlockState) {
 		appendSelector { itemStack, _ ->
-			if (hasEfficientTool(blockState)) itemStack.item.getMiningSpeed(itemStack, blockState) > 1f
-			else true
+			!hasEfficientTool(blockState) || itemStack.item.getMiningSpeed(itemStack, blockState) > 1f
 		}
 	}
 
 	fun notEfficientForBreaking(blockState: BlockState) {
 		appendSelector { itemStack, _ ->
-			if (hasEfficientTool(blockState)) itemStack.item.getMiningSpeed(itemStack, blockState) <= 1f
-			else true
+			!hasEfficientTool(blockState) || itemStack.item.getMiningSpeed(itemStack, blockState) <= 1f
 		}
 	}
 

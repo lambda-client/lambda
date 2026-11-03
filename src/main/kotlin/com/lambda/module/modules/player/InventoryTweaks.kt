@@ -63,7 +63,7 @@ object InventoryTweaks : Module(
 
         listen<PlayerEvent.SlotClick> { event ->
             if (event.action != SlotActionType.PICKUP || event.button != 1) return@listen
-            val slot = event.screenHandler.getSlot(event.slot) ?: return@listen
+            val slot = event.screenHandler.slots.getOrNull(event.slot) ?: return@listen
             val stack = slot.stack
 
             when (stack.item) {

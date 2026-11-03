@@ -19,10 +19,7 @@ package com.lambda.mixin.network;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.ChatEvent;
-import com.lambda.event.events.InventoryEvent;
-import com.lambda.event.events.PlayerEvent;
-import com.lambda.event.events.WorldEvent;
+import com.lambda.event.events.*;
 import com.lambda.interaction.manager.managers.inventory.InventoryManager;
 import com.lambda.interaction.manager.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.Velocity;
@@ -33,12 +30,15 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPosition;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.network.packet.s2c.play.*;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -49,6 +49,9 @@ import java.util.Set;
 
 @Mixin(ClientPlayNetworkHandler.class)
 public class ClientPlayNetworkHandlerMixin {
+    @Shadow
+    private ClientWorld world;
+
     @Unique
     @Nullable
     private static PlayerEvent.ServerForceRotate forceRotateEvent = null;
@@ -73,6 +76,12 @@ public class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onUpdateSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V", shift = At.Shift.AFTER), cancellable = true)
     private void onUpdateSelectedSlot(UpdateSelectedSlotS2CPacket packet, CallbackInfo ci) {
         if (EventFlow.post(new InventoryEvent.HotbarSlot.Sync(packet.slot())).isCanceled()) ci.cancel();
+    }
+
+    @Inject(method = "onItemPickupAnimation", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V", shift = At.Shift.AFTER))
+    private void onItemPickupAnimation(ItemPickupAnimationS2CPacket packet, CallbackInfo ci) {
+        if (!(world.getEntityById(packet.getEntityId()) instanceof ItemEntity item)) return;
+        EventFlow.post(new EntityEvent.ItemPickupAnimation(item, world.getEntityById(packet.getCollectorEntityId()), packet.getStackAmount()));
     }
 
     @Inject(method = "onScreenHandlerSlotUpdate", at = @At("TAIL"))

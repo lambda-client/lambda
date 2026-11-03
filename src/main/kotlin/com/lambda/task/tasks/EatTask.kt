@@ -18,7 +18,7 @@
 package com.lambda.task.tasks
 
 import com.lambda.config.blocks.EatConfig
-import com.lambda.config.blocks.EatConfig.Companion.reasonEating
+import com.lambda.config.blocks.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -41,71 +41,71 @@ context(automated: Automated)
 fun eat() = EatTask(automated)
 
 class EatTask @Ta5kBuilder internal constructor(
-    automated: Automated
+	automated: Automated
 ) : Task<Unit>(), Automated by automated {
-    override val name: String
-        get() = reason.message(eatStack ?: ItemStack.EMPTY)
+	override val name: String
+		get() = reason.message(eatStack ?: ItemStack.EMPTY)
 
-    private var eatStack: ItemStack? = null
-    private var reason = EatConfig.Reason.None
-    private var holdingUse = false
+	private var eatStack: ItemStack? = null
+	private var reason = EatConfig.Reason.None
+	private var holdingUse = false
 
-    override fun SafeContext.onStart() {
-        reason = withSafeAutomated { reasonEating() }
-    }
+	override fun SafeContext.onStart() {
+		reason = withSafeAutomated { reasonEating() }
+	}
 
-    init {
-        listen<TickEvent.Input.Post> {
-            if (holdingUse && !reason.shouldKeepEating(eatStack)) {
-                mc.options.useKey.isPressed = false
-                holdingUse = false
-                interaction.stopUsingItem(player)
-                success()
-                return@listen
-            }
+	init {
+		listen<TickEvent.Input.Post> {
+			if (holdingUse && !reason.shouldKeepEating(eatStack)) {
+				mc.options.useKey.isPressed = false
+				holdingUse = false
+				interaction.stopUsingItem(player)
+				success()
+				return@listen
+			}
 
-            val selection = reason.selector()
-            val hotbarSlot = findSlot(selection, HotbarContainer.select())
-            if (hotbarSlot != null) {
-                val request =
-                    hotbarRequest(hotbarSlot.index) {
-                        keepTicks(hotbarConfig.keepTicks.coerceAtLeast(1))
-                    }.submit()
-                if (!request.done) return@listen
-            } else {
-                if (selection isIn InventoryContainer) {
-                    runSafeAutomated {
-                        transfer(
-                            selection,
-                            InventoryContainer.select(),
-                            HotbarContainer.select()
-                        ).start()
-                        return@listen
-                    }
-                }
-                if (holdingUse) {
-                    mc.options.useKey.isPressed = false
-                    holdingUse = false
-                }
-                return@listen
-            }
+			val selection = reason.selector()
+			val hotbarSlot = findSlot(selection, HotbarContainer.select())
+			if (hotbarSlot != null) {
+				val request =
+					hotbarRequest(hotbarSlot.index) {
+						keepTicks(hotbarConfig.keepTicks.coerceAtLeast(1))
+					}.submit()
+				if (!request.done) return@listen
+			} else {
+				if (selection isIn InventoryContainer) {
+					runSafeAutomated {
+						transfer(
+							selection,
+							InventoryContainer.select(),
+							HotbarContainer.select()
+						).start()
+						return@listen
+					}
+				}
+				if (holdingUse) {
+					mc.options.useKey.isPressed = false
+					holdingUse = false
+				}
+				return@listen
+			}
 
-            if (player.isUsingItem) {
-                if (!holdingUse) {
-                    mc.options.useKey.isPressed = true
-                    holdingUse = true
-                }
-                return@listen
-            }
+			if (player.isUsingItem) {
+				if (!holdingUse) {
+					mc.options.useKey.isPressed = true
+					holdingUse = true
+				}
+				return@listen
+			}
 
-            eatStack = player.mainHandStack
+			eatStack = player.mainHandStack
 
-            (interaction.interactItem(player, Hand.MAIN_HAND) as? ActionResult.Success)?.let {
-                if (it.swingSource == ActionResult.SwingSource.CLIENT) player.swingHand(Hand.MAIN_HAND)
-                mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
-                mc.options.useKey.isPressed = true
-                holdingUse = true
-            }
-        }
-    }
+			(interaction.interactItem(player, Hand.MAIN_HAND) as? ActionResult.Success)?.let {
+				if (it.swingSource == ActionResult.SwingSource.CLIENT) player.swingHand(Hand.MAIN_HAND)
+				mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
+				mc.options.useKey.isPressed = true
+				holdingUse = true
+			}
+		}
+	}
 }

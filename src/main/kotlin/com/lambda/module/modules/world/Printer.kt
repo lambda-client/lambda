@@ -158,12 +158,17 @@ object Printer : Module(
 	 *
 	 * @return true if the build result should be built, false if it should be ignored
 	 */
-	private fun SafeContext.filterBuildResults(buildResult: BuildResult): Boolean {
-		if (buildResult !is InteractResult && buildResult !is BreakResult) return true
-		return if (buildResult is InteractResult && !flattenModeApply.placing ||
-			buildResult is BreakResult && !flattenModeApply.breaking) true
-		else isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
-	}
+	private fun SafeContext.filterBuildResults(buildResult: BuildResult) =
+		(buildResult !is InteractResult && buildResult !is BreakResult) ||
+				(buildResult is InteractResult && !flattenModeApply.placing) ||
+				(buildResult is BreakResult && !flattenModeApply.breaking) ||
+				isInFlatten(
+					buildResult.pos,
+					flattenMode,
+					sneakLowersFlatten,
+					baritoneSelection,
+					inverseSelection
+				)
 
 	private enum class FlattenModeApply(
 		override val displayName: String,

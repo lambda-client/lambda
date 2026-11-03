@@ -219,6 +219,22 @@ object ContainerHandler : Loadable {
 
 	@ContainerDslMarker
 	context(_: Automated)
+	fun count(
+		stackSelection: StackSelection = StackSelection.EVERYTHING,
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED
+	) = findContainers(containerSelection, false)
+		.sumOf { it.count(stackSelection) }
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun spaceLeft(
+		stackSelection: StackSelection = StackSelection.EVERYTHING,
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED
+	) = findContainers(containerSelection, false)
+		.sumOf { it.spaceLeft(stackSelection) }
+
+	@ContainerDslMarker
+	context(_: Automated)
 	fun findContainer(
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true

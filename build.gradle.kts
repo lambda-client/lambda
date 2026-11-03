@@ -124,6 +124,11 @@ loom {
             programArguments.addAll("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")
             jvmArguments.addAll("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash")
         }
+
+        // Lambda cancels packets on the netty thread, which the game test packet counter cannot follow
+        matching { it.name == "clientGameTest" }.configureEach {
+            property("fabric.client.gametest.disableNetworkSynchronizer", "true")
+        }
     }
 }
 

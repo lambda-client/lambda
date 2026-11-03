@@ -20,6 +20,9 @@ package com.lambda.event.events
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
+import com.lambda.interaction.container.SlotIdentity
+import net.minecraft.entity.Entity
+import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandler
 
@@ -101,4 +104,36 @@ sealed class InventoryEvent {
          */
         data class Sync(val slot: Int) : HotbarSlot(), ICancellable by Cancellable()
     }
+
+    data class Pickup(
+        val source: ItemEntity,
+        val stack: ItemStack,
+        val slots: Map<SlotIdentity, PickupSlot>,
+        val remaining: Int,
+    ) : Event {
+        val amount: Int get() = slots.values.sumOf { it.amount }
+    }
+
+    data class PickupMerged(
+        val source: ItemEntity,
+        val target: ItemEntity,
+    ) : Event
+
+    data class PickupLost(
+        val source: ItemEntity,
+        val stack: ItemStack,
+        val remaining: Int,
+        val collector: Entity?,
+    ) : Event
 }
+
+enum class PickupSlotKind {
+    Merged,
+    Empty,
+}
+
+data class PickupSlot(
+    val stack: ItemStack,
+    val amount: Int,
+    val kind: PickupSlotKind,
+)

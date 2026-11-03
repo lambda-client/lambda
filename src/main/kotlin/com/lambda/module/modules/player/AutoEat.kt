@@ -18,7 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.automation.setDefaultAutomationConfig
-import com.lambda.config.blocks.EatConfig.Companion.reasonEating
+import com.lambda.config.blocks.reasonEating
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
@@ -47,7 +47,7 @@ object AutoEat : Module(
 
         listen<TickEvent.Pre> {
             val reason = withSafeAutomated { reasonEating() }
-            if (eatTask != null || !reason.shouldEat()) return@listen
+            if (eatTask != null || !reason.shouldEat) return@listen
 
             eatTask = eat()
                 .thenAction { eatTask = null }

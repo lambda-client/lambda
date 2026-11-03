@@ -312,6 +312,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			when (target) {
 				StackMovePlanner.Target.Source -> fromSlot
 				StackMovePlanner.Target.Destination -> toSlot
+				StackMovePlanner.Target.Drop -> error("Drop clicks have no container slot")
 			}
 	}
 

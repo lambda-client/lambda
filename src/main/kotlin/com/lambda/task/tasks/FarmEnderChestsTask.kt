@@ -19,9 +19,9 @@ package com.lambda.task.tasks
 
 import com.lambda.config.blocks.BreakConfig
 import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
-import com.lambda.config.blocks.ItemPickupConfig
 import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.blocks.InteractConfig.InteractConfirmationMode
+import com.lambda.config.blocks.ItemPickupConfig
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -117,7 +117,7 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 
 	init {
 		listen<TickEvent.Input.Post> {
-			drops.removeIf { it !in world.entities }
+			drops.removeIf { it.isRemoved }
 
 			val pos = pos
 				?: run {
@@ -173,7 +173,11 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 						.breakRequest(pendingInteractions) {
 							onStop { broken++ }
 							onReBreak { broken++ }
-							onItemDrop { drops.add(it) }
+							onItemDrop {
+								if (dropPickupConfig.pickupDrops) {
+									drops.add(it)
+								}
+							}
 						}
 						?.submit(true)
 				}
@@ -188,7 +192,7 @@ class FarmEnderChestsTask @Ta5kBuilder internal constructor(
 			?.submit(true)
 
 	private fun pickup() {
-		collectDrops(drops)
+		pickupItems(drops)
 			.softFail()
 			.start()
 	}

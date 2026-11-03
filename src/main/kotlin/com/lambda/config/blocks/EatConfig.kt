@@ -17,10 +17,13 @@
 
 package com.lambda.config.blocks
 
+import com.lambda.config.blocks.EatConfig.Reason
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.eat
 import com.lambda.threading.runSafe
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -73,26 +76,28 @@ interface EatConfig {
     }
 
     enum class Reason(val message: (ItemStack) -> String) {
-        None({ "Waiting for reason to eat..." }),
+        None({ "No reason to eat" }),
         Hunger({ "Eating ${it.item.name.string} due to Hunger" }),
         Damage({ "Eating ${it.item.name.string} due to Damage" }),
         Fire({ "Eating ${it.item.name.string} due to Fire" });
 
-        fun shouldEat() = this != None
+        val shouldEat get() = this != None
 
         context(c: Automated)
-        fun shouldKeepEating(stack: ItemStack?) = runSafe {
-            if (stack == null || stack.isEmpty) return@runSafe false
-            when(this@Reason) {
-                Hunger -> when(c.eatConfig.saturated) {
-                    Saturation.EatSmart -> stack.item.nutrition + player.hungerManager.foodLevel <= 20
-                    Saturation.EatUntilFull -> player.hungerManager.isNotFull
+        fun shouldKeepEating(stack: ItemStack?) =
+            runSafe {
+                if (stack == null || stack.isEmpty) return@runSafe false
+                when(this@Reason) {
+                    Hunger ->
+                        when(c.eatConfig.saturated) {
+                            Saturation.EatSmart -> stack.item.nutrition + player.hungerManager.foodLevel <= 20
+                            Saturation.EatUntilFull -> player.hungerManager.isNotFull
+                        }
+                    Damage -> !player.hasStatusEffect(StatusEffects.REGENERATION)
+                    Fire -> !player.hasStatusEffect(StatusEffects.FIRE_RESISTANCE)
+                    None -> false
                 }
-                Damage -> !player.hasStatusEffect(StatusEffects.REGENERATION)
-                Fire -> !player.hasStatusEffect(StatusEffects.FIRE_RESISTANCE)
-                None -> false
-            }
-        } ?: false
+            } ?: false
 
         context(c: Automated)
         fun selector() =
@@ -107,13 +112,17 @@ interface EatConfig {
                 sortedWith(c.eatConfig.selectionPriority.comparator)
             }
     }
-
-    companion object {
-        fun AutomatedSafeContext.reasonEating() = when {
-            eatConfig.eatOnHunger && player.hungerManager.foodLevel <= eatConfig.minFoodLevel -> Reason.Hunger
-            eatConfig.eatOnDamage && player.health <= eatConfig.minDamage && !player.hasStatusEffect(StatusEffects.REGENERATION) -> Reason.Damage
-            eatConfig.eatOnFire && player.isOnFire && !player.hasStatusEffect(StatusEffects.FIRE_RESISTANCE) -> Reason.Fire
-            else -> Reason.None
-        }
-    }
 }
+
+@Ta5kBuilder
+fun AutomatedSafeContext.checkEat() =
+    if (reasonEating().shouldEat) eat()
+    else null
+
+fun AutomatedSafeContext.reasonEating() =
+    when {
+        eatConfig.eatOnHunger && player.hungerManager.foodLevel <= eatConfig.minFoodLevel -> Reason.Hunger
+        eatConfig.eatOnDamage && player.health <= eatConfig.minDamage && !player.hasStatusEffect(StatusEffects.REGENERATION) -> Reason.Damage
+        eatConfig.eatOnFire && player.isOnFire && !player.hasStatusEffect(StatusEffects.FIRE_RESISTANCE) -> Reason.Fire
+        else -> Reason.None
+    }

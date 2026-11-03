@@ -27,7 +27,13 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 object PlayerBuildLayerUtils {
-	fun SafeContext.isInFlatten(pos: BlockPos, flattenMode: FlattenMode, sneakLowersFlatten: Boolean, baritoneSelection: Boolean, baritoneSelectionInverted: Boolean): Boolean {
+	fun SafeContext.isInFlatten(
+		pos: BlockPos,
+		flattenMode: FlattenMode,
+		sneakLowersFlatten: Boolean,
+		baritoneSelection: Boolean,
+		baritoneSelectionInverted: Boolean
+	): Boolean {
 		if (flattenMode == FlattenMode.None) return true
 
 		if (flattenMode == FlattenMode.Staircase) {

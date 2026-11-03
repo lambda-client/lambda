@@ -20,7 +20,8 @@ package com.lambda.util.item
 object StackMovePlanner {
 	enum class Target {
 		Source,
-		Destination
+		Destination,
+		Drop
 	}
 
 	enum class Button(val id: Int) {
@@ -37,12 +38,14 @@ object StackMovePlanner {
 			when (target) {
 				Target.Source -> source
 				Target.Destination -> destination
+				Target.Drop -> cursor
 			}
 
 		fun withSlot(target: Target, count: Int) =
 			when (target) {
 				Target.Source -> copy(source = count)
 				Target.Destination -> copy(destination = count)
+				Target.Drop -> copy(cursor = count)
 			}
 
 		fun fits(maxCount: Int) =
@@ -53,13 +56,21 @@ object StackMovePlanner {
 
 	data class Plan(val clicks: List<Click>, val destination: Int)
 
+	data class DropPlan(val clicks: List<Click>, val dropped: Int)
+
 	private data class Step(val previous: State, val click: Click)
 
-	private val CLICKS = Target.entries.flatMap { target -> Button.entries.map { Click(target, it) } }
+	private val MOVE_CLICKS =
+		listOf(Target.Source, Target.Destination)
+			.flatMap { target -> Button.entries.map { Click(target, it) } }
+
+	private val DROP_CLICKS =
+		listOf(Target.Source, Target.Drop)
+			.flatMap { target -> Button.entries.map { Click(target, it) } }
 
 	fun planWithin(state: State, maxCount: Int, goal: Int, clickBudget: Int): Plan? {
 		if (!state.fits(maxCount)) return null
-		val steps = explore(state, maxCount, maxClicks = clickBudget)
+		val steps = explore(state, maxCount, maxClicks = clickBudget, clicks = MOVE_CLICKS)
 		val highest = minOf(goal, maxCount, state.total)
 		return (highest downTo state.destination + 1).firstNotNullOfOrNull { count ->
 			steps.pathTo(state.settled(count))?.let { Plan(it, count) }
@@ -69,17 +80,45 @@ object StackMovePlanner {
 	fun plan(state: State, maxCount: Int, goal: Int): List<Click>? {
 		val end = state.settled(goal)
 		if (!state.fits(maxCount) || !end.fits(maxCount)) return null
-		return explore(state, maxCount, maxClicks = Int.MAX_VALUE).pathTo(end)
+		return explore(state, maxCount, maxClicks = Int.MAX_VALUE, clicks = MOVE_CLICKS).pathTo(end)
 	}
 
-	private fun explore(start: State, maxCount: Int, maxClicks: Int): Map<State, Step?> {
+	fun planDrop(state: State, maxCount: Int, amount: Int): DropPlan? {
+		if (!state.canDrop(maxCount) || amount !in 0..state.source) return null
+		if (amount == 0) return DropPlan(emptyList(), 0)
+		val end = state.afterDrop(amount)
+		val path = explore(state, maxCount, maxClicks = Int.MAX_VALUE, clicks = DROP_CLICKS)
+			.pathTo(end) ?: return null
+		return DropPlan(path, amount)
+	}
+
+	fun planDropWithin(state: State, maxCount: Int, amount: Int, clickBudget: Int): DropPlan? {
+		if (!state.canDrop(maxCount) || clickBudget <= 0) return null
+		val highest = minOf(amount, state.source)
+		if (highest <= 0) return null
+		val steps = explore(state, maxCount, maxClicks = clickBudget, clicks = DROP_CLICKS)
+		return (highest downTo 1).firstNotNullOfOrNull { dropped ->
+			steps.pathTo(state.afterDrop(dropped))?.let { DropPlan(it, dropped) }
+		}
+	}
+
+	private fun State.canDrop(maxCount: Int) = fits(maxCount) && cursor == 0
+
+	private fun State.afterDrop(amount: Int) = copy(cursor = 0, source = source - amount)
+
+	private fun explore(
+		start: State,
+		maxCount: Int,
+		maxClicks: Int,
+		clicks: List<Click>,
+	): Map<State, Step?> {
 		val steps = hashMapOf<State, Step?>(start to null)
 		var frontier = listOf(start)
 		var depth = 0
 		while (frontier.isNotEmpty() && depth < maxClicks) {
 			frontier =
 				frontier.flatMap { state ->
-					CLICKS.mapNotNull { click ->
+					clicks.mapNotNull { click ->
 						apply(state, click, maxCount)
 							.takeUnless { it in steps }
 							?.also { steps[it] = Step(state, click) }
@@ -99,7 +138,17 @@ object StackMovePlanner {
 	}
 
 	fun apply(state: State, click: Click, maxCount: Int): State =
-		if (state.cursor == 0) state.pickUp(click) else state.place(click, maxCount)
+		when {
+			click.target == Target.Drop -> state.drop(click.button)
+			state.cursor == 0 -> state.pickUp(click)
+			else -> state.place(click, maxCount)
+		}
+
+	private fun State.drop(button: Button): State =
+		when (button) {
+			Button.Left -> copy(cursor = 0)
+			Button.Right -> copy(cursor = (cursor - 1).coerceAtLeast(0))
+		}
 
 	private fun State.pickUp(click: Click): State {
 		val slot = this[click.target]
