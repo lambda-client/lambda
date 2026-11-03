@@ -44,6 +44,14 @@ class StackMovePlannerTest {
 		return plan
 	}
 
+	private fun assertDrops(start: State, clicks: List<Click>, maxCount: Int, amount: Int) {
+		val end = simulate(start, clicks, maxCount)
+		assertEquals(0, end.cursor, "cursor after $clicks from $start")
+		assertEquals(start.source - amount, end.source, "source after $clicks from $start")
+		assertEquals(start.destination, end.destination, "destination after $clicks from $start")
+		assertEquals(start.total - amount, end.total, "items must only leave the source")
+	}
+
 	/** A random state within the model and a goal that is reachable from it. */
 	private fun Random.reachableCase(maxCount: Int): Pair<State, Int>? {
 		val source = nextInt(0, maxCount + 1)
@@ -159,6 +167,103 @@ class StackMovePlannerTest {
 		val plan = assertNotNull(StackMovePlanner.planWithin(State(0, 14, 50), 64, goal = 70, clickBudget = 10))
 		assertEquals(64, plan.destination)
 		assertNull(StackMovePlanner.planWithin(State(0, 10, 10), 64, goal = 10, clickBudget = 10), "nothing to add")
+	}
+
+	@Test
+	fun dropWholeStackIsTwoClicks() {
+		val start = State(0, 64, 0)
+		val plan = assertNotNull(StackMovePlanner.planDrop(start, 64, 64))
+		assertEquals(64, plan.dropped)
+		assertEquals(listOf(Click(Target.Source, Button.Left), Click(Target.Drop, Button.Left)), plan.clicks)
+		assertDrops(start, plan.clicks, 64, 64)
+	}
+
+	@Test
+	fun dropHalfStackIsTwoClicks() {
+		val start = State(0, 64, 0)
+		val plan = assertNotNull(StackMovePlanner.planDrop(start, 64, 32))
+		assertEquals(32, plan.dropped)
+		assertEquals(listOf(Click(Target.Source, Button.Right), Click(Target.Drop, Button.Left)), plan.clicks)
+		assertDrops(start, plan.clicks, 64, 32)
+	}
+
+	@Test
+	fun dropSingleUsesTheCursorAndReturnsTheSurplus() {
+		val start = State(0, 64, 0)
+		val plan = assertNotNull(StackMovePlanner.planDrop(start, 64, 1))
+		assertEquals(1, plan.dropped)
+		assertEquals(3, plan.clicks.size)
+		assertDrops(start, plan.clicks, 64, 1)
+	}
+
+	@Test
+	fun dropNeverTouchesTheDestination() {
+		val start = State(0, 10, 7)
+		val plan = assertNotNull(StackMovePlanner.planDrop(start, 64, 3))
+		assertDrops(start, plan.clicks, 64, 3)
+	}
+
+	@Test
+	fun droppingNothingNeedsNoClicks() {
+		val plan = assertNotNull(StackMovePlanner.planDrop(State(0, 5, 3), 64, 0))
+		assertEquals(0, plan.dropped)
+		assertEquals(emptyList(), plan.clicks)
+	}
+
+	@Test
+	fun rejectsImpossibleDrops() {
+		assertNull(StackMovePlanner.planDrop(State(0, 5, 0), 64, 6))
+		assertNull(StackMovePlanner.planDrop(State(0, 5, 0), 64, -1))
+		assertNull(StackMovePlanner.planDrop(State(1, 5, 0), 64, 1), "the cursor must be empty")
+		assertNull(StackMovePlanner.planDrop(State(0, 70, 0), 64, 10))
+	}
+
+	@Test
+	fun planDropWithinTakesEverythingWhenTheBudgetAllowsIt() {
+		val plan = assertNotNull(StackMovePlanner.planDropWithin(State(0, 64, 0), 64, amount = 32, clickBudget = 2))
+		assertEquals(32, plan.dropped)
+		assertEquals(2, plan.clicks.size)
+		assertDrops(State(0, 64, 0), plan.clicks, 64, 32)
+	}
+
+	@Test
+	fun planDropWithinSettlesForFewerItemsWhenTheBudgetIsTight() {
+		val start = State(0, 64, 0)
+		val plan = assertNotNull(StackMovePlanner.planDropWithin(start, 64, amount = 20, clickBudget = 3))
+		assertEquals(1, plan.dropped)
+		assertEquals(3, plan.clicks.size)
+		assertDrops(start, plan.clicks, 64, 1)
+	}
+
+	@Test
+	fun planDropWithinNeverOvershootsOrStrandsTheCursor() {
+		// Thirty-two items are reachable in two clicks, but the request only asked for twenty.
+		assertNull(StackMovePlanner.planDropWithin(State(0, 64, 0), 64, amount = 20, clickBudget = 2))
+		assertNull(StackMovePlanner.planDropWithin(State(0, 64, 0), 64, amount = 20, clickBudget = 0))
+
+		val plan = assertNotNull(StackMovePlanner.planDropWithin(State(0, 64, 0), 64, amount = 40, clickBudget = 2))
+		assertEquals(32, plan.dropped)
+		assertDrops(State(0, 64, 0), plan.clicks, 64, 32)
+	}
+
+	@Test
+	fun everyDropAmountHasAValidPlan() {
+		val random = Random(2026)
+		for (maxCount in listOf(1, 16, 64)) {
+			repeat(300) {
+				val source = random.nextInt(0, maxCount + 1)
+				val destination = random.nextInt(0, maxCount + 1)
+				val amount = random.nextInt(0, source + 1)
+				val start = State(0, source, destination)
+				val plan =
+					assertNotNull(
+						StackMovePlanner.planDrop(start, maxCount, amount),
+						"no drop plan for $start -> $amount (max $maxCount)",
+					)
+				assertEquals(amount, plan.dropped)
+				assertDrops(start, plan.clicks, maxCount, amount)
+			}
+		}
 	}
 
 	@Test
