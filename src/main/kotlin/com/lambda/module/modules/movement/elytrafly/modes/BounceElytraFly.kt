@@ -78,6 +78,7 @@ class BounceElytraFly(
 	private val minimizePackets by c.setting("Minimize Packets", true, "Shrinks the amount of start fly packets sent to the server as much as possible")
 	private val fakeLag by c.setting("Fake Lag", true, "Emulates the player lagging to allow flying in 1x2 tunnels")
 		.onValueChange { _, to -> if (!to) flushPackets() }
+	private val maxHold by c.setting("Max Hold", 10, 1..100, 1, "How long Fake Lag can hold packets", "ticks") { fakeLag }
 
 	@Group(Y_MOTION_GROUP) val yMotionSetting by c.setting("Y Motion", false, "Cancels the players y velocity to aid speed")
 	@Group(Y_MOTION_GROUP) val onlyOnDiagonal: Boolean by c.setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { yMotionSetting }
@@ -103,6 +104,7 @@ class BounceElytraFly(
 	private var wantJump = false
 	private var prevGliding: Boolean? = null
 	private val pauseTimer = TickTimer()
+	private val holdTimer = TickTimer()
 	private val pingPackets = ConcurrentLinkedQueue<CommonPingS2CPacket>()
 	private val sendPacketQueue = LinkedList<Packet<*>>()
 	private var sneakLeft = false
@@ -202,6 +204,8 @@ class BounceElytraFly(
 
 		listen<TickEvent.Post>({ -100 }) {
 			interrupting = false
+			if (sendPacketQueue.isNotEmpty() || pingPackets.isNotEmpty()) holdTimer.tick()
+			if (holdTimer.hasSurpassed(maxHold)) flushPackets()
 		}
 
 		listen<MovementEvent.InputUpdate> { event ->
@@ -260,6 +264,7 @@ class BounceElytraFly(
 	}
 
 	private fun SafeContext.flushPackets() {
+		holdTimer.reset()
 		while (sendPacketQueue.isNotEmpty()) {
 			val packet = sendPacketQueue.poll()
 			connection.sendPacketSilently(packet)
