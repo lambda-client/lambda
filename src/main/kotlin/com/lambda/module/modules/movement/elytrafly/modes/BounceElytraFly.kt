@@ -240,6 +240,8 @@ class BounceElytraFly(
 		}
 
 		listen<PacketEvent.Send.Pre>({ 1 }) { event ->
+			// Keep-alives are answered from the network thread, and the queue is the game thread's
+			if (!mc.isOnThread) return@listen
 			val packet = event.packet
 			// The server takes no moves until it has a setback's confirm and the move after it
 			if (packet is TeleportConfirmC2SPacket) answeringSetback = true
