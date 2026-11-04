@@ -50,6 +50,8 @@ import net.minecraft.entity.Entity
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInputC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
+import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
 import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.Vec2f
@@ -107,6 +109,7 @@ class BounceElytraFly(
 	private val holdTimer = TickTimer()
 	private val pingPackets = ConcurrentLinkedQueue<CommonPingS2CPacket>()
 	private val sendPacketQueue = LinkedList<Packet<*>>()
+	private var answeringSetback = false
 	private var sneakLeft = false
 	private var sneakRight = false
 	private var interrupting = false
@@ -237,13 +240,17 @@ class BounceElytraFly(
 		}
 
 		listen<PacketEvent.Send.Pre>({ 1 }) { event ->
-			if (queuePackets) {
-				sendPacketQueue.add(event.packet)
+			val packet = event.packet
+			// The server takes no moves until it has a setback's confirm and the move after it
+			if (packet is TeleportConfirmC2SPacket) answeringSetback = true
+			if (queuePackets && !answeringSetback) {
+				sendPacketQueue.add(packet)
 				event.cancel()
 				return@listen
 			}
 
 			flushPackets()
+			if (packet is PlayerMoveC2SPacket) answeringSetback = false
 		}
 		listen<PacketEvent.Receive.Pre>({ 1 }) { event ->
 			if (event.packet is CommonPingS2CPacket && queuePackets) {
@@ -257,6 +264,7 @@ class BounceElytraFly(
 		onDisable {
 			wantJump = false
 			prevGliding = false
+			answeringSetback = false
 			flushPackets()
 			sneakLeft = false
 			sneakRight = false
