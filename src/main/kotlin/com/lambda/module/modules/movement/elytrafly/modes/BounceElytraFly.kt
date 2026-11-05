@@ -110,7 +110,9 @@ class BounceElytraFly(
 	private var interrupting = false
 
 	private val flightPaused
-		get() = !pauseTimer.hasSurpassed(flagPause) || interrupting || BaritoneHandler.isActive
+		get() = !pauseTimer.hasSurpassed(flagPause) || bouncingStopped
+	private val bouncingStopped
+		get() = interrupting || BaritoneHandler.isActive
 
 	private val SafeContext.queuePackets
 		get() = fakeLag && player.isGliding && (!yMotionSetting || !onYMotionAngle) &&
@@ -164,7 +166,12 @@ class BounceElytraFly(
 				}
 			}
 
-			if (flightPaused) return@listen
+			if (bouncingStopped) return@listen
+			if (flightPaused) {
+				// Staying on the ground after a landing ends the glide
+				if (player.isOnGround && (player.isGliding || (takeoff && player.canTakeoff))) wantJump = jump
+				return@listen
+			}
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
@@ -221,7 +228,7 @@ class BounceElytraFly(
 				return@listen
 			}
 			if (!wantJump) return@listen
-			if (flightPaused) return@listen
+			if (bouncingStopped) return@listen
 			input.jump()
 		}
 
