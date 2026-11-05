@@ -47,6 +47,8 @@ import com.lambda.util.player.PlayerUtils.canTakeoff
 import net.minecraft.client.input.KeyboardInput.getMovementMultiplier
 import net.minecraft.entity.Entity
 import net.minecraft.network.packet.Packet
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerInputC2SPacket
 import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.Vec2f
@@ -256,6 +258,22 @@ class BounceElytraFly(
 			val packet = pingPackets.poll()
 			connection.handlePacketSilently(packet)
 		}
+	}
+
+	// Sent like pressing jump mid-air, which Grim checks for
+	override fun SafeContext.startFlyPacket() {
+		if (player.lastPlayerInput.jump) sendJumpKey(false)
+		connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
+		sendJumpKey(true)
+		// Kept down into the next move, as a press would be
+		wantJump = true
+	}
+
+	private fun SafeContext.sendJumpKey(down: Boolean) {
+		val last = player.lastPlayerInput
+		val input = PlayerInput(last.forward, last.backward, last.left, last.right, down, last.sneak, last.sprint)
+		connection.sendPacket(PlayerInputC2SPacket(input))
+		player.lastPlayerInput = input
 	}
 
 	fun getModifiedVelocity(original: Vec3d) =
