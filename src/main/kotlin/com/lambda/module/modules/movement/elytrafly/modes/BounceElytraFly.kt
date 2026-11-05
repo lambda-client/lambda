@@ -45,6 +45,7 @@ import com.lambda.util.math.minus
 import com.lambda.util.player.PlayerUtils.canStartGliding
 import com.lambda.util.player.PlayerUtils.canTakeoff
 import net.minecraft.client.input.KeyboardInput.getMovementMultiplier
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
@@ -125,6 +126,8 @@ class BounceElytraFly(
 		listen<TickEvent.Pre> {
 			pauseTimer.tick()
 			wantJump = false
+			// A sprint doesn't start by itself while gliding
+			if (keepsSprint(player) && !player.isSprinting) player.isSprinting = true
 
 			if (autoPitch) {
 				rotationRequest {
@@ -267,6 +270,8 @@ class BounceElytraFly(
 		sendJumpKey(true)
 		// Kept down into the next move, as a press would be
 		wantJump = true
+		// Now, as the flags the server echoes for a later sprint can end the next glide
+		if (keepsSprint(player) && !player.isSprinting) player.isSprinting = true
 	}
 
 	private fun SafeContext.sendJumpKey(down: Boolean) {
@@ -275,6 +280,9 @@ class BounceElytraFly(
 		connection.sendPacket(PlayerInputC2SPacket(input))
 		player.lastPlayerInput = input
 	}
+
+	fun keepsSprint(player: ClientPlayerEntity) =
+		isEnabled && player.isGliding && player.canSprintOrFly()
 
 	fun getModifiedVelocity(original: Vec3d) =
 		runSafe {
