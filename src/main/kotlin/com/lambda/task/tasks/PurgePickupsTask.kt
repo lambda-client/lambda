@@ -30,7 +30,7 @@ context(automated: Automated)
 fun purgePickups(
 	selection: StackSelection = StackSelection.EVERYTHING,
 	mergeHandling: MergeHandling = MergeHandling.DropDelta,
-) = PurgePickups(selection, mergeHandling, automated)
+) = PurgePickupsTask(selection, mergeHandling, automated)
 
 enum class MergeHandling {
 	Ignore,
@@ -41,7 +41,7 @@ enum class MergeHandling {
 /**
  * Drops every pickup matching [selection] until cancelled.
  */
-class PurgePickups @Ta5kBuilder internal constructor(
+class PurgePickupsTask @Ta5kBuilder internal constructor(
 	private val selection: StackSelection,
 	private val mergeHandling: MergeHandling,
 	automated: Automated

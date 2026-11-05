@@ -22,6 +22,7 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.Container
@@ -37,6 +38,7 @@ import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.interaction.handler.handlers.PacketLimitHandler.availablePackets
 import com.lambda.interaction.handler.handlers.PacketType
+import com.lambda.interaction.handler.handlers.SlotActionProgressHandler
 import com.lambda.interaction.manager.managers.inventory.InvRequestFailureReason
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task
@@ -61,7 +63,16 @@ fun transfer(
 	toSelection: ContainerSelection,
 	toStack: StackSelection = StackSelection.EVERYTHING,
 	allowQuickMove: Boolean = true,
-) = ContainerTransferTask(fromStack, fromSelection, toSelection, toStack, allowQuickMove, automated)
+	awaitExternalDependencies: Boolean = true
+) = ContainerTransferTask(
+	fromStack,
+	fromSelection,
+	toSelection,
+	toStack,
+	allowQuickMove,
+	awaitExternalDependencies,
+	automated
+)
 
 @Ta5kBuilder
 @JvmName("transferExt")
@@ -71,7 +82,8 @@ fun StackSelection.transfer(
 	toSelection: ContainerSelection,
 	toStack: StackSelection = StackSelection.EVERYTHING,
 	allowQuickMove: Boolean = true,
-) = transfer(this, fromSelection, toSelection, toStack, allowQuickMove)
+	awaitExternalDependencies: Boolean = true
+) = transfer(this, fromSelection, toSelection, toStack, allowQuickMove, awaitExternalDependencies)
 
 class TransferResult internal constructor(
 	val stackSelection: StackSelection,
@@ -84,6 +96,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private val toSelection: ContainerSelection,
 	private val toStack: StackSelection,
 	private val allowQuickMove: Boolean,
+	private val awaitExternalDependencies: Boolean,
 	automated: Automated
 ) : Task<TransferResult>(), Automated by automated {
 	override val name = "Transferring $fromStack"
@@ -102,8 +115,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 	private var lastSource: Container? = null
 
-	private val progressText
-		get() = "$transferred moved"
+	private val progress get() = "$transferred moved"
 
 	private val resultSlots = mutableMapOf<Slot, ItemStack>()
 	private val resultContainers = mutableSetOf<Container>()
@@ -111,9 +123,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private val fromQueue = mutableListOf<Container>()
 	private val toQueue = mutableListOf<Container>()
 
-	private val stagingContainers: List<Container>
-		get() = listOf(InventoryContainer, HotbarContainer)
-			.filter { it.isAccessible }
+	private val stagingContainers
+		get() = findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
 
 	private val pullLimit
 		get() =
@@ -124,6 +135,19 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		get() =
 			if (unlimited) staged
 			else minOf(remaining, staged)
+
+	init {
+		listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
+			InventoryEvent.ContainerTransferProgress(
+				fromStack,
+				toStack,
+				fromSelection,
+				toSelection,
+				transferred,
+				this@ContainerTransferTask,
+			).post()
+		}
+	}
 
 	override fun SafeContext.onStart() {
 		fromQueue +=
@@ -160,14 +184,14 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			?: run {
 				when {
 					unlimited && transferred > 0 -> success(buildResult())
-					toQueue.isEmpty() -> fail("No destination container has space left for $fromStack ($progressText, ${describeState()})")
-					else -> fail("Ran out of source containers for $fromStack ($progressText, ${describeState()})")
+					toQueue.isEmpty() -> fail("No destination container has space left for $fromStack ($progress, ${describeState()})")
+					else -> fail("Ran out of source containers for $fromStack ($progress, ${describeState()})")
 				}
 				return
 			}
 		val to = toQueue.firstOrNull { !it.haveMatchingInventories(from) }
 			?: run {
-				fail("No destination container has space left for $fromStack ($progressText, ${describeState()})")
+				fail("No destination container has space left for $fromStack ($progress, ${describeState()})")
 				return
 			}
 		lastSource = from
@@ -378,6 +402,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				}
 
 			if (pair == null) {
+				if (awaitExternalDependencies && awaitExternalMove(currentSelection)) return true
 				finish()
 				return true
 			}
@@ -559,6 +584,13 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					if (slot.stack.grewFrom(previous.getOrNull(index))) recordDestination(slot, container)
 				}
 			}
+		}
+
+		private fun awaitExternalMove(sourceSelection: StackSelection): Boolean {
+			val owner = this@ContainerTransferTask
+			val hasSource = fromContainers.any { it.findSlot(sourceSelection) != null }
+			return if (hasSource) SlotActionProgressHandler.isPushHandled(toContainers, baseToSelection, owner)
+			else SlotActionProgressHandler.isPullHandled(fromContainers, sourceSelection, owner)
 		}
 
 		private fun recordMoved(count: Int) {

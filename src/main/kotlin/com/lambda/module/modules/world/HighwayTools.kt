@@ -29,6 +29,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.count
 import com.lambda.interaction.handler.handlers.ContainerHandler.spaceLeft
@@ -38,9 +39,12 @@ import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.start
 import com.lambda.task.tasks.BuildStatus
+import com.lambda.task.tasks.MergeHandling
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.farmEnderChests
+import com.lambda.task.tasks.purgePickups
 import com.lambda.task.tasks.wrappers.softFail
+import com.lambda.task.tasks.wrappers.withSideTask
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
@@ -101,6 +105,13 @@ object HighwayTools : Module(
 	private var currentPos = BlockPos.ORIGIN
 	private var runningTask: Task<*>? = null
 
+	private val OBI_SELECTION = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
+
+	private val NOT_OBI_OR_ECHEST_SELECTION =
+		stackSelection(StackSelection.UNBOUNDED) {
+			noneOfItems(Items.ENDER_CHEST, Items.OBSIDIAN)
+		}
+
 	enum class Material(
 		override val displayName: String,
 		override val description: String
@@ -150,30 +161,34 @@ object HighwayTools : Module(
 					?.start()
 			}
 			.onTickPre {
-				checkFarmEnderChests(it)
-					?.softFail()
-					?.start()
+				with(this) {
+					checkFarmEnderChests(it)
+						?.withSideTask { purgePickups(NOT_OBI_OR_ECHEST_SELECTION, MergeHandling.Ignore) }
+						?.softFail()
+						?.start()
+				}
 			}
 			.start()
 	}
 
 	private fun highwayBlueprint() =
 		propagatingBlueprint {
-			if (distance !in 0..distanceMoved) {
-				var structure = emptyStructure()
-				val slice = generateSlice()
-				repeat(sliceSize) {
-					structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
-					val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
-					currentPos = currentPos.add(vec)
-				}
-				distanceMoved += sliceSize
-				structure
-			} else {
-				this@HighwayTools.info("Highway built")
+			if (distance in 0..distanceMoved) {
+				this@HighwayTools.info("Highway built!")
 				disable()
-				emptyStructure()
+				return@propagatingBlueprint emptyStructure()
 			}
+
+			var structure = emptyStructure()
+			val slice = generateSlice()
+			repeat(sliceSize) {
+				structure = structure
+					.plus(slice.map { it.key.add(currentPos) to it.value })
+				val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
+				currentPos = currentPos.add(vec)
+			}
+			distanceMoved += sliceSize
+			structure
 		}
 
 	@Ta5kBuilder
@@ -185,19 +200,12 @@ object HighwayTools : Module(
 				it.value.getState(it.key).isOf(Blocks.OBSIDIAN) &&
 						!blockState(it.key).isOf(Blocks.OBSIDIAN)
 			}
-		val obiSelection = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
-		val obiOnPlayer = count(obiSelection, ContainerSelection.HOTBAR_AND_INVENTORY)
+		val obiOnPlayer = count(OBI_SELECTION, ContainerSelection.HOTBAR_AND_INVENTORY)
+		if (obiOnPlayer >= remainingObi) return null
 
-		return if (obiOnPlayer < remainingObi) {
-			val obiSpace = spaceLeft(obiSelection, ContainerSelection.HOTBAR_AND_INVENTORY)
-
-			if (obiSpace < 8) null
-			else {
-				with(this@HighwayTools) {
-					farmEnderChests(obiSpace / 8)
-				}
-			}
-		} else null
+		val obiSpace = spaceLeft(OBI_SELECTION, ContainerSelection.HOTBAR_AND_INVENTORY)
+		return if (obiSpace >= 8) farmEnderChests(obiSpace / 8)
+		else null
 	}
 
 	private fun generateSlice(): Structure {

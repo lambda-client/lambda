@@ -20,6 +20,8 @@ package com.lambda.task.tasks
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
+import com.lambda.event.EventFlow.post
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.SlotIdentity
@@ -60,14 +62,6 @@ context(automated: Automated)
 fun drop(targets: Iterable<DropTarget>) =
 	DropTask(null, ContainerSelection.ACCESSED, targets.toList(), automated)
 
-/**
- * A single slot to empty.
- *
- * [whole] drops everything currently in the slot. Otherwise only [amount] items are removed.
- * [expected] identifies the stack so a replacement in the same slot is never dropped by mistake.
- * [waitForResolution] keeps the target queued while its slot cannot be resolved, which is required
- * for slots such as the offhand that may be missing from the current screen.
- */
 data class DropTarget(
 	val slot: SlotIdentity,
 	val expected: ItemStack,
@@ -76,24 +70,16 @@ data class DropTarget(
 	val waitForResolution: Boolean = true,
 )
 
-data class DropResult(val dropped: Map<Item, Int>) {
-	val total: Int get() = dropped.values.sum()
-}
+data class DropResult(val dropped: Map<Item, Int>)
 
-/**
- * Drops [targets], or the items matched by [selection], and succeeds once they are gone.
- *
- * The task owns slot resolution, packet budgeting, planning and result accounting, so callers can
- * start a fresh instance for every batch of drops instead of keeping a queue alive.
- */
 class DropTask @Ta5kBuilder internal constructor(
-	private val selection: StackSelection?,
-	private val containerSelection: ContainerSelection,
+	private val stackSelection: StackSelection?,
+	private val containerSelection: ContainerSelection?,
 	private val targets: List<DropTarget>,
 	automated: Automated,
 ) : Task<DropResult>(), Automated by automated {
 	override val name =
-		if (selection != null) "Dropping $selection"
+		if (stackSelection != null) "Dropping $stackSelection"
 		else "Dropping ${targets.size} target(s)"
 
 	private data class PendingDrop(
@@ -104,7 +90,7 @@ class DropTask @Ta5kBuilder internal constructor(
 	)
 
 	private data class PlannedDrop(
-		val identity: SlotIdentity,
+		val slot: SlotIdentity,
 		val entry: PendingDrop,
 		val stack: ItemStack,
 		val before: Int,
@@ -124,6 +110,13 @@ class DropTask @Ta5kBuilder internal constructor(
 		listen<TickEvent.Pre> {
 			withSafeAutomated {
 				tick()
+				InventoryEvent.DropProgress(
+					stackSelection,
+					containerSelection,
+					targets,
+					droppedTypes.values.sum(),
+					this@DropTask,
+				).post()
 			}
 		}
 	}
@@ -131,39 +124,41 @@ class DropTask @Ta5kBuilder internal constructor(
 	override fun SafeContext.onStart() {
 		targets.forEach { enqueue(it) }
 
-		selection?.let { selection ->
-			val slots =
-				findSlots(
-					stackSelection = selection.mutate { notEmpty() },
-					containerSelection = containerSelection,
-				).orEmpty()
+		stackSelection?.let { selection ->
+			containerSelection?.let {
+				val slots =
+					findSlots(
+						stackSelection = selection.mutate { notEmpty() },
+						containerSelection = containerSelection,
+					).orEmpty()
 
-			var remaining =
-				if (selection.isUnbounded) Int.MAX_VALUE
-				else selection.count
-			slots.forEach { slot ->
-				if (remaining <= 0) {
-					finishIfDone()
-					return
+				var remaining =
+					if (selection.isUnbounded) Int.MAX_VALUE
+					else selection.count
+				slots.forEach { slot ->
+					if (remaining <= 0) {
+						finishIfDone()
+						return
+					}
+					val stack = slot.stack
+					if (stack.isEmpty) return@forEach
+					val identity = slot.identity() ?: return@forEach
+
+					val available = stack.count
+					val requested =
+						if (selection.alwaysWholeStacks) available
+						else minOf(available, remaining)
+					if (requested <= 0) return@forEach
+
+					enqueue(
+						identity = identity,
+						amount = requested,
+						expected = stack,
+						whole = selection.isUnbounded || selection.alwaysWholeStacks,
+						waitForResolution = false,
+					)
+					remaining -= requested
 				}
-				val stack = slot.stack
-				if (stack.isEmpty) return@forEach
-				val identity = slot.identity() ?: return@forEach
-
-				val available = stack.count
-				val requested =
-					if (selection.alwaysWholeStacks) available
-					else minOf(available, remaining)
-				if (requested <= 0) return@forEach
-
-				enqueue(
-					identity = identity,
-					amount = requested,
-					expected = stack,
-					whole = selection.isUnbounded || selection.alwaysWholeStacks,
-					waitForResolution = false,
-				)
-				remaining -= requested
 			}
 		}
 
@@ -247,7 +242,7 @@ class DropTask @Ta5kBuilder internal constructor(
 
 			if (pending.whole) {
 				plans += PlannedDrop(
-					identity = identity,
+					slot = identity,
 					entry = pending,
 					stack = stack.copy(),
 					before = stack.count,
@@ -266,7 +261,7 @@ class DropTask @Ta5kBuilder internal constructor(
 			val actions = planAmount(slot, stack, amount, remaining)
 			plans +=
 				PlannedDrop(
-					identity = identity,
+					slot = identity,
 					entry = pending,
 					stack = stack.copy(),
 					before = stack.count,
@@ -313,23 +308,23 @@ class DropTask @Ta5kBuilder internal constructor(
 
 	private fun SafeContext.record(plans: List<PlannedDrop>) {
 		plans.forEach { plan ->
-			val current = plan.identity.resolve()?.stack
+			val current = plan.slot.resolve()?.stack
 			val same = current != null && !current.isEmpty && current.sameItemAs(plan.stack)
 			val after = if (same) current.count else 0
 			val dropped = (plan.before - after).coerceAtLeast(0)
 			if (dropped > 0) droppedTypes.merge(plan.stack.item, dropped, Int::plus)
 
-			val entry = drops[plan.identity]
+			val entry = drops[plan.slot]
 			if (entry !== plan.entry) return@forEach
 
 			if (entry.whole) {
 				if (same && after > 0) entry.amount = after
-				else drops.remove(plan.identity)
+				else drops.remove(plan.slot)
 				return@forEach
 			}
 
 			entry.amount -= dropped
-			if (entry.amount <= 0 || !same) drops.remove(plan.identity)
+			if (entry.amount <= 0 || !same) drops.remove(plan.slot)
 		}
 	}
 

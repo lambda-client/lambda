@@ -55,9 +55,7 @@ class SequencedActionTask<R, R2> @Ta5kBuilder internal constructor(
 
 	override fun SafeContext.onStart() {
 		innerTask
-			.onSuccess { result ->
-				success(action(this, result))
-			}
+			.onSuccess { success(action(this, it)) }
 			.start()
 	}
 }

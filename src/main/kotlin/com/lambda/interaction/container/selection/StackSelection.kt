@@ -332,8 +332,16 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		shulkerBoxScope = ShulkerBoxScope.InShulkerBox
 	}
 
+	fun ofAnyItems(vararg items: Item) {
+		appendSelector { stack, _ -> stack.item in items }
+	}
+
 	fun ofAnyItems(items: Iterable<Item>) {
 		appendSelector { stack, _ -> items.contains(stack.item) }
+	}
+
+	fun noneOfItems(vararg items: Item) {
+		appendSelector { stack, _ -> stack.item !in items }
 	}
 
 	fun noneOfItems(items: Iterable<Item>) {

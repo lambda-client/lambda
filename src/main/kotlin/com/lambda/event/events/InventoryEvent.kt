@@ -21,6 +21,9 @@ import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import com.lambda.interaction.container.SlotIdentity
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.task.tasks.DropTarget
 import net.minecraft.entity.Entity
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
@@ -124,6 +127,23 @@ sealed class InventoryEvent {
         val stack: ItemStack,
         val remaining: Int,
         val collector: Entity?,
+    ) : Event
+
+    data class ContainerTransferProgress(
+        val fromStack: StackSelection,
+        val toStack: StackSelection,
+        val fromSelection: ContainerSelection,
+        val toSelection: ContainerSelection,
+        val progress: Int,
+        val owner: Any? = null,
+    ) : Event
+
+    data class DropProgress(
+        val stackSelection: StackSelection?,
+        val containerSelection: ContainerSelection?,
+        val targets: List<DropTarget>,
+        val progress: Int,
+        val owner: Any? = null,
     ) : Event
 }
 

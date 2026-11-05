@@ -200,7 +200,6 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				}
 		}
 
-		// ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
 		listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
 			runGameScheduled {
 				val entity = it.entity
