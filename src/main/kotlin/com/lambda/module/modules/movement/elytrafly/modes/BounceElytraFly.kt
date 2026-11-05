@@ -35,7 +35,6 @@ import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.module.modules.movement.elytrafly.ObstaclePassingMode
 import com.lambda.module.modules.movement.elytrafly.PasserSettings
 import com.lambda.threading.runSafe
-import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.SpeedUnit
 import com.lambda.util.TickTimer
@@ -52,12 +51,10 @@ import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInputC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
-import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.pow
@@ -107,7 +104,7 @@ class BounceElytraFly(
 	private var prevGliding: Boolean? = null
 	private val pauseTimer = TickTimer()
 	private val holdTimer = TickTimer()
-	private val pingPackets = ConcurrentLinkedQueue<CommonPingS2CPacket>()
+	// Holds pongs too, so Grim gets them in order with the moves
 	private val sendPacketQueue = LinkedList<Packet<*>>()
 	private var answeringSetback = false
 	private var sneakLeft = false
@@ -207,7 +204,7 @@ class BounceElytraFly(
 
 		listen<TickEvent.Post>({ -100 }) {
 			interrupting = false
-			if (sendPacketQueue.isNotEmpty() || pingPackets.isNotEmpty()) holdTimer.tick()
+			if (sendPacketQueue.isNotEmpty()) holdTimer.tick()
 			if (holdTimer.hasSurpassed(maxHold)) flushPackets()
 		}
 
@@ -254,12 +251,6 @@ class BounceElytraFly(
 			flushPackets()
 			if (packet is PlayerMoveC2SPacket) answeringSetback = false
 		}
-		listen<PacketEvent.Receive.Pre>({ 1 }) { event ->
-			if (event.packet is CommonPingS2CPacket && queuePackets) {
-				pingPackets.add(event.packet)
-				event.cancel()
-			}
-		}
 
 		onFlag { pauseTimer.reset() }
 
@@ -278,10 +269,6 @@ class BounceElytraFly(
 		while (sendPacketQueue.isNotEmpty()) {
 			val packet = sendPacketQueue.poll()
 			connection.sendPacketSilently(packet)
-		}
-		while (pingPackets.isNotEmpty()) {
-			val packet = pingPackets.poll()
-			connection.handlePacketSilently(packet)
 		}
 	}
 
