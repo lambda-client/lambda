@@ -38,7 +38,6 @@ import com.lambda.threading.runSafe
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.SpeedUnit
 import com.lambda.util.TickTimer
-import com.lambda.util.math.dist
 import com.lambda.util.math.distSq
 import com.lambda.util.math.minus
 import com.lambda.util.player.PlayerUtils.canStartGliding
@@ -146,9 +145,8 @@ class BounceElytraFly(
 			if (handlePassingObstacles()) return@listen
 
 			if (yMotionSetting && strictYMotionRange && onYMotionAngle) run yMotionCorrection@ {
+				if (!movedFromStart()) return@yMotionCorrection
 				val playerPos = player.pos
-				val validDistanceFromStart = Vec3d(playerPos.x, startPos.y, playerPos.z) dist startPos > 0.1
-				if (!validDistanceFromStart) return@yMotionCorrection
 
 				val snappedDir = getSnappedDir()
 				val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
