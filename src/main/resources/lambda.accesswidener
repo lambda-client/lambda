@@ -49,6 +49,7 @@ transitive-accessible method net/minecraft/entity/LivingEntity applyArmorToDamag
 transitive-accessible method net/minecraft/entity/Entity isAlwaysInvulnerableTo (Lnet/minecraft/entity/damage/DamageSource;)Z
 transitive-accessible field net/minecraft/entity/player/PlayerInventory equipment Lnet/minecraft/entity/EntityEquipment;
 transitive-accessible method net/minecraft/client/network/ClientPlayerEntity applyMovementSpeedFactors (Lnet/minecraft/util/math/Vec2f;)Lnet/minecraft/util/math/Vec2f;
+transitive-accessible field net/minecraft/client/network/ClientPlayerEntity lastPlayerInput Lnet/minecraft/util/PlayerInput;
 transitive-accessible field net/minecraft/entity/EntityEquipment map Ljava/util/EnumMap;
 transitive-accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
 transitive-accessible method net/minecraft/client/network/ClientPlayerInteractionManager syncSelectedSlot ()V
@@ -63,6 +64,7 @@ transitive-accessible field net/minecraft/entity/Entity FLAGS Lnet/minecraft/ent
 transitive-accessible field net/minecraft/block/entity/BeaconBlockEntity level I
 transitive-accessible method net/minecraft/entity/LivingEntity canGlide ()Z
 transitive-accessible method net/minecraft/entity/player/PlayerEntity canGlide ()Z
+transitive-accessible method net/minecraft/entity/player/PlayerEntity canSprintOrFly ()Z
 
 # Camera
 transitive-accessible method net/minecraft/client/render/Camera setPos (DDD)V

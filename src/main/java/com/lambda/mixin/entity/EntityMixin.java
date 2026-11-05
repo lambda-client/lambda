@@ -175,17 +175,6 @@ public abstract class EntityMixin {
         return RotationManager.getLockPitch() == null;
     }
 
-    @ModifyReturnValue(method = "isSprinting()Z", at = @At("RETURN"))
-    private boolean injectIsSprinting(boolean original) {
-        var player = getMc().player;
-        if ((Object) this != getMc().player) return original;
-
-        if (ElytraFly.getBounceMode().isEnabled() && player.isGliding())
-            return true;
-
-        return original;
-    }
-
     @ModifyReturnValue(method = "getPose", at = @At("RETURN"))
     private EntityPose injectGetPose(EntityPose original) {
         var player = getMc().player;
