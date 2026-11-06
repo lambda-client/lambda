@@ -94,7 +94,7 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                         return@listen
                     }
 
-					if (pending.type == BreakInfo.BreakType.Rebreak) {
+					if (pending === reBreak) {
 						pending.context.cachedState = event.newState
 					} else {
 						val message = "Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}"
