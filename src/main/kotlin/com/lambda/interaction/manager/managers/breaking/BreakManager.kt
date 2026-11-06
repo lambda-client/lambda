@@ -810,6 +810,14 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 					info.type = Rebreak
 					info.nullify()
 					info.request.onReBreak?.invoke(this, ctx.blockPos)
+					when (breakConfig.breakConfirmation) {
+						BreakConfirmationMode.None -> {
+							info.internalOnBreak()
+							if (!info.callbacksCompleted) info.startPending()
+						}
+						BreakConfirmationMode.BreakThenAwait -> if (info.request.onItemDrop != null) info.startPending()
+						BreakConfirmationMode.AwaitThenBreak -> info.startPending()
+					}
 					return true
 				}
 				else -> {}
