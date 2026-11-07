@@ -27,5 +27,7 @@ abstract class PlacedContainer(
 ) : Container(type), ExternalContainer {
 	abstract val pos: BlockPos
 	abstract val stash: StashContainer?
-	open val positions: Set<BlockPos> = setOf(pos)
+	open val positions: Set<BlockPos> get() = setOf(pos)
+
+	override fun slotIdentity(index: Int) = SlotIdentity.Placed(positions, index)
 }

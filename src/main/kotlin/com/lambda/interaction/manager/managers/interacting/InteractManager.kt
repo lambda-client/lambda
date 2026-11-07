@@ -70,6 +70,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
+import kotlin.time.Duration.Companion.milliseconds
 
 object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 	private var activeRequest: InteractRequest? = null
@@ -213,7 +214,7 @@ object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 				if (ctx.preProcessingInfo.placing && expectedState.block is AbstractSignBlock) {
 					cancellingSignScreens++
 					runConcurrent {
-						delay(AutoSign.signWriteDelay)
+						delay(AutoSign.signWriteDelay.milliseconds)
 						runSafeGameScheduled {
 							connection.sendPacket {
 								UpdateSignC2SPacket(ctx.blockPos, true, "", "", "", "")

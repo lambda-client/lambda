@@ -20,6 +20,7 @@ package com.lambda.interaction.container.containers
 import com.lambda.Lambda.mc
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.SlotIdentity
 import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.player.SlotUtils.armorStacks
 import com.lambda.util.text.buildText
@@ -37,4 +38,6 @@ object ArmorContainer : Container(ContainerType.Armor) {
 	override val description = buildText { literal("Armor") }
 
 	override val isAccessed get() = mc.player?.currentScreenHandler?.syncId == 0
+
+	override fun slotIdentity(index: Int) = SlotIdentity.Player(index)
 }

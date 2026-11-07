@@ -23,6 +23,8 @@ abstract class NestedContainer(type: ContainerType) : Container(type), ExternalC
 	abstract val containedIn: Container
 	abstract val index: Int
 
+	val slotIdentity get() = containedIn.slotIdentity(index)
+
 	override val dimension get() = containedIn.dimension
 
 	context(_: Automated)

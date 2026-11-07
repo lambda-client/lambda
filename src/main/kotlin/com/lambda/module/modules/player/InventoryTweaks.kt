@@ -27,6 +27,7 @@ import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.external.EnderChestContainer
+import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
@@ -78,7 +79,7 @@ object InventoryTweaks : Module(
                     containerSelection(ContainerSearchScope.Accessed) {
                         ofAnyType(ContainerType.ShulkerBox)
                         predicate { container ->
-                            container is NestedContainer && container.index == slot.index
+                            container is NestedContainer && container.slotIdentity == slot.identity()
                         }
                     }
                 ) ?: return@listen

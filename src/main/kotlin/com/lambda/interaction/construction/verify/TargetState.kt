@@ -35,6 +35,7 @@ import net.minecraft.state.property.Property
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
+//ToDo: Rethink this design
 sealed class TargetState : StateMatcher {
     data object Empty : TargetState() {
         override fun toString() = "Empty"
