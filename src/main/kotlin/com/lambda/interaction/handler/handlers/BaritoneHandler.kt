@@ -21,6 +21,9 @@ import baritone.api.BaritoneAPI
 import baritone.api.IBaritone
 import baritone.api.Settings
 import baritone.api.pathing.goals.Goal
+import baritone.api.process.IBaritoneProcess
+import baritone.api.process.PathingCommand
+import baritone.api.process.PathingCommandType
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.config.Group
@@ -30,6 +33,9 @@ import com.lambda.config.blocks.RotationSettings
 import com.lambda.config.categories.LambdaCategory
 import com.lambda.config.entries.onValueChange
 import com.lambda.context.Automated
+import com.lambda.core.Loadable
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.util.BlockUtils.blockPos
 import net.minecraft.util.BlockMirror
 import net.minecraft.util.BlockRotation
@@ -38,7 +44,7 @@ import net.minecraft.util.BlockRotation
 object BaritoneHandler : Config(
     "baritone",
 	LambdaCategory
-), Automated by AutomationConfig.DEFAULT {
+), Loadable, Automated by AutomationConfig.DEFAULT {
     val baritoneAvailable by lazy {
         runCatching {
             Class.forName("baritone.api.BaritoneAPI")
@@ -66,14 +72,43 @@ object BaritoneHandler : Config(
         get() = baritoneAvailable && primary?.pathingBehavior?.isPathing == true
 
     /**
-     * Whether Baritone is active (pathing, calculating goal, etc.)
+     * Whether Baritone is active (pathing, calculating goal, etc.) and not held still by [pause]
      */
     @JvmStatic val isActive: Boolean
-        get() = baritoneAvailable &&
+        get() = baritoneAvailable && !isPaused &&
                 (primary?.customGoalProcess?.isActive == true ||
                         primary?.pathingBehavior?.isPathing == true ||
                         primary?.pathingControlManager?.mostRecentInControl()?.orElse(null)?.isActive == true ||
                         primary?.elytraProcess?.isActive == true)
+
+    private val isPaused: Boolean
+        get() = baritoneAvailable &&
+                primary?.pathingControlManager?.mostRecentInControl()?.orElse(null) === PauseProcess &&
+                primary.pathingBehavior?.isPathing != true
+
+    private var pauseRequested = false
+
+    /**
+     * Requests Baritone to pause, call it from [TickEvent.Pre] every tick you want it paused
+     */
+    fun pause() {
+        pauseRequested = true
+    }
+
+    override fun load(): String {
+        if (baritoneAvailable) primary?.pathingControlManager?.registerProcess(PauseProcess)
+        listen<TickEvent.Post> { pauseRequested = false }
+        return "Loaded Baritone Handler"
+    }
+
+    private object PauseProcess : IBaritoneProcess {
+        override fun isActive() = pauseRequested
+        override fun onTick(calcFailed: Boolean, isSafeToCancel: Boolean) = PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
+        override fun isTemporary() = true
+        override fun onLostControl() {}
+        override fun priority() = 5.1
+        override fun displayName0() = "Lambda pause"
+    }
 
     /**
      * Sets the current Baritone goal and starts pathing
