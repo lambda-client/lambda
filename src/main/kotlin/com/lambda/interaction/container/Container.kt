@@ -120,18 +120,22 @@ abstract class Container(
             slots.takeUnless { it.isEmpty() }?.map { it.index to it.stack }
                 ?: stacks.takeIf { stacksMatchSlots }?.mapIndexed { index, stack -> index to stack }
                 ?: return
-        indexed.forEach { (index, stack) ->
-            if (stack.item in SHULKER_BOXES) {
-                storedContainers[index] =
-                    ShulkerBoxContainer(
-                        stack.name.string,
-                        stack.item,
-                        stack.shulkerBoxStacks,
-                        this,
-                        index
-                    ).also { it.scanContainerContents() }
-            } else storedContainers.remove(index)
-        }
+        indexed.forEach { (index, stack) -> scanStack(index, stack) }
+    }
+
+    fun scanSlot(slot: Slot) = scanStack(slot.index, slot.stack)
+
+    private fun scanStack(index: Int, stack: ItemStack) {
+        if (stack.item in SHULKER_BOXES) {
+            storedContainers[index] =
+                ShulkerBoxContainer(
+                    stack.name.string,
+                    stack.item,
+                    stack.shulkerBoxStacks,
+                    this,
+                    index
+                ).also { it.scanContainerContents() }
+        } else storedContainers.remove(index)
     }
 
     @Ta5kBuilder

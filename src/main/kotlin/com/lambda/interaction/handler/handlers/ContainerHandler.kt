@@ -44,6 +44,7 @@ import com.lambda.interaction.container.containers.external.ChestContainer
 import com.lambda.interaction.container.containers.external.DoubleChestContainer
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.containers.external.PlacedShulkerBoxContainer
+import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.containerSelection
@@ -128,6 +129,20 @@ object ContainerHandler : Loadable {
 		}
 
 		listen<InventoryEvent.FullUpdate>(priority = { Int.MAX_VALUE }) { onContainerUpdate() }
+		// A slot the server changes on its own, like a shulker box given or picked up
+		listen<InventoryEvent.SlotUpdate>(priority = { Int.MAX_VALUE }) { event ->
+			val handler =
+				when (event.syncId) {
+					0 -> player.playerScreenHandler
+					player.currentScreenHandler.syncId -> player.currentScreenHandler
+					else -> return@listen
+				}
+			val slot = handler.slots.getOrNull(event.slot) ?: return@listen
+			val identity = slot.identity() ?: return@listen
+			listOf(InventoryContainer, HotbarContainer, OffhandContainer, ArmorContainer)
+				.firstOrNull { container -> container.slots.any { it.identity() == identity } }
+				?.scanSlot(slot)
+		}
 		listen<PlayerEvent.SlotClick.Post> { onContainerUpdate() }
 
 		listen<WorldEvent.BlockUpdate.Client> { event ->
