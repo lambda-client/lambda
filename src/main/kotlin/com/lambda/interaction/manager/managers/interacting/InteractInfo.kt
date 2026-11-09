@@ -27,6 +27,6 @@ import net.minecraft.util.math.BlockPos
 data class InteractInfo(
 	override val context: InteractContext,
 	override val pendingInteractionsList: MutableCollection<BuildContext>,
-	val onPlace: (SafeContext.(BlockPos) -> Unit)?,
+	val onPlace: Collection<SafeContext.(BlockPos) -> Unit>,
 	val interactConfig: InteractConfig
 ) : ActionInfo

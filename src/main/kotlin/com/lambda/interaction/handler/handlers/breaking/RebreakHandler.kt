@@ -27,6 +27,7 @@ import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.handler.handlers.PacketLimitHandler
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.destroyBlock
+import com.lambda.interaction.manager.Request.Companion.invoke
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager
 import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
@@ -59,7 +60,7 @@ internal object RebreakHandler {
 
 	/**
 	 * Tests to see if the [BreakInfo] can be accepted. If not, nothing happens. Otherwise,
-	 * the [reBreak] is set, and the [com.lambda.interaction.manager.managers.breaking.BreakRequest.onReBreakStart] callback is invoked.
+	 * the [reBreak] is set, and the [com.lambda.interaction.manager.managers.breaking.BreakRequest.onReBreakStarts] callback is invoked.
 	 */
 	context(safeContext: SafeContext)
 	fun offerRebreak(info: BreakInfo) {
@@ -70,7 +71,7 @@ internal object RebreakHandler {
 				type = BreakInfo.BreakType.Rebreak
 				breaking = true
 			}
-		info.request.onReBreakStart?.invoke(safeContext, info.context.blockPos)
+		info.request.onReBreakStarts.invoke(info.context.blockPos)
 	}
 
 	fun clearRebreak() {

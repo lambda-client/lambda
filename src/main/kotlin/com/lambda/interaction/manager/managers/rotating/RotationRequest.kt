@@ -20,6 +20,7 @@ package com.lambda.interaction.manager.managers.rotating
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.manager.ManagerDslMarker
 import com.lambda.interaction.manager.Request
 import com.lambda.interaction.manager.managers.rotating.IRotationRequest.Full
 import com.lambda.interaction.manager.managers.rotating.IRotationRequest.Pitch
@@ -33,10 +34,7 @@ import com.lambda.util.collections.updatableLazy
 import kotlin.math.abs
 import kotlin.math.hypot
 
-@DslMarker
-annotation class RotationRequestMarker
-
-@RotationRequestMarker
+@ManagerDslMarker
 fun Automated.rotationRequest(builder: RotationRequestBuilder.() -> Unit) =
 	RotationRequestBuilder().apply(builder).build()
 
@@ -47,7 +45,7 @@ abstract class RotationRequest(automated: Automated) : Request(), Automated by a
 
 	abstract infix fun dist(rotation: Rotation): Double
 
-	@RotationRequestMarker
+	@ManagerDslMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		RotationManager.request(this, queueIfMismatchedStage)
 
@@ -154,7 +152,7 @@ interface IRotationRequest : Automated {
 	interface FullRot : YawRot, PitchRot { val rotation: UpdatableLazy<Rotation?> }
 }
 
-@RotationRequestMarker
+@ManagerDslMarker
 class RotationRequestBuilder internal constructor() {
 	private var pitchBuilder: (SafeContext.() -> Double)? = null
 	private var yawBuilder: (SafeContext.() -> Double)? = null

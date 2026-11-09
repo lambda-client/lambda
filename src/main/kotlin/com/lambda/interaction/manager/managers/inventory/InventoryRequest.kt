@@ -19,6 +19,7 @@ package com.lambda.interaction.manager.managers.inventory
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
+import com.lambda.interaction.manager.ManagerDslMarker
 import com.lambda.interaction.manager.Request
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.player.SlotUtils.clickSlot
@@ -32,10 +33,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-@DslMarker
-annotation class InvRequestDsl
-
-@InvRequestDsl
+@ManagerDslMarker
 fun Automated.inventoryRequest(
 	settleForLess: Boolean = false,
 	mustPerform: Boolean = false,
@@ -43,7 +41,7 @@ fun Automated.inventoryRequest(
 ) = InvRequestBuilder(settleForLess, mustPerform).apply(builder).build()
 
 /**
- * A private constructor is used to enforce use of the [InvRequestDsl] builder.
+ * A private constructor is used to enforce use of the [ManagerDslMarker] builder.
  *
  * @property actions A list of inventory actions to be performed in the request.
  * @property settleForLess A flag indicating whether to settle for partial completion of the request.
@@ -62,7 +60,7 @@ class InventoryRequest(
 	var failureReason: InvRequestFailureReason = InvRequestFailureReason.None
 	override var done = false
 
-	@InvRequestDsl
+	@ManagerDslMarker
 	override fun submit(queueIfMismatchedStage: Boolean): InventoryRequest =
 		InventoryManager.request(this, queueIfMismatchedStage)
 
@@ -73,7 +71,7 @@ class InventoryRequest(
 }
 
 @Suppress("unused")
-@InvRequestDsl
+@ManagerDslMarker
 class InvRequestBuilder internal constructor(
 	private val settleForLess: Boolean,
 	private val mustPerform: Boolean

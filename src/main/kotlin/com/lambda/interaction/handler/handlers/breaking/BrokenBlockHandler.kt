@@ -25,6 +25,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry
 import com.lambda.interaction.handler.PostActionHandler
+import com.lambda.interaction.manager.Request.Companion.invoke
 import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.reBreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager.matchesBlockItem
@@ -71,7 +72,7 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 				world.setBlockState(info.context.blockPos, info.context.cachedState)
 			}
 
-			if (!info.validBreak) info.request.onCancel?.invoke(this, info.context.blockPos)
+			if (!info.validBreak) info.request.onCancels.invoke(info.context.blockPos)
 		}
 		info.pendingInteractionsList.remove(info.context)
 	}
@@ -109,7 +110,7 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 				}
 				pendingActions.refresh(pending)
 				pending.internalOnBreak()
-				if (pending.request.onItemDrop == null) pending.stopPending()
+				if (pending.request.onItemDrops.isEmpty()) pending.stopPending()
 	            RebreakHandler.offerRebreak(pending)
 				return@listen
 			}

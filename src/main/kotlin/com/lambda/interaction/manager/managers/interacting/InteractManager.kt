@@ -35,6 +35,7 @@ import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.ManagerUtils.isPosBlocked
 import com.lambda.interaction.manager.PositionBlocking
+import com.lambda.interaction.manager.Request.Companion.invoke
 import com.lambda.interaction.manager.managers.breaking.BreakManager
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.interacting.InteractManager.activeRequest
@@ -352,7 +353,7 @@ object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 		sendInteractPacket(hand, hitResult)
 
 		if (interactConfig.interactConfirmation != InteractConfig.InteractConfirmationMode.None) {
-			InteractInfo(interactContext, request.pendingInteractions, request.onPlace, interactConfig).startPending()
+			InteractInfo(interactContext, request.pendingInteractions, request.onInteract, interactConfig).startPending()
 		}
 
 		val itemStack = itemPlacementContext.stack
@@ -377,7 +378,7 @@ object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 		if (interactConfig.sounds) placeSound(state, blockPos)
 
 		if (interactConfig.interactConfirmation == InteractConfig.InteractConfirmationMode.None) {
-			request.onPlace?.invoke(this, interactContext.blockPos)
+			request.onInteract.invoke(interactContext.blockPos)
 		}
 
 		return ActionResult.SUCCESS

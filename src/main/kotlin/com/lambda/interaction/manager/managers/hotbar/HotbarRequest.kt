@@ -18,12 +18,10 @@
 package com.lambda.interaction.manager.managers.hotbar
 
 import com.lambda.context.Automated
+import com.lambda.interaction.manager.ManagerDslMarker
 import com.lambda.interaction.manager.Request
 
-@DslMarker
-private annotation class HotbarRequestMarker
-
-@HotbarRequestMarker
+@ManagerDslMarker
 fun Automated.hotbarRequest(
 	slot: Int,
 	nowOrNothing: Boolean = false,
@@ -60,7 +58,7 @@ class HotbarRequest(
 	override val done: Boolean
 		get() = slot == HotbarManager.activeSlot && swapPauseAge >= swapPause
 
-	@HotbarRequestMarker
+	@ManagerDslMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		HotbarManager.request(this, queueIfMismatchedStage)
 
@@ -71,7 +69,7 @@ class HotbarRequest(
 }
 
 @Suppress("unused")
-@HotbarRequestMarker
+@ManagerDslMarker
 class HotbarRequestBuilder internal constructor(
 	private val slot: Int,
 	private val nowOrNothing: Boolean,

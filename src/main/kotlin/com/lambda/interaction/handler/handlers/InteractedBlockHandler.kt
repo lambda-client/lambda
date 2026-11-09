@@ -22,6 +22,7 @@ import com.lambda.config.blocks.InteractConfig
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.PostActionHandler
+import com.lambda.interaction.manager.Request.Companion.invoke
 import com.lambda.interaction.manager.managers.interacting.InteractInfo
 import com.lambda.interaction.manager.managers.interacting.InteractManager.placeSound
 import com.lambda.module.modules.client.Client
@@ -65,7 +66,7 @@ internal object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 
 					if (pending.interactConfig.interactConfirmation == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
 						with(pending.context) { placeSound(expectedState, blockPos) }
-					pending.onPlace?.invoke(this, pending.context.blockPos)
+					pending.onPlace.invoke(pending.context.blockPos)
 				}
 		}
 	}

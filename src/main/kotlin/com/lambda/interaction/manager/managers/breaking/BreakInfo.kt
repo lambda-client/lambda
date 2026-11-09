@@ -87,15 +87,15 @@ data class BreakInfo(
 	var guaranteesDrop: Boolean = true
 	var dropPredictionComplete: Boolean = true
 	val callbacksCompleted
-		get() = broken && request.onItemDrop == null
+		get() = broken && request.onItemDrops.isEmpty()
 	val validBreak
-		get() = broken && (request.onItemDrop == null || !guaranteesDrop || drops.isNotEmpty())
+		get() = broken && (request.onItemDrops.isEmpty() || !guaranteesDrop || drops.isNotEmpty())
 
 	context(safeContext: SafeContext)
 	fun internalOnBreak() {
 		broken = true
 		drops.forEach { item ->
-			request.onItemDrop?.invoke(safeContext, item)
+			request.onItemDrops.forEach { it.invoke(safeContext, item) }
 		}
 	}
 
@@ -103,7 +103,7 @@ data class BreakInfo(
 	fun internalOnItemDrop(item: ItemEntity) {
 		drops.add(item)
 		if (broken || type == Rebreak) {
-			request.onItemDrop?.invoke(safeContext, item)
+			request.onItemDrops.forEach { it.invoke(safeContext, item) }
 		}
 	}
 

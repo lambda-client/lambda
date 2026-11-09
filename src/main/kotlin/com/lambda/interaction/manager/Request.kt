@@ -18,7 +18,11 @@
 package com.lambda.interaction.manager
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
+
+@DslMarker
+annotation class ManagerDslMarker
 
 /**
  * A simple format to ensure basic requirements and information when requesting a manager.
@@ -36,5 +40,13 @@ abstract class Request : Automated {
 
 	abstract val done: Boolean
 
+	@ManagerDslMarker
 	abstract fun submit(queueIfMismatchedStage: Boolean = true): Request
+
+	companion object {
+		context(safeContext: SafeContext)
+		fun <T> Collection<SafeContext.(T) -> Unit>.invoke(value: T) {
+			forEach { it.invoke(safeContext, value) }
+		}
+	}
 }

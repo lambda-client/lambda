@@ -47,6 +47,7 @@ import com.lambda.interaction.handler.handlers.breaking.RebreakResult
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.ManagerUtils.isPosBlocked
 import com.lambda.interaction.manager.PositionBlocking
+import com.lambda.interaction.manager.Request.Companion.invoke
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.RedundantSecondary
@@ -192,7 +193,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 						info.nullify()
 						return@listen
 					}
-					info.request.onStop?.invoke(this@listen, info.context.blockPos)
+					info.request.onStops.invoke(info.context.blockPos)
 					info.internalOnBreak()
 					RebreakHandler.offerRebreak(info)
 					if (!info.callbacksCompleted) info.startPending()
@@ -382,12 +383,12 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				if (info.updatedThisTick && info.type != RedundantSecondary && !info.abandoned) return@forEach
 
 				when {
-					info.type == RedundantSecondary -> info.request.onStart?.invoke(this, info.context.blockPos)
+					info.type == RedundantSecondary -> info.request.onStarts.invoke(info.context.blockPos)
 					info.abandoned -> {
 						info.abandoned = false
-						info.request.onStart?.invoke(this, info.context.blockPos)
+						info.request.onStarts.invoke(info.context.blockPos)
 					}
-					else -> info.request.onUpdate?.invoke(this, info.context.blockPos)
+					else -> info.request.onUpdates.invoke(info.context.blockPos)
 				}
 
 				info.updateInfo(ctx, request)
@@ -611,7 +612,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 		info.predictedDrops = prediction.items
 		info.guaranteesDrop = prediction.guaranteesDrop
 		info.dropPredictionComplete = prediction.isComplete
-		info.request.onStop?.invoke(this, info.context.blockPos)
+		info.request.onStops.invoke(info.context.blockPos)
 		when (breakConfig.breakConfirmation) {
 			BreakConfirmationMode.None -> {
 				destroyBlock(info)
@@ -672,13 +673,13 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				setBreakingTextureStage(-1)
 				abortBreakPacket()
 				PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
-				request.onCancel?.invoke(this, context.blockPos)
+				request.onCancels.invoke(context.blockPos)
 			}
 			Secondary -> {
 				if (breakConfig.unsafeCancels) {
 					type = RedundantSecondary
 					setBreakingTextureStage(-1)
-					request.onCancel?.invoke(this, context.blockPos)
+					request.onCancels.invoke(context.blockPos)
 				} else abandoned = true
 			}
 			else -> {}
@@ -707,7 +708,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				if (info.swapInfo.swap && !swapped) return
 				if (!startBreaking(info)) {
 					info.nullify()
-					info.request.onCancel?.invoke(this, ctx.blockPos)
+					info.request.onCancels.invoke(ctx.blockPos)
 				}
 				return
 			}
@@ -727,7 +728,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 			val blockState = ctx.cachedState
 			if (blockState.isEmpty) {
 				info.nullify()
-				info.request.onCancel?.invoke(this, ctx.blockPos)
+				info.request.onCancels.invoke(ctx.blockPos)
 				return
 			}
 
@@ -803,7 +804,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 					primaryBreak = rebreakResult.breakInfo.apply {
 						type = Primary
 						RebreakHandler.clearRebreak()
-						request.onStart?.invoke(this@startBreaking, ctx.blockPos)
+						request.onStarts.invoke(ctx.blockPos)
 					}
 
 					primaryBreak?.let { primary ->
@@ -815,7 +816,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				is RebreakResult.Rebroke -> {
 					info.type = Rebreak
 					info.nullify()
-					info.request.onReBreak?.invoke(this, ctx.blockPos)
+					info.request.onReBreaks.invoke(ctx.blockPos)
 					return true
 				}
 				else -> {}
@@ -827,7 +828,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 
 		if (gamemode.isCreative) {
 			lastPosStarted = ctx.blockPos
-			info.request.onStart?.invoke(this, ctx.blockPos)
+			info.request.onStarts.invoke(ctx.blockPos)
 			onBlockBreak(info)
 			info.startBreakPacket()
 			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
@@ -853,7 +854,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 
 		if (!PacketLimitHandler.canSendPackets(packetCount, PacketType.PlayerAction)) return false
 
-		info.request.onStart?.invoke(this, ctx.blockPos)
+		info.request.onStarts.invoke(ctx.blockPos)
 
 		lastPosStarted = ctx.blockPos
 

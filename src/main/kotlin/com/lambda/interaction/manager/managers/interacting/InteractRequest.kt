@@ -24,32 +24,30 @@ import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
+import com.lambda.interaction.manager.ManagerDslMarker
 import com.lambda.interaction.manager.Request
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
-@DslMarker
-annotation class InteractRequestMarker
-
-@InteractRequestMarker
+@ManagerDslMarker
 @JvmName("interactRequest1")
 context(automated: Automated)
 fun Collection<BuildResult>.interactRequest(
 	pendingInteractions: MutableCollection<BuildContext>,
 	nowOrNothing: Boolean = false,
-	builder: (PlaceRequestBuilder.() -> Unit)? = null
+	builder: (InteractRequestBuilder.() -> Unit)? = null
 ) = asSequence()
 	.interactRequest(pendingInteractions, nowOrNothing, builder)
 
-@InteractRequestMarker
+@ManagerDslMarker
 @JvmName("interactRequest2")
 context(automated: Automated)
 fun Sequence<BuildResult>.interactRequest(
 	pendingInteractions: MutableCollection<BuildContext>,
 	nowOrNothing: Boolean = false,
-	builder: (PlaceRequestBuilder.() -> Unit)? = null
+	builder: (InteractRequestBuilder.() -> Unit)? = null
 ) = map { if (it is Dependent) it.lastDependency else it }
 	.filterIsInstance<InteractResult.Interact>()
 	.sorted()
@@ -58,14 +56,14 @@ fun Sequence<BuildResult>.interactRequest(
 	.takeIf { it.isNotEmpty() }
 	?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
 
-@InteractRequestMarker
+@ManagerDslMarker
 @JvmName("interactRequest3")
 fun Automated.interactRequest(
 	contexts: Collection<InteractContext>,
 	pendingInteractions: MutableCollection<BuildContext>,
 	nowOrNothing: Boolean = false,
-	builder: (PlaceRequestBuilder.() -> Unit)? = null
-) = PlaceRequestBuilder(
+	builder: (InteractRequestBuilder.() -> Unit)? = null
+) = InteractRequestBuilder(
 	contexts,
 	pendingInteractions,
 	nowOrNothing,
@@ -77,7 +75,7 @@ data class InteractRequest(
 	val pendingInteractions: MutableCollection<BuildContext>,
 	override val nowOrNothing: Boolean = false,
 	private val automated: Automated,
-	val onPlace: (SafeContext.(BlockPos) -> Unit)?
+	val onInteract: Collection<SafeContext.(BlockPos) -> Unit>
 ) : Request(), Automated by automated {
 	override val requestId = ++requestCount
 	override val tickStageMask get() = interactConfig.tickStageMask
@@ -87,7 +85,7 @@ data class InteractRequest(
 			contexts.all { it.expectedState.matches(blockState(it.blockPos), it.preProcessingInfo.ignore) }
 		} == true
 
-	@InteractRequestMarker
+	@ManagerDslMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		InteractManager.request(this, queueIfMismatchedStage)
 
@@ -97,17 +95,17 @@ data class InteractRequest(
 	}
 }
 
-@InteractRequestMarker
-class PlaceRequestBuilder internal constructor(
+@ManagerDslMarker
+class InteractRequestBuilder internal constructor(
 	private val contexts: Collection<InteractContext>,
 	private val pendingInteractions: MutableCollection<BuildContext>,
 	private val nowOrNothing: Boolean,
 	private val automated: Automated
 ) {
-	private var onPlace: (SafeContext.(BlockPos) -> Unit)? = null
+	private val onInteract = mutableListOf<SafeContext.(BlockPos) -> Unit>()
 
 	fun onPlace(callback: SafeContext.(BlockPos) -> Unit) {
-		onPlace = callback
+		onInteract += callback
 	}
 
 	internal fun build() =
@@ -116,6 +114,6 @@ class PlaceRequestBuilder internal constructor(
 			pendingInteractions,
 			nowOrNothing,
 			automated,
-			onPlace
+			onInteract
 		)
 }

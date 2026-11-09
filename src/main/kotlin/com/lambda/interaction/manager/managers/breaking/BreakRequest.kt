@@ -27,6 +27,7 @@ import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.manager.ManagerDslMarker
 import com.lambda.interaction.manager.Request
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
@@ -34,10 +35,7 @@ import com.lambda.util.BlockUtils.isEmpty
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
-@DslMarker
-annotation class BreakRequestMarker
-
-@BreakRequestMarker
+@ManagerDslMarker
 @JvmName("breakRequest1")
 fun AutomatedSafeContext.breakRequest(
 	positions: Collection<BlockPos>,
@@ -49,7 +47,7 @@ fun AutomatedSafeContext.breakRequest(
 	.sim()
 	.breakRequest(pendingInteractions, nowOrNothing, builder)
 
-@BreakRequestMarker
+@ManagerDslMarker
 @JvmName("breakRequest2")
 context(automated: Automated)
 fun Collection<BuildResult>.breakRequest(
@@ -59,7 +57,7 @@ fun Collection<BuildResult>.breakRequest(
 ) = asSequence()
 	.breakRequest(pendingInteractions, nowOrNothing, builder)
 
-@BreakRequestMarker
+@ManagerDslMarker
 @JvmName("breakRequest3")
 context(automated: Automated)
 fun Sequence<BuildResult>.breakRequest(
@@ -74,7 +72,7 @@ fun Sequence<BuildResult>.breakRequest(
 	.takeIf { it.isNotEmpty() }
 	?.let { automated.breakRequest(it, pendingInteractions, nowOrNothing, builder) }
 
-@BreakRequestMarker
+@ManagerDslMarker
 @JvmName("breakRequest4")
 fun Automated.breakRequest(
 	contexts: Collection<BreakContext>,
@@ -90,7 +88,7 @@ fun Automated.breakRequest(
  *
  * The callbacks can be used to keep track of the break progress.
  *
- * A private constructor is used to force use of the cleaner [BreakRequestMarker] builder. This is
+ * A private constructor is used to force use of the cleaner [ManagerDslMarker] builder. This is
  * accessed through the [breakRequest] method.
  *
  * @param contexts A collection of [BreakContext]'s gathered from the BuildSimulator.
@@ -103,13 +101,13 @@ data class BreakRequest(
 	val pendingInteractions: MutableCollection<BuildContext>,
 	override val nowOrNothing: Boolean,
 	private val automated: Automated,
-	val onStart: (SafeContext.(BlockPos) -> Unit)?,
-	val onUpdate: (SafeContext.(BlockPos) -> Unit)?,
-	val onStop: (SafeContext.(BlockPos) -> Unit)?,
-	val onCancel: (SafeContext.(BlockPos) -> Unit)?,
-	val onItemDrop: (SafeContext.(ItemEntity) -> Unit)?,
-	val onReBreakStart: (SafeContext.(BlockPos) -> Unit)?,
-	val onReBreak: (SafeContext.(BlockPos) -> Unit)?
+	val onStarts: Collection<SafeContext.(BlockPos) -> Unit>,
+	val onUpdates: Collection<SafeContext.(BlockPos) -> Unit>,
+	val onStops: Collection<SafeContext.(BlockPos) -> Unit>,
+	val onCancels: Collection<SafeContext.(BlockPos) -> Unit>,
+	val onItemDrops: Collection<SafeContext.(ItemEntity) -> Unit>,
+	val onReBreakStarts: Collection<SafeContext.(BlockPos) -> Unit>,
+	val onReBreaks: Collection<SafeContext.(BlockPos) -> Unit>
 ) : Request(), Automated by automated {
 	override val requestId = ++requestCount
 	override val tickStageMask get() = breakConfig.tickStageMask
@@ -117,7 +115,7 @@ data class BreakRequest(
 	override val done: Boolean
 		get() = runSafe { contexts.all { blockState(it.blockPos).isEmpty } } == true
 
-	@BreakRequestMarker
+	@ManagerDslMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		BreakManager.request(this, queueIfMismatchedStage)
 
@@ -127,47 +125,47 @@ data class BreakRequest(
 	}
 }
 
-@BreakRequestMarker
+@ManagerDslMarker
 class BreakRequestBuilder internal constructor(
 	private val contexts: Collection<BreakContext>,
 	private val pendingInteractions: MutableCollection<BuildContext>,
 	private val nowOrNothing: Boolean,
 	private val automated: Automated
 ) {
-	private var onStart: (SafeContext.(BlockPos) -> Unit)? = null
-	private var onUpdate: (SafeContext.(BlockPos) -> Unit)? = null
-	private var onStop: (SafeContext.(BlockPos) -> Unit)? = null
-	private var onCancel: (SafeContext.(BlockPos) -> Unit)? = null
-	private var onItemDrop: (SafeContext.(ItemEntity) -> Unit)? = null
-	private var onReBreakStart: (SafeContext.(BlockPos) -> Unit)? = null
-	private var onReBreak: (SafeContext.(BlockPos) -> Unit)? = null
+	private val onStart = mutableListOf<SafeContext.(BlockPos) -> Unit>()
+	private val onUpdate = mutableListOf<SafeContext.(BlockPos) -> Unit>()
+	private val onStop = mutableListOf<SafeContext.(BlockPos) -> Unit>()
+	private val onCancel = mutableListOf<SafeContext.(BlockPos) -> Unit>()
+	private val onItemDrop = mutableListOf<SafeContext.(ItemEntity) -> Unit>()
+	private val onReBreakStart = mutableListOf<SafeContext.(BlockPos) -> Unit>()
+	private val onReBreak = mutableListOf<SafeContext.(BlockPos) -> Unit>()
 
 	fun onStart(callback: SafeContext.(BlockPos) -> Unit) {
-		onStart = callback
+		onStart += callback
 	}
 
 	fun onUpdate(callback: SafeContext.(BlockPos) -> Unit) {
-		onUpdate = callback
+		onUpdate += callback
 	}
 
 	fun onStop(callback: SafeContext.(BlockPos) -> Unit) {
-		onStop = callback
+		onStop += callback
 	}
 
 	fun onCancel(callback: SafeContext.(BlockPos) -> Unit) {
-		onCancel = callback
+		onCancel += callback
 	}
 
 	fun onItemDrop(callback: SafeContext.(ItemEntity) -> Unit) {
-		onItemDrop = callback
+		onItemDrop += callback
 	}
 
 	fun onReBreakStart(callback: SafeContext.(BlockPos) -> Unit) {
-		onReBreakStart = callback
+		onReBreakStart += callback
 	}
 
 	fun onReBreak(callback: SafeContext.(BlockPos) -> Unit) {
-		onReBreak = callback
+		onReBreak += callback
 	}
 
 	internal fun build() =
