@@ -77,7 +77,6 @@ import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.withSafeAutomated
-import com.lambda.util.BlockDropPredictor
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
@@ -193,6 +192,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 						info.nullify()
 						return@listen
 					}
+					info.predictDrops(player.mainHandStack)
 					info.request.onStops.invoke(info.context.blockPos)
 					info.internalOnBreak()
 					RebreakHandler.offerRebreak(info)
@@ -209,6 +209,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				RebreakHandler.reBreak?.let { reBreak ->
 					if (matchesBlockItem(reBreak, entity)) return@runGameScheduled
 				}
+				if (pendingActions.any { info -> matchesBlockItem(info, entity) }) return@runGameScheduled
 
 				breakInfos
 					.filterNotNull()
@@ -603,15 +604,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see nullify
 	 */
 	private fun AutomatedSafeContext.onBlockBreak(info: BreakInfo) {
-		val prediction =
-			BlockDropPredictor.predictDrops(
-				info.context.cachedState,
-				player.mainHandStack,
-				info.context.blockPos
-			)
-		info.predictedDrops = prediction.items
-		info.guaranteesDrop = prediction.guaranteesDrop
-		info.dropPredictionComplete = prediction.isComplete
+		info.predictDrops(player.mainHandStack)
 		info.request.onStops.invoke(info.context.blockPos)
 		when (breakConfig.breakConfirmation) {
 			BreakConfirmationMode.None -> {

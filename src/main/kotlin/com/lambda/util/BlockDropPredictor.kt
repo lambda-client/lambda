@@ -19,9 +19,14 @@ package com.lambda.util
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
+import com.lambda.core.Loadable
+import com.lambda.event.events.WorldEvent
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.threading.runConcurrent
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
+import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Item
@@ -35,9 +40,19 @@ import net.minecraft.util.math.random.RandomSplitter
 import java.util.*
 import kotlin.math.nextDown
 
-object BlockDropPredictor {
+object BlockDropPredictor : Loadable {
 	private const val MAX_OUTCOME_PATHS = 4096
 	private const val MAX_ENUMERATED_INT_BOUND = 4096
+
+	private var lootWorld: DummyLootServerWorld? = null
+
+	init {
+		listenUnsafe<WorldEvent.Join> {
+			lootWorld = null
+			val registryManager = mc.world?.registryManager ?: return@listenUnsafe
+			runConcurrent { runCatching { DummyLootServerWorld.preload(registryManager) } }
+		}
+	}
 
 	data class DropPrediction(
 		val items: Set<Item>,
@@ -66,7 +81,7 @@ object BlockDropPredictor {
 		val lootTableKey = state.block.lootTableKey.orElse(null) ?: return DropPrediction.EMPTY
 
 		return try {
-			val world = DummyLootServerWorld.create(clientWorld)
+			val world = lootWorld(clientWorld)
 			val table = world.server.reloadableRegistries.getLootTable(lootTableKey)
 			if (table === LootTable.EMPTY) return DropPrediction.EMPTY
 
@@ -85,6 +100,10 @@ object BlockDropPredictor {
 			DropPrediction.INCOMPLETE
 		}
 	}
+
+	private fun lootWorld(clientWorld: ClientWorld) =
+		lootWorld?.takeIf { it.isFor(clientWorld) }
+			?: DummyLootServerWorld.create(clientWorld).also { lootWorld = it }
 
 	private fun exploreOutcomes(table: LootTable, worldContext: LootWorldContext): DropPrediction {
 		val pendingPaths = ArrayDeque<List<Int>>()

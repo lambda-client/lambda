@@ -120,8 +120,10 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 			runGameScheduled {
 				val entity = it.entity
 				if (entity !is ItemEntity) return@runGameScheduled
+				val matches = pendingActions.filter { info -> matchesBlockItem(info, entity) }
+				if (matches.any { info -> entity in info.drops }) return@runGameScheduled
 				val pending =
-					pendingActions.firstOrNull { info -> matchesBlockItem(info, entity) }
+					(matches.firstOrNull { info -> info.drops.isEmpty() } ?: matches.firstOrNull())
 						?: reBreak?.let { info ->
 							if (matchesBlockItem(info, entity)) info
 							else return@runGameScheduled

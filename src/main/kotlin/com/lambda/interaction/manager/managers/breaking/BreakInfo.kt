@@ -29,6 +29,7 @@ import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Redu
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.threading.withSafeAutomated
+import com.lambda.util.BlockDropPredictor
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.entity.ItemEntity
@@ -82,17 +83,25 @@ data class BreakInfo(
 
 	// Post Processing
 	var broken = false; private set
-	val drops = mutableListOf<ItemEntity>()
-	var predictedDrops: Set<Item> = emptySet()
-	var guaranteesDrop: Boolean = true
-	var dropPredictionComplete: Boolean = true
+	val drops = mutableSetOf<ItemEntity>()
+	var predictedDrops: Set<Item> = emptySet(); private set
+	var guaranteesDrop = false; private set
+	var dropPredictionComplete = false; private set
 	val callbacksCompleted
 		get() = broken && request.onItemDrops.isEmpty()
 	val validBreak
 		get() = broken && (request.onItemDrops.isEmpty() || !guaranteesDrop || drops.isNotEmpty())
 
+	fun predictDrops(tool: ItemStack) {
+		val prediction = BlockDropPredictor.predictDrops(context.cachedState, tool, context.blockPos)
+		predictedDrops = prediction.items
+		guaranteesDrop = prediction.guaranteesDrop
+		dropPredictionComplete = prediction.isComplete
+	}
+
 	context(safeContext: SafeContext)
 	fun internalOnBreak() {
+		if (broken) return
 		broken = true
 		drops.forEach { item ->
 			request.onItemDrops.forEach { it.invoke(safeContext, item) }
@@ -101,7 +110,7 @@ data class BreakInfo(
 
 	context(safeContext: SafeContext)
 	fun internalOnItemDrop(item: ItemEntity) {
-		drops.add(item)
+		if (!drops.add(item)) return
 		if (broken || type == Rebreak) {
 			request.onItemDrops.forEach { it.invoke(safeContext, item) }
 		}

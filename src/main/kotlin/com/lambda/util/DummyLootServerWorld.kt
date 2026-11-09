@@ -111,6 +111,8 @@ class DummyLootServerWorld private constructor() : ServerWorld(
 	private val delegate: ClientWorld
 		get() = checkNotNull(clientWorld)
 
+	fun isFor(world: ClientWorld) = clientWorld === world
+
 	fun createBlockLootContext(
 		state: BlockState,
 		pos: BlockPos,
@@ -190,6 +192,10 @@ class DummyLootServerWorld private constructor() : ServerWorld(
 		private val unsafe = Unsafe::class.java.getDeclaredField("theUnsafe").let { field ->
 			field.isAccessible = true
 			field.get(null) as Unsafe
+		}
+
+		fun preload(registryManager: DynamicRegistryManager) {
+			ClientLootRegistries.lookup(registryManager)
 		}
 
 		fun create(clientWorld: ClientWorld): DummyLootServerWorld {
