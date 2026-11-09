@@ -174,8 +174,6 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 		}
 
 		listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
-			if (event.pos == RebreakHandler.reBreak?.context?.blockPos) return@listen
-
 			breakInfos
 				.firstOrNull { it?.context?.blockPos == event.pos }
 				?.let { info ->
@@ -206,9 +204,6 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				if (entity !is ItemEntity) return@runGameScheduled
 
 				// ToDo: Proper item drop prediction system
-				RebreakHandler.reBreak?.let { reBreak ->
-					if (matchesBlockItem(reBreak, entity)) return@runGameScheduled
-				}
 
 				breakInfos
 					.filterNotNull()
@@ -604,7 +599,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see nullify
 	 */
 	private fun AutomatedSafeContext.onBlockBreak(info: BreakInfo) {
-		info.request.onStop?.invoke(this, info.context.blockPos)
+		if (info.type != Rebreak) info.request.onStop?.invoke(this, info.context.blockPos)
 		when (breakConfig.breakConfirmation) {
 			BreakConfirmationMode.None -> {
 				destroyBlock(info)
@@ -809,12 +804,8 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				}
 				is RebreakResult.Rebroke -> {
 					info.type = Rebreak
-					info.nullify()
 					info.request.onReBreak?.invoke(this, ctx.blockPos)
-					if (breakConfig.breakConfirmation == BreakConfirmationMode.None) {
-						info.internalOnBreak()
-						if (!info.callbacksCompleted) info.startPending()
-					} else info.startPending()
+					onBlockBreak(info)
 					return true
 				}
 				else -> {}
