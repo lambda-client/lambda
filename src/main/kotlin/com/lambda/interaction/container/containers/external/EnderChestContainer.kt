@@ -108,7 +108,7 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 				if (isAccessed) actionTask { player.closeHandledScreen() }
 				else null
 			}.thenOrNull {
-				if (blockPos != null) breakAndCollect(blockPos)
+				if (blockPos != null) breakAndCollect(setOf(blockPos))
 				else null
 			}
 	}

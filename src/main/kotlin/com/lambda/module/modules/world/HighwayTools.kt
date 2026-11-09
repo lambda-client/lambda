@@ -38,7 +38,6 @@ import com.lambda.module.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.TaskMarker
 import com.lambda.task.start
-import com.lambda.task.tasks.BuildStatus
 import com.lambda.task.tasks.MergeHandling
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.farmEnderChests
@@ -192,10 +191,10 @@ object HighwayTools : Module(
 		}
 
 	@TaskMarker
-	private fun AutomatedSafeContext.checkFarmEnderChests(buildStatus: BuildStatus): Task<*>? {
+	private fun AutomatedSafeContext.checkFarmEnderChests(structure: Structure): Task<*>? {
 		if (!farmEnderChests) return null
 
-		val remainingObi = buildStatus.structure
+		val remainingObi = structure
 			.count {
 				it.value.getState(it.key).isOf(Blocks.OBSIDIAN) &&
 						!blockState(it.key).isOf(Blocks.OBSIDIAN)

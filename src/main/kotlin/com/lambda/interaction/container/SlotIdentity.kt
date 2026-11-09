@@ -28,7 +28,10 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
 sealed interface SlotIdentity {
-	data class Player(val index: Int) : SlotIdentity
+	data class Player(val index: Int) : SlotIdentity {
+		override fun resolveStack(): ItemStack? = mc.player?.inventory?.getStack(index)
+	}
+
 	data class Placed(val positions: Set<BlockPos>, val index: Int) : SlotIdentity
 	data class Ender(val index: Int) : SlotIdentity
 
@@ -37,6 +40,8 @@ sealed interface SlotIdentity {
 		val (key, ender) = currentContainerAnchor()
 		return resolveIn(handler.slots, key, ender)
 	}
+
+	fun resolveStack(): ItemStack? = resolve()?.stack
 
 	fun resolveIn(
 		slots: List<Slot>,

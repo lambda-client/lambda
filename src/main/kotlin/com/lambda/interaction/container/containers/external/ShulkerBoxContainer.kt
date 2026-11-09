@@ -35,14 +35,17 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.slotsAvailable
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.task.Task
 import com.lambda.task.TaskMarker
+import com.lambda.task.tasks.MergeHandling
 import com.lambda.task.tasks.breakAndCollect
 import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.placeContainer
+import com.lambda.task.tasks.purgePickups
 import com.lambda.task.tasks.transfer
 import com.lambda.task.tasks.wrappers.actionTask
 import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
 import com.lambda.task.tasks.wrappers.thenOrNull
+import com.lambda.task.tasks.wrappers.withLifetimeParent
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
@@ -82,13 +85,14 @@ data class ShulkerBoxContainer(
 		automated: Automated
 	) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
-			val selection = stackSelection {
-				isItem(shulkerItem)
-				withName(itemName)
-				slotIdentity?.let { sortedBySlotMatch(it) }
-					?: sortedWith { compareByDescending { it.slot?.index == index } }
-				sortedByBestContentMatch(stacks)
-			}
+			val selection =
+				stackSelection {
+					isItem(shulkerItem)
+					withName(itemName)
+					slotIdentity?.let { sortedBySlotMatch(it) }
+						?: sortedWith { compareByDescending { it.slot?.index == index } }
+					sortedByBestContentMatch(stacks)
+				}
 			taskOrNull {
 				if (containedIn == HotbarContainer) null
 				else selection.transfer(containedIn.select(ContainerSearchScope.Loaded), HotbarContainer.select())
@@ -111,8 +115,22 @@ data class ShulkerBoxContainer(
 				if (!container.isAccessed) null
 				else actionTask { player.closeHandledScreen() }
 			}.then {
-				breakAndCollect(container.pos)
-			}.thenOrNull { outcome ->
+				breakAndCollect(setOf(container.pos))
+					.withLifetimeParent {
+						purgePickups(
+							stackSelection {
+								withoutSelector(
+									stackSelection {
+										isShulkerBox()
+										withName(itemName)
+									}
+								)
+							},
+							MergeHandling.Ignore
+						)
+					}
+			}.thenOrNull { (outcome, _) ->
+				if (outcome == null) return@thenOrNull null
 				val ownSlot = slotIdentity ?: return@thenOrNull null
 				val pickedUp = outcome.pickups
 					.asSequence()

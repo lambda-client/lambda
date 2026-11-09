@@ -89,7 +89,7 @@ class PlaceContainerTask @TaskMarker internal constructor(
         containerPosition
             .toStructure(TargetState.Stack(slot.stack))
             .toBlueprint()
-            .build(finishOnDone = true, collectDrops = false)
+            .build(finishOnDone = true)
             .onSuccess { success(containerPosition) }
             .start()
     }

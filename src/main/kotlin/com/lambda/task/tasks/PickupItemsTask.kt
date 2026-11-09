@@ -19,6 +19,7 @@ package com.lambda.task.tasks
 
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -33,6 +34,7 @@ import com.lambda.task.Task
 import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.threading.withSafeAutomated
+import com.lambda.util.item.ItemStackUtils.itemAndComponentsEqual
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 
@@ -48,6 +50,13 @@ data class PickedUpItem(
 	val slot: SlotIdentity
 )
 
+context(_: Automated)
+fun SafeContext.canPickup(stack: ItemStack): Boolean {
+	val offhand = player.offHandStack
+	return (offhand.itemAndComponentsEqual(stack) && offhand.count < offhand.maxCount) ||
+			spaceLeft(stack.item.select(1), ContainerSelection.HOTBAR_AND_INVENTORY) >= 1
+}
+
 class PickupItemsTask @TaskMarker internal constructor(
 	private val drops: MutableSet<ItemEntity>,
 	private val dropDisposablesToMakeSpace: Boolean = true,
@@ -56,7 +65,6 @@ class PickupItemsTask @TaskMarker internal constructor(
 	override val name get() = "Collecting ${drops.size} item drop(s)"
 
 	private val pickups = mutableListOf<PickedUpItem>()
-	private val lost = mutableListOf<String>()
 
 	init {
 		listen<TickEvent.Pre> {
@@ -78,27 +86,23 @@ class PickupItemsTask @TaskMarker internal constructor(
 		}
 
 		listen<InventoryEvent.PickupLost>(alwaysListen = true) { event ->
-			if (event.remaining > 0 || !drops.remove(event.source)) return@listen
-			val collector = event.collector?.name?.string ?: "unknown causes"
-			lost += "${event.stack.count}x ${event.stack.name.string} lost to $collector"
+			if (event.remaining <= 0) drops.remove(event.source)
 		}
 	}
 
 	private fun AutomatedSafeContext.pollNextItem() {
 		if (drops.isEmpty()) {
-			if (lost.isEmpty()) success(pickups.toList())
-			else failure("Failed to collect ${lost.size} drop(s): ${lost.joinToString("; ")}")
+			success(pickups.toList())
 			return
 		}
 
-		val target = drops.firstOrNull { !it.isRemoved } ?: return
+		val live = drops.filter { !it.isRemoved }
+		if (live.isEmpty()) return
 
-		val selection = target.stack.item.select(1)
-		val offhand = player.offHandStack
-		val offhandFits = ItemStack.areItemsAndComponentsEqual(offhand, target.stack) && offhand.count < offhand.maxCount
-		if (!offhandFits && spaceLeft(selection, ContainerSelection.HOTBAR_AND_INVENTORY) < 1) {
+		val target = live.firstOrNull { canPickup(it.stack) }
+		if (target == null) {
 			if (!dropDisposablesToMakeSpace) {
-				failure("Inventory is full")
+				success(pickups.toList())
 				return
 			}
 			val disposable =
@@ -107,7 +111,7 @@ class PickupItemsTask @TaskMarker internal constructor(
 					ContainerSelection.HOTBAR_AND_INVENTORY,
 					sorted = false
 				) ?: run {
-					failure("Inventory is full and no disposable items to throw")
+					success(pickups.toList())
 					return
 				}
 

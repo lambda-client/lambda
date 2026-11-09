@@ -24,7 +24,6 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.Blueprint
-import com.lambda.interaction.construction.blueprint.toStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.blueprint.toBlueprint
@@ -42,10 +41,10 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
 import com.lambda.interaction.construction.simulation.sim
-import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.manager.managers.breaking.BreakRequestBuilder
 import com.lambda.interaction.manager.managers.breaking.breakRequest
+import com.lambda.interaction.manager.managers.interacting.InteractRequestBuilder
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
@@ -63,9 +62,6 @@ import com.lambda.util.math.dist
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import net.minecraft.block.BlockState
-import net.minecraft.entity.ItemEntity
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
@@ -79,79 +75,76 @@ import kotlin.math.sqrt
 @TaskMarker
 fun Automated.build(
 	finishOnDone: Boolean = true,
-	collectDrops: Boolean = false,
 	async: Boolean = false,
+	breakCallbacks: (BreakRequestBuilder.() -> Unit)? = null,
+	interactCallbacks: (InteractRequestBuilder.() -> Unit)? = null,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
 	blueprint: () -> Blueprint
-) = BuildTask(blueprint(), finishOnDone, collectDrops, async, this, buildResultFilter)
+) = BuildTask(
+	blueprint(),
+	finishOnDone,
+	async,
+	breakCallbacks,
+	interactCallbacks,
+	this,
+	buildResultFilter
+)
 
 @TaskMarker
 context(automated: Automated)
 fun Structure.build(
 	finishOnDone: Boolean = true,
-	collectDrops: Boolean = false,
 	async: Boolean = false,
+	breakCallbacks: (BreakRequestBuilder.() -> Unit)? = null,
+	interactCallbacks: (InteractRequestBuilder.() -> Unit)? = null,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-) = BuildTask(toBlueprint(), finishOnDone, collectDrops, async, automated, buildResultFilter)
+) = BuildTask(
+	toBlueprint(),
+	finishOnDone,
+	async,
+	breakCallbacks,
+	interactCallbacks,
+	automated,
+	buildResultFilter
+)
 
 @TaskMarker
 context(automated: Automated)
 fun Blueprint.build(
 	finishOnDone: Boolean = true,
-	collectDrops: Boolean = false,
 	async: Boolean = false,
-	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-) = BuildTask(this, finishOnDone, collectDrops, async, automated, buildResultFilter)
-
-@TaskMarker
-context(automated: Automated)
-fun breakAndCollect(
-	blockPos: BlockPos,
-	finishOnDone: Boolean = true,
-	async: Boolean = false,
+	breakCallbacks: (BreakRequestBuilder.() -> Unit)? = null,
+	interactCallbacks: (InteractRequestBuilder.() -> Unit)? = null,
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
 ) = BuildTask(
-	blockPos.toStructure(TargetState.Empty).toBlueprint(),
-	finishOnDone, true, async, automated, buildResultFilter
-)
-
-data class BuildOutcome(
-	val structure: Structure,
-	val pickups: List<PickedUpItem>,
-	val pickupTypes: Set<Item>
-)
-
-data class BuildStatus(
-	val structure: Structure,
-	val pickedUpTypes: Set<Item>,
-	val dropsPending: List<ItemStack>
+	this,
+	finishOnDone,
+	async,
+	breakCallbacks,
+	interactCallbacks,
+	automated,
+	buildResultFilter
 )
 
 class BuildTask @TaskMarker internal constructor(
 	private val blueprint: Blueprint,
-	private val finishOnDone: Boolean,
-	private val collectDrops: Boolean,
-	private val async: Boolean,
+	private val finishOnDone: Boolean = true,
+	private val async: Boolean = true,
+	private val breakCallbacks: (BreakRequestBuilder.() -> Unit)? = null,
+	private val interactCallbacks: (InteractRequestBuilder.() -> Unit)? = null,
 	automated: Automated,
 	private val buildResultFilter: SafeContext.(BuildResult) -> Boolean,
-) : Task<BuildOutcome>(), Automated by automated {
-	override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(placements / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
+) : Task<Structure>(), Automated by automated {
+	override val name: String
+		get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(interactions / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
 
 	private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 	private val atMaxPendingInteractions
 		get() = pendingInteractions.size >= buildConfig.maxPendingActions
 
-	private var placements = 0
 	private var breaks = 0
-	private val dropsToCollect = mutableSetOf<ItemEntity>()
-	private val pickups = mutableListOf<PickedUpItem>()
-	private val pickupTypes = mutableSetOf<Item>()
-	private val preTickCallbacks = mutableListOf<context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Task<*>?>()
-
-	private val onItemDrop: ((item: ItemEntity) -> Unit)?
-		get() = if (collectDrops) { item ->
-			dropsToCollect.add(item)
-		} else null
+	private var interactions = 0
+	private val preTickCallbacks = mutableListOf<context(BuildTask) AutomatedSafeContext.(Structure) -> Task<*>?>()
 
 	private var job: Job? = null
 	private var results: Collection<BuildResult> = mutableSetOf()
@@ -163,7 +156,7 @@ class BuildTask @TaskMarker internal constructor(
 	}
 
 	@TaskMarker
-	fun onTickPre(callback: context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Task<*>?) =
+	fun onTickPre(callback: context(BuildTask) AutomatedSafeContext.(Structure) -> Task<*>?) =
 		apply { preTickCallbacks.add(callback) }
 
 	init {
@@ -257,31 +250,16 @@ class BuildTask @TaskMarker internal constructor(
 				}
 		}
 
-		return collectDrops()
+		return false
 	}
 
 	private fun AutomatedSafeContext.runPreTick(): Boolean {
 		if (preTickCallbacks.isEmpty()) return false
-		val status =
-			BuildStatus(
-				structure = blueprint.structure,
-				pickedUpTypes = pickupTypes,
-				dropsPending = dropsToCollect.map { it.stack.copy() }
-			)
 		preTickCallbacks.forEach { callback ->
-			val task = runCatching { callback(status) }.getOrNull()
-			if (task != null) return true
+			val task = runCatching { callback(blueprint.structure) }.getOrNull()
+			if (task != null || state != Task.State.Running) return true
 		}
 		return false
-	}
-
-	private fun SafeContext.currentPickups(): List<PickedUpItem> {
-		if (pickups.isEmpty()) return emptyList()
-		val latest = LinkedHashMap<SlotIdentity, ItemStack>()
-		pickups.forEach { latest[it.slot] = it.stack }
-		return latest.entries
-			.filter { (slot, stack) -> slot.holds(stack) }
-			.map { (slot, stack) -> PickedUpItem(stack.copy(), slot) }
 	}
 
 	private fun AutomatedSafeContext.simulate() {
@@ -329,7 +307,7 @@ class BuildTask @TaskMarker internal constructor(
 			is PreSimResult.NoPermission,
 			is GenericResult.Ignored -> {
 				if (iteratePropagating()) return
-				if (finishOnDone) success(BuildOutcome(blueprint.structure, currentPickups(), pickupTypes))
+				if (finishOnDone) success(blueprint.structure)
 			}
 
 			is GenericResult.NotVisible,
@@ -347,20 +325,20 @@ class BuildTask @TaskMarker internal constructor(
 			is Contextual -> {
 				if (atMaxPendingInteractions) return
 				when (result) {
-					is BreakResult.Break ->
-						allResults.breakRequest(pendingInteractions) {
+					is BreakResult.Break -> allResults
+						.breakRequest(pendingInteractions) {
 							onStop { breaks++ }
-							onItemDrop?.let { onItemDrop ->
-								onItemDrop { onItemDrop(it) }
-							}
-						}?.submit()
+							breakCallbacks?.invoke(this)
+						}
 
-					is InteractResult.Interact -> {
-						allResults.interactRequest(pendingInteractions, false) {
-							onPlace { placements++ }
-						}?.submit()
-					}
-				}
+					is InteractResult.Interact -> allResults
+						.interactRequest(pendingInteractions, false) {
+							onPlace { interactions++ }
+							interactCallbacks?.invoke(this)
+						}
+
+					else -> null
+				}?.submit()
 			}
 
 			is Dependent -> handleResult(result.lastDependency, allResults)
@@ -371,18 +349,6 @@ class BuildTask @TaskMarker internal constructor(
 					.start()
 			}
 		}
-	}
-
-	private fun AutomatedSafeContext.collectDrops(): Boolean {
-		if (dropsToCollect.isEmpty()) return false
-		if (pendingInteractions.isNotEmpty()) return true
-		pickupItems(dropsToCollect)
-			.onSuccess {
-				pickups.addAll(it)
-				pickupTypes.addAll(it.map { it.stack.item })
-			}
-			.start()
-		return true
 	}
 
 	private fun iteratePropagating() =
