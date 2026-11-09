@@ -43,6 +43,11 @@ abstract class RotationRequest(automated: Automated) : Request(), Automated by a
 	override val tickStageMask = automated.rotationConfig.tickStageMask
 	override val nowOrNothing = true
 
+	override val done get() = done(RotationManager.activeRotation)
+	val serverDone get() = done(RotationManager.serverRotation)
+
+	protected abstract fun done(match: Rotation): Boolean
+
 	abstract infix fun dist(rotation: Rotation): Double
 
 	@ManagerDslMarker
@@ -73,16 +78,15 @@ interface IRotationRequest : Automated {
 		override var decayTicks = rotationConfig.decayTicks
 		override var age = 0
 
-		override val done
-			get() =
-				runSafe {
-					val rot =
-						if (BaritoneHandler.isActive) player.rotation
-						else RotationManager.activeRotation
-					val delta = rot.yaw - (yaw.value ?: return@runSafe false)
-					val wrappedDelta = ((delta + 180) % 360 + 360) % 360 - 180
-					abs(wrappedDelta) <= 0.001
-				} == true
+		override fun done(match: Rotation) =
+			runSafe {
+				val rot =
+					if (BaritoneHandler.isActive) player.rotation
+					else match
+				val delta = rot.yaw - (yaw.value ?: return@runSafe false)
+				val wrappedDelta = ((delta + 180) % 360 + 360) % 360 - 180
+				abs(wrappedDelta) <= 0.001
+			} == true
 
 		override fun dist(rotation: Rotation): Double {
 			return wrap((yaw.value ?: return Double.MAX_VALUE) - rotation.yaw)
@@ -100,14 +104,13 @@ interface IRotationRequest : Automated {
 		override var decayTicks = rotationConfig.decayTicks
 		override var age = 0
 
-		override val done
-			get() =
-				runSafe {
-					val rot =
-						if (BaritoneHandler.isActive) player.rotation
-						else RotationManager.activeRotation
-					abs(rot.pitch - (pitch.value ?: return@runSafe false)) <= 0.001
-				} == true
+		override fun done(match: Rotation) =
+			runSafe {
+				val rot =
+					if (BaritoneHandler.isActive) player.rotation
+					else match
+				abs(rot.pitch - (pitch.value ?: return@runSafe false)) <= 0.001
+			} == true
 
 		override fun dist(rotation: Rotation): Double {
 			return wrap((pitch.value ?: return Double.MAX_VALUE) - rotation.pitch)
@@ -127,14 +130,13 @@ interface IRotationRequest : Automated {
 		override var decayTicks = rotationConfig.decayTicks
 		override var age = 0
 
-		override val done
-			get() =
-				runSafe {
-					val rot =
-						if (BaritoneHandler.isActive) player.rotation
-						else RotationManager.activeRotation
-					rot.dist(rotation.value ?: return@runSafe false) <= 0.001
-				} == true
+		override fun done(match: Rotation) =
+			runSafe {
+				val rot =
+					if (BaritoneHandler.isActive) player.rotation
+					else match
+				rot.dist(rotation.value ?: return@runSafe false) <= 0.001
+			} == true
 
 		override fun dist(rotation: Rotation) =
 			this.rotation.value?.let {

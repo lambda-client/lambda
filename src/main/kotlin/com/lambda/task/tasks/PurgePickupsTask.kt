@@ -18,10 +18,13 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PickupSlotKind
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.manager.managers.rotating.RotationRequest
+import com.lambda.module.modules.hud.Rotation
 import com.lambda.task.Task
 import com.lambda.task.TaskMarker
 
@@ -30,7 +33,8 @@ context(automated: Automated)
 fun purgePickups(
 	selection: StackSelection = StackSelection.EVERYTHING,
 	mergeHandling: MergeHandling = MergeHandling.DropDelta,
-) = PurgePickupsTask(selection, mergeHandling, automated)
+	rotation: (SafeContext.() -> RotationRequest)? = null
+) = PurgePickupsTask(selection, mergeHandling, rotation, automated)
 
 enum class MergeHandling {
 	Ignore,
@@ -42,8 +46,9 @@ enum class MergeHandling {
  * Drops every pickup matching [selection] until cancelled.
  */
 class PurgePickupsTask @TaskMarker internal constructor(
-	private val selection: StackSelection,
-	private val mergeHandling: MergeHandling,
+	private val selection: StackSelection = StackSelection.EVERYTHING,
+	private val mergeHandling: MergeHandling = MergeHandling.DropDelta,
+	private val rotation: (SafeContext.() -> RotationRequest)? = null,
 	automated: Automated
 ) : Task<Unit>(), Automated by automated {
 	override val name = "Purging pickups"
@@ -61,7 +66,7 @@ class PurgePickupsTask @TaskMarker internal constructor(
 					}
 				}
 			if (targets.isNotEmpty()) {
-				drop(targets)
+				drop(targets, rotation)
 					.start(pauseParent = false)
 			}
 		}

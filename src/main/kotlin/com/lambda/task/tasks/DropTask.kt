@@ -33,6 +33,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.handler.handlers.PacketLimitHandler.availablePackets
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
+import com.lambda.interaction.manager.managers.rotating.RotationRequest
 import com.lambda.task.Task
 import com.lambda.task.TaskMarker
 import com.lambda.threading.withSafeAutomated
@@ -49,19 +50,23 @@ context(automated: Automated)
 fun drop(
 	selection: StackSelection = StackSelection.EVERYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-) = DropTask(selection, containerSelection, emptyList(), automated)
+	rotation: (SafeContext.() -> RotationRequest)? = null
+) = DropTask(selection, containerSelection, emptyList(), rotation, automated)
 
 @TaskMarker
 @JvmName("dropSelection")
 context(automated: Automated)
 fun StackSelection.drop(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-) = drop(this, containerSelection)
+	rotation: (SafeContext.() -> RotationRequest)? = null
+) = drop(this, containerSelection, rotation)
 
 @TaskMarker
 context(automated: Automated)
-fun drop(targets: Iterable<DropTarget>) =
-	DropTask(null, ContainerSelection.ACCESSED, targets.toList(), automated)
+fun drop(
+	targets: Iterable<DropTarget>,
+	rotation: (SafeContext.() -> RotationRequest)? = null
+) = DropTask(null, ContainerSelection.ACCESSED, targets.toList(), rotation, automated)
 
 data class DropTarget(
 	val slot: SlotIdentity,
@@ -77,6 +82,7 @@ class DropTask @TaskMarker internal constructor(
 	private val stackSelection: StackSelection?,
 	private val containerSelection: ContainerSelection?,
 	private val targets: List<DropTarget>,
+	private val rotation: (SafeContext.() -> RotationRequest)?,
 	automated: Automated,
 ) : Task<DropResult>(), Automated by automated {
 	override val name =
@@ -182,6 +188,11 @@ class DropTask @TaskMarker internal constructor(
 			return
 		}
 
+		rotation?.invoke(this)?.let { rotation ->
+			val rotationRequest = rotation.submit(false)
+			if (!rotationRequest.serverDone) return
+		}
+
 		inventoryRequest {
 			plans.forEach { plan ->
 				plan.actions.forEach { click(it.slotId, it.button, it.type) }
@@ -222,7 +233,7 @@ class DropTask @TaskMarker internal constructor(
 		}
 	}
 
-	private fun AutomatedSafeContext.planDrops(budget: Int): List<PlannedDrop> {
+	private fun planDrops(budget: Int): List<PlannedDrop> {
 		val plans = mutableListOf<PlannedDrop>()
 		var remaining = budget
 		val iterator = drops.entries.iterator()
@@ -307,7 +318,7 @@ class DropTask @TaskMarker internal constructor(
 		else List(singles) { DropAction(slot.id, 0, SlotActionType.THROW) }
 	}
 
-	private fun SafeContext.record(plans: List<PlannedDrop>) {
+	private fun record(plans: List<PlannedDrop>) {
 		plans.forEach { plan ->
 			val current = plan.slot.resolve()?.stack
 			val same = current != null && !current.isEmpty && current.sameItemAs(plan.stack)
