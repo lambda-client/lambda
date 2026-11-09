@@ -21,7 +21,6 @@ import com.lambda.config.blocks.BreakConfig
 import com.lambda.config.blocks.BreakConfig.BreakMode
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BreakContext
-import com.lambda.interaction.handler.handlers.breaking.RebreakHandler
 import com.lambda.interaction.handler.handlers.breaking.RebreakPotential
 import com.lambda.interaction.manager.ActionInfo
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Primary
@@ -86,11 +85,9 @@ data class BreakInfo(
 	val callbacksCompleted
 		get() = broken && (request.onItemDrop == null || item != null)
 
-	private val keptForRebreak get() = this === RebreakHandler.reBreak
-
 	context(safeContext: SafeContext)
 	fun internalOnBreak() {
-		if (!keptForRebreak) broken = true
+		broken = true
 		item?.let { item ->
 			request.onItemDrop?.invoke(safeContext, item)
 		}
@@ -98,8 +95,8 @@ data class BreakInfo(
 
 	context(safeContext: SafeContext)
 	fun internalOnItemDrop(item: ItemEntity) {
-		if (!keptForRebreak) this.item = item
-		if (broken || keptForRebreak) {
+		this.item = item
+		if (broken) {
 			request.onItemDrop?.invoke(safeContext, item)
 		}
 	}
