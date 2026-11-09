@@ -26,7 +26,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.toStructure
 import com.lambda.interaction.construction.blueprint.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.managers.rotating.rotationRequest

@@ -27,7 +27,7 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.interaction.construction.StructureRegistry
-import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.toStructure
 import com.lambda.interaction.construction.blueprint.toBlueprint
 import com.lambda.task.start
 import com.lambda.task.tasks.BuildTask

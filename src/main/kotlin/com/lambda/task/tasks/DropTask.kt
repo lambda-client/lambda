@@ -36,6 +36,7 @@ import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.task.TaskMarker
 import com.lambda.threading.withSafeAutomated
+import com.lambda.util.item.ItemStackUtils.itemAndComponentsEqual
 import com.lambda.util.item.StackMovePlanner
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -334,5 +335,5 @@ class DropTask @TaskMarker internal constructor(
 	}
 
 	private fun ItemStack.sameItemAs(other: ItemStack) =
-		ItemStack.areItemsAndComponentsEqual(this, other)
+		this.itemAndComponentsEqual(other)
 }

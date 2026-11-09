@@ -27,19 +27,35 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 
+val EMPTY_STRUCTURE: Structure = emptyMap()
+
+fun BlockBox.toStructure(targetState: TargetState): Structure =
+    BlockPos.stream(this)
+        .toList()
+        .associateWith { targetState }
+
+fun BlockPos.toStructure(targetState: TargetState): Structure =
+    setOf(this).associateWith { targetState }
+
+fun StructureTemplate.toStructure(): Structure =
+    blockInfoLists
+        .flatMap { it.all }
+        .associate { it.pos to TargetState.State(it.state) }
+
 abstract class Blueprint {
     abstract val structure: Structure
 
-    val bounds = updatableLazy {
-        if (structure.isEmpty()) return@updatableLazy null
-        val maxX = structure.keys.maxOf { it.x }
-        val maxY = structure.keys.maxOf { it.y }
-        val maxZ = structure.keys.maxOf { it.z }
-        val minX = structure.keys.minOf { it.x }
-        val minY = structure.keys.minOf { it.y }
-        val minZ = structure.keys.minOf { it.z }
-        BlockBox(minX, minY, minZ, maxX, maxY, maxZ)
-    }
+    val bounds =
+        updatableLazy {
+            if (structure.isEmpty()) return@updatableLazy null
+            val maxX = structure.keys.maxOf { it.x }
+            val maxY = structure.keys.maxOf { it.y }
+            val maxZ = structure.keys.maxOf { it.z }
+            val minX = structure.keys.minOf { it.x }
+            val minY = structure.keys.minOf { it.y }
+            val minZ = structure.keys.minOf { it.z }
+            BlockBox(minX, minY, minZ, maxX, maxY, maxZ)
+        }
 
     fun getClosestPointTo(target: Vec3d): Vec3d {
         val bounds = bounds.value ?: return target
@@ -52,19 +68,4 @@ abstract class Blueprint {
     fun isOutOfBounds(vec3d: Vec3d): Boolean = bounds.value?.contains(vec3d.roundedBlockPos) == false
 
     val center get() = bounds.value?.center
-
-    companion object {
-        fun emptyStructure(): Structure = emptyMap()
-
-        fun BlockBox.toStructure(targetState: TargetState): Structure =
-            BlockPos.stream(this).toList().associateWith { targetState }
-
-        fun BlockPos.toStructure(targetState: TargetState): Structure =
-            setOf(this).associateWith { targetState }
-
-        fun StructureTemplate.toStructure(): Structure =
-            blockInfoLists
-                .flatMap { it.all }
-                .associate { it.pos to TargetState.State(it.state) }
-    }
 }

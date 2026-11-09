@@ -281,7 +281,6 @@ class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
             containersBlacklist = containersBlacklist,
             accessScope = accessScope,
             comparator = comparator
-                .takeUnless { it == null }
                 ?.thenBy { it.type }
                 ?: compareBy { it.type },
             dimensionWhitelist = dimensionWhitelist.toSet(),

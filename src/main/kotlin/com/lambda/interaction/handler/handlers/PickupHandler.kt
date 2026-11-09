@@ -30,6 +30,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.container.SlotIdentity
+import com.lambda.util.item.ItemStackUtils.itemAndComponentsEqual
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.player.PlayerInventory
@@ -47,7 +48,7 @@ object PickupHandler : Loadable {
 		val settled get() = landed >= stack.count || ticksLeft <= 0
 
 		fun land(slot: SlotIdentity, after: ItemStack, left: Int, opened: Boolean): Int {
-			if (!ItemStack.areItemsAndComponentsEqual(stack, after)) return 0
+			if (!stack.itemAndComponentsEqual(after)) return 0
 			val take = minOf(left, stack.count - landed)
 			if (take <= 0) return 0
 			val existing = slots[slot]
@@ -111,7 +112,7 @@ object PickupHandler : Loadable {
 				when {
 					after.isEmpty -> 0
 					before.isEmpty -> after.count
-					ItemStack.areItemsAndComponentsEqual(before, after) -> after.count - before.count
+					before.itemAndComponentsEqual(after) -> after.count - before.count
 					else -> 0
 				}
 			var left = grown
@@ -133,7 +134,7 @@ object PickupHandler : Loadable {
 		val reach = player.boundingBox.expand(PICKUP_REACH)
 		val source =
 			fastEntitySearch<ItemEntity>(PICKUP_REACH + 2) {
-				!it.isRemoved && it.boundingBox.intersects(reach) && ItemStack.areItemsAndComponentsEqual(it.stack, stack)
+				!it.isRemoved && it.boundingBox.intersects(reach) && it.stack.itemAndComponentsEqual(stack)
 			}.minByOrNull { it.squaredDistanceTo(player) } ?: return null
 
 		return pending.firstOrNull { it.source === source }
@@ -158,7 +159,7 @@ object PickupHandler : Loadable {
 		drops.forEach { source ->
 			val target =
 				fastEntitySearch<ItemEntity>(MERGE_RANGE, source.blockPos) {
-					it !== source && !it.isRemoved && ItemStack.areItemsAndComponentsEqual(it.stack, source.stack)
+					it !== source && !it.isRemoved && it.stack.itemAndComponentsEqual(source.stack)
 				}.minByOrNull { it.squaredDistanceTo(source) }
 
 			if (target != null) InventoryEvent.PickupMerged(source, target).post()

@@ -49,6 +49,7 @@ import com.lambda.threading.withSafeAutomated
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.item.ItemStackUtils.hasSpace
+import com.lambda.util.item.ItemStackUtils.itemAndComponentsEqual
 import com.lambda.util.item.StackMovePlanner
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
@@ -327,7 +328,7 @@ class ContainerTransferTask @TaskMarker internal constructor(
 
 	private fun canReceive(container: Container) =
 		container.spaceLeft(fromStack.mutate(1)) > 0 ||
-				container.count(toStack.mutate { notEmpty(); withoutSelection(fromStack) }) > 0
+				container.count(toStack.mutate { notEmpty(); withoutSelector(fromStack) }) > 0
 
 	private data class SlotPair(
 		val fromContainer: Container,
@@ -363,7 +364,7 @@ class ContainerTransferTask @TaskMarker internal constructor(
 		private val swappableSelection =
 			toSelection.mutate {
 				notEmpty()
-				withoutSelection(this@MoveTask.fromSelection)
+				withoutSelector(this@MoveTask.fromSelection)
 			}
 
 		init {
@@ -433,7 +434,9 @@ class ContainerTransferTask @TaskMarker internal constructor(
 
 		private fun AutomatedSafeContext.findSwappableSlot(fromSlot: Slot, toContainer: Container): Slot? {
 			if (!allowReplace) return null
-			return toContainer.findReplaceSlot(fromSlot.stack, swappableSelection)?.takeIf { fromSlot.canInsert(it.stack) }
+			return toContainer
+				.findReplaceSlot(fromSlot.stack, swappableSelection)
+				?.takeIf { fromSlot.canInsert(it.stack) }
 		}
 
 		private fun AutomatedSafeContext.move(pair: SlotPair, atMost: Int): Boolean {
@@ -612,7 +615,7 @@ class ContainerTransferTask @TaskMarker internal constructor(
 			success(moved)
 		}
 
-		private fun ItemStack.sameItemAs(other: ItemStack) = ItemStack.areItemsAndComponentsEqual(this, other)
+		private fun ItemStack.sameItemAs(other: ItemStack) = this.itemAndComponentsEqual(other)
 
 		private fun ItemStack.isForeignTo(other: ItemStack) = !isEmpty && !sameItemAs(other)
 

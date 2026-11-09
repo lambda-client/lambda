@@ -29,6 +29,7 @@ import net.minecraft.entity.attribute.EntityAttribute
 import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.item.ItemStack
+import net.minecraft.item.ItemStack.areItemsAndComponentsEqual
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.screen.slot.Slot
 
@@ -140,5 +141,7 @@ object ItemStackUtils {
     /**
      * Checks if the given item stacks are equal, including the item count and NBT.
      */
-    fun ItemStack?.equal(other: ItemStack?) = ItemStack.areEqual(this, other)
+    infix fun ItemStack?.equal(other: ItemStack?) = ItemStack.areEqual(this, other)
+
+    infix fun ItemStack.itemAndComponentsEqual(other: ItemStack) = areItemsAndComponentsEqual(this, other)
 }

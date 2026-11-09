@@ -23,7 +23,7 @@ import com.lambda.config.blocks.checkEat
 import com.lambda.config.editSetting
 import com.lambda.config.withEdits
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
+import com.lambda.interaction.construction.blueprint.EMPTY_STRUCTURE
 import com.lambda.interaction.construction.blueprint.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.selection.ContainerSelection
@@ -176,10 +176,10 @@ object HighwayTools : Module(
 			if (distance in 0..distanceMoved) {
 				this@HighwayTools.info("Highway built!")
 				disable()
-				return@propagatingBlueprint emptyStructure()
+				return@propagatingBlueprint EMPTY_STRUCTURE
 			}
 
-			var structure = emptyStructure()
+			var structure = EMPTY_STRUCTURE
 			val slice = generateSlice()
 			repeat(sliceSize) {
 				structure = structure

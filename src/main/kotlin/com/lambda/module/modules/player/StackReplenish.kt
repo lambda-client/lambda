@@ -33,6 +33,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
+import com.lambda.util.item.ItemStackUtils.itemAndComponentsEqual
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.screen.slot.Slot
@@ -70,7 +71,7 @@ object StackReplenish : Module(
 		val replenishSlots =
 			findSlots(
 				stackSelection(StackSelection.UNBOUNDED) {
-					predicate { s, _ -> ItemStack.areItemsAndComponentsEqual(s, stack) }
+					predicate { s, _ -> s.itemAndComponentsEqual(stack) }
 				},
 				InventoryContainer.select()
 			) ?: return

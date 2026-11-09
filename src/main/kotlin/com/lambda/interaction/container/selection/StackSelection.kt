@@ -258,16 +258,16 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		this.alwaysWholeStacks = selection.alwaysWholeStacks
 	}
 
-	fun withSelection(stackSelection: StackSelection) {
-		appendSelector(stackSelection.selector)
-		whitelistedSlots.addAll(stackSelection.whitelistedSlots)
-		blacklistedSlots.addAll(stackSelection.blacklistedSlots)
+	fun withSelector(selection: StackSelection) {
+		appendSelector(selection.selector)
+		whitelistedSlots.addAll(selection.whitelistedSlots)
+		blacklistedSlots.addAll(selection.blacklistedSlots)
 	}
 
-	fun withoutSelection(stackSelection: StackSelection) {
-		appendSelector { stack, slot -> !stackSelection.selector(stack, slot) }
-		whitelistedSlots.addAll(stackSelection.blacklistedSlots)
-		blacklistedSlots.addAll(stackSelection.whitelistedSlots)
+	fun withoutSelector(selection: StackSelection) {
+		appendSelector { stack, slot -> !selection.selector(stack, slot) }
+		whitelistedSlots.addAll(selection.blacklistedSlots)
+		blacklistedSlots.addAll(selection.whitelistedSlots)
 	}
 
 	fun isSlot(slot: SlotIdentity) {
