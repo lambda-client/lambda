@@ -44,7 +44,7 @@ import com.lambda.task.tasks.build
 import com.lambda.task.tasks.farmEnderChests
 import com.lambda.task.tasks.purgePickups
 import com.lambda.task.tasks.wrappers.softFail
-import com.lambda.task.tasks.wrappers.withSideTask
+import com.lambda.task.tasks.wrappers.with
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
@@ -163,7 +163,7 @@ object HighwayTools : Module(
 			.onTickPre {
 				with(this) {
 					checkFarmEnderChests(it)
-						?.withSideTask { purgePickups(NOT_OBI_OR_ECHEST_SELECTION, MergeHandling.Ignore) }
+						?.with { purgePickups(NOT_OBI_OR_ECHEST_SELECTION, MergeHandling.Ignore) }
 						?.softFail()
 						?.start()
 				}

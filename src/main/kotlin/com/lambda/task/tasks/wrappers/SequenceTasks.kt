@@ -22,7 +22,6 @@ import com.lambda.task.Task
 import com.lambda.task.TaskGenerator
 import com.lambda.task.TaskMarker
 import com.lambda.task.TaskOrNullGenerator
-import com.lambda.task.TaskOrNullSupplier
 
 @TaskMarker
 infix fun <R, R2> Task<R>.then(generator: TaskGenerator<R, R2>) =
@@ -41,9 +40,6 @@ fun <R> Task<R>.then(vararg tasks: Task<*>) =
 @TaskMarker
 infix fun <R, R2> Task<R>.thenOrNull(generator: TaskOrNullGenerator<R, R2>) =
 	OptionalSequencedTask(this, generator)
-
-@TaskMarker
-fun <R> taskOrNull(supplier: TaskOrNullSupplier<R>) = TaskOrNullTask(supplier)
 
 /**
  * A task that sequences the [firstTask] with the next task, supplied by [nextTaskGenerator].
@@ -94,26 +90,5 @@ class OptionalSequencedTask<R, R2> @TaskMarker internal constructor(
 					?: success(null)
 			}
 			.start()
-	}
-}
-
-/**
- * A task that runs an optional task, supplied by [taskOrNullSupplier].
- *
- * Useful for starting a task branch where the first task could or could not be skipped.
- *
- * @see taskOrNull
- */
-class TaskOrNullTask<R> @TaskMarker internal constructor(
-	private val taskOrNullSupplier: TaskOrNullSupplier<R>
-) : Task<R?>() {
-	override val name get() = "Optional task"
-	override val isInvisible = true
-
-	override fun SafeContext.onStart() {
-		taskOrNullSupplier()
-			?.onSuccess { success(it) }
-			?.start()
-			?: success(null)
 	}
 }

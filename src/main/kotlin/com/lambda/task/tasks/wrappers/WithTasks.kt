@@ -20,23 +20,81 @@ package com.lambda.task.tasks.wrappers
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
 import com.lambda.task.TaskMarker
+import com.lambda.task.TaskOrNullSupplier
 import com.lambda.task.TaskSupplier
 
 @TaskMarker
-fun <T> Task<T>.withSideTask(sideTask: TaskSupplier<*>) = WithSideTask(this, sideTask)
+infix fun <R> Task<R>.with(sideTask: TaskSupplier<*>) = WithTask(this, sideTask)
 
-class WithSideTask<T> @TaskMarker internal constructor(
-	private val task: Task<T>,
+@TaskMarker
+infix fun <R> Task<R>.withOrNull(sideTask: TaskOrNullSupplier<*>) = OptionalWithTask(this, sideTask)
+
+@TaskMarker
+infix fun <R> Task<R>.withPausing(task: TaskSupplier<*>) = WithPausingTask(this, task)
+
+@TaskMarker
+infix fun <R> Task<R>.withPausingOrNull(task: TaskSupplier<*>) = OptionalWithPausingTask(this, task)
+
+class WithTask<R> @TaskMarker internal constructor(
+	private val task: Task<R>,
 	private val sideTask: TaskSupplier<*>
-) : Task<T>() {
+) : Task<R>() {
 	override val name = "Running ${task.name} with side task"
 	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		task
 			.onSuccess { success(it) }
-			.start(pauseParent = false)
+			.start()
 
 		sideTask().execute(task, pauseParent = false)
+	}
+}
+
+class OptionalWithTask<R> @TaskMarker internal constructor(
+	private val task: Task<R>,
+	private val sideTask: TaskOrNullSupplier<*>
+) : Task<R>() {
+	override val name = "Running ${task.name} with optional side task"
+	override val isInvisible = true
+
+	override fun SafeContext.onStart() {
+		task
+			.onSuccess { success(it) }
+			.start()
+
+		sideTask()?.execute(task, pauseParent = false)
+	}
+}
+
+class WithPausingTask<R> @TaskMarker internal constructor(
+	private val task: Task<R>,
+	private val pausingTaskSupplier: TaskSupplier<*>
+) : Task<R>() {
+	override val name = "Running ${task.name} with pausing task"
+	override val isInvisible = true
+
+	override fun SafeContext.onStart() {
+		task
+			.onSuccess { success(it) }
+			.start()
+
+		pausingTaskSupplier().execute(task)
+	}
+}
+
+class OptionalWithPausingTask<R> @TaskMarker internal constructor(
+	private val task: Task<R>,
+	private val pausingTaskSupplier: TaskOrNullSupplier<*>
+) : Task<R>() {
+	override val name = "Running ${task.name} with optional pausing task"
+	override val isInvisible = true
+
+	override fun SafeContext.onStart() {
+		task
+			.onSuccess { success(it) }
+			.start()
+
+		pausingTaskSupplier()?.execute(task)
 	}
 }

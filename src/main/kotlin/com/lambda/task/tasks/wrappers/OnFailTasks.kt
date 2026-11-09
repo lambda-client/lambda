@@ -25,11 +25,11 @@ import com.lambda.task.TaskOrNullGenerator
 import com.lambda.threading.runSafe
 
 @TaskMarker
-infix fun <R> Task<R>.onFail(handler: TaskGenerator<Throwable, *>) =
+infix fun <R, R2> Task<R>.onFail(handler: TaskGenerator<Throwable, R2>) =
 	OnFailTask(this, handler)
 
 @TaskMarker
-infix fun <R> Task<R>.onFailOrNull(handler: TaskOrNullGenerator<Throwable, *>) =
+infix fun <R, R2> Task<R>.onFailOrNull(handler: TaskOrNullGenerator<Throwable, R2>) =
 	OnFailOrNullTask(this, handler)
 
 @TaskMarker
@@ -48,19 +48,19 @@ infix fun <R> Task<R>.withRecoveryOrNull(handler: SafeContext.(Throwable) -> Tas
  *
  * @see onFail
  */
-class OnFailTask<R> @TaskMarker internal constructor(
+class OnFailTask<R, R2> @TaskMarker internal constructor(
 	private val innerTask: Task<R>,
-	private val onFailTaskGenerator: TaskGenerator<Throwable, *>
-) : Task<R?>() {
+	private val onFailTaskGenerator: TaskGenerator<Throwable, R2>
+) : Task<Pair<R?, R2?>>() {
 	override val name get() = "On fail task for ${innerTask.name}"
 	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask
-			.onSuccess { success(it) }
+			.onSuccess { success(Pair(it, null)) }
 			.onFailure { cause ->
 				onFailTaskGenerator(cause)
-					.onSuccess { success(null) }
+					.onSuccess { success(Pair(null, it)) }
 					.start()
 			}
 			.start()
@@ -79,16 +79,16 @@ class OnFailTask<R> @TaskMarker internal constructor(
  *
  * @see onFailOrNull
  */
-class OnFailOrNullTask<R> @TaskMarker internal constructor(
+class OnFailOrNullTask<R, R2> @TaskMarker internal constructor(
 	private val innerTask: Task<R>,
-	private val onFailTaskGenerator: TaskOrNullGenerator<Throwable, *>
-) : Task<R?>() {
+	private val onFailTaskGenerator: TaskOrNullGenerator<Throwable, R2>
+) : Task<Pair<R?, R2?>>() {
 	override val name get() = "On fail task for ${innerTask.name}"
 	override val isInvisible = true
 
 	override fun SafeContext.onStart() {
 		innerTask
-			.onSuccess { success(it) }
+			.onSuccess { success(Pair(it, null)) }
 			.start()
 	}
 
@@ -96,7 +96,7 @@ class OnFailOrNullTask<R> @TaskMarker internal constructor(
 		if (subTask == innerTask) {
 			runSafe {
 				onFailTaskGenerator(cause)
-					?.onSuccess { success(null) }
+					?.onSuccess { success(Pair(null, it)) }
 					?.start()
 					?: super.onSubTaskFailure(subTask, cause)
 			}
