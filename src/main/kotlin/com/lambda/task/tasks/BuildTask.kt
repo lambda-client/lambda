@@ -49,7 +49,7 @@ import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
@@ -76,7 +76,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.sqrt
 
-@Ta5kBuilder
+@TaskMarker
 fun Automated.build(
 	finishOnDone: Boolean = true,
 	collectDrops: Boolean = false,
@@ -85,7 +85,7 @@ fun Automated.build(
 	blueprint: () -> Blueprint
 ) = BuildTask(blueprint(), finishOnDone, collectDrops, async, this, buildResultFilter)
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun Structure.build(
 	finishOnDone: Boolean = true,
@@ -94,7 +94,7 @@ fun Structure.build(
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
 ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, async, automated, buildResultFilter)
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun Blueprint.build(
 	finishOnDone: Boolean = true,
@@ -103,7 +103,7 @@ fun Blueprint.build(
 	buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
 ) = BuildTask(this, finishOnDone, collectDrops, async, automated, buildResultFilter)
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun breakAndCollect(
 	blockPos: BlockPos,
@@ -127,7 +127,7 @@ data class BuildStatus(
 	val dropsPending: List<ItemStack>
 )
 
-class BuildTask @Ta5kBuilder internal constructor(
+class BuildTask @TaskMarker internal constructor(
 	private val blueprint: Blueprint,
 	private val finishOnDone: Boolean,
 	private val collectDrops: Boolean,
@@ -162,7 +162,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 		iteratePropagating()
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	fun onTickPre(callback: context(BuildTask) AutomatedSafeContext.(BuildStatus) -> Task<*>?) =
 		apply { preTickCallbacks.add(callback) }
 

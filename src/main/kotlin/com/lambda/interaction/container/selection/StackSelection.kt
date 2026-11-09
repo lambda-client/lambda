@@ -513,26 +513,6 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		optimal?.let { cannotInsert(it) }
 	}
 
-	fun isSlot(slot: SlotIdentity) {
-		whitelistedSlots.add(slot)
-		appendSelector { _, s -> s?.identity() == slot }
-	}
-
-	fun notSlot(slot: SlotIdentity) {
-		blacklistedSlots.add(slot)
-		appendSelector { _, s -> s?.identity() != slot }
-	}
-
-	fun ofAnySlots(vararg slots: SlotIdentity) {
-		whitelistedSlots.addAll(slots)
-		appendSelector { _, slot -> slot?.identity() in slots }
-	}
-
-	fun noneOfSlots(vararg slots: SlotIdentity) {
-		blacklistedSlots.addAll(slots)
-		appendSelector { _, slot -> slot?.identity() !in slots }
-	}
-
 	fun sortedWith(newComparator: Comparator<StackAndSlot<*>>) {
 		comparator = comparator?.thenComparing(newComparator) ?: newComparator
 	}

@@ -26,10 +26,10 @@ import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.threading.withSafeAutomated
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun purgeStacks(
 	stackSelection: StackSelection = StackSelection.EVERYTHING,
@@ -37,7 +37,7 @@ fun purgeStacks(
 	finishOnDone: Boolean = true
 ) = PurgeStacksTask(stackSelection, containerSelection, finishOnDone, automated)
 
-class PurgeStacksTask @Ta5kBuilder internal constructor(
+class PurgeStacksTask @TaskMarker internal constructor(
 	private val stackSelection: StackSelection = StackSelection.EVERYTHING,
 	private val containerSelection: ContainerSelection = ContainerSelection.HOTBAR_AND_INVENTORY,
 	private val finishOnDone: Boolean = true,

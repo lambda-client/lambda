@@ -19,24 +19,24 @@ package com.lambda.task.tasks.wrappers
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskMarker
 import com.lambda.task.TaskOrNullGenerator
 import com.lambda.threading.runSafe
 
-@Ta5kBuilder
+@TaskMarker
 infix fun <R> Task<R>.onFail(handler: TaskGenerator<Throwable, *>) =
 	OnFailTask(this, handler)
 
-@Ta5kBuilder
+@TaskMarker
 infix fun <R> Task<R>.onFailOrNull(handler: TaskOrNullGenerator<Throwable, *>) =
 	OnFailOrNullTask(this, handler)
 
-@Ta5kBuilder
+@TaskMarker
 infix fun <R> Task<R>.withRecovery(handler: TaskGenerator<Throwable, R>) =
 	RecoveryTask(this, handler)
 
-@Ta5kBuilder
+@TaskMarker
 infix fun <R> Task<R>.withRecoveryOrNull(handler: SafeContext.(Throwable) -> Task<R>?) =
 	OptionalRecoveryTask(this, handler)
 
@@ -48,7 +48,7 @@ infix fun <R> Task<R>.withRecoveryOrNull(handler: SafeContext.(Throwable) -> Tas
  *
  * @see onFail
  */
-class OnFailTask<R> @Ta5kBuilder internal constructor(
+class OnFailTask<R> @TaskMarker internal constructor(
 	private val innerTask: Task<R>,
 	private val onFailTaskGenerator: TaskGenerator<Throwable, *>
 ) : Task<R?>() {
@@ -79,7 +79,7 @@ class OnFailTask<R> @Ta5kBuilder internal constructor(
  *
  * @see onFailOrNull
  */
-class OnFailOrNullTask<R> @Ta5kBuilder internal constructor(
+class OnFailOrNullTask<R> @TaskMarker internal constructor(
 	private val innerTask: Task<R>,
 	private val onFailTaskGenerator: TaskOrNullGenerator<Throwable, *>
 ) : Task<R?>() {
@@ -113,7 +113,7 @@ class OnFailOrNullTask<R> @Ta5kBuilder internal constructor(
  *
  * @see withRecovery
  */
-class RecoveryTask<R> @Ta5kBuilder internal constructor(
+class RecoveryTask<R> @TaskMarker internal constructor(
 	private val innerTask: Task<R>,
 	private val recoveryTaskGenerator: TaskGenerator<Throwable, R>,
 ) : Task<R>() {
@@ -145,7 +145,7 @@ class RecoveryTask<R> @Ta5kBuilder internal constructor(
  *
  * @see withRecovery
  */
-class OptionalRecoveryTask<R> @Ta5kBuilder internal constructor(
+class OptionalRecoveryTask<R> @TaskMarker internal constructor(
 	private val innerTask: Task<R>,
 	private val recoveryTaskGenerator: TaskOrNullGenerator<Throwable, R>,
 ) : Task<R?>() {

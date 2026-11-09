@@ -30,7 +30,7 @@ import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InventoryRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.emptySpace
@@ -134,7 +134,7 @@ abstract class Container(
         }
     }
 
-    @Ta5kBuilder
+    @TaskMarker
     context(automated: Automated)
     open fun access(): OpenContainerTask<*>? = null
 

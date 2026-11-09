@@ -32,6 +32,9 @@ import com.lambda.util.Nameable
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
+@DslMarker
+annotation class TaskMarker
+
 abstract class Task<R> : Nameable, Muteable {
 	var state = State.Init
 	var age = 0
@@ -68,14 +71,7 @@ abstract class Task<R> : Nameable, Muteable {
 		listen<TickEvent.Pre>({ Int.MAX_VALUE }) { age++ }
 	}
 
-	/**
-	 * "Typo" in name is used to force the dsl style green
-	 * (color is based on name hash, don't ask me who came up with this)
-	 */
-	@DslMarker
-	annotation class Ta5kBuilder
-
-	@Ta5kBuilder
+	@TaskMarker
 	context(parentTask: Task<*>)
 	fun start(pauseParent: Boolean = true) =
 		this.execute(parentTask, pauseParent)
@@ -92,7 +88,7 @@ abstract class Task<R> : Nameable, Muteable {
 	 * @return The current task instance as a `Task<Result>` to support chaining or further configuration.
 	 * @throws IllegalArgumentException if the owner task is the same as the task being executed.
 	 */
-	@Ta5kBuilder
+	@TaskMarker
 	fun execute(parent: Task<*>, pauseParent: Boolean = true): Task<R> =
 		apply {
 	    	require(parent != this) { "Cannot execute a task as a sub task of itself" }
@@ -125,7 +121,7 @@ abstract class Task<R> : Nameable, Muteable {
 	 * it to implement specific functionality, such as logging, resource allocation,
 	 * or preparing preconditions for task execution.
 	 */
-	@Ta5kBuilder
+	@TaskMarker
 	protected open fun SafeContext.onStart() {}
 
 	/**
@@ -134,10 +130,10 @@ abstract class Task<R> : Nameable, Muteable {
 	 * such as cancelling a block breaking progress, releasing resources,
 	 * or stopping any ongoing operations that were started by the task.
 	 */
-	@Ta5kBuilder
+	@TaskMarker
 	protected open fun SafeContext.onCancel() {}
 
-	@Ta5kBuilder
+	@TaskMarker
 	protected fun success(result: R) {
 		if (state != State.Running && state != State.Paused) return
 		if (this is RootTask) return
@@ -156,12 +152,12 @@ abstract class Task<R> : Nameable, Muteable {
 		parent?.subTasks?.remove(this)
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	protected fun Task<Unit>.success() {
 		success(Unit)
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	protected fun failure(
 		e: Throwable,
 		stacktrace: MutableList<Task<*>> = mutableListOf(),
@@ -196,13 +192,13 @@ abstract class Task<R> : Nameable, Muteable {
 		parent?.subTasks?.remove(this)
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	protected fun failure(message: String) = failure(IllegalStateException(message))
 
-	@Ta5kBuilder
+	@TaskMarker
 	fun cancel() = internalCancel(true)
 
-	@Ta5kBuilder
+	@TaskMarker
 	private fun internalCancel(removeFromParent: Boolean = true) {
 		if (state != State.Running && state != State.Paused) return
 		cancelSubTasks()
@@ -218,35 +214,35 @@ abstract class Task<R> : Nameable, Muteable {
 		parent?.activate()
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	private fun cancelSubTasks() {
 		subTasks.toList().forEach { it.internalCancel(removeFromParent = false) }
 		subTasks.clear()
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	fun pause() {
 		if (state != State.Running) return
 		state = State.Paused
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	fun activate() {
 		if (state != State.Paused) return
 		state = State.Running
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	protected open fun onSubTaskSuccess(subTask: Task<*>) {
 		activate()
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	protected open fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
 		failure(cause)
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	protected open fun onSubTaskCompletion(subTask: Task<*>) {
 		activate()
 	}
@@ -254,7 +250,7 @@ abstract class Task<R> : Nameable, Muteable {
 	/**
 	 * Registers a callback for if the task succeeds.
 	 */
-	@Ta5kBuilder
+	@TaskMarker
 	fun onSuccess(callback: SafeContext.(R) -> Unit): Task<R> {
 		successCallbacks.add(callback)
 		return this
@@ -265,7 +261,7 @@ abstract class Task<R> : Nameable, Muteable {
 	 *
 	 * This could be mistaken for [withRecovery] which is used to wrap the given task with another task that runs a recovery task if this one fails.
 	 */
-	@Ta5kBuilder
+	@TaskMarker
 	fun onFailure(callback: SafeContext.(Throwable) -> Unit): Task<R> {
 		failureCallbacks.add(callback)
 		return this
@@ -276,7 +272,7 @@ abstract class Task<R> : Nameable, Muteable {
 	 *
 	 * This is called regardless of whether the task succeeds or fails.
 	 */
-	@Ta5kBuilder
+	@TaskMarker
 	fun onCompletion(callback: SafeContext.() -> Unit): Task<R> {
 		completionCallbacks.add(callback)
 		return this

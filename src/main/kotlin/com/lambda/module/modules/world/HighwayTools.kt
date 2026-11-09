@@ -36,7 +36,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.spaceLeft
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.start
 import com.lambda.task.tasks.BuildStatus
 import com.lambda.task.tasks.MergeHandling
@@ -151,7 +151,7 @@ object HighwayTools : Module(
 		}
 	}
 
-	@Ta5kBuilder
+	@TaskMarker
 	private fun buildHighway() {
 		runningTask = highwayBlueprint()
 			.build()
@@ -191,7 +191,7 @@ object HighwayTools : Module(
 			structure
 		}
 
-	@Ta5kBuilder
+	@TaskMarker
 	private fun AutomatedSafeContext.checkFarmEnderChests(buildStatus: BuildStatus): Task<*>? {
 		if (!farmEnderChests) return null
 

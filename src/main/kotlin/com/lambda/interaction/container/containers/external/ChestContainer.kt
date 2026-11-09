@@ -26,7 +26,7 @@ import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.openContainer
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.dim
@@ -70,13 +70,13 @@ data class ChestContainer(
 					mc.player?.currentScreenHandler?.typeSafe == ScreenHandlerType.GENERIC_9X3
 		} ?: false
 
-	@Ta5kBuilder
+	@TaskMarker
 	context(automated: Automated)
 	override fun access() =
 		if (isAccessed) null
 		else AccessChestTask(automated)
 
-	inner class AccessChestTask @Ta5kBuilder internal constructor(
+	inner class AccessChestTask @TaskMarker internal constructor(
 		automated: Automated
 	) : OpenContainerTask<OpenedContainerContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {

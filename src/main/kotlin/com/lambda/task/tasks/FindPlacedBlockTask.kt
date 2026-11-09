@@ -19,15 +19,15 @@ package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.util.world.blockSearch
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 
-@Ta5kBuilder
+@TaskMarker
 fun findBlock(block: Block, searchRadius: Int) = FindPlacedBlockTask(block, searchRadius)
 
-class FindPlacedBlockTask @Ta5kBuilder internal constructor(
+class FindPlacedBlockTask @TaskMarker internal constructor(
 	private val block: Block,
 	private val searchRadius: Int
 ) : Task<BlockPos>() {

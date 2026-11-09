@@ -25,7 +25,7 @@ import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.openContainer
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.dim
@@ -70,13 +70,13 @@ class PlacedShulkerBoxContainer(
 					mc.player?.currentScreenHandler?.typeSafe == ScreenHandlerType.SHULKER_BOX
 		} ?: false
 
-	@Ta5kBuilder
+	@TaskMarker
 	context(automated: Automated)
 	override fun access() =
 		if (isAccessed) null
 		else OpenPlacedShulkerBoxTask(automated)
 
-	inner class OpenPlacedShulkerBoxTask @Ta5kBuilder internal constructor(
+	inner class OpenPlacedShulkerBoxTask @TaskMarker internal constructor(
 		automated: Automated
 	) : OpenContainerTask<BasicOpenedContainerContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {

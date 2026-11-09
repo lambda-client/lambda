@@ -19,30 +19,30 @@ package com.lambda.task.tasks.wrappers
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskMarker
 import com.lambda.task.TaskOrNullGenerator
 import com.lambda.task.TaskOrNullSupplier
 
-@Ta5kBuilder
+@TaskMarker
 infix fun <R, R2> Task<R>.then(generator: TaskGenerator<R, R2>) =
 	SequencedTask(this, generator)
 
-@Ta5kBuilder
+@TaskMarker
 infix fun <R, R2> Task<R>.then(task: Task<R2>): Task<R2> =
 	SequencedTask(this) { task }
 
-@Ta5kBuilder
+@TaskMarker
 fun <R> Task<R>.then(vararg tasks: Task<*>) =
 	tasks.fold<Task<*>, Task<*>>(this) { acc, task ->
 		acc then task
 	}
 
-@Ta5kBuilder
+@TaskMarker
 infix fun <R, R2> Task<R>.thenOrNull(generator: TaskOrNullGenerator<R, R2>) =
 	OptionalSequencedTask(this, generator)
 
-@Ta5kBuilder
+@TaskMarker
 fun <R> taskOrNull(supplier: TaskOrNullSupplier<R>) = TaskOrNullTask(supplier)
 
 /**
@@ -52,7 +52,7 @@ fun <R> taskOrNull(supplier: TaskOrNullSupplier<R>) = TaskOrNullTask(supplier)
  *
  * @see then
  */
-class SequencedTask<R, R2> @Ta5kBuilder internal constructor(
+class SequencedTask<R, R2> @TaskMarker internal constructor(
 	private val firstTask: Task<R>,
 	private val nextTaskGenerator: TaskGenerator<R, R2>,
 ) : Task<R2>() {
@@ -78,7 +78,7 @@ class SequencedTask<R, R2> @Ta5kBuilder internal constructor(
  *
  * @see thenOrNull
  */
-class OptionalSequencedTask<R, R2> @Ta5kBuilder internal constructor(
+class OptionalSequencedTask<R, R2> @TaskMarker internal constructor(
 	private val firstTask: Task<R>,
 	private val nextTaskGenerator: TaskOrNullGenerator<R, R2>
 ) : Task<R2?>() {
@@ -104,7 +104,7 @@ class OptionalSequencedTask<R, R2> @Ta5kBuilder internal constructor(
  *
  * @see taskOrNull
  */
-class TaskOrNullTask<R> @Ta5kBuilder internal constructor(
+class TaskOrNullTask<R> @TaskMarker internal constructor(
 	private val taskOrNullSupplier: TaskOrNullSupplier<R>
 ) : Task<R?>() {
 	override val name get() = "Optional task"

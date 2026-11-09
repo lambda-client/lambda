@@ -27,7 +27,7 @@ import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.accessedPlacedContainer
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.threading.withSafeAutomated
 import com.lambda.util.TickTimer
 import com.lambda.util.player.RotationUtils.lookAtBlock
@@ -37,14 +37,14 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun openContainer(
     blockPos: BlockPos,
     sides: Set<Direction> = Direction.entries.toSet()
 ) = OpenContainerTask(blockPos, sides, automated) { it }
 
-@Ta5kBuilder
+@TaskMarker
 @JvmName("openTypedContainer")
 context(automated: Automated)
 inline fun <reified T : PlacedContainer> openContainer(
@@ -56,7 +56,7 @@ inline fun <reified T : PlacedContainer> openContainer(
 
 // TODO: Open containers found in the world (built with empty stacks until they're opened) instead of a position and a
 //  result callback, once PlacedContainer is generic over an enum of types
-class OpenContainerTask<R : Any> @Ta5kBuilder @PublishedApi internal constructor(
+class OpenContainerTask<R : Any> @TaskMarker @PublishedApi internal constructor(
     private val blockPos: BlockPos,
     private val sides: Set<Direction>,
     automated: Automated,

@@ -30,7 +30,7 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.acquireStack
 import com.lambda.task.tasks.breakAndCollect
 import com.lambda.task.tasks.findBlock
@@ -70,13 +70,13 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 
 	override fun slotIdentity(index: Int) = SlotIdentity.Ender(index)
 
-	@Ta5kBuilder
+	@TaskMarker
 	context(automated: Automated)
 	override fun access() =
 		if (isAccessed) null
 		else OpenEnderChestContainerTask(automated)
 
-	class OpenEnderChestContainerTask @Ta5kBuilder internal constructor(
+	class OpenEnderChestContainerTask @TaskMarker internal constructor(
 		automated: Automated
 	) : OpenContainerTask<OpenedEnderChestContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {

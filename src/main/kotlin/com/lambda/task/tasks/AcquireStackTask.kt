@@ -24,20 +24,20 @@ import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.slotsAvailable
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.threading.withSafeAutomated
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun acquireStack(selection: StackSelection) =
     AcquireStackTask(selection, automated)
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun acquireStack(selection: () -> StackSelection) =
     AcquireStackTask(selection(), automated)
 
-class AcquireStackTask @Ta5kBuilder internal constructor(
+class AcquireStackTask @TaskMarker internal constructor(
     val selection: StackSelection,
     automated: Automated
 ) : Task<StackSelection>(), Automated by automated {

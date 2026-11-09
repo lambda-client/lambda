@@ -34,7 +34,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.slotsAvailable
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.breakAndCollect
 import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.placeContainer
@@ -74,11 +74,11 @@ data class ShulkerBoxContainer(
 
 	override val isAccessed = false
 
-	@Ta5kBuilder
+	@TaskMarker
 	context(automated: Automated)
 	override fun access() = OpenShulkerBoxTask(automated)
 
-	inner class OpenShulkerBoxTask @Ta5kBuilder internal constructor(
+	inner class OpenShulkerBoxTask @TaskMarker internal constructor(
 		automated: Automated
 	) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {

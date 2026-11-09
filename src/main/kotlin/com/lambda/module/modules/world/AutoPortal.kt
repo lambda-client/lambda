@@ -48,6 +48,7 @@ import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.portalPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
 import com.lambda.task.Task
+import com.lambda.task.TaskMarker
 import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.wrappers.thenOrNull
@@ -272,7 +273,7 @@ object AutoPortal : Module(
 			}
 	}
 
-	private class LightTask @Ta5kBuilder constructor(
+	private class LightTask @TaskMarker constructor(
 		private val pos: BlockPos,
 		private val walkIn: Boolean
 	) : Task<Unit>() {

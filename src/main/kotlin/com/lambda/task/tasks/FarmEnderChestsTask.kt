@@ -39,7 +39,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
@@ -51,7 +51,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import java.util.concurrent.ConcurrentLinkedQueue
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun farmEnderChests(
 	stopAfterMined: Int = -1,
@@ -64,7 +64,7 @@ fun farmEnderChests(
 	automated
 )
 
-class FarmEnderChestsTask @Ta5kBuilder internal constructor(
+class FarmEnderChestsTask @TaskMarker internal constructor(
 	val stopAfterMined: Int = -1,
 	val stopIfFull: Boolean = true,
 	val dropPickupConfig: ItemPickupConfig = ItemPickupConfig.DEFAULT,

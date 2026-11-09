@@ -41,7 +41,7 @@ import com.lambda.interaction.handler.handlers.SlotActionProgressHandler
 import com.lambda.interaction.manager.managers.inventory.InvRequestFailureReason
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
 import com.lambda.task.tasks.wrappers.thenOrNull
@@ -54,7 +54,7 @@ import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun transfer(
 	fromStack: StackSelection,
@@ -73,7 +73,7 @@ fun transfer(
 	automated
 )
 
-@Ta5kBuilder
+@TaskMarker
 @JvmName("transferExt")
 context(automated: Automated)
 fun StackSelection.transfer(
@@ -89,7 +89,7 @@ class TransferResult internal constructor(
 	val containerSelection: ContainerSelection
 )
 
-class ContainerTransferTask @Ta5kBuilder internal constructor(
+class ContainerTransferTask @TaskMarker internal constructor(
 	private val fromStack: StackSelection,
 	private val fromSelection: ContainerSelection,
 	private val toSelection: ContainerSelection,
@@ -343,7 +343,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			}
 	}
 
-	private inner class MoveTask @Ta5kBuilder constructor(
+	private inner class MoveTask @TaskMarker constructor(
 		private val fromContainers: List<Container>,
 		private val toContainers: List<Container>,
 		private val fromSelection: StackSelection,

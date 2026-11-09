@@ -19,17 +19,17 @@ package com.lambda.task.tasks.wrappers
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 
-@Ta5kBuilder
+@TaskMarker
 fun <R> actionTask(action: SafeContext.() -> R) =
 	ActionTask(action)
 
-@Ta5kBuilder
+@TaskMarker
 infix fun <R, R2> Task<R>.thenAction(action: SafeContext.(R) -> R2): Task<R2> =
 	SequencedActionTask(this, action)
 
-class ActionTask<R> @Ta5kBuilder internal constructor(
+class ActionTask<R> @TaskMarker internal constructor(
 	private val action: SafeContext.() -> R
 ) : Task<R>() {
 	override val name get() = "Performing action"
@@ -46,7 +46,7 @@ class ActionTask<R> @Ta5kBuilder internal constructor(
  *
  * @see thenAction
  */
-class SequencedActionTask<R, R2> @Ta5kBuilder internal constructor(
+class SequencedActionTask<R, R2> @TaskMarker internal constructor(
 	private val innerTask: Task<R>,
 	private val action: SafeContext.(R) -> R2,
 ) : Task<R2>() {

@@ -19,13 +19,13 @@ package com.lambda.task.tasks.wrappers
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.TaskSupplier
 
-@Ta5kBuilder
+@TaskMarker
 fun <T> Task<T>.withSideTask(sideTask: TaskSupplier<*>) = WithSideTask(this, sideTask)
 
-class WithSideTask<T> @Ta5kBuilder internal constructor(
+class WithSideTask<T> @TaskMarker internal constructor(
 	private val task: Task<T>,
 	private val sideTask: TaskSupplier<*>
 ) : Task<T>() {

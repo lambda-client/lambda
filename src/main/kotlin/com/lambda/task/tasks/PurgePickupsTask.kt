@@ -23,9 +23,9 @@ import com.lambda.event.events.PickupSlotKind
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun purgePickups(
 	selection: StackSelection = StackSelection.EVERYTHING,
@@ -41,7 +41,7 @@ enum class MergeHandling {
 /**
  * Drops every pickup matching [selection] until cancelled.
  */
-class PurgePickupsTask @Ta5kBuilder internal constructor(
+class PurgePickupsTask @TaskMarker internal constructor(
 	private val selection: StackSelection,
 	private val mergeHandling: MergeHandling,
 	automated: Automated

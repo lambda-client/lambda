@@ -34,7 +34,7 @@ import com.lambda.interaction.handler.handlers.PacketLimitHandler.availablePacke
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.threading.withSafeAutomated
 import com.lambda.util.item.StackMovePlanner
 import net.minecraft.item.Item
@@ -43,21 +43,21 @@ import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun drop(
 	selection: StackSelection = StackSelection.EVERYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 ) = DropTask(selection, containerSelection, emptyList(), automated)
 
-@Ta5kBuilder
+@TaskMarker
 @JvmName("dropSelection")
 context(automated: Automated)
 fun StackSelection.drop(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 ) = drop(this, containerSelection)
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun drop(targets: Iterable<DropTarget>) =
 	DropTask(null, ContainerSelection.ACCESSED, targets.toList(), automated)
@@ -72,7 +72,7 @@ data class DropTarget(
 
 data class DropResult(val dropped: Map<Item, Int>)
 
-class DropTask @Ta5kBuilder internal constructor(
+class DropTask @TaskMarker internal constructor(
 	private val stackSelection: StackSelection?,
 	private val containerSelection: ContainerSelection?,
 	private val targets: List<DropTarget>,

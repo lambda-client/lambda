@@ -22,7 +22,7 @@ import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.stackSelection
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.eat
 import com.lambda.threading.runSafe
 import com.lambda.util.Describable
@@ -114,7 +114,7 @@ interface EatConfig {
     }
 }
 
-@Ta5kBuilder
+@TaskMarker
 fun AutomatedSafeContext.checkEat() =
     if (reasonEating().shouldEat) eat()
     else null

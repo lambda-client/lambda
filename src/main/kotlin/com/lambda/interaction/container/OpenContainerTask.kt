@@ -18,9 +18,10 @@
 package com.lambda.interaction.container
 
 import com.lambda.task.Task
+import com.lambda.task.TaskMarker
 import net.minecraft.text.Text
 
-abstract class OpenContainerTask<R : OpenedContainerContext> @Ta5kBuilder internal constructor(
+abstract class OpenContainerTask<R : OpenedContainerContext> @TaskMarker internal constructor(
 	description: Text
 ) : Task<R?>() {
 	override val name = "accessing container: ${description.string}"

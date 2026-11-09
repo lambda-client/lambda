@@ -19,17 +19,17 @@ package com.lambda.task.tasks.wrappers
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskMarker
 import com.lambda.task.TaskOrNullGenerator
 
-@Ta5kBuilder
+@TaskMarker
 fun <R, R2> Task<R>.withBranch(
 	onSuccess: TaskGenerator<R, R2>,
 	onFailure: TaskGenerator<Throwable, R2>
 ) = BranchTask(this, onSuccess, onFailure)
 
-@Ta5kBuilder
+@TaskMarker
 fun <R, R2> Task<R>.withBranchOrNull(
 	onSuccess: TaskOrNullGenerator<R, R2>,
 	onFailure: TaskOrNullGenerator<Throwable, R2>
@@ -40,7 +40,7 @@ fun <R, R2> Task<R>.withBranchOrNull(
  *
  * @see withBranch
  */
-class BranchTask<R, R2> @Ta5kBuilder internal constructor(
+class BranchTask<R, R2> @TaskMarker internal constructor(
 	private val innerTask: Task<R>,
 	private val onSuccessGenerator: TaskGenerator<R, R2>,
 	private val onFailureGenerator: TaskGenerator<Throwable, R2>
@@ -73,7 +73,7 @@ class BranchTask<R, R2> @Ta5kBuilder internal constructor(
  *
  * @see withBranchOrNull
  */
-class OptionalBranchTask<R, R2> @Ta5kBuilder internal constructor(
+class OptionalBranchTask<R, R2> @TaskMarker internal constructor(
 	private val innerTask: Task<R>,
 	private val onSuccessGenerator: TaskOrNullGenerator<R, R2>,
 	private val onFailureGenerator: TaskOrNullGenerator<Throwable, R2>

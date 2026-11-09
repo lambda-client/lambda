@@ -25,21 +25,21 @@ import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.item
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun acquirePlacedBlock(
 	block: Block,
 	maxSearchRadius: Int = 10
 ) = AcquirePlacedBlockTask(block, maxSearchRadius, automated)
 
-class AcquirePlacedBlockTask @Ta5kBuilder internal constructor(
+class AcquirePlacedBlockTask @TaskMarker internal constructor(
 	val block: Block,
 	val searchRadius: Int = 10,
 	automated: Automated

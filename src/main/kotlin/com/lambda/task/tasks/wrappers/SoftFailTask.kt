@@ -19,9 +19,9 @@ package com.lambda.task.tasks.wrappers
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 
-@Ta5kBuilder
+@TaskMarker
 fun <R> Task<R>.softFail(): Task<R?> =
     SoftFailTask(this)
 
@@ -32,7 +32,7 @@ fun <R> Task<R>.softFail(): Task<R?> =
  *
  * @see softFail
  */
-class SoftFailTask<R> @Ta5kBuilder internal constructor(
+class SoftFailTask<R> @TaskMarker internal constructor(
     private val innerTask: Task<R>,
 ) : Task<R?>() {
     override val name get() = "Soft fail protection for ${innerTask.name}"

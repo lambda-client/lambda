@@ -27,7 +27,7 @@ import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.ManagerUtils
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.threading.withSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
@@ -42,15 +42,15 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun placeContainer(slot: Slot?) = PlaceContainerTask(slot, automated)
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun placeContainer(slot: () -> Slot?) = PlaceContainerTask(slot(), automated)
 
-class PlaceContainerTask @Ta5kBuilder internal constructor(
+class PlaceContainerTask @TaskMarker internal constructor(
     val slot: Slot?,
     automated: Automated
 ) : Task<BlockPos>(), Automated by automated {

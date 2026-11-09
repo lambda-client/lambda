@@ -30,13 +30,13 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.spaceLeft
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.threading.withSafeAutomated
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun pickupItems(
 	drops: MutableSet<ItemEntity>,
@@ -48,7 +48,7 @@ data class PickedUpItem(
 	val slot: SlotIdentity
 )
 
-class PickupItemsTask @Ta5kBuilder internal constructor(
+class PickupItemsTask @TaskMarker internal constructor(
 	private val drops: MutableSet<ItemEntity>,
 	private val dropDisposablesToMakeSpace: Boolean = true,
 	automated: Automated

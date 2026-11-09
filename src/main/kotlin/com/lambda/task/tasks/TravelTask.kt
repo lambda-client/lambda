@@ -23,13 +23,13 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import net.minecraft.util.math.BlockPos
 
-@Ta5kBuilder
+@TaskMarker
 fun travelTo(blockPos: BlockPos) = TravelTask(blockPos)
 
-class TravelTask @Ta5kBuilder internal constructor(
+class TravelTask @TaskMarker internal constructor(
 	val toPos: BlockPos
 ) : Task<BlockPos>() {
 	override val name = "Travelling to $toPos"

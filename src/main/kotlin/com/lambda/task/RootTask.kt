@@ -17,8 +17,6 @@
 
 package com.lambda.task
 
-import com.lambda.task.Task.Ta5kBuilder
-
 object RootTask : Task<Unit>() {
     override val name get() = "Root Task"
 
@@ -27,6 +25,6 @@ object RootTask : Task<Unit>() {
     }
 }
 
-@Ta5kBuilder
+@TaskMarker
 inline fun <reified T : Task<*>> T.start(): T =
     apply { execute(RootTask) }

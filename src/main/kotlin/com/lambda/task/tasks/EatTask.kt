@@ -29,18 +29,18 @@ import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskMarker
 import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.withSafeAutomated
 import net.minecraft.item.ItemStack
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 
-@Ta5kBuilder
+@TaskMarker
 context(automated: Automated)
 fun eat() = EatTask(automated)
 
-class EatTask @Ta5kBuilder internal constructor(
+class EatTask @TaskMarker internal constructor(
 	automated: Automated
 ) : Task<Unit>(), Automated by automated {
 	override val name: String
