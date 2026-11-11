@@ -31,6 +31,7 @@ import com.lambda.interaction.container.containers.CursorContainer
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.selectContainers
@@ -395,15 +396,7 @@ class ContainerTransferTask @TaskMarker internal constructor(
 			val pair =
 				fromContainers.firstNotNullOfOrNull { fromContainer ->
 					val fromSlot = fromContainer.findSlot(currentSelection) ?: return@firstNotNullOfOrNull null
-
-					toContainers.firstNotNullOfOrNull { toContainer ->
-						if (!fromContainer.canSwapWith(toContainer)) return@firstNotNullOfOrNull null
-						findToSlot(fromSlot, toContainer)
-							?.takeIf { !toContainer.haveMatchingInventories(fromContainer) || it.index != fromSlot.index }
-							?.let { toSlot ->
-								SlotPair(fromContainer, fromSlot, toContainer, toSlot)
-							}
-					}
+					findToSlot(fromContainer, fromSlot)
 				}
 
 			if (pair == null) {
@@ -419,17 +412,32 @@ class ContainerTransferTask @TaskMarker internal constructor(
 			)
 		}
 
-		private fun AutomatedSafeContext.findToSlot(fromSlot: Slot, toContainer: Container): Slot? {
+		private fun AutomatedSafeContext.findToSlot(fromContainer: Container, fromSlot: Slot): SlotPair? {
 			val stack = fromSlot.stack
-			return toContainer.findSlot(
+			val containers = toContainers.filter { fromContainer.canSwapWith(it) }
+
+			fun Container.pairWith(toSlot: Slot?) =
+				toSlot
+					?.takeIf { !haveMatchingInventories(fromContainer) || it.index != fromSlot.index }
+					?.let { SlotPair(fromContainer, fromSlot, this, it) }
+
+			val mergeSelection =
 				baseToSelection.mutate {
 					predicate { candidate, slot -> slot !== fromSlot && !candidate.isEmpty && candidate.hasSpace && candidate.sameItemAs(stack) }
 					canInsert(stack)
 				}
-			) ?: toContainer.findReplaceSlot(
-				stack,
-				baseToSelection.mutate { isEmpty() }
-			) ?: findSwappableSlot(fromSlot, toContainer)
+			val emptySelection = baseToSelection.mutate { isEmpty() }
+
+			return containers.firstNotNullOfOrNull { it.pairWith(it.findSlot(mergeSelection)) }
+				?: containers.firstNotNullOfOrNull { it.pairWith(it.findReplaceSlot(stack, emptySelection)) }
+				?: containers
+					.mapNotNull { it.pairWith(findSwappableSlot(fromSlot, it)) }
+					.minWithOrNull { a, b ->
+						a.toContainer.replaceSorter.compare(
+							StackAndSlot(a.toSlot.stack, a.toSlot),
+							StackAndSlot(b.toSlot.stack, b.toSlot)
+						)
+					}
 		}
 
 		private fun AutomatedSafeContext.findSwappableSlot(fromSlot: Slot, toContainer: Container): Slot? {

@@ -31,10 +31,13 @@ import com.lambda.interaction.construction.blueprint.toStructure
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.containerSelection
+import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.count
@@ -93,6 +96,12 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 		private val OBI_SELECTION = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
 		private val ECHEST_SELECTION = stackSelection(1) { isItem(Items.ENDER_CHEST); alwaysWholeStacks() }
 		private val SINGLE_ECHEST_SELECTION = Items.ENDER_CHEST.select(1)
+
+		private val INVENTORY_THEN_HOTBAR =
+			containerSelection(ContainerSearchScope.Player) {
+				ofAny(InventoryContainer, HotbarContainer)
+				sortedWith(compareByDescending { it.type == ContainerType.Inventory })
+			}
 	}
 
 	private val BlockState.echestFarmable get() = placeReady || breakReady
@@ -184,8 +193,9 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 
 					transfer(
 						fromStack = Items.ENDER_CHEST.select(restockCount),
-						toSelection = ContainerSelection.HOTBAR_AND_INVENTORY,
-						toStack = stackSelection { withoutSelector(OBI_SELECTION) }
+						toSelection = INVENTORY_THEN_HOTBAR,
+						toStack = stackSelection { withoutSelector(OBI_SELECTION) },
+						allowQuickMove = false
 					).start()
 					return@listen
 				}

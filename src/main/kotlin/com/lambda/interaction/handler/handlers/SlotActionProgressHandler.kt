@@ -112,10 +112,10 @@ object SlotActionProgressHandler : Loadable {
 				.take(fromStack, sources, progress)
 				.forEach { incoming ->
 					var left = incoming.count
-					destinations.forEach destinations@{ container ->
-						listOf(true, false).forEach { merge ->
+					listOf(true, false).forEach { merge ->
+						destinations.forEach { container ->
 							container.slots.forEach { slot ->
-								if (left <= 0) return@destinations
+								if (left <= 0) return@forEach
 								val identity = slot.identity() ?: return@forEach
 								val held = stacks[identity] ?: slot.stack
 								val fits =
