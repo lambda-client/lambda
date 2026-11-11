@@ -134,9 +134,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 
 	override val blockedPositions
 		get() = activeInfos.map { it.context.blockPos } +
-				pendingActions.mapNotNull { info ->
-					info.context.blockPos.takeIf { !info.validBreak }
-				}
+				pendingActions.filter { !it.broken }.map { it.context.blockPos }
 
 	private var activeRequest: BreakRequest? = null
 
@@ -176,8 +174,6 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 		}
 
 		listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
-			if (event.pos == RebreakHandler.reBreak?.context?.blockPos) return@listen
-
 			breakInfos
 				.firstOrNull { it?.context?.blockPos == event.pos }
 				?.let { info ->
@@ -195,21 +191,18 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 					info.predictDrops(player.mainHandStack)
 					info.request.onStops.invoke(info.context.blockPos)
 					info.internalOnBreak()
-					RebreakHandler.offerRebreak(info)
-					if (!info.callbacksCompleted) info.startPending()
+					if (info.callbacksCompleted)
+						RebreakHandler.offerRebreak(info)
+					else info.startPending()
 					info.nullify()
 				}
 		}
 
+		// ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
 		listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
 			runGameScheduled {
 				val entity = it.entity
 				if (entity !is ItemEntity) return@runGameScheduled
-
-				RebreakHandler.reBreak?.let { reBreak ->
-					if (matchesBlockItem(reBreak, entity)) return@runGameScheduled
-				}
-				if (pendingActions.any { info -> matchesBlockItem(info, entity) }) return@runGameScheduled
 
 				breakInfos
 					.filterNotNull()
@@ -569,7 +562,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 						info.nullify()
 						return@forEach
 					}
-					info.request.runSafeAutomated {
+					info.request.withSafeAutomated {
 						val breakDelta = info.calcBreakDelta()
 						val ticksToBreak = 1.0 / breakDelta
 						val ticksPast = info.breakingTicks - ticksToBreak
@@ -604,14 +597,16 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see nullify
 	 */
 	private fun AutomatedSafeContext.onBlockBreak(info: BreakInfo) {
-		info.predictDrops(player.mainHandStack)
-		info.request.onStops.invoke(info.context.blockPos)
+		if (info.type != Rebreak) info.request.onStops.invoke(info.context.blockPos)
 		when (breakConfig.breakConfirmation) {
 			BreakConfirmationMode.None -> {
 				destroyBlock(info)
 				info.internalOnBreak()
-				RebreakHandler.offerRebreak(info)
-				if (!info.callbacksCompleted) info.startPending()
+				if (!info.callbacksCompleted) {
+					info.startPending()
+				} else {
+					RebreakHandler.offerRebreak(info)
+				}
 			}
 			BreakConfirmationMode.BreakThenAwait -> {
 				destroyBlock(info)
@@ -631,12 +626,12 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	}
 
 	context(_: SafeContext)
-	private fun BreakInfo.updatePreProcessing() = request.runSafeAutomated {
+	private fun BreakInfo.updatePreProcessing() = request.withSafeAutomated {
 		shouldProgress = !progressedThisTick
 				&& tickStage in breakConfig.tickStageMask
 				&& (rotated || type != Primary)
 
-		if (updatedPreProcessingThisTick) return@runSafeAutomated
+		if (updatedPreProcessingThisTick) return@withSafeAutomated
 		updatedPreProcessingThisTick = true
 
 		swapStack = player.inventory.getStack(context.hotbarIndex)
@@ -808,8 +803,8 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 				}
 				is RebreakResult.Rebroke -> {
 					info.type = Rebreak
-					info.nullify()
 					info.request.onReBreaks.invoke(ctx.blockPos)
+					onBlockBreak(info)
 					return true
 				}
 				else -> {}
