@@ -38,9 +38,9 @@ import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.util.math.BlockPos
 
 /**
- * A data class that holds all the information required to process and continue a break.
+ * Holds all the information required to process and continue a break.
  */
-data class BreakInfo(
+class BreakInfo(
 	override var context: BreakContext,
 	var type: BreakType,
 	var request: BreakRequest
@@ -87,7 +87,7 @@ data class BreakInfo(
 
 	context(safeContext: SafeContext)
 	fun internalOnBreak() {
-		if (type != Rebreak) broken = true
+		broken = true
 		item?.let { item ->
 			request.onItemDrop?.invoke(safeContext, item)
 		}
@@ -95,8 +95,8 @@ data class BreakInfo(
 
 	context(safeContext: SafeContext)
 	fun internalOnItemDrop(item: ItemEntity) {
-		if (type != Rebreak) this.item = item
-		if (broken || type == Rebreak) {
+		this.item = item
+		if (broken) {
 			request.onItemDrop?.invoke(safeContext, item)
 		}
 	}
@@ -106,11 +106,6 @@ data class BreakInfo(
 		this.context = context
 		request?.let { this.request = it }
 		if (type == RedundantSecondary) type = Secondary
-	}
-
-	fun resetCallbacks() {
-		broken = false
-		item = null
 	}
 
 	fun tickChecks() {

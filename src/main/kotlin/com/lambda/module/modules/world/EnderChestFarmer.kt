@@ -19,6 +19,8 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.Group
 import com.lambda.config.automation.setDefaultAutomationConfig
+import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
+import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.editSetting
 import com.lambda.config.editTypedSettings
 import com.lambda.config.hideAllExcept
@@ -124,7 +126,9 @@ object EnderChestFarmer : Module(
 					}
 					::avoidSilkTouch.editSetting { defaultValue(true) }
 					editTypedSettings(::doubleBreak, ::avoidFluids, ::avoidSupporting) { defaultValue(false) }
+					::breakConfirmation.editSetting { defaultValue(BreakConfirmationMode.None) }
 				}
+				interactConfig::interactConfirmationMode.editSetting { defaultValue(InteractConfig.InteractConfirmationMode.None) }
 				hotbarConfig::keepTicks.editSetting { defaultValue(0) }
 			}
 

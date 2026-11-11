@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.handler.handlers.breaking
 
-import com.lambda.config.blocks.BreakConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent
@@ -26,7 +25,6 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.handler.handlers.PacketLimitHandler
 import com.lambda.interaction.handler.handlers.PacketType
-import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager
 import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
@@ -45,10 +43,8 @@ internal object RebreakHandler {
     init {
         listen<TickEvent.Post>({ Int.MIN_VALUE + 1 }) {
             reBreak?.run {
-                if (!progressedThisTick) {
-                    breakingTicks++
-                    progressedThisTick = true
-                }
+                if (!progressedThisTick) breakingTicks++
+                progressedThisTick = false
             }
         }
 
@@ -64,12 +60,15 @@ internal object RebreakHandler {
 	context(safeContext: SafeContext)
 	fun offerRebreak(info: BreakInfo) {
 		if (!info.rebreakable) return
+		if (info.context.blockPos != BreakManager.lastPosStarted) return
 
-		reBreak = info.apply {
-			type = BreakInfo.BreakType.Rebreak
-			breaking = true
-			resetCallbacks()
-		}
+		reBreak = BreakInfo(info.context, BreakInfo.BreakType.Rebreak, info.request)
+			.apply {
+				breaking = true
+				breakingTicks = info.breakingTicks
+				bypassedDelay = info.bypassedDelay
+				progressedThisTick = true
+			}
 		info.request.onReBreakStart?.invoke(safeContext, info.context.blockPos)
 	}
 
@@ -119,15 +118,11 @@ internal object RebreakHandler {
 		val breakTicks = reBreak.breakingTicks - breakConfig.fudgeFactor
 		return@withSafeAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
 			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@withSafeAutomated RebreakResult.Ignored
-			if (breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
-				destroyBlock(reBreak)
-			}
 			reBreak.stopBreakPacket()
 			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 			if (breakConfig.swing.isEnabled()) {
 				swingHand(breakConfig.swingType, Hand.MAIN_HAND)
 			}
-			BreakManager.breaksThisTick++
 			RebreakResult.Rebroke
 		} else {
 			RebreakResult.StillBreaking(reBreak)
