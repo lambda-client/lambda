@@ -22,28 +22,36 @@ import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.checkEat
 import com.lambda.config.editSetting
 import com.lambda.config.withEdits
+import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.blueprint.EMPTY_STRUCTURE
 import com.lambda.interaction.construction.blueprint.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.count
-import com.lambda.interaction.handler.handlers.ContainerHandler.spaceLeft
+import com.lambda.interaction.handler.handlers.ContainerHandler.findStacks
+import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
+import com.lambda.module.modules.hud.Speedometer.currentPos
 import com.lambda.task.Task
 import com.lambda.task.TaskMarker
 import com.lambda.task.start
 import com.lambda.task.tasks.MergeHandling
 import com.lambda.task.tasks.build
+import com.lambda.task.tasks.drop
 import com.lambda.task.tasks.farmEnderChests
 import com.lambda.task.tasks.purgePickups
 import com.lambda.task.tasks.wrappers.softFail
-import com.lambda.task.tasks.wrappers.with
+import com.lambda.task.tasks.wrappers.taskOrNull
+import com.lambda.task.tasks.wrappers.thenOrNull
+import com.lambda.task.tasks.wrappers.withLifetimeParent
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
@@ -53,6 +61,7 @@ import com.lambda.util.extension.moveY
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.rotateClockwise
 import com.lambda.util.player.MovementUtils.octant
+import com.lambda.util.player.MovementUtils.yaw
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
@@ -61,6 +70,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3i
+import org.apache.commons.lang3.time.DateUtils.ceiling
 
 object HighwayTools : Module(
 	name = "HighwayTools",
@@ -91,7 +101,8 @@ object HighwayTools : Module(
 	@Group(CEILING_GROUP) private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }
 
 	@Group(ECHEST_GROUP) private val farmEnderChests by setting("Farm Ender Chests", true, "Farms Ender Chests for obsidian when running low")
-	@Group(ECHEST_GROUP) private val minDisposableStacks by setting("Min Disposable Items", 576, 0..1728, 1, "Minimum disposable items to keep in the inventory for highway building when farming Ender Chests") { farmEnderChests }
+	@Group(ECHEST_GROUP) private val echestRestockCount by setting("Echest Restock Count", 320, 1..1728, 1, "Amount of Ender Chest's to acquire when restocking") { farmEnderChests }
+	@Group(ECHEST_GROUP) private val minDisposablesCount by setting("Min Disposables Count", 320, 1..1728, 1, "Minimum amount of disposables to keep") { farmEnderChests }
 
 	private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { pavement != Material.None }
 	private val replaceableSolids by setting("Replaceable Solids", setOf(Blocks.MAGMA_BLOCK, Blocks.SOUL_SAND))
@@ -103,12 +114,16 @@ object HighwayTools : Module(
 	private var startPos = BlockPos.ORIGIN
 	private var currentPos = BlockPos.ORIGIN
 	private var runningTask: Task<*>? = null
+	private val Automated.dropRotation
+		get() = rotationRequest { rotation(octant.yaw + 180.0, -20.0) }
 
 	private val OBI_SELECTION = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
+	private val PREDICTED_OBI_SELECTION = OBI_SELECTION.mutate { predictFutureStates() }
 
 	private val NOT_OBI_OR_ECHEST_SELECTION =
 		stackSelection(StackSelection.UNBOUNDED) {
 			noneOfItems(Items.ENDER_CHEST, Items.OBSIDIAN)
+			notShulkerBox()
 		}
 
 	enum class Material(
@@ -159,12 +174,35 @@ object HighwayTools : Module(
 					?.softFail()
 					?.start()
 			}
-			.onTickPre {
+			.onTickPre { structure ->
 				with(this) {
-					checkFarmEnderChests(it)
-						?.with { purgePickups(NOT_OBI_OR_ECHEST_SELECTION, MergeHandling.Ignore) }
-						?.softFail()
-						?.start()
+					if (stacksAvailable(OBI_SELECTION, ContainerSelection.HOTBAR_AND_INVENTORY)) return@onTickPre null
+
+					val disposablesSelection = stackSelection { ofAnyItems(inventoryConfig.disposables) }
+					val disposablesCount =
+						count(
+							disposablesSelection.mutate { predictFutureStates() },
+							ContainerSelection.HOTBAR_AND_INVENTORY
+						)
+					val disposableDropCount = (disposablesCount - minDisposablesCount).coerceAtLeast(0)
+					if (disposableDropCount <= 0 && echestBreakCount(structure) <= 0) return@onTickPre null
+
+					taskOrNull {
+						if (disposableDropCount <= 0) null
+						else {
+							drop(
+								disposablesSelection.mutate(disposableDropCount),
+								ContainerSelection.HOTBAR_AND_INVENTORY
+							) { dropRotation }
+						}
+					}.thenOrNull {
+						val breakCount = echestBreakCount(structure)
+						if (breakCount <= 0) null
+						else farmEnderChests(breakCount, restockCount = echestRestockCount)
+					}.withLifetimeParent {
+						purgePickups(NOT_OBI_OR_ECHEST_SELECTION, MergeHandling.Ignore) { dropRotation }
+					}.softFail()
+						.start()
 				}
 			}
 			.start()
@@ -190,21 +228,59 @@ object HighwayTools : Module(
 			structure
 		}
 
-	@TaskMarker
-	private fun AutomatedSafeContext.checkFarmEnderChests(structure: Structure): Task<*>? {
-		if (!farmEnderChests) return null
+	private fun AutomatedSafeContext.echestBreakCount(structure: Structure): Int {
+		if (!farmEnderChests) return 0
 
 		val remainingObi = structure
 			.count {
 				it.value.getState(it.key).isOf(Blocks.OBSIDIAN) &&
 						!blockState(it.key).isOf(Blocks.OBSIDIAN)
 			}
-		val obiOnPlayer = count(OBI_SELECTION, ContainerSelection.HOTBAR_AND_INVENTORY)
-		if (obiOnPlayer >= remainingObi) return null
+		val obiOnPlayer = count(PREDICTED_OBI_SELECTION, ContainerSelection.HOTBAR_AND_INVENTORY)
+		if (obiOnPlayer >= remainingObi) return 0
 
-		val obiSpace = spaceLeft(OBI_SELECTION, ContainerSelection.HOTBAR_AND_INVENTORY)
-		return if (obiSpace >= 8) farmEnderChests(obiSpace / 8)
-		else null
+		val stacks =
+			findStacks(
+				StackSelection.ALL_PREDICTED,
+				ContainerSelection.HOTBAR_AND_INVENTORY,
+				sorted = false
+			).orEmpty()
+		return maxEchestBreaks(
+			freeSlots = stacks.count { it.isEmpty },
+			obiRoom = stacks.filter { it.isOf(Items.OBSIDIAN) }.sumOf { it.maxCount - it.count },
+			echestStacks = stacks.filter { it.isOf(Items.ENDER_CHEST) }.map { it.count },
+			restockCount = echestRestockCount
+		)
+	}
+
+	private fun maxEchestBreaks(freeSlots: Int, obiRoom: Int, echestStacks: List<Int>, restockCount: Int): Int {
+		var free = freeSlots
+		var room = obiRoom
+		val echests = ArrayDeque(echestStacks.sortedDescending())
+		var breaks = 0
+
+		while (true) {
+			if (echests.isEmpty()) {
+				val restockSlots = (restockCount + 63) / 64
+				if (restockCount <= 0 || free < restockSlots) return breaks
+				free -= restockSlots
+				repeat(restockSlots) { echests.addLast(minOf(64, restockCount - it * 64)) }
+			}
+
+			echests[0]--
+			if (echests[0] == 0) {
+				echests.removeFirst()
+				free++
+			}
+
+			if (room < 8) {
+				if (free == 0) return breaks
+				free--
+				room += 64
+			}
+			room -= 8
+			breaks++
+		}
 	}
 
 	private fun generateSlice(): Structure {

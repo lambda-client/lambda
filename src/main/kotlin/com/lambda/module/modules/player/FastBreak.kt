@@ -57,9 +57,7 @@ object FastBreak : Module(
 						::placeBlocks
 					)
 					::maxBuildDependencies.editSetting { defaultValue(0) }
-					editTypedSettings(
-						::strictRayCast
-					) { defaultValue(false); }
+					editTypedSettings(::strictRayCast) { defaultValue(false); }
 					hide(::strictRayCast, ::checkSideVisibility)
 					::blockReach.editSetting { defaultValue(Double.MAX_VALUE) }
 				}
@@ -70,10 +68,7 @@ object FastBreak : Module(
 						::efficientOnly,
 						::suitableToolsOnly
 					) { defaultValue(false) }
-					editTypedSettings(
-						::rotate,
-						::doubleBreak
-					) { defaultValue(false); hide() }
+					editTypedSettings(::rotate, ::doubleBreak) { defaultValue(false); hide() }
 					::breaksPerTick.editSetting { defaultValue(1); hide() }
 					::tickStageMask.editSetting { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
 					hide(::sorter, ::unsafeCancels)

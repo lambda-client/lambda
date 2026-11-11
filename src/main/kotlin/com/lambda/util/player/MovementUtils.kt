@@ -176,4 +176,7 @@ object MovementUtils {
             val directionIndex = ((normalizedYaw + 22.5) / 45.0).toInt() % 8
             return EightWayDirection.entries[directionIndex]
         }
+
+    val EightWayDirection.yaw: Float
+        get() = (ordinal * 45.0f + 180.0f) % 360.0f
 }

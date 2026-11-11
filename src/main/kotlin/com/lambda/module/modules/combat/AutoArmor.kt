@@ -145,14 +145,14 @@ object AutoArmor : Module(
 		armorSlots
 			.map { StackAndSlot(it.stack, it) }
 			.forEach { equipped ->
-			val new =
-				swappable.find { new ->
-					equipped.slot.canInsert(new.stack) &&
-							SORTER.compare(equipped, StackAndSlot(new.stack, new)) > 0
-				} ?: return@forEach
+				val new =
+					swappable.find { new ->
+						equipped.slot.canInsert(new.stack) &&
+								SORTER.compare(equipped, StackAndSlot(new.stack, new)) > 0
+					} ?: return@forEach
 
-			swaps.add(Pair(new, equipped.slot))
-		}
+				swaps.add(Pair(new, equipped.slot))
+			}
 
 		if (swaps.isEmpty()) return
 		inventoryRequest {

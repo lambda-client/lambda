@@ -31,11 +31,17 @@ import com.lambda.interaction.construction.blueprint.toStructure
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler.count
 import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
+import com.lambda.interaction.handler.handlers.ContainerHandler.spaceLeft
 import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
+import com.lambda.interaction.handler.handlers.SlotActionProgressHandler
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.task.Task
@@ -56,18 +62,24 @@ context(automated: Automated)
 fun farmEnderChests(
 	stopAfterMined: Int = -1,
 	stopOnFull: Boolean = true,
+	restockCount: Int = 64,
+	awaitExternalDependencies: Boolean = true,
 	dropPickupConfig: ItemPickupConfig = ItemPickupConfig.DEFAULT
 ) = FarmEnderChestsTask(
 	stopAfterMined,
 	stopOnFull,
+	restockCount,
+	awaitExternalDependencies,
 	dropPickupConfig,
 	automated
 )
 
 class FarmEnderChestsTask @TaskMarker internal constructor(
-	val stopAfterMined: Int = -1,
-	val stopIfFull: Boolean = true,
-	val dropPickupConfig: ItemPickupConfig = ItemPickupConfig.DEFAULT,
+	private val stopAfterMined: Int = -1,
+	private val stopIfFull: Boolean = true,
+	private val restockCount: Int = 64,
+	private val awaitExternalDependencies: Boolean = true,
+	private val dropPickupConfig: ItemPickupConfig = ItemPickupConfig.DEFAULT,
 	automated: Automated
 ) : Task<Unit>(), Automated by automated {
 	override val name = "Farming Ender Chests"
@@ -77,7 +89,11 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 	private var broken = 0
 	private val drops = mutableSetOf<ItemEntity>()
 
-	private val obiSelection = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
+	companion object {
+		private val OBI_SELECTION = Items.OBSIDIAN.select(StackSelection.UNBOUNDED)
+		private val ECHEST_SELECTION = stackSelection(1) { isItem(Items.ENDER_CHEST); alwaysWholeStacks() }
+		private val SINGLE_ECHEST_SELECTION = Items.ENDER_CHEST.select(1)
+	}
 
 	private val BlockState.echestFarmable get() = placeReady || breakReady
 	private val BlockState.placeReady get() = isReplaceable
@@ -111,8 +127,7 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 
 	override fun SafeContext.onStart() {
 		updateFarmPos()
-		startObsidian = findContainers(ContainerSelection.PLAYER)
-			.sumOf { it.count(obiSelection) }
+		startObsidian = count(OBI_SELECTION, ContainerSelection.PLAYER)
 	}
 
 	init {
@@ -128,9 +143,13 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 
 			if (!state.breakReady) {
 				if (stopIfFull) {
-					val obiSpaceLeft = findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
-						.sumOf { it.spaceLeft(obiSelection) }
-					if (obiSpaceLeft < 8) success()
+					val obiSpaceLeft = spaceLeft(OBI_SELECTION, ContainerSelection.HOTBAR_AND_INVENTORY)
+					if (obiSpaceLeft < 8) {
+						val containers = findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
+						if (awaitExternalDependencies && SlotActionProgressHandler.isPushHandled(containers)) return@listen
+						success()
+						return@listen
+					}
 				}
 
 				if (dropPickupConfig.shouldPickup(drops)) {
@@ -144,6 +163,7 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 						return@listen
 					}
 					success()
+					return@listen
 				}
 
 				if (!state.echestFarmable) {
@@ -151,9 +171,36 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 					return@listen
 				}
 
-				val enderChestsAvailable = stacksAvailable(Items.ENDER_CHEST.select(1))
+				val enderChestsAvailable =
+					stacksAvailable(
+						SINGLE_ECHEST_SELECTION,
+						ContainerSelection.HOTBAR_AND_INVENTORY
+					)
 				if (!enderChestsAvailable) {
-					failure("No Ender Chests available to place")
+					if (restockCount <= 0) {
+						failure("No Ender Chests available to place")
+						return@listen
+					}
+
+					transfer(
+						fromStack = Items.ENDER_CHEST.select(restockCount),
+						toSelection = ContainerSelection.HOTBAR_AND_INVENTORY,
+						toStack = stackSelection { withoutSelector(OBI_SELECTION) }
+					).start()
+					return@listen
+				}
+
+				val enderChestInHotbar =
+					stacksAvailable(
+						SINGLE_ECHEST_SELECTION,
+						HotbarContainer.select()
+					)
+				if (!enderChestInHotbar) {
+					transfer(
+						ECHEST_SELECTION,
+						InventoryContainer.select(),
+						HotbarContainer.select()
+					).start()
 					return@listen
 				}
 			}
@@ -198,7 +245,7 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 	}
 
 	private fun SafeContext.updateFarmPos() {
-		pos = potentialFarmPositions.first { blockState(it).echestFarmable }
+		pos = potentialFarmPositions.firstOrNull { blockState(it).echestFarmable }
 			?: run {
 				failure("All potential farm positions exhausted")
 				return

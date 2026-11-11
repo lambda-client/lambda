@@ -9,10 +9,6 @@
       {
         "adapter": "kotlin",
         "value": "com.lambda.LambdaTest"
-      },
-      {
-        "adapter": "kotlin",
-        "value": "com.lambda.PickupGameTest"
       }
     ]
   }

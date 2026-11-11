@@ -19,6 +19,7 @@ package com.lambda.interaction.container.containers.external
 
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.SlotPrediction
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.util.math.roundedBlockPos
 import com.lambda.util.text.buildText
@@ -44,6 +45,6 @@ data class StashContainer(
             highlighted(pos.center.roundedBlockPos.toShortString())
         }
 
-    override fun count(selection: StackSelection): Int =
-        chests.sumOf { it.count(selection) }
+    override fun count(selection: StackSelection, prediction: SlotPrediction?): Int =
+        chests.sumOf { it.count(selection, prediction) }
 }

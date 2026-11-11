@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.handler.handlers
 
+import com.lambda.context.Automated
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
@@ -24,10 +25,18 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.SlotIdentity
+import com.lambda.interaction.container.SlotPrediction
 import com.lambda.interaction.container.identity
 import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.task.tasks.DropTarget
+import com.lambda.util.item.ItemStackUtils.hasSpace
+import com.lambda.util.item.ItemStackUtils.itemAndComponentsEqual
+import com.lambda.util.item.ItemStackUtils.spaceLeft
+import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
 object SlotActionProgressHandler : Loadable {
@@ -39,6 +48,9 @@ object SlotActionProgressHandler : Loadable {
 
 		fun removesFrom(container: Container, slot: Slot): Boolean
 		fun addsTo(container: Container, slot: Slot): Boolean
+
+		context(_: Automated)
+		fun apply(stacks: MutableMap<SlotIdentity, ItemStack>)
 	}
 
 	private class DropActivity(
@@ -47,6 +59,7 @@ object SlotActionProgressHandler : Loadable {
 		private val targets: List<DropTarget>,
 		private val stackSelection: StackSelection?,
 		private val containerSelection: ContainerSelection?,
+		private val progress: Int,
 	) : Activity {
 		override fun removesFrom(container: Container, slot: Slot): Boolean {
 			val slotIdentity = slot.identity()
@@ -58,6 +71,22 @@ object SlotActionProgressHandler : Loadable {
 		}
 
 		override fun addsTo(container: Container, slot: Slot) = false
+
+		context(_: Automated)
+		override fun apply(stacks: MutableMap<SlotIdentity, ItemStack>) {
+			var dropped = progress
+			targets.forEach { target ->
+				val planned = if (target.whole) target.expected.count else target.amount
+				val done = minOf(dropped, planned)
+				dropped -= done
+				val held = stacks[target.slot] ?: target.slot.resolveStack() ?: return@forEach
+				stacks[target.slot] = held.without(planned - done)
+			}
+
+			val selection = stackSelection ?: return
+			val containers = containerSelection ?: return
+			stacks.take(selection, findContainers(containers), dropped)
+		}
 	}
 
 	private class TransferActivity(
@@ -67,12 +96,42 @@ object SlotActionProgressHandler : Loadable {
 		private val toStack: StackSelection,
 		private val fromSelection: ContainerSelection,
 		private val toSelection: ContainerSelection,
+		private val progress: Int,
 	) : Activity {
 		override fun removesFrom(container: Container, slot: Slot): Boolean =
 			fromSelection.matches(container) && fromStack.matches(slot)
 
 		override fun addsTo(container: Container, slot: Slot): Boolean =
 			toSelection.matches(container) && toStack.matches(slot)
+
+		context(_: Automated)
+		override fun apply(stacks: MutableMap<SlotIdentity, ItemStack>) {
+			val destinations = findContainers(toSelection)
+			val sources = findContainers(fromSelection).filter { it !in destinations }
+			stacks
+				.take(fromStack, sources, progress)
+				.forEach { incoming ->
+					var left = incoming.count
+					destinations.forEach destinations@{ container ->
+						listOf(true, false).forEach { merge ->
+							container.slots.forEach { slot ->
+								if (left <= 0) return@destinations
+								val identity = slot.identity() ?: return@forEach
+								val held = stacks[identity] ?: slot.stack
+								val fits =
+									if (merge) !held.isEmpty && held.hasSpace && held.itemAndComponentsEqual(incoming)
+									else held.isEmpty && slot.canInsert(incoming)
+								if (!fits || !toStack.matches(held, slot)) return@forEach
+								val amount = minOf(left, if (merge) held.spaceLeft else incoming.maxCount)
+								stacks[identity] =
+									if (held.isEmpty) incoming.copyWithCount(amount)
+									else held.copyWithCount(held.count + amount)
+								left -= amount
+							}
+						}
+					}
+				}
+		}
 	}
 
 	private var tick = 0
@@ -85,18 +144,20 @@ object SlotActionProgressHandler : Loadable {
 		}
 
 		listen<InventoryEvent.DropProgress> { event ->
-			activities +=
+			track(
 				DropActivity(
 					tick,
 					event.owner,
 					event.targets,
 					event.stackSelection,
 					event.containerSelection,
+					event.progress,
 				)
+			)
 		}
 
 		listen<InventoryEvent.ContainerTransferProgress> { event ->
-			activities +=
+			track(
 				TransferActivity(
 					tick,
 					event.owner,
@@ -104,7 +165,9 @@ object SlotActionProgressHandler : Loadable {
 					event.toStack,
 					event.fromSelection,
 					event.toSelection,
+					event.progress,
 				)
+			)
 		}
 
 		listenUnsafe<WorldEvent.Leave> {
@@ -113,21 +176,25 @@ object SlotActionProgressHandler : Loadable {
 		}
 	}
 
+	private fun track(activity: Activity) {
+		activity.owner?.let { owner -> activities.removeAll { it.owner === owner } }
+		activities += activity
+	}
+
 	fun isPullHandled(
 		containers: Iterable<Container>,
 		selection: StackSelection = StackSelection.EVERYTHING,
-		owner: Any? = null,
+		owner: Any? = null
 	): Boolean = isHandled(containers, selection, owner, adding = true)
 
 	fun isPushHandled(
 		containers: Iterable<Container>,
-		selection: StackSelection = StackSelection.EVERYTHING,
-		owner: Any? = null,
-	): Boolean = isHandled(containers, selection, owner, adding = false)
+		owner: Any? = null
+	): Boolean = isHandled(containers, null, owner, adding = false)
 
 	private fun isHandled(
 		containers: Iterable<Container>,
-		selection: StackSelection,
+		selection: StackSelection?,
 		owner: Any?,
 		adding: Boolean,
 	): Boolean {
@@ -140,10 +207,50 @@ object SlotActionProgressHandler : Loadable {
 					(owner == null || activity.owner !== owner) &&
 							candidates.any { (container, slot) ->
 								if (adding) {
-									(slot.stack.isEmpty || selection.matches(slot)) &&
+									(slot.stack.isEmpty || selection?.matches(slot) == true) &&
 											activity.addsTo(container, slot)
 								} else activity.removesFrom(container, slot)
 							}
 				}
 	}
+
+	context(_: Automated)
+	fun predict(): SlotPrediction {
+		val stacks = HashMap<SlotIdentity, ItemStack>()
+		activities.forEach { it.apply(stacks) }
+		return SlotPrediction(stacks)
+	}
+
+	private fun MutableMap<SlotIdentity, ItemStack>.take(
+		selection: StackSelection,
+		containers: List<Container>,
+		done: Int,
+	): List<ItemStack> {
+		var left =
+			if (selection.isUnbounded) Int.MAX_VALUE
+			else (selection.count - done).coerceAtLeast(0)
+		val taken = mutableListOf<ItemStack>()
+		containers.forEach { container ->
+			val stacksAndSlots = container.slots
+				.map { StackAndSlot(it.identity()?.let(::get) ?: it.stack, it) }
+			selection
+				.filter(stacksAndSlots)
+				.forEach {
+					if (left <= 0) return taken
+					val identity = it.slot?.identity() ?: return@forEach
+					val held = this[identity] ?: it.stack
+					if (held.isEmpty) return@forEach
+					val amount =
+						if (selection.alwaysWholeStacks) held.count
+						else minOf(held.count, left)
+					this[identity] = held.without(amount)
+					taken += held.copyWithCount(amount)
+					left -= amount
+				}
+		}
+		return taken
+	}
+
+	private fun ItemStack.without(amount: Int): ItemStack =
+		if (amount >= count) ItemStack.EMPTY else copyWithCount(count - amount)
 }

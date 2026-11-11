@@ -23,10 +23,11 @@ import com.lambda.Lambda.mc
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.SlotIdentity
+import com.lambda.interaction.container.SlotPrediction
 import com.lambda.interaction.container.identity
+import com.lambda.interaction.container.stackIn
 import com.lambda.interaction.manager.managers.inventory.InventoryManager
 import com.lambda.util.EnchantmentUtils.getEnchantment
-import com.lambda.util.item.ItemStackUtils.orZero
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils
 import net.minecraft.block.Block
@@ -72,6 +73,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 	val shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.Both,
 	val countEmptyAsOne: Boolean = false,
 	val alwaysWholeStacks: Boolean = false,
+	val predictFutureStates: Boolean = false,
 	val comparator: Comparator<StackAndSlot<*>>? = null,
 	val selector: (ItemStack, Slot?) -> Boolean,
 ) {
@@ -98,28 +100,23 @@ class StackSelection @ContainerDslMarker internal constructor(
 	fun match(stackAndSlots: Iterable<StackAndSlot<*>>) = stackAndSlots.find(::matches)
 
 	@ContainerDslMarker
-	fun matches(stack: ItemStack): Boolean {
-		val matchesSelf = selector(stack, null)
+	fun matches(stack: ItemStack) = matches(stack, null)
+
+	@ContainerDslMarker
+	fun matches(slot: Slot) = matches(slot.stack, slot)
+
+	@ContainerDslMarker
+	fun matches(stackAndSlot: StackAndSlot<*>) = matches(stackAndSlot.stack, stackAndSlot.slot)
+
+	@ContainerDslMarker
+	fun matches(stack: ItemStack, slot: Slot?): Boolean {
+		val matchesSelf = selector(stack, slot)
 		return when (shulkerBoxScope.inShulkerBox) {
 			true -> stack.shulkerBoxStacks.any { selector(it, null) }
 			false -> matchesSelf
 			null -> matchesSelf || stack.shulkerBoxStacks.any { selector(it, null) }
 		}
 	}
-
-	@ContainerDslMarker
-	fun matches(slot: Slot): Boolean {
-		val matchesSelf = selector(slot.stack, slot)
-		return when (shulkerBoxScope.inShulkerBox) {
-			true -> slot.stack.shulkerBoxStacks.any { selector(it, null) }
-			false -> matchesSelf
-			null -> matchesSelf || slot.stack.shulkerBoxStacks.any { selector(it, null) }
-		}
-	}
-
-	@ContainerDslMarker
-	fun matches(stackAndSlot: StackAndSlot<*>) =
-		stackAndSlot.slot?.let(::matches) ?: matches(stackAndSlot.stack)
 
 	@ContainerDslMarker
 	@JvmName("filter1")
@@ -143,7 +140,8 @@ class StackSelection @ContainerDslMarker internal constructor(
 	@JvmName("filter2")
 	fun filter(
 		slots: Iterable<Slot>,
-		sorted: Boolean = true
+		sorted: Boolean = true,
+		prediction: SlotPrediction? = null
 	) = slots
 		.let { slots ->
 			if (whitelistedSlots.isNotEmpty()) {
@@ -151,10 +149,10 @@ class StackSelection @ContainerDslMarker internal constructor(
 			} else slots
 		}
 		.filter { it.identity() !in blacklistedSlots }
-		.filter(::matches)
+		.filter { matches(prediction.stackIn(it), it) }
 		.let {
 			if (sorted && comparator != null)
-				it.map { StackAndSlot(it.stack, it) }
+				it.map { StackAndSlot(prediction.stackIn(it), it) }
 					.sortedWith(comparator)
 					.map { it.slot }
 			else it
@@ -186,11 +184,11 @@ class StackSelection @ContainerDslMarker internal constructor(
 
 	@ContainerDslMarker
 	fun isIn(vararg containers: Container) =
-		containers.sumOf { it.count(this).orZero } >= count
+		containers.sumOf { it.count(this) } >= count
 
 	@ContainerDslMarker
 	infix fun isIn(containers: Iterable<Container>) =
-		containers.sumOf { it.count(this).orZero } >= count
+		containers.sumOf { it.count(this) } >= count
 
 	@ContainerDslMarker
 	infix fun spaceIn(container: Container) =
@@ -209,9 +207,9 @@ class StackSelection @ContainerDslMarker internal constructor(
 		optimalStack?.let { !it.isEmpty && slot.canInsert(it) } ?: true
 
 	@ContainerDslMarker
-	fun emptySpace(slots: Iterable<Slot>) =
+	fun emptySpace(slots: Iterable<Slot>, prediction: SlotPrediction? = null) =
 		slots.sumOf { slot ->
-			if (slot.stack.isEmpty && canInsert(slot)) {
+			if (prediction.stackIn(slot).isEmpty && canInsert(slot)) {
 				optimalStack?.let {
 					min(it.maxCount, slot.maxItemCount)
 				} ?: slot.maxItemCount.coerceAtMost(64)
@@ -225,6 +223,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 		val NOTHING = StackSelection { _, _ -> false }
 		val ALL_EMPTY = stackSelection(UNBOUNDED) { isEmpty(); countEmptyAsOne() }
 		val ALL_NOT_EMPTY = stackSelection(UNBOUNDED) { notEmpty() }
+		val ALL_PREDICTED = stackSelection(UNBOUNDED) { predictFutureStates() }
 	}
 }
 
@@ -241,6 +240,7 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 	private var shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.NotInShulkerBox
 	private var countEmptyAsOne = false
 	private var alwaysWholeStacks = false
+	private var predictFutureStates = false
 
 	@ContainerDslMarker
 	internal constructor(
@@ -256,6 +256,7 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		this.shulkerBoxScope = selection.shulkerBoxScope
 		this.countEmptyAsOne = selection.countEmptyAsOne
 		this.alwaysWholeStacks = selection.alwaysWholeStacks
+		this.predictFutureStates = selection.predictFutureStates
 	}
 
 	fun withSelector(selection: StackSelection) {
@@ -479,6 +480,10 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		this.alwaysWholeStacks = true
 	}
 
+	fun predictFutureStates() {
+		this.predictFutureStates = true
+	}
+
 	fun notEmpty() {
 		appendSelector { stack, _ -> !stack.isEmpty }
 	}
@@ -641,6 +646,7 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 			shulkerBoxScope,
 			countEmptyAsOne,
 			alwaysWholeStacks,
+			predictFutureStates,
 			comparator,
 			selector
 		)

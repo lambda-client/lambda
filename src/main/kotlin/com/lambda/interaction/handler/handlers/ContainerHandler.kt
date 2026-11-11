@@ -35,6 +35,7 @@ import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.ContainerSerializer
 import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.PlacedContainer
+import com.lambda.interaction.container.SlotPrediction
 import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.container.containers.CursorContainer
 import com.lambda.interaction.container.containers.HotbarContainer
@@ -49,6 +50,7 @@ import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.container.stackIn
 import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.ReflectionUtils.getInstances
@@ -173,10 +175,13 @@ object ContainerHandler : Loadable {
 		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
-	) = findContainers(containerSelection, sorted)
-		.flatMap { stackSelection.filter(it.slots, sorted) }
-		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.count(stackSelection.countEmptyAsOne) >= stackSelection.count) }
-		?.takeUpTo(stackSelection.count) { it.stack.count(stackSelection.countEmptyAsOne) }
+	) = predictionFor(stackSelection)
+		.let { prediction ->
+			findContainers(containerSelection, sorted)
+				.flatMap { stackSelection.filter(it.slots, sorted, prediction) }
+				.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.sumOf { slot -> prediction.stackIn(slot).count(stackSelection.countEmptyAsOne) } >= stackSelection.count) }
+				?.takeUpTo(stackSelection.count) { prediction.stackIn(it).count(stackSelection.countEmptyAsOne) }
+		}
 
 	@ContainerDslMarker
 	context(_: Automated)
@@ -201,10 +206,18 @@ object ContainerHandler : Loadable {
 		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 		sorted: Boolean = true
-	) = findContainers(containerSelection, sorted)
-		.flatMap { stackSelection.filter(it.stacks, sorted) }
-		.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.count(stackSelection.countEmptyAsOne) >= stackSelection.count) }
-		?.takeUpTo(stackSelection.count) { it.count(stackSelection.countEmptyAsOne) }
+	) = predictionFor(stackSelection)
+		.let { prediction ->
+			findContainers(containerSelection, sorted)
+				.flatMap { container ->
+					val slots = container.slots
+					if (prediction != null && slots.isNotEmpty()) {
+						stackSelection.filter(slots, sorted, prediction).map { prediction[it] }
+					} else stackSelection.filter(container.stacks, sorted)
+				}
+				.takeIf { it.isNotEmpty() && (stackSelection.isUnbounded || it.count(stackSelection.countEmptyAsOne) >= stackSelection.count) }
+				?.takeUpTo(stackSelection.count) { it.count(stackSelection.countEmptyAsOne) }
+		}
 
 	@ContainerDslMarker
 	context(_: Automated)
@@ -219,16 +232,27 @@ object ContainerHandler : Loadable {
 	fun count(
 		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED
-	) = findContainers(containerSelection, false)
-		.sumOf { it.count(stackSelection) }
+	) = predictionFor(stackSelection)
+		.let { prediction ->
+			findContainers(containerSelection, false)
+				.sumOf { it.count(stackSelection, prediction) }
+		}
 
 	@ContainerDslMarker
 	context(_: Automated)
 	fun spaceLeft(
 		stackSelection: StackSelection = StackSelection.EVERYTHING,
 		containerSelection: ContainerSelection = ContainerSelection.ACCESSED
-	) = findContainers(containerSelection, false)
-		.sumOf { it.spaceLeft(stackSelection) }
+	) = predictionFor(stackSelection)
+		.let { prediction ->
+			findContainers(containerSelection, false)
+				.sumOf { it.spaceLeft(stackSelection, prediction) }
+		}
+
+	context(_: Automated)
+	private fun predictionFor(stackSelection: StackSelection): SlotPrediction? =
+		if (stackSelection.predictFutureStates) SlotActionProgressHandler.predict()
+		else null
 
 	@ContainerDslMarker
 	context(_: Automated)

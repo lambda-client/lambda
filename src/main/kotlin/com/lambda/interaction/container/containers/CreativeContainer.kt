@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.SlotPrediction
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.util.text.buildText
@@ -41,10 +42,10 @@ data object CreativeContainer : Container(ContainerType.Creative) {
 
 	override val description = buildText { literal("Creative") }
 
-	override fun count(selection: StackSelection): Int =
+	override fun count(selection: StackSelection, prediction: SlotPrediction?): Int =
 		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
 
-	override fun spaceLeft(selection: StackSelection): Int =
+	override fun spaceLeft(selection: StackSelection, prediction: SlotPrediction?): Int =
 		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
 
 	context(safeContext: SafeContext)

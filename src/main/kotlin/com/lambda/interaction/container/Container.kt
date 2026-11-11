@@ -138,17 +138,21 @@ abstract class Container(
     context(automated: Automated)
     open fun access(): OpenContainerTask<*>? = null
 
-    open fun count(selection: StackSelection) =
-		slots
-			.takeUnless { it.isEmpty() }
-			?.let { selection.filter(it, false).count(selection.countEmptyAsOne) }
-            ?: selection.filter(stacks, false).count(selection.countEmptyAsOne)
+    open fun count(
+        selection: StackSelection,
+        prediction: SlotPrediction? = null
+    ) = slots
+        .takeUnless { it.isEmpty() }
+        ?.let { slots -> selection.filter(slots, false, prediction).sumOf { prediction.stackIn(it).count(selection.countEmptyAsOne) } }
+        ?: selection.filter(stacks, false).count(selection.countEmptyAsOne)
 
-    open fun spaceLeft(selection: StackSelection) =
-        slots
-            .takeUnless { it.isEmpty() }
-            ?.let { selection.filter(it, false).spaceLeft + selection.emptySpace(it) }
-            ?: (selection.filter(stacks, false).spaceLeft + stacks.emptySpace)
+    open fun spaceLeft(
+        selection: StackSelection,
+        prediction: SlotPrediction? = null
+    ) = slots
+        .takeUnless { it.isEmpty() }
+        ?.let { slots -> selection.filter(slots, false, prediction).sumOf { prediction.stackIn(it).spaceLeft } + selection.emptySpace(slots, prediction) }
+        ?: (selection.filter(stacks, false).spaceLeft + stacks.emptySpace)
 
     open fun findSlots(selection: StackSelection) = selection.filter(slots)
 

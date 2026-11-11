@@ -592,7 +592,7 @@ class ContainerTransferTask @TaskMarker internal constructor(
 		private fun awaitExternalMove(sourceSelection: StackSelection): Boolean {
 			val owner = this@ContainerTransferTask
 			val hasSource = fromContainers.any { it.findSlot(sourceSelection) != null }
-			return if (hasSource) SlotActionProgressHandler.isPushHandled(toContainers, baseToSelection, owner)
+			return if (hasSource) SlotActionProgressHandler.isPushHandled(toContainers, owner)
 			else SlotActionProgressHandler.isPullHandled(fromContainers, sourceSelection, owner)
 		}
 
