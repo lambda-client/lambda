@@ -128,7 +128,7 @@ object EnderChestFarmer : Module(
 					editTypedSettings(::doubleBreak, ::avoidFluids, ::avoidSupporting) { defaultValue(false) }
 					::breakConfirmation.editSetting { defaultValue(BreakConfirmationMode.None) }
 				}
-				interactConfig::interactConfirmationMode.editSetting { defaultValue(InteractConfig.InteractConfirmationMode.None) }
+				interactConfig::interactConfirmation.editSetting { defaultValue(InteractConfig.InteractConfirmationMode.None) }
 				hotbarConfig::keepTicks.editSetting { defaultValue(0) }
 			}
 

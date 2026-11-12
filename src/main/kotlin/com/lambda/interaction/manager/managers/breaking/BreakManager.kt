@@ -191,9 +191,8 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 					info.predictDrops(player.mainHandStack)
 					info.request.onStops.invoke(info.context.blockPos)
 					info.internalOnBreak()
-					if (info.callbacksCompleted)
-						RebreakHandler.offerRebreak(info)
-					else info.startPending()
+					RebreakHandler.offerRebreak(info)
+					if (!info.callbacksCompleted) info.startPending()
 					info.nullify()
 				}
 		}
@@ -203,6 +202,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 			runGameScheduled {
 				val entity = it.entity
 				if (entity !is ItemEntity) return@runGameScheduled
+				if (pendingActions.any { info -> matchesBlockItem(info, entity) }) return@runGameScheduled
 
 				breakInfos
 					.filterNotNull()
@@ -597,16 +597,14 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * @see nullify
 	 */
 	private fun AutomatedSafeContext.onBlockBreak(info: BreakInfo) {
+		info.predictDrops(player.mainHandStack)
 		if (info.type != Rebreak) info.request.onStops.invoke(info.context.blockPos)
 		when (breakConfig.breakConfirmation) {
 			BreakConfirmationMode.None -> {
 				destroyBlock(info)
 				info.internalOnBreak()
-				if (!info.callbacksCompleted) {
-					info.startPending()
-				} else {
-					RebreakHandler.offerRebreak(info)
-				}
+				RebreakHandler.offerRebreak(info)
+				if (!info.callbacksCompleted) info.startPending()
 			}
 			BreakConfirmationMode.BreakThenAwait -> {
 				destroyBlock(info)

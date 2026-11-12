@@ -23,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.handler.handlers.breaking.RebreakPotential
 import com.lambda.interaction.manager.ActionInfo
+import com.lambda.interaction.manager.Request.Companion.invoke
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.RedundantSecondary
@@ -87,12 +88,16 @@ class BreakInfo(
 	var predictedDrops: Set<Item> = emptySet(); private set
 	var guaranteesDrop = false; private set
 	var dropPredictionComplete = false; private set
+	private val dropsArrived
+		get() = drops.isNotEmpty() &&
+				(!dropPredictionComplete || drops.map { it.stack.item }.containsAll(predictedDrops))
 	val callbacksCompleted
-		get() = broken && request.onItemDrops.isEmpty()
+		get() = broken && (request.onItemDrops.isEmpty() || dropsArrived)
 	val validBreak
 		get() = broken && (request.onItemDrops.isEmpty() || !guaranteesDrop || drops.isNotEmpty())
 
 	fun predictDrops(tool: ItemStack) {
+		if (request.onItemDrops.isEmpty()) return
 		val prediction = BlockDropPredictor.predictDrops(context.cachedState, tool, context.blockPos)
 		predictedDrops = prediction.items
 		guaranteesDrop = prediction.guaranteesDrop
@@ -101,9 +106,10 @@ class BreakInfo(
 
 	context(safeContext: SafeContext)
 	fun internalOnBreak() {
+		if (broken) return
 		broken = true
-		item?.let { item ->
-			request.onItemDrop?.invoke(safeContext, item)
+		drops.forEach { item ->
+			request.onItemDrops.invoke(item)
 		}
 	}
 
@@ -111,7 +117,7 @@ class BreakInfo(
 	fun internalOnItemDrop(item: ItemEntity) {
 		if (!drops.add(item)) return
 		if (broken) {
-			request.onItemDrops.forEach { it.invoke(safeContext, item) }
+			request.onItemDrops.invoke(item)
 		}
 	}
 

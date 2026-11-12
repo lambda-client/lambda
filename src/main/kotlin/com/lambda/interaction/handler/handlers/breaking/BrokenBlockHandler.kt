@@ -26,7 +26,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry
 import com.lambda.interaction.handler.PostActionHandler
 import com.lambda.interaction.manager.Request.Companion.invoke
-import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.reBreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager.matchesBlockItem
 import com.lambda.module.modules.client.Client.verboseDebug
@@ -43,6 +42,8 @@ import com.lambda.util.player.PlayerUtils.gamemode
 import net.minecraft.block.OperatorBlock
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.ChunkSectionPos
+import java.util.Collections
+import java.util.WeakHashMap
 
 /**
  * Designed to handle blocks that are deemed broken, yet are awaiting
@@ -77,6 +78,8 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 		info.pendingInteractionsList.remove(info.context)
 	}
 
+	private val reportedDrops = Collections.newSetFromMap(WeakHashMap<ItemEntity, Boolean>())
+
     init {
         listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
             pendingActions.firstOrNull { !it.broken && it.context.blockPos == event.pos }?.let { pending ->
@@ -92,17 +95,15 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 					val message = "Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}"
 					if (verboseDebug) this@BrokenBlockHandler.warn(message)
 					pending.stopPending()
-					pending.request.onCancel?.invoke(this, event.pos)
+					pending.request.onCancels.invoke(event.pos)
 					return@listen
 				}
 
 				if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak) destroyBlock(pending)
 				pendingActions.refresh(pending)
 				pending.internalOnBreak()
-				if (pending.callbacksCompleted) {
-					pending.stopPending()
-					RebreakHandler.offerRebreak(pending)
-				}
+				RebreakHandler.offerRebreak(pending)
+				if (pending.callbacksCompleted) pending.stopPending()
 				return@listen
 			}
 		}
@@ -111,14 +112,15 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 			runGameScheduled {
 				val entity = it.entity
 				if (entity !is ItemEntity) return@runGameScheduled
-				val pending = pendingActions.firstOrNull { info -> matchesBlockItem(info, entity) }
+				if (entity in reportedDrops) return@runGameScheduled
+				val matches = pendingActions.filter { info -> matchesBlockItem(info, entity) }
+				val pending = matches.firstOrNull { info -> info.drops.isEmpty() }
+					?: matches.firstOrNull()
 					?: return@runGameScheduled
 
+				reportedDrops += entity
 				pending.internalOnItemDrop(entity)
-				if (pending.callbacksCompleted) {
-					pending.stopPending()
-					RebreakHandler.offerRebreak(pending)
-				}
+				if (pending.callbacksCompleted) pending.stopPending()
 			}
 		}
 	}
