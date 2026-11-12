@@ -49,7 +49,10 @@ class InventorySyncFilter<T>(
     }
 
     @Synchronized
-    fun observeLocal(syncId: Int, slots: Map<Int, T>, cursor: T): Int {
+    fun observeLocal(syncId: Int, slots: Map<Int, T>, cursor: T, clicked: Boolean = false): Int {
+        val click =
+            if (clicked) ledger.clickSent(syncId)
+            else InventoryLedger.NO_CLICK
         val snap = slotSnapshots[syncId]
         if (snap == null) {
             slotSnapshots[syncId] = slots.mapValuesTo(HashMap()) { copy(it.value) }
@@ -61,7 +64,7 @@ class InventorySyncFilter<T>(
             val old = snap[slotId]
             if (old == null) snap[slotId] = copy(live)
             else if (!equal(old, live)) {
-                ledger.record(syncId, slotId, old, copy(live))
+                ledger.record(syncId, slotId, old, copy(live), click)
                 snap[slotId] = copy(live)
                 changeTimes[syncId to slotId] = clock()
                 recorded++

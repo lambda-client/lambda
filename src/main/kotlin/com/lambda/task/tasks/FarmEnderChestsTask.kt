@@ -25,6 +25,7 @@ import com.lambda.config.blocks.ItemPickupConfig
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.toStructure
@@ -140,9 +141,19 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 	}
 
 	init {
-		listen<TickEvent.Input.Post> {
-			drops.removeIf { it.isRemoved }
+		listen<InventoryEvent.PickupMerged>(alwaysListen = true) { event ->
+			if (drops.remove(event.source)) drops += event.target
+		}
 
+		listen<InventoryEvent.Pickup>(alwaysListen = true) { event ->
+			if (event.remaining <= 0) drops.remove(event.source)
+		}
+
+		listen<InventoryEvent.PickupLost>(alwaysListen = true) { event ->
+			if (event.remaining <= 0) drops.remove(event.source)
+		}
+
+		listen<TickEvent.Input.Post> {
 			val pos = pos
 				?: run {
 					failure("Farm position null")
@@ -171,6 +182,7 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 						pickup()
 						return@listen
 					}
+					if (pendingInteractions.isNotEmpty()) return@listen
 					success()
 					return@listen
 				}
@@ -188,6 +200,12 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 				if (!enderChestsAvailable) {
 					if (restockCount <= 0) {
 						failure("No Ender Chests available to place")
+						return@listen
+					}
+
+					if (pendingInteractions.isNotEmpty()) return@listen
+					if (drops.isNotEmpty() && dropPickupConfig.pickupDrops) {
+						pickup()
 						return@listen
 					}
 
@@ -217,10 +235,11 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 
 			runSafeAutomated {
 				if (state.placeReady) {
-					val placeRequest = placeRequest(pos)
-					if (placeRequest == null) {
-						updateFarmPos()
-						placeRequest(pos)
+					if (placeRequest(pos) == null) {
+						potentialFarmPositions
+							.filter { it != pos && blockState(it).echestFarmable }
+							.firstOrNull { placeRequest(it) != null }
+							?.let { this@FarmEnderChestsTask.pos = it }
 					}
 				}
 
@@ -230,6 +249,7 @@ class FarmEnderChestsTask @TaskMarker internal constructor(
 						.breakRequest(pendingInteractions) {
 							onStop { broken++ }
 							onReBreak { broken++ }
+							onReject { broken-- }
 							onItemDrop {
 								if (dropPickupConfig.pickupDrops) {
 									drops.add(it)

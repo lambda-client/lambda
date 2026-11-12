@@ -44,6 +44,7 @@ object PickupHandler : Loadable {
 	private class Pending(val source: ItemEntity, val stack: ItemStack) {
 		val slots = linkedMapOf<SlotIdentity, PickupSlot>()
 		var ticksLeft = SETTLE_TICKS
+		var age = 0
 		val landed get() = slots.values.sumOf { it.amount }
 		val settled get() = landed >= stack.count || ticksLeft <= 0
 
@@ -55,6 +56,7 @@ object PickupHandler : Loadable {
 			val kind = existing?.kind
 				?: if (opened) PickupSlotKind.Empty else PickupSlotKind.Merged
 			slots[slot] = PickupSlot(after.copy(), (existing?.amount ?: 0) + take, kind)
+			if (existing == null) InventoryEvent.PickupLanding(source, slot, after.copy(), kind).post()
 			return take
 		}
 	}
@@ -68,7 +70,10 @@ object PickupHandler : Loadable {
 	init {
 		listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
 			settle()
-			pending.forEach { it.ticksLeft-- }
+			pending.forEach {
+				it.ticksLeft--
+				it.age++
+			}
 			emitSettled()
 			classifyRemovals()
 		}
@@ -149,7 +154,7 @@ object PickupHandler : Loadable {
 		pending.removeAll(settled)
 		settled.forEach {
 			val remaining = if (it.source.isRemoved) 0 else it.source.stack.count
-			InventoryEvent.Pickup(it.source, it.stack, it.slots.toMap(), remaining).post()
+			InventoryEvent.Pickup(it.source, it.stack, it.slots.toMap(), remaining, it.age).post()
 		}
 	}
 

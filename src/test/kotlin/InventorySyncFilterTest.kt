@@ -19,6 +19,7 @@ import com.lambda.interaction.manager.managers.inventory.InventoryLedger
 import com.lambda.interaction.manager.managers.inventory.InventorySyncFilter
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -206,5 +207,67 @@ class InventorySyncFilterTest {
         filter.observeLocal(0, playerSlots(5, shulker("other")), empty)
         filter.clear(0)
         assertEquals(null, filter.lastChange(0, 5))
+    }
+
+    private val hotbar = 38
+    private val first = 31
+    private val second = 33
+    private val obsidian = TestStack("obsidian", 64)
+    private fun netherrack(count: Int) = TestStack("netherrack", count)
+
+    private fun slots(vararg stacks: Pair<Int, TestStack>, size: Int = 46): Map<Int, TestStack> =
+        (0 until size).associateWith { empty } + stacks
+
+    private fun full(vararg stacks: Pair<Int, TestStack>, size: Int = 46): List<TestStack> =
+        slots(*stacks, size = size).toSortedMap().values.toList()
+
+    @Test
+    fun `an update sent before the server saw a click does not undo the click`() {
+        val clock = ManualClock()
+        val filter = filter(clock)
+        filter.observeLocal(0, slots(hotbar to netherrack(47), first to obsidian, second to obsidian), empty)
+
+        filter.observeLocal(0, slots(hotbar to obsidian, first to netherrack(47), second to obsidian), empty, clicked = true)
+
+        assertFalse(filter.onSingle(0, hotbar, netherrack(48), obsidian), "the click hasn't been answered yet")
+
+        val client = full(hotbar to obsidian, first to netherrack(47), second to obsidian)
+        val server = full(hotbar to obsidian, first to netherrack(48), second to obsidian)
+        val result = filter.onFull(0, server, client, empty, empty)
+        assertTrue(result.apply[first], "the extra netherrack went with the swap")
+        assertEquals(0, filter.totalPending())
+    }
+
+    @Test
+    fun `an answered click that changed nothing on the server is corrected`() {
+        val clock = ManualClock()
+        val filter = filter(clock)
+        filter.observeLocal(0, slots(hotbar to netherrack(48), second to obsidian), empty)
+
+        filter.observeLocal(0, slots(hotbar to obsidian, second to netherrack(48)), empty, clicked = true)
+
+        val client = full(hotbar to obsidian, second to netherrack(48))
+        val server = full(hotbar to obsidian, second to obsidian)
+        val result = filter.onFull(0, server, client, empty, empty)
+        assertTrue(result.apply[second], "the server has answered the click, so its slot is the truth")
+        assertEquals(0, filter.totalPending())
+    }
+
+    @Test
+    fun `an answer to an earlier click does not undo a later one`() {
+        val clock = ManualClock()
+        val filter = filter(clock)
+        filter.observeLocal(0, slots(first to obsidian, second to obsidian, hotbar to empty), empty)
+
+        filter.observeLocal(0, slots(first to empty, second to obsidian, hotbar to obsidian), empty, clicked = true)
+        filter.observeLocal(0, slots(first to empty, second to empty, hotbar to obsidian), empty, clicked = true)
+
+        val client = full(first to empty, second to empty, hotbar to obsidian)
+        val afterFirst = full(first to empty, second to obsidian, hotbar to obsidian)
+        assertFalse(filter.onFull(0, afterFirst, client, empty, empty).apply[second], "the second click isn't answered yet")
+
+        val afterSecond = full(first to empty, second to empty, hotbar to obsidian)
+        filter.onFull(0, afterSecond, client, empty, empty)
+        assertEquals(0, filter.totalPending())
     }
 }

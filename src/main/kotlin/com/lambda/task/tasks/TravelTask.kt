@@ -17,7 +17,9 @@
 
 package com.lambda.task.tasks
 
+import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalBlock
+import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -27,18 +29,26 @@ import com.lambda.task.TaskMarker
 import net.minecraft.util.math.BlockPos
 
 @TaskMarker
-fun travelTo(blockPos: BlockPos) = TravelTask(blockPos)
+fun travelTo(blockPos: BlockPos, range: Int = 0) = TravelTask(blockPos, range)
 
 class TravelTask @TaskMarker internal constructor(
-	val toPos: BlockPos
+	val toPos: BlockPos,
+	private val range: Int = 0
 ) : Task<BlockPos>() {
 	override val name = "Travelling to $toPos"
 
+	private val goal: Goal
+		get() =
+			if (range > 0) GoalNear(toPos, range)
+			else GoalBlock(toPos)
+
 	private var idleTicks = 0
+	private var stuckTicks = 0
+	private var lastPos: BlockPos? = null
 
 	override fun SafeContext.onStart() {
 		if (checkFinish()) return
-		BaritoneHandler.setGoalAndPath(GoalBlock(toPos))
+		BaritoneHandler.setGoalAndPath(goal)
 	}
 
 	init {
@@ -53,18 +63,25 @@ class TravelTask @TaskMarker internal constructor(
 
 			if (idleTicks >= RE_PATH_TICKS) {
 				idleTicks = 0
-				BaritoneHandler.setGoalAndPath(GoalBlock(toPos))
+				BaritoneHandler.setGoalAndPath(goal)
 			}
+
+			stuckTicks =
+				if (player.blockPos == lastPos) stuckTicks + 1
+				else 0
+			lastPos = player.blockPos
+			if (stuckTicks >= STUCK_TICKS) failure("Couldn't get to ${toPos.toShortString()}")
 		}
 	}
 
 	private fun SafeContext.checkFinish(): Boolean =
-		if (player.blockPos == toPos) {
+		if (player.blockPos.getSquaredDistance(toPos) <= range * range) {
 			success(toPos)
 			true
 		} else false
 
 	companion object {
 		const val RE_PATH_TICKS = 20
+		const val STUCK_TICKS = 100
 	}
 }

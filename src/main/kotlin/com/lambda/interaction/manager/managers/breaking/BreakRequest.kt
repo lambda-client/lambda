@@ -105,6 +105,7 @@ data class BreakRequest(
 	val onUpdates: Collection<SafeContext.(BlockPos) -> Unit>,
 	val onStops: Collection<SafeContext.(BlockPos) -> Unit>,
 	val onCancels: Collection<SafeContext.(BlockPos) -> Unit>,
+	val onRejects: Collection<SafeContext.(BlockPos) -> Unit>,
 	val onItemDrops: Collection<SafeContext.(ItemEntity) -> Unit>,
 	val onReBreakStarts: Collection<SafeContext.(BlockPos) -> Unit>,
 	val onReBreaks: Collection<SafeContext.(BlockPos) -> Unit>
@@ -136,6 +137,7 @@ class BreakRequestBuilder internal constructor(
 	private val onUpdate = mutableListOf<SafeContext.(BlockPos) -> Unit>()
 	private val onStop = mutableListOf<SafeContext.(BlockPos) -> Unit>()
 	private val onCancel = mutableListOf<SafeContext.(BlockPos) -> Unit>()
+	private val onReject = mutableListOf<SafeContext.(BlockPos) -> Unit>()
 	private val onItemDrop = mutableListOf<SafeContext.(ItemEntity) -> Unit>()
 	private val onReBreakStart = mutableListOf<SafeContext.(BlockPos) -> Unit>()
 	private val onReBreak = mutableListOf<SafeContext.(BlockPos) -> Unit>()
@@ -154,6 +156,10 @@ class BreakRequestBuilder internal constructor(
 
 	fun onCancel(callback: SafeContext.(BlockPos) -> Unit) {
 		onCancel += callback
+	}
+
+	fun onReject(callback: SafeContext.(BlockPos) -> Unit) {
+		onReject += callback
 	}
 
 	fun onItemDrop(callback: SafeContext.(ItemEntity) -> Unit) {
@@ -178,6 +184,7 @@ class BreakRequestBuilder internal constructor(
 			onUpdate,
 			onStop,
 			onCancel,
+			onReject,
 			onItemDrop,
 			onReBreakStart,
 			onReBreak

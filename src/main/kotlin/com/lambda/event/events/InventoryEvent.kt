@@ -113,9 +113,17 @@ sealed class InventoryEvent {
         val stack: ItemStack,
         val slots: Map<SlotIdentity, PickupSlot>,
         val remaining: Int,
+        val age: Int = 0,
     ) : Event {
         val amount: Int get() = slots.values.sumOf { it.amount }
     }
+
+    data class PickupLanding(
+        val source: ItemEntity,
+        val slot: SlotIdentity,
+        val stack: ItemStack,
+        val kind: PickupSlotKind,
+    ) : Event
 
     data class PickupMerged(
         val source: ItemEntity,

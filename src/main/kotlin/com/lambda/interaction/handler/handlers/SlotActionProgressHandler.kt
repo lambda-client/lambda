@@ -32,6 +32,7 @@ import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
+import com.lambda.task.Task
 import com.lambda.task.tasks.DropTarget
 import com.lambda.util.item.ItemStackUtils.hasSpace
 import com.lambda.util.item.ItemStackUtils.itemAndComponentsEqual
@@ -79,8 +80,11 @@ object SlotActionProgressHandler : Loadable {
 				val planned = if (target.whole) target.expected.count else target.amount
 				val done = minOf(dropped, planned)
 				dropped -= done
+				if (done >= planned) return@forEach
 				val held = stacks[target.slot] ?: target.slot.resolveStack() ?: return@forEach
-				stacks[target.slot] = held.without(planned - done)
+				stacks[target.slot] =
+					if (target.whole) ItemStack.EMPTY
+					else held.without(planned - done)
 			}
 
 			val selection = stackSelection ?: return
@@ -133,6 +137,8 @@ object SlotActionProgressHandler : Loadable {
 				}
 		}
 	}
+
+	private val Task<*>.isFinished get() = state != Task.State.Running && state != Task.State.Paused
 
 	private var tick = 0
 	private val activities = mutableListOf<Activity>()
@@ -217,7 +223,9 @@ object SlotActionProgressHandler : Loadable {
 	context(_: Automated)
 	fun predict(): SlotPrediction {
 		val stacks = HashMap<SlotIdentity, ItemStack>()
-		activities.forEach { it.apply(stacks) }
+		activities
+			.filterNot { (it.owner as? Task<*>)?.isFinished == true }
+			.forEach { it.apply(stacks) }
 		return SlotPrediction(stacks)
 	}
 

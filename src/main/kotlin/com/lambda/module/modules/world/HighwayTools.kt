@@ -39,7 +39,6 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.module.modules.hud.Speedometer.currentPos
 import com.lambda.task.Task
 import com.lambda.task.TaskMarker
 import com.lambda.task.start
@@ -70,7 +69,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3i
-import org.apache.commons.lang3.time.DateUtils.ceiling
 
 object HighwayTools : Module(
 	name = "HighwayTools",
@@ -148,6 +146,7 @@ object HighwayTools : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				buildConfig::pathing.editSetting { defaultValue(true) }
+				hotbarConfig::keepTicks.editSetting { defaultValue(0) }
 			}
 
 		onEnable {

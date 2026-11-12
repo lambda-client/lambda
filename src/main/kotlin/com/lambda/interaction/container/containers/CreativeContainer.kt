@@ -43,10 +43,10 @@ data object CreativeContainer : Container(ContainerType.Creative) {
 	override val description = buildText { literal("Creative") }
 
 	override fun count(selection: StackSelection, prediction: SlotPrediction?): Int =
-		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
+		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else 0
 
 	override fun spaceLeft(selection: StackSelection, prediction: SlotPrediction?): Int =
-		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
+		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else 0
 
 	context(safeContext: SafeContext)
 	override fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {

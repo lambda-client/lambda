@@ -80,9 +80,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
             actions = mutableListOf()
         }
 
-		listen<PlayerEvent.SlotClick.Post> {
-			if (Client.avoidInventoryDesync) indexInventoryChanges()
-		}
+		listen<PlayerEvent.SlotClick.Post> { clickSent() }
 
 		listen<PacketEvent.Send.Post> { event ->
 			if (event.packet is CloseHandledScreenC2SPacket) {
@@ -175,6 +173,10 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 		}
 	}
 
+	internal fun SafeContext.clickSent() {
+		if (Client.avoidInventoryDesync) indexInventoryChanges(clicked = true)
+	}
+
 	/**
 	 * Diffs the live screen against the last snapshot and records every changed slot in the [filter]
 	 * in the order it happened. This runs after every performed action and at the end of every tick,
@@ -190,12 +192,13 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 	 * [InventoryS2CPacket]; that packet is merged per slot in [onInventoryUpdate], which is why each
 	 * change is recorded exactly once here.
 	 */
-	private fun SafeContext.indexInventoryChanges() {
+	private fun SafeContext.indexInventoryChanges(clicked: Boolean = false) {
 		val current = player.currentScreenHandler
 		val recorded = filter.observeLocal(
 			current.syncId,
 			current.slots.associate { it.id to it.stack },
-			current.cursorStack
+			current.cursorStack,
+			clicked
 		)
 		if (verboseDebug && recorded > 0) LOG.info("[desync] recorded $recorded change(s) on sync=${current.syncId}")
 	}

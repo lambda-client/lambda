@@ -27,7 +27,12 @@ class InventoryLedger<T>(
     private val maxDepthPerSlot: Int = 64,
     private val clock: () -> Instant = { Clock.System.now() }
 ) {
-    data class Pending<T>(val before: T, val after: T, val recordedAt: Instant)
+    data class Pending<T>(
+        val before: T,
+        val after: T,
+        val recordedAt: Instant,
+        val click: Int = NO_CLICK
+    )
 
     enum class SingleDecision {
         Drop,
@@ -36,16 +41,28 @@ class InventoryLedger<T>(
 
     companion object {
         const val CURSOR_SLOT_ID = -1
+        const val NO_CLICK = 0
     }
 
     private val queues = mutableMapOf<Int, MutableMap<Int, ArrayDeque<Pending<T>>>>()
 
+    private class Clicks(var sent: Int = 0, var answered: Int = 0)
+
+    private val clicks = mutableMapOf<Int, Clicks>()
+
     @Synchronized
-    fun record(syncId: Int, slotId: Int, before: T, after: T) {
+    fun clickSent(syncId: Int): Int = ++clicks.getOrPut(syncId) { Clicks() }.sent
+
+    private fun lastAnswered(syncId: Int) = clicks[syncId]?.answered ?: 0
+    private fun Pending<T>.unanswered(syncId: Int) = click > lastAnswered(syncId)
+    private fun Pending<T>.answered(syncId: Int) = click != NO_CLICK && click <= lastAnswered(syncId)
+
+    @Synchronized
+    fun record(syncId: Int, slotId: Int, before: T, after: T, click: Int = NO_CLICK) {
         if (equal(before, after)) return
         cleanup()
         val queue = queues.getOrPut(syncId) { mutableMapOf() }.getOrPut(slotId) { ArrayDeque() }
-        queue.addLast(Pending(before, after, clock()))
+        queue.addLast(Pending(before, after, clock(), click))
         while (queue.size > maxDepthPerSlot) queue.removeFirst()
     }
 
@@ -53,6 +70,7 @@ class InventoryLedger<T>(
     fun decideSingle(syncId: Int, slotId: Int, incoming: T): SingleDecision {
         cleanup()
         val queue = queues[syncId]?.get(slotId) ?: return SingleDecision.Apply
+        if (queue.any { it.unanswered(syncId) }) return SingleDecision.Drop
         val match = queue.indexOfFirst { equal(it.after, incoming) }
         return if (match < 0) {
             removeQueue(syncId, slotId)
@@ -82,35 +100,42 @@ class InventoryLedger<T>(
     fun decideFull(syncId: Int, incoming: List<T>, client: List<T>): List<Boolean> {
         if (incoming.size != client.size) return List(incoming.size) { true }
         cleanup()
-        return incoming.indices.map { index ->
-            val queue = queues[syncId]?.get(index)
-            if (queue.isNullOrEmpty()) {
-                true
-            } else if (equal(incoming[index], client[index])) {
-                consumeFirstAfterMatch(queue, incoming[index])
-                if (queue.isEmpty()) removeQueue(syncId, index)
-                true
-            } else {
-                val match = queue.indexOfFirst { equal(it.after, incoming[index]) }
-                when {
-                    match >= 0 -> {
-                        consumeFirstAfterMatch(queue, incoming[index])
-                        if (queue.isEmpty()) removeQueue(syncId, index)
-                        false
-                    }
-                    queue.any { equal(it.before, incoming[index]) } -> false
-                    else -> {
-                        removeQueue(syncId, index)
-                        true
-                    }
-                }
-            }
+        val clicks = clicks[syncId]
+        if (clicks != null && clicks.answered < clicks.sent) clicks.answered++
+        return decideSlots(syncId, incoming, client).also {
+            if (queues[syncId].isNullOrEmpty()) clicks?.run { answered = sent }
         }
     }
+
+    private fun decideSlots(syncId: Int, incoming: List<T>, client: List<T>): List<Boolean> =
+        incoming.indices.map { index ->
+            val queue = queues[syncId]?.get(index)
+	        queue.isNullOrEmpty() ||
+                    if (equal(incoming[index], client[index])) {
+                        consumeFirstAfterMatch(queue, incoming[index])
+                        if (queue.isEmpty()) removeQueue(syncId, index)
+                        true
+                    } else {
+                        val match = queue.indexOfFirst { equal(it.after, incoming[index]) }
+                        when {
+                            match >= 0 -> {
+                                consumeFirstAfterMatch(queue, incoming[index])
+                                if (queue.isEmpty()) removeQueue(syncId, index)
+                                false
+                            }
+                            queue.any { equal(it.before, incoming[index]) } && !queue.all { it.answered(syncId) } -> false
+                            else -> {
+                                removeQueue(syncId, index)
+                                true
+                            }
+                        }
+                    }
+        }
 
     @Synchronized
     fun clear(syncId: Int) {
         queues.remove(syncId)
+        clicks.remove(syncId)
     }
 
     @Synchronized

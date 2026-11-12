@@ -87,6 +87,7 @@ class InvRequestBuilder internal constructor(
 		InventoryAction.Inventory {
 			val sh = player.currentScreenHandler
 			val action = if (sh.cursorStack.isEmpty) SlotActionType.PICKUP_ALL else SlotActionType.CLONE
+			with(InventoryManager) { clickSent() }
 			connection.sendPacket {
 				ClickSlotC2SPacket(
 					sh.syncId,

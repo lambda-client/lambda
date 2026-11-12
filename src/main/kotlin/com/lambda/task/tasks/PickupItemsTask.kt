@@ -66,6 +66,11 @@ class PickupItemsTask @TaskMarker internal constructor(
 
 	private val pickups = mutableListOf<PickedUpItem>()
 
+	private var target: ItemEntity? = null
+	private var travel: Task<*>? = null
+	private var ticksInReach = 0
+	private var walks = 0
+
 	init {
 		listen<TickEvent.Pre> {
 			withSafeAutomated {
@@ -79,15 +84,25 @@ class PickupItemsTask @TaskMarker internal constructor(
 				pickups += PickedUpItem(landed.stack.copyWithCount(landed.amount), slot)
 			}
 			if (event.remaining <= 0) drops.remove(event.source)
+			stopTravelIfGone()
 		}
 
 		listen<InventoryEvent.PickupMerged>(alwaysListen = true) { event ->
 			if (drops.remove(event.source)) drops += event.target
+			stopTravelIfGone()
 		}
 
 		listen<InventoryEvent.PickupLost>(alwaysListen = true) { event ->
 			if (event.remaining <= 0) drops.remove(event.source)
+			stopTravelIfGone()
 		}
+	}
+
+	private fun stopTravelIfGone() {
+		if (target == null || target in drops) return
+		target = null
+		travel?.cancel()
+		travel = null
 	}
 
 	private fun AutomatedSafeContext.pollNextItem() {
@@ -121,8 +136,27 @@ class PickupItemsTask @TaskMarker internal constructor(
 			return
 		}
 
-		travelTo(target.blockPos)
+		if (target !== this@PickupItemsTask.target) {
+			this@PickupItemsTask.target = target
+			ticksInReach = 0
+			walks = 0
+		}
+
+		val inReach = player.blockPos.getSquaredDistance(target.blockPos) <= PICKUP_RANGE * PICKUP_RANGE
+		if (inReach && ticksInReach++ < PICKUP_WAIT_TICKS) return
+		if (walks++ >= MAX_WALKS) {
+			drops.remove(target)
+			return
+		}
+
+		travel = travelTo(target.blockPos, if (inReach) 0 else PICKUP_RANGE)
 			.softFail()
 			.start()
+	}
+
+	private companion object {
+		const val PICKUP_RANGE = 1
+		const val PICKUP_WAIT_TICKS = 10
+		const val MAX_WALKS = 4
 	}
 }

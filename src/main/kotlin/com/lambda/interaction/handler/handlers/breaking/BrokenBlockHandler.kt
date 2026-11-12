@@ -73,7 +73,10 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 				world.setBlockState(info.context.blockPos, info.context.cachedState)
 			}
 
-			if (!info.validBreak) info.request.onCancels.invoke(info.context.blockPos)
+			if (!info.validBreak) {
+				info.request.onCancels.invoke(info.context.blockPos)
+				info.request.onRejects.invoke(info.context.blockPos)
+			}
 		}
 		info.pendingInteractionsList.remove(info.context)
 	}
@@ -96,6 +99,7 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 					if (verboseDebug) this@BrokenBlockHandler.warn(message)
 					pending.stopPending()
 					pending.request.onCancels.invoke(event.pos)
+					pending.request.onRejects.invoke(event.pos)
 					return@listen
 				}
 
