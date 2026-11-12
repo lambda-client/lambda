@@ -289,24 +289,21 @@ class InteractSim internal constructor(simInfo: InteractSimInfo)
 		}
 
 		if (collidingEntities.isNotEmpty()) {
-			collidingEntities
-				.takeIf { buildConfig.spleefEntities }
-				?.run {
-					mapNotNull { entity ->
-						if (entity === player) {
-							result(InteractResult.BlockedBySelf(pos))
-							return@mapNotNull null
-						}
+			if (player in collidingEntities) result(InteractResult.BlockedBySelf(pos))
+			if (buildConfig.spleefEntities) {
+				collidingEntities
+					.filter { it !== player }
+					.flatMap { entity ->
 						val hitbox = entity.boundingBox
 						entity.getPositionsWithinHitboxXZ(
 							(pos.y - (hitbox.maxY - hitbox.minY)).floorToInt(),
 							pos.y
 						)
-					}.flatten()
-						.forEach { support ->
-							sim(support, blockState(support), TargetState.Empty)
-						}
-				}
+					}
+					.forEach { support ->
+						sim(support, blockState(support), TargetState.Empty)
+					}
+			}
 			result(InteractResult.BlockedByEntity(pos, collidingEntities, context.hitPos, context.side))
 		}
 
