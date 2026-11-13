@@ -30,16 +30,19 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.container.SlotIdentity
+import com.lambda.interaction.manager.managers.inventory.InventoryManager
 import com.lambda.util.item.ItemStackUtils.itemAndComponentsEqual
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.ItemStack
 
+@Suppress("unused")
 object PickupHandler : Loadable {
 	private const val SETTLE_TICKS = 5
 	private const val MERGE_RANGE = 2.0
 	private const val PICKUP_REACH = 1.5
+	private const val PARTIAL_SOURCE_TICKS = 40
 
 	private class Pending(val source: ItemEntity, val stack: ItemStack) {
 		val slots = linkedMapOf<SlotIdentity, PickupSlot>()
@@ -64,18 +67,24 @@ object PickupHandler : Loadable {
 	private var inventory = emptyMap<SlotIdentity, ItemStack>()
 	private val pending = mutableListOf<Pending>()
 	private val removed = mutableListOf<ItemEntity>()
+	private val partialSources = mutableMapOf<ItemEntity, Int>()
 
 	override fun load() = "Loaded pickup events"
 
 	init {
 		listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
 			settle()
+			val awaitingAnswers = InventoryManager.awaitingClickAnswers
 			pending.forEach {
-				it.ticksLeft--
+				if (!awaitingAnswers) it.ticksLeft--
 				it.age++
 			}
 			emitSettled()
 			classifyRemovals()
+			if (!awaitingAnswers) {
+				partialSources.replaceAll { _, age -> age + 1 }
+				partialSources.values.removeIf { it > PARTIAL_SOURCE_TICKS }
+			}
 		}
 
 		listen<TickEvent.Post>({ Int.MIN_VALUE }) { inventory = snapshot() }
@@ -111,6 +120,9 @@ object PickupHandler : Loadable {
 
 	private fun SafeContext.settle() {
 		val now = snapshot()
+		val reach = player.boundingBox.expand(PICKUP_REACH)
+		fastEntitySearch<ItemEntity>(PICKUP_REACH + 2) { !it.isRemoved && it.boundingBox.intersects(reach) }
+			.forEach { partialSources[it] = 0 }
 		now.forEach { (slot, after) ->
 			val before = inventory[slot] ?: return@forEach
 			val grown =
@@ -124,30 +136,23 @@ object PickupHandler : Loadable {
 			fun Pending.landHere() = land(slot, after, left, before.isEmpty && left == grown)
 
 			pending.forEach { if (left > 0) left -= it.landHere() }
-			if (left > 0) {
-				partialPickupOf(after)?.let { pickup ->
-					val taken = pickup.landHere()
-					pickup.source.stack.decrement(taken)
-					left -= taken
-				}
+			if (left > 0) partialSourcesOf(after).forEach { source ->
+				val pickup = Pending(source, source.stack.copy()).apply { ticksLeft = 0 }
+				val taken = pickup.landHere()
+				if (taken <= 0) return@forEach
+				pending += pickup
+				source.stack.decrement(taken)
+				left -= taken
 			}
 		}
 		inventory = now
 	}
 
-	private fun SafeContext.partialPickupOf(stack: ItemStack): Pending? {
-		val reach = player.boundingBox.expand(PICKUP_REACH)
-		val source =
-			fastEntitySearch<ItemEntity>(PICKUP_REACH + 2) {
-				!it.isRemoved && it.boundingBox.intersects(reach) && it.stack.itemAndComponentsEqual(stack)
-			}.minByOrNull { it.squaredDistanceTo(player) } ?: return null
-
-		return pending.firstOrNull { it.source === source }
-			?: Pending(source, source.stack.copy()).also {
-				it.ticksLeft = 0
-				pending += it
-			}
-	}
+	private fun SafeContext.partialSourcesOf(stack: ItemStack): List<ItemEntity> =
+		partialSources.entries
+			.filter { it.key.stack.itemAndComponentsEqual(stack) }
+			.sortedWith(compareBy({ it.value }, { it.key.squaredDistanceTo(player) }))
+			.map { it.key }
 
 	private fun emitSettled() {
 		val settled = pending.filter { it.settled }
@@ -176,5 +181,6 @@ object PickupHandler : Loadable {
 		inventory = emptyMap()
 		pending.clear()
 		removed.clear()
+		partialSources.clear()
 	}
 }

@@ -70,6 +70,8 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 
 	private var actionsThisTick = 0
 
+	val awaitingClickAnswers get() = filter.awaitingAnswers()
+
 	override fun load(): String {
 		super.load()
 

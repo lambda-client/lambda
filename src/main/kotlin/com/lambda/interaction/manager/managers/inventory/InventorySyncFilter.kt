@@ -148,4 +148,7 @@ class InventorySyncFilter<T>(
 
     @Synchronized
     fun totalPending(): Int = ledger.totalPending()
+
+    @Synchronized
+    fun awaitingAnswers(): Boolean = ledger.awaitingAnswers()
 }

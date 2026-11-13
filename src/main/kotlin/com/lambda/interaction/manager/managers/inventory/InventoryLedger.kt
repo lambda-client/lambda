@@ -110,27 +110,36 @@ class InventoryLedger<T>(
     private fun decideSlots(syncId: Int, incoming: List<T>, client: List<T>): List<Boolean> =
         incoming.indices.map { index ->
             val queue = queues[syncId]?.get(index)
-	        queue.isNullOrEmpty() ||
-                    if (equal(incoming[index], client[index])) {
-                        consumeFirstAfterMatch(queue, incoming[index])
-                        if (queue.isEmpty()) removeQueue(syncId, index)
-                        true
-                    } else {
-                        val match = queue.indexOfFirst { equal(it.after, incoming[index]) }
-                        when {
-                            match >= 0 -> {
-                                consumeFirstAfterMatch(queue, incoming[index])
-                                if (queue.isEmpty()) removeQueue(syncId, index)
-                                false
-                            }
-                            queue.any { equal(it.before, incoming[index]) } && !queue.all { it.answered(syncId) } -> false
-                            else -> {
-                                removeQueue(syncId, index)
-                                true
-                            }
-                        }
-                    }
+            when {
+                queue.isNullOrEmpty() -> true
+                queue.any { it.unanswered(syncId) } -> false
+                queue.all { it.answered(syncId) } -> {
+                    removeQueue(syncId, index)
+                    true
+                }
+                equal(incoming[index], client[index]) -> {
+                    consumeFirstAfterMatch(queue, incoming[index])
+                    if (queue.isEmpty()) removeQueue(syncId, index)
+                    true
+                }
+                queue.any { equal(it.after, incoming[index]) } -> {
+                    consumeFirstAfterMatch(queue, incoming[index])
+                    if (queue.isEmpty()) removeQueue(syncId, index)
+                    false
+                }
+                queue.any { equal(it.before, incoming[index]) } -> false
+                else -> {
+                    removeQueue(syncId, index)
+                    true
+                }
+            }
         }
+
+    @Synchronized
+    fun awaitingAnswers(): Boolean {
+        cleanup()
+        return queues.any { (syncId, slots) -> slots.values.any { queue -> queue.any { it.unanswered(syncId) } } }
+    }
 
     @Synchronized
     fun clear(syncId: Int) {
