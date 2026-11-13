@@ -86,7 +86,7 @@ object ConfigCommand : LambdaCommand(
                             currentMultiple = currentMultiple.layers
                                 .asSequence()
                                 .filterIsInstance<EntryLayer.Multiple<Setting<*>>>()
-                                .find { it.name == path } ?: return@executeWithResult failure("Setting not found.")
+                                .find { it.commandName == path } ?: return@executeWithResult failure("Setting not found.")
                         }
                         val entryLayer = currentMultiple.layers
                             .asSequence()
