@@ -128,6 +128,17 @@ object ContainerHandler : Loadable {
 		}
 
 		listen<InventoryEvent.FullUpdate>(priority = { Int.MAX_VALUE }) { onContainerUpdate() }
+
+		// A slot the server changes on its own, like a shulker box given or picked up
+		listen<InventoryEvent.SlotUpdate>(priority = { Int.MAX_VALUE }) { event ->
+			val handler = player.currentScreenHandler
+			if (event.syncId != handler.syncId) return@listen
+			val slot = handler.slots.getOrNull(event.slot) ?: return@listen
+			(compileContainers + listOfNotNull(accessedPlacedContainer))
+				.firstOrNull { container -> container.slots.any { it === slot } }
+				?.scanSlot(slot)
+		}
+
 		listen<PlayerEvent.SlotClick.Post> { onContainerUpdate() }
 
 		listen<WorldEvent.BlockUpdate.Client> { event ->
