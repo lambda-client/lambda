@@ -125,7 +125,12 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     modulePriority: Int = 0,
     defaultKeybind: Bind = Bind.EMPTY,
-    autoDisable: Boolean = false
+    autoDisable: Boolean = false,
+    /**
+     * For a module that does nothing by being enabled, only holding settings that always apply:
+     * it counts as enabled at all times, whatever was saved, and cannot be disabled or toggled.
+     */
+    val alwaysEnabled: Boolean = false,
 ) : Nameable, Muteable, OwnerPriority, Config(name, ModuleCategory),
     IMutableAutomationConfig by MutableAutomationConfig()
 {
@@ -145,8 +150,11 @@ abstract class Module(
     val drawSetting = setting("Draw", true, "Draws the module in the module list hud element") { false }
     val showInClickGui = setting("Show In ClickGui", true, "Shows the module in the ClickGui layout") { false }
 
-    var isEnabled by isEnabledSetting
-        private set
+    var isEnabled: Boolean
+        get() = alwaysEnabled || isEnabledSetting.value
+        private set(value) {
+            isEnabledSetting.value = value
+        }
     val isDisabled get() = !isEnabled
 
     val keybind by keybindSetting
@@ -170,18 +178,21 @@ abstract class Module(
 
     @ModuleDsl
     fun enable() {
+        if (alwaysEnabled) return
         ModuleEvent.Enabled(this@Module).post()
         isEnabled = true
     }
 
     @ModuleDsl
     fun disable() {
+        if (alwaysEnabled) return
         ModuleEvent.Disabled(this@Module).post()
         isEnabled = false
     }
 
     @ModuleDsl
     fun toggle() {
+        if (alwaysEnabled) return
         ModuleEvent.Toggle(this@Module, !isEnabled).post()
         if (isEnabled) disable() else enable()
     }

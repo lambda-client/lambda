@@ -33,7 +33,6 @@ import com.lambda.config.EntryLayer
 import com.lambda.config.MultipleLayerType
 import com.lambda.config.entries.Setting.ValueListener
 import com.lambda.context.SafeContext
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
@@ -142,8 +141,6 @@ abstract class Setting<T>(
 	fun restoreOriginalCore() {
 		core = originalCore
 	}
-
-	abstract fun ImGuiBuilder.buildLayout()
 
 	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(string("value as JSON")) { value ->

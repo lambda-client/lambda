@@ -22,7 +22,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
 import com.lambda.graphics.RenderMain;
 import com.lambda.graphics.outline.OutlineCapturingQueue;
-import com.lambda.gui.DearImGui;
+import com.lambda.gui.LambdaGui;
 import com.lambda.module.modules.render.BlockOutline;
 import com.lambda.module.modules.render.Bobbing;
 import com.lambda.module.modules.render.NoRender;
@@ -91,7 +91,7 @@ public class GameRendererMixin {
 
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", shift = At.Shift.AFTER))
     private void onGuiRenderComplete(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
-        DearImGui.INSTANCE.render();
+        LambdaGui.INSTANCE.render();
     }
 
     @WrapOperation(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;applyCursorTo(Lnet/minecraft/client/util/Window;)V"))
@@ -102,7 +102,9 @@ public class GameRendererMixin {
             Cursor cursor = provider.getCursorOverride(mouseX, mouseY);
 
             if (cursor != null) {
-                cursor.applyTo(window);
+                // Through the window, which remembers the cursor it shows: applied behind its back,
+                // the override would outlive the screen, as the window would think it never changed
+                window.setCursor(cursor);
                 return;
             }
         }

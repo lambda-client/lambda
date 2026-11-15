@@ -21,7 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.config.blocks.RotationConfig
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.LambdaScreen
+import com.lambda.gui.GuiScreen
+import com.lambda.gui.LambdaGui
 import com.lambda.interaction.manager.managers.rotating.RotationMode
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.Module
@@ -67,7 +68,7 @@ object InventoryMove : Module(
 				this is AbstractSignEditScreen ||
 				this is AnvilScreen ||
 				this is AbstractCommandBlockScreen ||
-				(this is LambdaScreen && !clickGui) ||
+				(this is GuiScreen && (!clickGui || LambdaGui.isCapturingKeys)) ||
 				this is BookEditScreen ||
 				this == null
 

@@ -1,0 +1,384 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.gui.menu
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.unit.dp
+import com.lambda.Lambda.REPO_URL
+import com.lambda.Lambda.mc
+import com.lambda.config.ConfigLoader
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.automation.UserAutomationConfig
+import com.lambda.config.categories.UserAutomationCategory
+import com.lambda.gui.GuiConfig
+import com.lambda.gui.LambdaGui
+import com.lambda.gui.clickgui.ClickGuiCategories
+import com.lambda.gui.clickgui.ClickGuiDialog
+import com.lambda.gui.clickgui.ClickGuiState
+import com.lambda.gui.component.Menu
+import com.lambda.gui.component.MenuDivider
+import com.lambda.gui.component.MenuItem
+import com.lambda.gui.component.MenuLabel
+import com.lambda.gui.component.MenuState
+import com.lambda.gui.component.Submenu
+import com.lambda.gui.component.Suggestions
+import com.lambda.gui.component.consumeClicks
+import com.lambda.gui.component.glass
+import com.lambda.gui.component.TextInput
+import com.lambda.gui.component.hoverHighlight
+import com.lambda.gui.component.mouseClickable
+import com.lambda.gui.core.observe
+import com.lambda.gui.core.observeSafe
+import com.lambda.gui.hud.HudConfig
+import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Text
+import com.lambda.gui.theme.Type
+import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.module.ModuleRegistry
+import com.lambda.module.ModuleTag
+import com.lambda.network.LambdaAPI
+import com.lambda.threading.runSafe
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.Diagnostics.gatherDiagnostics
+import com.lambda.util.FolderRegistry
+import com.mojang.blaze3d.platform.TextureUtil
+import java.nio.file.Path
+import java.util.Locale
+import net.minecraft.client.gui.screen.DebugOptionsScreen
+import net.minecraft.network.packet.c2s.play.ChangeGameModeC2SPacket
+import net.minecraft.server.command.GameModeCommand
+import net.minecraft.util.Util
+import net.minecraft.world.GameMode
+
+internal val MenuBarHeight = 15.dp
+
+/**
+ * The strip across the top of the click GUI. Everything that is not a module is in one of its
+ * menus, and its search field finds modules and settings and shows where they are.
+ */
+@Composable
+internal fun MenuBar(modifier: Modifier = Modifier) {
+    val colors = LambdaTheme.colors
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(MenuBarHeight)
+            // Glass like a window, but running from edge to edge it needs no outline
+            .glass(colors.surface, RectangleShape)
+            .consumeClicks()
+    ) {
+        Row(Modifier.align(Alignment.CenterStart).fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+            BarMenu("Lambda") { LambdaMenu() }
+            BarMenu("Modules") { ModulesMenu() }
+            BarMenu("Automation") { AutomationMenu() }
+            BarMenu("Minecraft") { MinecraftMenu() }
+            BarMenu("Help") { HelpMenu() }
+        }
+        SearchField()
+    }
+}
+
+/** An entry of the bar that drops a menu down underneath itself */
+@Composable
+private fun BarMenu(label: String, content: @Composable ColumnScope.() -> Unit) {
+    val menu = remember { MenuState() }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxHeight()
+            .hoverHighlight(LambdaTheme.colors.header)
+            .mouseClickable(onClick = menu::toggle)
+            .padding(horizontal = 6.dp)
+    ) {
+        Text(label, maxLines = 1)
+        Menu(menu.isOpen, onDismiss = menu::dismiss, content = content)
+    }
+}
+
+/**
+ * The search field of the bar. Results drop down under it as the query is typed; Enter takes
+ * the first, a click any, and Escape empties the field.
+ */
+@Composable
+private fun SearchField(modifier: Modifier = Modifier) {
+    val focus = LocalFocusManager.current
+    var query by remember { mutableStateOf("") }
+    // The results can be put away with a click elsewhere, and come back with the next keystroke
+    var listed by remember { mutableStateOf(false) }
+    val results = remember(query) { Search.find(query.trim()) }
+
+    fun choose(result: Search.Result) {
+        query = ""
+        listed = false
+        focus.clearFocus()
+        result.choose()
+    }
+
+    Box(
+        modifier.onPreviewKeyEvent { event ->
+            when {
+                event.type != KeyEventType.KeyDown -> false
+                event.key == Key.Enter -> {
+                    results.firstOrNull()?.let(::choose)
+                    true
+                }
+                // An empty field lets Escape through, to close the click GUI as it does anywhere else
+                event.key == Key.Escape && query.isNotEmpty() -> {
+                    query = ""
+                    listed = false
+                    true
+                }
+                else -> false
+            }
+        }
+    ) {
+        TextInput(
+            value = query,
+            onValueChange = {
+                query = it
+                listed = true
+            },
+            modifier = Modifier.width(SearchWidth),
+            placeholder = "Search modules and settings",
+        )
+        if (listed && query.isNotBlank()) Suggestions(onDismiss = { listed = false }) {
+            if (results.isEmpty()) MenuLabel("Nothing found")
+            results.forEach { result -> ResultRow(result) { choose(result) } }
+        }
+    }
+}
+
+@Composable
+private fun ResultRow(result: Search.Result, onClick: () -> Unit) {
+    val colors = LambdaTheme.colors
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(min = SearchWidth)
+            .hoverHighlight(colors.header)
+            .mouseClickable(onClick = onClick)
+            .padding(horizontal = 5.dp, vertical = 1.dp)
+    ) {
+        Text(result.name, maxLines = 1)
+        Spacer(Modifier.weight(1f).widthIn(min = 10.dp))
+        Text(result.origin, color = colors.onSurfaceVariant, style = Type.label, maxLines = 1)
+    }
+}
+
+private val SearchWidth = 150.dp
+
+@Composable
+private fun LambdaMenu() {
+    Submenu("Save Config") {
+        MenuItem("Save All Configs") {
+            ConfigLoader.configCategories.forEach { it.trySaveToFile(true) }
+            GuiConfig.info("Saved ${ConfigLoader.configCategories.size} configuration files.")
+        }
+        ConfigLoader.configCategories.forEach { category ->
+            MenuItem("Save ${category.name}") {
+                category.trySaveToFile(true)
+                GuiConfig.info("Saved ${category.name}")
+            }
+        }
+    }
+    Submenu("Load Config") {
+        MenuItem("Load All Configs") {
+            ConfigLoader.configCategories.forEach { it.tryLoadFromFile() }
+            GuiConfig.info("Loaded ${ConfigLoader.configCategories.size} configuration files.")
+        }
+        ConfigLoader.configCategories.forEach { category ->
+            MenuItem("Load ${category.name}") {
+                category.tryLoadFromFile()
+                GuiConfig.info("Loaded ${category.name}")
+            }
+        }
+    }
+    MenuDivider()
+    Submenu("Settings") {
+        MenuItem("GUI Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(GuiConfig) }
+        MenuItem("HUD Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(HudConfig) }
+        MenuItem("Lambda API Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(LambdaAPI) }
+        MenuItem("Baritone Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(BaritoneHandler) }
+        MenuDivider()
+        MenuItem("Reset Window Layout") { GuiConfig.resetWindows() }
+    }
+    Submenu("Open Folder") {
+        FolderItem("Lambda Folder", FolderRegistry.lambda)
+        FolderItem("Config Folder", FolderRegistry.config)
+        FolderItem("Packet Logs Folder", FolderRegistry.packetLogs)
+        FolderItem("Replay Folder", FolderRegistry.replay)
+        FolderItem("Cache Folder", FolderRegistry.cache)
+        FolderItem("Capes Folder", FolderRegistry.capes)
+        FolderItem("Structures Folder", FolderRegistry.structure)
+        FolderItem("Maps Folder", FolderRegistry.maps)
+    }
+    MenuDivider()
+    MenuItem("About...") { ClickGuiState.dialog = ClickGuiDialog.About }
+    MenuItem("Developer Mode", checked = ClickGuiState.developerMode) {
+        ClickGuiState.developerMode = !ClickGuiState.developerMode
+    }
+    MenuDivider()
+    MenuItem("Close GUI", hint = "Esc") { LambdaGui.back() }
+    MenuItem("Exit Client") { mc.scheduleStop() }
+}
+
+/** Which categories have a window, and which modules are listed in them */
+@Composable
+private fun ModulesMenu() {
+    Submenu("Shown Categories") {
+        ClickGuiCategories.forEach { tag ->
+            val shown by observe { ModuleTag.isTagShown(tag) }
+            MenuItem(tag.name, checked = shown) { ModuleTag.toggleTag(tag) }
+        }
+    }
+    MenuDivider()
+    ClickGuiCategories.forEach { tag ->
+        Submenu(tag.name) {
+            ModuleRegistry.modules.filter { it.tag == tag }.forEach { module ->
+                val shown by observe { module.showInClickGui.value }
+                MenuItem(module.name, checked = shown) { module.showInClickGui.value = !shown }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AutomationMenu() {
+    val configs by observe { UserAutomationCategory.configs.filterIsInstance<UserAutomationConfig>() }
+    MenuItem("New Config...") { ClickGuiState.dialog = ClickGuiDialog.NewAutomationConfig }
+    MenuDivider()
+    configs.forEach { config ->
+        MenuItem("${config.name}...") { ClickGuiState.dialog = ClickGuiDialog.Settings(config) }
+    }
+    MenuItem("${AutomationConfig.DEFAULT.name}...") { ClickGuiState.dialog = ClickGuiDialog.Settings(AutomationConfig.DEFAULT) }
+}
+
+@Composable
+private fun MinecraftMenu() {
+    val gameDirectory = mc.runDirectory.toPath().toAbsolutePath()
+    Submenu("Open Folder") {
+        FolderItem("Minecraft Folder", gameDirectory)
+        FolderItem("Saves Folder", gameDirectory.resolve("saves"))
+        FolderItem("Screenshots Folder", gameDirectory.resolve("screenshots"))
+        FolderItem("Resource Packs Folder", gameDirectory.resolve("resourcepacks"))
+        FolderItem("Mods Folder", gameDirectory.resolve("mods"))
+    }
+    MenuDivider()
+
+    val gameMode by observeSafe { interaction.gameMode }
+    val mayChangeGameMode by observeSafe { GameModeCommand.PERMISSION_CHECK.allows(player.permissions) }
+    if (gameMode == null) {
+        MenuItem("Debug (only available in game)", enabled = false) {}
+        return
+    }
+    Submenu("Gamemode", enabled = mayChangeGameMode == true) {
+        GameMode.entries.forEach { mode ->
+            MenuItem(mode.name.lowercase().replaceFirstChar { it.uppercase() }, checked = gameMode == mode) {
+                runSafe { connection.sendPacket(ChangeGameModeC2SPacket(mode)) }
+            }
+        }
+    }
+    Submenu("Debug") {
+        val options = mc.options
+        MenuItem("Show Advanced Tooltips", hint = "F3+H", checked = observe { options.advancedItemTooltips }.value) {
+            options.advancedItemTooltips = !options.advancedItemTooltips
+            options.write()
+        }
+        MenuItem("Pause On Lost Focus", hint = "F3+Esc", checked = observe { options.pauseOnLostFocus }.value) {
+            options.pauseOnLostFocus = !options.pauseOnLostFocus
+            options.write()
+        }
+        MenuItem("Show Debug Menu", hint = "F3", checked = observe { mc.debugHudEntryList.isF3Enabled }.value) {
+            mc.debugHudEntryList.toggleF3Enabled()
+        }
+        MenuItem("Rendering Chart", hint = "F3+1", checked = observe { mc.debugHud.renderingChartVisible }.value) {
+            mc.debugHud.toggleRenderingChart()
+        }
+        MenuItem("Rendering & Tick Charts", hint = "F3+2", checked = observe { mc.debugHud.renderingAndTickChartsVisible }.value) {
+            mc.debugHud.toggleRenderingAndTickCharts()
+        }
+        MenuItem("Packet Size & Ping Charts", hint = "F3+3", checked = observe { mc.debugHud.packetSizeAndPingChartsVisible }.value) {
+            mc.debugHud.togglePacketSizeAndPingCharts()
+        }
+        MenuDivider()
+        MenuItem("Copy Location (as command)", hint = "F3+C") {
+            runSafe {
+                mc.keyboard.clipboard = String.format(
+                    Locale.ROOT,
+                    "/execute in %s run tp @s %.2f %.2f %.2f %.2f %.2f",
+                    world.registryKey.value, player.x, player.y, player.z, player.yaw, player.pitch
+                )
+                GuiConfig.info("Copied location command to clipboard.")
+            }
+        }
+        MenuItem("Clear Chat", hint = "F3+D") { mc.inGameHud?.chatHud?.clear(false) }
+        MenuItem("Open Debug Options") { mc.setScreen(DebugOptionsScreen()) }
+        MenuDivider()
+        MenuItem("Reload Resource Packs", hint = "F3+T") {
+            GuiConfig.info("Reloading resource packs...")
+            mc.reloadResources()
+        }
+        MenuItem("Reload Chunks", hint = "F3+A") { mc.worldRenderer.reload() }
+        MenuItem("Start/Stop Profiler", hint = "F3+L") { mc.toggleDebugProfiler { GuiConfig.info(it) } }
+        MenuItem("Dump Dynamic Textures", hint = "F3+S") {
+            val output = TextureUtil.getDebugTexturePath(gameDirectory)
+            mc.textureManager.dumpDynamicTextures(output)
+            GuiConfig.info("Dumped dynamic textures to: ${gameDirectory.relativize(output)}")
+        }
+    }
+}
+
+@Composable
+private fun HelpMenu() {
+    MenuItem("Documentation") { Util.getOperatingSystem().open("$REPO_URL/wiki") }
+    MenuItem("GitHub Repository") { Util.getOperatingSystem().open(REPO_URL) }
+    MenuItem("Report Issue") {
+        mc.keyboard.clipboard = gatherDiagnostics()
+        GuiConfig.info("Copied diagnostics to clipboard. Please paste it in a new issue on GitHub and click \"Submit new issue\". Thank you!")
+        Util.getOperatingSystem().open("$REPO_URL/issues")
+    }
+    MenuItem("Check for Updates") { Util.getOperatingSystem().open("$REPO_URL/releases") }
+}
+
+@Composable
+private fun FolderItem(label: String, folder: Path) = MenuItem("Open $label") { Util.getOperatingSystem().open(folder) }

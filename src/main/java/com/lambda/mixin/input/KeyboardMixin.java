@@ -27,6 +27,7 @@ import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(Keyboard.class)
@@ -36,7 +37,9 @@ public class KeyboardMixin {
         EventFlow.post(new ButtonEvent.Keyboard.Press(input.key(), input.scancode(), action, input.modifiers()));
         original.call(window, action, input);
         int key = input.key();
-        if (!InventoryMove.getShouldMove() || !InventoryMove.isKeyMovementRelated(key)) return;
+        if (!InventoryMove.isKeyMovementRelated(key)) return;
+        // A release always goes through, or a key held down while a text field took the focus would stay down
+        if (action != GLFW.GLFW_RELEASE && !InventoryMove.getShouldMove()) return;
         InputUtil.Key fromCode = InputUtil.fromKeyCode(input);
         KeyBinding.setKeyPressed(fromCode, action != 0);
     }

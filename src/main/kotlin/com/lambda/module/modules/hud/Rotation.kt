@@ -17,13 +17,15 @@
 
 package com.lambda.module.modules.hud
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import com.lambda.config.blocks.FormatterSettings
 import com.lambda.config.editSetting
 import com.lambda.config.withEdits
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.gui.core.observeSafe
+import com.lambda.gui.hud.HudText
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.FormattingUtils.format
 
 @Suppress("unused")
@@ -37,10 +39,9 @@ object Rotation : HudModule(
 			::timeFormat.editSetting { hide() }
 		}
 
-	override fun ImGuiBuilder.buildLayout() {
-		runSafe {
-			val rotation = player.rotationClient.format(formatter)
-			textCopyable(rotation)
-		}
+	@Composable
+	override fun Content() {
+		val rotation by observeSafe { player.rotationClient.format(formatter) }
+		rotation?.let { HudText(it) }
 	}
 }

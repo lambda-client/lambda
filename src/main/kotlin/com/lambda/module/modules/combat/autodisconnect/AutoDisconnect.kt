@@ -25,7 +25,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.GuiConfig
 import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -654,7 +654,7 @@ object AutoDisconnect : Module(
                         buildText {
                             text(effect.effectType.value().name)
                             if (effect.amplifier > 0) literal(" ${effect.amplifier + 1}")
-                            color(ClickGuiLayout.textDisabled) { literal(" (${effectDuration(effect)})") }
+                            color(GuiConfig.textDisabled) { literal(" (${effectDuration(effect)})") }
                         }
                     )
                 }
@@ -741,7 +741,7 @@ object AutoDisconnect : Module(
         val customName = stack.get(DataComponentTypes.CUSTOM_NAME)
         if (customName != null) {
             text(stack.itemName)
-            color(ClickGuiLayout.textDisabled) {
+            color(GuiConfig.textDisabled) {
                 literal(" (")
                 text(customName)
                 literal(")")
@@ -751,11 +751,11 @@ object AutoDisconnect : Module(
         }
 
         if (stack.isDamageable) {
-            color(ClickGuiLayout.textDisabled) { literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})") }
+            color(GuiConfig.textDisabled) { literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})") }
         }
 
         if (stack.maxCount > 1) {
-            color(ClickGuiLayout.textDisabled) { literal(" (${stack.count})") }
+            color(GuiConfig.textDisabled) { literal(" (${stack.count})") }
         }
 
         if (selected) {

@@ -19,7 +19,7 @@ package com.lambda.gui
 
 /**
  * Implemented by screens the click GUI can open over that hold resources (e.g. textures)
- * which must survive being temporarily replaced by [LambdaScreen].
+ * which must survive being temporarily replaced by [GuiScreen].
  *
  * Opening the GUI calls [net.minecraft.client.MinecraftClient.setScreen], which fires
  * [net.minecraft.client.gui.screen.Screen.removed] on the screen being overlaid — screens

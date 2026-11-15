@@ -32,11 +32,16 @@ val kotlinVersion: String by project
 val ktorVersion: String by project
 val jacksonVersion: String by project
 val mockkVersion: String by project
-val spairVersion: String by project
 val lwjglVersion: String by project
 val sodiumVersion: String by project
 val litematicaVersion: String by project
 val maLiLibVersion: String by project
+val composeVersion: String by project
+val skikoVersion: String by project
+
+// Skiko (the Skia binding Compose draws with) ships its native library in one artifact per platform.
+// Every platform is bundled so a single jar runs everywhere; skiko loads the one matching the host.
+val skikoPlatforms = listOf("windows-x64", "windows-arm64", "linux-x64", "linux-arm64", "macos-x64", "macos-arm64")
 
 val libs = file("libs")
 val targets = listOf("fabric.mod.json")
@@ -46,6 +51,7 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
 
 plugins {
     kotlin("jvm") version "2.3.21"
+    kotlin("plugin.compose") version "2.3.21"
     id("org.jetbrains.dokka") version "2.1.0"
     id("fabric-loom") version "1.17-SNAPSHOT"
     id("com.gradleup.shadow") version "9.3.0"
@@ -72,6 +78,10 @@ configurations.all {
         if (requested.group == "org.lwjgl") {
             useVersion(lwjglVersion)
         }
+        // The natives must be the exact build the skiko classes Compose pulls in were compiled against
+        if (requested.group == "org.jetbrains.skiko") {
+            useVersion(skikoVersion)
+        }
     }
 }
 
@@ -81,6 +91,7 @@ repositories {
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
     maven("https://api.modrinth.com/maven")
+    google() // AndroidX libraries Compose depends on
     mavenCentral()
 
     // Allow the use of local libraries
@@ -169,11 +180,20 @@ dependencies {
     includeLib("com.github.beanbag44:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
-    includeLib("com.lambda:lambda-imgui-java-binding:$spairVersion")
-    includeLib("com.lambda:lambda-imgui-java-lwjgl3:$spairVersion")
-    includeLib("com.lambda:lambda-imgui-java-natives-windows:$spairVersion")
-    includeLib("com.lambda:lambda-imgui-java-natives-linux:$spairVersion")
-    includeLib("com.lambda:lambda-imgui-java-natives-macos:$spairVersion")
+
+    // Compose. Kotlin and kotlinx are left out because fabric-language-kotlin already provides them
+    listOf("runtime:runtime", "ui:ui", "foundation:foundation").forEach { module ->
+        shadowLib("org.jetbrains.compose.$module-desktop:$composeVersion") {
+            exclude(group = "org.jetbrains.kotlin")
+            exclude(group = "org.jetbrains.kotlinx")
+        }
+    }
+    skikoPlatforms.forEach { platform ->
+        shadowLib("org.jetbrains.skiko:skiko-awt-runtime-$platform:$skikoVersion") {
+            exclude(group = "org.jetbrains.kotlin")
+            exclude(group = "org.jetbrains.kotlinx")
+        }
+    }
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")

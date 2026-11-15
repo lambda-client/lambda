@@ -26,15 +26,8 @@ import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.context.SafeContext
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.ImGui.getContentRegionAvail
-import com.lambda.imgui.ImGuiListClipper
-import com.lambda.imgui.callback.ImListClipperCallback
-import com.lambda.imgui.flag.ImGuiChildFlags
-import com.lambda.imgui.flag.ImGuiPopupFlags
-import com.lambda.imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import com.lambda.threading.runSafe
+import net.minecraft.item.ItemStack
 import tools.jackson.databind.JavaType
 
 /**
@@ -64,8 +57,6 @@ open class CollectionSetting<R : Any>(
 			super.value = newVal.toMutableList()
 		}
 
-	private var searchFilter = ""
-
 	val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 	val unsafeSelectListeners = mutableListOf<(R) -> Unit>()
 	val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
@@ -76,105 +67,29 @@ open class CollectionSetting<R : Any>(
 			value.size != defaultValue.size || defaultValue.any { !value.contains(it) }
 		}
 
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.toString() }
+	/** How [item] is shown to the user */
+	open fun label(item: R): String = item.toString()
 
-	fun ImGuiBuilder.buildDualPane(itemName: String, toString: (R) -> String) {
-		val text = if (value.size == 1) itemName else "${itemName}s"
-		val popupId = "##$name-collection-popup"
+	/** What Minecraft shows [item] as in an inventory, for settings of game content; null for the rest */
+	open fun icon(item: R): ItemStack? = null
 
-		button("$name: ${value.size} $text") {
-			ImGui.openPopup(popupId)
-		}
+	fun select(item: R) {
+		if (item in value) return
+		value.add(item)
+		unsafeSelectListeners.forEach { it(item) }
+		runSafe { selectListeners.forEach { it(item) } }
+	}
 
-		ImGui.setNextWindowSizeConstraints(500f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
-		popupContextItem(popupId, ImGuiPopupFlags.None) {
-			inputText("##$name-SearchBox", ::searchFilter)
+	fun deselect(item: R) {
+		if (!value.remove(item)) return
+		unsafeDeselectListeners.forEach { it(item) }
+		runSafe { deselectListeners.forEach { it(item) } }
+	}
 
-			val q = searchFilter.trim()
-			val filteredDeselected = immutableCollection
-				.filter { item -> !value.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
-			val filteredSelected = immutableCollection
-				.filter { item -> value.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
-
-			val availableWidth = getContentRegionAvail().x
-			val swapButtonWidth = 30f
-			val paneWidth = (availableWidth - swapButtonWidth - style.itemSpacing.x * 2) / 2f
-			val paneHeight = 200f
-
-			group {
-				textDisabled("Deselected (${filteredDeselected.size})")
-				child(
-					strId = "##$name-Deselected",
-					width = paneWidth,
-					height = paneHeight,
-					childFlags = ImGuiChildFlags.Border or ImGuiChildFlags.ResizeX or ImGuiChildFlags.ResizeY,
-				) {
-					val deselectedCallback = object : ImListClipperCallback() {
-						override fun accept(index: Int) {
-							val v = filteredDeselected.getOrNull(index) ?: return
-							selectable(
-								label = toString(v),
-								flags = DontClosePopups
-							) {
-								value.add(v)
-								unsafeSelectListeners.forEach { listener -> listener(v) }
-								runSafe { selectListeners.forEach { listener -> listener(v) } }
-							}
-						}
-					}
-					ImGuiListClipper.forEach(filteredDeselected.size, deselectedCallback)
-				}
-			}
-
-			sameLine()
-
-			group {
-				cursorPosY += paneHeight / 2f
-				button("<>", swapButtonWidth) {
-					val currentlySelected = value.toList()
-					val allItems = immutableCollection.toList()
-					value.clear()
-					allItems.forEach { item ->
-						if (!currentlySelected.contains(item)) {
-							value.add(item)
-						}
-					}
-					currentlySelected.forEach { v -> unsafeDeselectListeners.forEach { listener -> listener(v) } }
-					value.forEach { v -> unsafeSelectListeners.forEach { listener -> listener(v) } }
-					runSafe {
-						currentlySelected.forEach { v -> deselectListeners.forEach { listener -> listener(v) } }
-						value.forEach { v -> selectListeners.forEach { listener -> listener(v) } }
-					}
-				}
-			}
-
-			sameLine()
-
-			group {
-				textDisabled("Selected (${filteredSelected.size})")
-				child(
-					strId = "##$name-Selected",
-					width = paneWidth,
-					height = paneHeight,
-					childFlags = ImGuiChildFlags.Border or ImGuiChildFlags.ResizeX or ImGuiChildFlags.ResizeY,
-				) {
-					val selectedCallback = object : ImListClipperCallback() {
-						override fun accept(index: Int) {
-							val v = filteredSelected.getOrNull(index) ?: return
-							selectable(
-								label = toString(v),
-								flags = DontClosePopups
-							) {
-								value.remove(v)
-								unsafeDeselectListeners.forEach { listener -> listener(v) }
-								runSafe { deselectListeners.forEach { listener -> listener(v) } }
-							}
-						}
-					}
-					ImGuiListClipper.forEach(filteredSelected.size, selectedCallback)
-				}
-			}
-		}
+	/** Selects everything that was not selected, and the other way around */
+	fun invertSelection() {
+		val selected = value.toSet()
+		immutableCollection.forEach { if (it in selected) deselect(it) else select(it) }
 	}
 }
 

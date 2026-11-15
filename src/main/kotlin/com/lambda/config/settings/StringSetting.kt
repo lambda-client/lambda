@@ -28,8 +28,6 @@ import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.flag.ImGuiInputTextFlags
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -44,16 +42,7 @@ class StringSetting(
     defaultValue: String,
     visibility: () -> Boolean,
     var multiline: Boolean = false,
-    var flags: Int = ImGuiInputTextFlags.None,
 ) : Setting<String>(name, description, defaultValue, layer, config, visibility) {
-    override fun ImGuiBuilder.buildLayout() {
-        if (multiline) {
-            inputTextMultiline(name, ::value, flags = flags)
-        } else {
-            inputText(name, ::value, flags)
-        }
-        lambdaTooltip(description)
-    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(greedyString(name)) { parameter ->
@@ -68,10 +57,4 @@ class StringSetting(
 @ConfigEditorD5l
 fun SettingEditBuilder<String>.multiline(multiline: Boolean) {
     (entries as Collection<StringSetting>).forEach { it.multiline = multiline }
-}
-
-@Suppress("unchecked_cast")
-@ConfigEditorD5l
-fun SettingEditBuilder<String>.flags(flags: Int) {
-    (entries as Collection<StringSetting>).forEach { it.flags = flags }
 }

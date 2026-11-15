@@ -21,8 +21,8 @@ import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.serializers.ItemSerializer
-import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 
 class ItemCollectionSetting(
 	name: String,
@@ -39,5 +39,6 @@ class ItemCollectionSetting(
 	typeFactory.constructCollectionType(Collection::class.java, Item::class.java),
 	serialize = true,
 ) {
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemSerializer.stringify(it) }
+	override fun label(item: Item) = ItemSerializer.stringify(item)
+	override fun icon(item: Item) = ItemStack(item)
 }

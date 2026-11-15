@@ -22,11 +22,6 @@ import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.ImGui.calcTextSize
-import com.lambda.imgui.ImGui.dummy
-import com.lambda.imgui.flag.ImGuiCol
 import java.text.NumberFormat
 import java.util.*
 
@@ -57,43 +52,7 @@ abstract class NumericSetting<T>(
 	/**
 	 * Subclasses must implement this to provide their specific slider widget.
 	 */
-	protected abstract fun ImGuiBuilder.buildSlider()
 
-	override fun ImGuiBuilder.buildLayout() {
-		val showReset = isModified
-		val resetButtonText = "R"
-		val valueString = this@NumericSetting.toString()
-
-		buildSlider()
-		lambdaTooltip(description)
-
-		val itemRectMin = ImGui.getItemRectMin()
-		val itemRectMax = ImGui.getItemRectMax()
-		val textHeight = ImGui.getTextLineHeight()
-		val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
-		val labelWidth = calcTextSize(name).x
-		val valueWidth = calcTextSize(valueString).x
-
-		val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
-		val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
-
-		windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), name)
-		if (labelEndPosX < valueStartPosX) {
-			windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
-		}
-
-		sameLine(0.0f, style.itemSpacing.x)
-		if (showReset) {
-			button("$resetButtonText##$name") {
-				reset()
-			}
-			onItemHover {
-				tooltip { text("Reset to default") }
-			}
-		} else {
-			dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
-		}
-	}
 }
 
 @Suppress("unchecked_cast")

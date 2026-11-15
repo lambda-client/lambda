@@ -21,8 +21,8 @@ import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.serializers.BlockSerializer
-import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.block.Block
+import net.minecraft.item.ItemStack
 
 class BlockCollectionSetting(
 	name: String,
@@ -43,5 +43,7 @@ class BlockCollectionSetting(
 	typeFactory.constructCollectionType(MutableCollection::class.java, Block::class.java),
 	serialize = true,
 ) {
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { BlockSerializer.stringify(it) }
+	override fun label(item: Block) = BlockSerializer.stringify(item)
+	// Blocks without an item of their own, like fire or water, come out empty and show nothing
+	override fun icon(item: Block) = ItemStack(item.asItem())
 }

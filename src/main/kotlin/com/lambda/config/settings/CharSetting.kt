@@ -26,7 +26,6 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -41,8 +40,6 @@ class CharSetting(
 	defaultValue: Char,
 	visibility: () -> Boolean
 ) : Setting<Char>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {}
-
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(word(name)) { parameter ->
 			executeWithResult {

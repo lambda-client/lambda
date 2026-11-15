@@ -17,7 +17,10 @@
 
 package com.lambda.module.modules.hud
 
-import com.lambda.gui.dsl.ImGuiBuilder
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import com.lambda.gui.core.observe
+import com.lambda.gui.hud.HudText
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.client.Client
@@ -28,7 +31,9 @@ object TaskFlowHud : HudModule(
     name = "TaskFlowHud",
     tag = ModuleTag.HUD,
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        text(RootTask.taskTree(Client.showInvisibleTasks))
+    @Composable
+    override fun Content() {
+        val tasks by observe { RootTask.taskTree(Client.showInvisibleTasks) }
+        HudText(tasks)
     }
 }

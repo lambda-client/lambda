@@ -25,7 +25,7 @@ import com.lambda.config.Serializer
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
-import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.GuiConfig
 import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
 import net.fabricmc.api.ClientModInitializer
@@ -49,10 +49,9 @@ object Lambda : ClientModInitializer {
 	const val SYMBOL = "λ"
 	const val APP_ID = "1221289599427416127"
 	const val REPO_URL = "https://github.com/lambda-client/lambda"
-	val VERSION: String =
-		FabricLoader.getInstance()
-			.getModContainer("lambda").orElseThrow()
-			.metadata.version.friendlyString
+	val VERSION: String = FabricLoader.getInstance()
+		.getModContainer("lambda").orElseThrow()
+		.metadata.version.friendlyString
 
 	val LOG: Logger = LogManager.getLogger(SYMBOL)
 
@@ -114,7 +113,7 @@ object Lambda : ClientModInitializer {
 		// We want the opengl context to be created
 		listenOnceUnsafe<ClientEvent.Startup>({ Int.MAX_VALUE }) {
 			LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
-			if (ClickGuiLayout.setLambdaWindowIcon) setLambdaWindowIcon()
+			if (GuiConfig.setLambdaWindowIcon) setLambdaWindowIcon()
 			true
 		}
 	}

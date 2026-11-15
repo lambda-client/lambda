@@ -17,10 +17,12 @@
 
 package com.lambda.module.modules.hud
 
-import com.lambda.gui.dsl.ImGuiBuilder
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import com.lambda.gui.core.observeSafe
+import com.lambda.gui.hud.HudText
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runSafe
 
 @Suppress("unused")
 object AccountName : HudModule(
@@ -28,7 +30,9 @@ object AccountName : HudModule(
     description = "Displays the current accounts name",
     tag = ModuleTag.HUD
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        runSafe { text(player.name.string) }
+    @Composable
+    override fun Content() {
+        val name by observeSafe { player.name.string }
+        name?.let { HudText(it) }
     }
 }

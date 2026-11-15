@@ -46,7 +46,6 @@ import com.lambda.config.settings.numeric.FloatSetting
 import com.lambda.config.settings.numeric.IntegerSetting
 import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.event.Muteable
-import com.lambda.imgui.flag.ImGuiInputTextFlags
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import net.minecraft.block.Block
@@ -217,10 +216,9 @@ abstract class Config(
 		name: String,
 		defaultValue: String,
 		multiline: Boolean = false,
-		flags: Int = ImGuiInputTextFlags.None,
 		description: String = "",
 		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
+	) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline) }
 
 	@ConfigEntryDsl
 	@JvmName("collectionSetting1")

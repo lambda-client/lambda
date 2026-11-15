@@ -1,0 +1,118 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.gui
+
+import com.lambda.Lambda.mc
+import com.lambda.config.Config
+import com.lambda.config.Tab
+import com.lambda.config.categories.GuiCategory
+import com.lambda.config.entries.onValueChange
+import com.lambda.core.Loadable
+import com.lambda.util.KeyCode
+import com.lambda.util.WindowUtils.setLambdaWindowIcon
+import java.awt.Color
+import net.minecraft.SharedConstants
+import net.minecraft.client.util.Icons
+
+/**
+ * Settings of the interface that are about how it behaves rather than how it looks; for that,
+ * see the [com.lambda.module.modules.client.Style] module.
+ */
+@Suppress("unused")
+object GuiConfig : Loadable, Config("GUI", GuiCategory) {
+    private const val GENERAL_TAB = "General"
+    private const val SNAPPING_TAB = "Snapping"
+    private const val COLORS_TAB = "Colors"
+
+    // Unsafe, so the GUI also opens from the menus where there is no player yet
+    @Tab(GENERAL_TAB) val keybind by setting("Keybind", KeyCode.Y, "Opens and closes the click GUI", screenCheck = false)
+        .onPressUnsafe { LambdaGui.toggle() }
+    @Tab(GENERAL_TAB) val setLambdaWindowIcon by setting("Set Lambda Window Icon", true)
+        .onValueChange { _, to ->
+            if (to) setLambdaWindowIcon()
+            else {
+                val icon = if (SharedConstants.getGameVersion().stable()) Icons.RELEASE else Icons.SNAPSHOT
+                mc.window.setIcon(mc.defaultResourcePack, icon)
+            }
+        }
+    @JvmStatic
+    @Tab(GENERAL_TAB) val setLambdaWindowTitle by setting("Set Lambda Window Title", true)
+        .onValueChange { _, _ -> mc.updateWindowTitle() }
+    @Tab(GENERAL_TAB) val lambdaTitleAppendixName by setting("Append Username", true) { setLambdaWindowTitle }
+        .onValueChange { _, _ -> mc.updateWindowTitle() }
+    @Tab(GENERAL_TAB) var keepSettingsOpen by setting("Keep Settings Open", false, "Leaves a module's settings open when the click GUI closes, so they are still there when it opens again")
+    @Tab(GENERAL_TAB) val resetWindowLayout by setting("Reset Window Layout", ::resetWindows, "Puts every category window of the click GUI back in its place in the row, unfolded")
+
+    // Dragging HUD elements in the HUD editor and windows in the click GUI
+    @Tab(SNAPPING_TAB) val snapEnabled by setting("Enable Snapping", true, "Master toggle for snapping HUD elements and click GUI windows into line when they are dragged")
+    @Tab(SNAPPING_TAB) val snapKey by setting("Snap Key", KeyCode.LeftShift, "What is dragged only snaps while this is held. Unbind it to snap all the time.") { snapEnabled }
+    @Tab(SNAPPING_TAB) val showSnapLines by setting("Show Snap Lines", false, "Draw the grid, and the line an element snaps to, while it is dragged") { snapEnabled }
+    @Tab(SNAPPING_TAB) val gridSize by setting("Grid Size", 25f, 2f..128f, 1f, "Grid step") { snapEnabled }
+    @Tab(SNAPPING_TAB) val snapToEdges by setting("Snap To Element Edges", true) { snapEnabled }
+    @Tab(SNAPPING_TAB) val snapToCenters by setting("Snap To Element Centers", true) { snapEnabled }
+    @Tab(SNAPPING_TAB) val snapToScreenCenter by setting("Snap To Screen Center", true) { snapEnabled }
+    @Tab(SNAPPING_TAB) val snapToGrid by setting("Snap To Grid", true) { snapEnabled }
+    @Tab(SNAPPING_TAB) val snapDistanceElement by setting("Snap Distance (Elements)", 20f, 1f..48f, 1f) { snapEnabled }
+    @Tab(SNAPPING_TAB) val snapDistanceScreen by setting("Snap Distance (Screen Center)", 14f, 1f..48f, 1f) { snapEnabled }
+    @Tab(SNAPPING_TAB) val snapDistanceGrid by setting("Snap Distance (Grid)", 12f, 1f..48f, 1f) { snapEnabled }
+    @Tab(SNAPPING_TAB) val snapLineColor by setting("Snap Line Color", Color(255, 160, 0, 220)) { snapEnabled && showSnapLines }
+
+    // Colours of things Lambda draws outside its own interface: chat messages and vanilla screens
+    @Tab(COLORS_TAB) val primaryColor by setting("Primary Color", Color(130, 200, 255))
+    @Tab(COLORS_TAB) val secondaryColor by setting("Secondary Color", Color(225, 130, 225))
+    @Tab(COLORS_TAB) val text by setting("Text", Color(255, 255, 255, 255))
+    @Tab(COLORS_TAB) val textDisabled by setting("Text Disabled", Color(128, 128, 128, 255))
+    @Tab(COLORS_TAB) val windowBg by setting("Window Background", Color(35, 0, 14, 240))
+    @Tab(COLORS_TAB) val border by setting("Border", Color(130, 12, 60, 240))
+    @Tab(COLORS_TAB) val headerHovered by setting("Header Hovered", Color(255, 59, 136, 115))
+
+    /** A category window's position, in dp from the top left of the screen, and whether it is collapsed */
+    data class WindowPlacement(val x: Float, val y: Float, val collapsed: Boolean)
+
+    // Persisted as "Combat:120.0,80.0,false;Render:..." since it is state rather than a setting
+    private var windowPlacements by property("")
+    private var decodedFrom: String? = null
+    private var decoded = emptyMap<String, WindowPlacement>()
+
+    /** Where the user left each category window, by tag name. Windows never moved are absent. */
+    var windows: Map<String, WindowPlacement>
+        get() {
+            val saved = windowPlacements
+            if (saved != decodedFrom) {
+                decodedFrom = saved
+                decoded = saved.split(';').mapNotNull(::decodeWindow).toMap()
+            }
+            return decoded
+        }
+        set(value) {
+            windowPlacements = value.entries.joinToString(";") { (tag, window) ->
+                "$tag:${window.x},${window.y},${window.collapsed}"
+            }
+        }
+
+    /** Forgets where the category windows were moved to, which puts them back in their row */
+    fun resetWindows() {
+        windows = emptyMap()
+    }
+
+    private fun decodeWindow(entry: String): Pair<String, WindowPlacement>? {
+        val (tag, fields) = entry.split(':').takeIf { it.size == 2 } ?: return null
+        val (x, y, collapsed) = fields.split(',').takeIf { it.size == 3 } ?: return null
+        return tag to WindowPlacement(x.toFloatOrNull() ?: return null, y.toFloatOrNull() ?: return null, collapsed.toBoolean())
+    }
+}

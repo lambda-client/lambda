@@ -29,7 +29,7 @@ object Client : Module(
 	name = "Client",
 	description = "Global settings for Lambda",
 	tag = ModuleTag.CLIENT,
-	enabledByDefault = true
+	alwaysEnabled = true,
 ) {
 	private const val GENERAL_TAB = "General"
 	private const val DEBUG_TAB = "Debug"

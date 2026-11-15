@@ -24,7 +24,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.graphics.util.DynamicAABB
-import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.GuiConfig
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.KillAura
@@ -71,7 +71,7 @@ object Blink : Module(
         }
 
         immediateRenderer("Blink Immediate Renderer") {
-            val color = ClickGuiLayout.primaryColor
+            val color = GuiConfig.primaryColor
             box(box.update(lastBox).box(mc.tickDelta) ?: return@immediateRenderer) {
                 colors(color.setAlpha(0.3), color)
             }

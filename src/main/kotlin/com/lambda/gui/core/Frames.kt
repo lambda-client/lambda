@@ -15,13 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.snap
+package com.lambda.gui.core
 
-data class RectF(val x: Float, val y: Float, val w: Float, val h: Float) {
-    val left get() = x
-    val right get() = x + w
-    val top get() = y
-    val bottom get() = y + h
-    val cx get() = x + w * 0.5f
-    val cy get() = y + h * 0.5f
+import androidx.compose.runtime.withFrameNanos
+
+/**
+ * Waits until [millis] of the interface's own time have passed. That time only runs while the
+ * interface is being drawn, so nothing times out behind a closed screen, and the wait ends on
+ * the thread the interface lives on, which a plain delay would not.
+ */
+suspend fun awaitFrames(millis: Long) {
+    val start = withFrameNanos { it }
+    while (withFrameNanos { it } - start < millis * 1_000_000) Unit
 }

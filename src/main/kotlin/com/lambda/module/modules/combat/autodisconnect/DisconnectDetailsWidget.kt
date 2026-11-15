@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.combat.autodisconnect
 
-import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.GuiConfig
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.text
@@ -268,12 +268,12 @@ class DisconnectDetailsWidget(
         const val HOVER_RADIUS = 1
 
         // Pulled live from the click GUI theme so the panel matches the user's colors.
-        val COLOR_TEXT get() = ClickGuiLayout.text.rgb
-        val COLOR_BACKGROUND get() = ClickGuiLayout.windowBg.rgb
-        val COLOR_BORDER get() = ClickGuiLayout.border.rgb
-        val COLOR_HOVER_BACKGROUND get() = ClickGuiLayout.headerHovered.rgb
+        val COLOR_TEXT get() = GuiConfig.text.rgb
+        val COLOR_BACKGROUND get() = GuiConfig.windowBg.rgb
+        val COLOR_BORDER get() = GuiConfig.border.rgb
+        val COLOR_HOVER_BACKGROUND get() = GuiConfig.headerHovered.rgb
 
         // Header text tinted by compositing the highlight color over the text color.
-        val COLOR_HEADER get() = ClickGuiLayout.text.rgb//composite(COLOR_TEXT, COLOR_HOVER_BACKGROUND)
+        val COLOR_HEADER get() = GuiConfig.text.rgb//composite(COLOR_TEXT, COLOR_HOVER_BACKGROUND)
     }
 }
