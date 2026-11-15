@@ -27,9 +27,9 @@ import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.scene.ComposeScene
+import org.lwjgl.glfw.GLFW
 import java.awt.Component
 import java.awt.event.KeyEvent as AwtKeyEvent
-import org.lwjgl.glfw.GLFW
 
 /**
  * Translates the game's GLFW input into the pointer and key events a Compose scene consumes.

@@ -26,10 +26,10 @@ import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
-import java.util.OptionalInt
+import org.lwjgl.system.MemoryStack
+import java.util.*
 import kotlin.math.ceil
 import kotlin.math.log2
-import org.lwjgl.system.MemoryStack
 
 /**
  * A dual Kawase blur.

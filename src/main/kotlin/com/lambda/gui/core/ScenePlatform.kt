@@ -37,12 +37,12 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.lambda.Lambda.mc
-import java.awt.datatransfer.DataFlavor
-import java.awt.datatransfer.StringSelection
-import java.awt.datatransfer.Transferable
 import kotlinx.coroutines.awaitCancellation
 import net.minecraft.client.gui.cursor.Cursor
 import net.minecraft.client.gui.cursor.StandardCursors
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.StringSelection
+import java.awt.datatransfer.Transferable
 
 /**
  * Stands in for the operating-system window Compose normally lives in: the scene asks it how big

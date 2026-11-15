@@ -50,7 +50,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -88,14 +87,13 @@ import com.lambda.gui.core.observe
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
-import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.displayValue
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
-import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 /**
  * The editor for one setting, whatever its type. The description is its tooltip. A right click

@@ -52,8 +52,8 @@ import com.lambda.gui.theme.shadowed
 import com.lambda.gui.theme.toCompose
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
-import kotlin.math.roundToInt
 import net.minecraft.item.ItemStack
+import kotlin.math.roundToInt
 
 /** Settings shared by every HUD element, and by the editor that arranges them */
 object HudConfig : Loadable, Config("HUD", HudCategory) {

@@ -48,9 +48,9 @@ import com.lambda.config.serializers.BlockSerializer
 import com.lambda.config.settings.collections.CollectionSetting
 import com.lambda.config.settings.complex.BlockSetting
 import com.lambda.gui.component.Button
-import com.lambda.gui.component.Ellipsis
 import com.lambda.gui.component.Chip
 import com.lambda.gui.component.Dialog
+import com.lambda.gui.component.Ellipsis
 import com.lambda.gui.component.RowHeight
 import com.lambda.gui.component.Scrollbar
 import com.lambda.gui.component.TextInput

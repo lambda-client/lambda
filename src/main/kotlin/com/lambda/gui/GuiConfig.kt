@@ -17,7 +17,6 @@
 
 package com.lambda.gui
 
-import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.Tab
 import com.lambda.config.categories.GuiCategory
@@ -25,9 +24,9 @@ import com.lambda.config.entries.onValueChange
 import com.lambda.core.Loadable
 import com.lambda.util.KeyCode
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
-import java.awt.Color
 import net.minecraft.SharedConstants
 import net.minecraft.client.util.Icons
+import java.awt.Color
 
 /**
  * Settings of the interface that are about how it behaves rather than how it looks; for that,
