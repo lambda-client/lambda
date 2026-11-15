@@ -27,7 +27,6 @@ import com.lambda.gui.clickgui.Reveal
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
-import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.StringUtils.levenshteinDistance
 import net.minecraft.client.gui.screen.ChatScreen
 

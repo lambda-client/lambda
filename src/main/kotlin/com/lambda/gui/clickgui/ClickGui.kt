@@ -21,9 +21,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -35,6 +32,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.DpOffset
@@ -55,8 +55,8 @@ import com.lambda.gui.menu.MenuBar
 import com.lambda.gui.menu.NewAutomationConfigDialog
 import com.lambda.module.HudModule
 import com.lambda.module.Module
-import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.module.ModuleTag
+import com.lambda.module.modules.client.AutoUpdater
 
 /** How far from the top of the screen the category windows are lined up until they are moved: clear of the buttons, with room to drag them up */
 private val WindowRowTop = 94.dp

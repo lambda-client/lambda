@@ -31,6 +31,8 @@ import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.LambdaRenderPipelines
+import com.lambda.gui.LambdaGui.Content
+import com.lambda.gui.LambdaGui.warmUp
 import com.lambda.gui.clickgui.ClickGui
 import com.lambda.gui.clickgui.Reveal
 import com.lambda.gui.component.TextFocus
@@ -39,8 +41,8 @@ import com.lambda.gui.core.LocalObservations
 import com.lambda.gui.core.Observations
 import com.lambda.gui.core.Retained
 import com.lambda.gui.core.SceneHost
-import com.lambda.gui.core.awaitFrames
 import com.lambda.gui.core.SceneInput
+import com.lambda.gui.core.awaitFrames
 import com.lambda.gui.hud.Hud
 import com.lambda.gui.hud.HudEditor
 import com.lambda.gui.hud.HudLayer
@@ -54,10 +56,10 @@ import com.lambda.module.modules.client.Style
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 import com.lambda.util.CommunicationUtils.warn
-import kotlin.concurrent.thread
 import net.minecraft.client.gui.cursor.Cursor
 import org.jetbrains.skia.FontMgr
 import org.jetbrains.skia.impl.Library
+import kotlin.concurrent.thread
 
 /**
  * Lambda's interface: the HUD drawn over the game, and the screens opened on top of it.

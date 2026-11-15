@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,10 +48,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.lambda.config.settings.complex.ColorSetting
-import com.lambda.gui.component.NumberInput
 import com.lambda.gui.component.MenuState
+import com.lambda.gui.component.NumberInput
 import com.lambda.gui.component.Popout
-import com.lambda.gui.component.RowHeight
 import com.lambda.gui.component.TextInput
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.component.scrubbable
@@ -62,8 +60,8 @@ import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
 import com.lambda.gui.theme.toCompose
-import java.awt.Color as AwtColor
 import kotlin.math.roundToInt
+import java.awt.Color as AwtColor
 
 /**
  * A colour setting: its name and a swatch, which opens a picker beside the row when clicked.

@@ -60,9 +60,9 @@ import com.lambda.gui.component.MenuLabel
 import com.lambda.gui.component.MenuState
 import com.lambda.gui.component.Submenu
 import com.lambda.gui.component.Suggestions
+import com.lambda.gui.component.TextInput
 import com.lambda.gui.component.consumeClicks
 import com.lambda.gui.component.glass
-import com.lambda.gui.component.TextInput
 import com.lambda.gui.component.hoverHighlight
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.core.observe
@@ -80,13 +80,13 @@ import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Diagnostics.gatherDiagnostics
 import com.lambda.util.FolderRegistry
 import com.mojang.blaze3d.platform.TextureUtil
-import java.nio.file.Path
-import java.util.Locale
 import net.minecraft.client.gui.screen.DebugOptionsScreen
 import net.minecraft.network.packet.c2s.play.ChangeGameModeC2SPacket
 import net.minecraft.server.command.GameModeCommand
 import net.minecraft.util.Util
 import net.minecraft.world.GameMode
+import java.nio.file.Path
+import java.util.*
 
 internal val MenuBarHeight = 15.dp
 

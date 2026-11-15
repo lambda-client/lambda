@@ -25,8 +25,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.skiaCanvas
 import com.lambda.Lambda.mc
+import com.lambda.gui.render.ItemAtlas.context
+import com.lambda.gui.render.ItemAtlas.image
 import com.mojang.blaze3d.systems.RenderSystem
-import kotlin.math.ceil
 import net.minecraft.client.gl.Framebuffer
 import net.minecraft.client.gl.GlBackend
 import net.minecraft.client.gl.SimpleFramebuffer
@@ -47,6 +48,7 @@ import org.jetbrains.skia.SamplingMode
 import org.jetbrains.skia.Surface
 import org.jetbrains.skia.SurfaceColorFormat
 import org.jetbrains.skia.SurfaceOrigin
+import kotlin.math.ceil
 
 /**
  * Item stacks for the GUI, drawn by Minecraft exactly as it draws them in an inventory slot:

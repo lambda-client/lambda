@@ -20,15 +20,15 @@ package com.lambda
 import com.lambda.gui.GuiConfig
 import com.lambda.gui.LambdaGui
 import com.lambda.module.ModuleRegistry
+import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.module.modules.hud.Armor
 import com.lambda.module.modules.hud.Coordinates
 import com.lambda.module.modules.hud.Fps
-import com.lambda.module.modules.client.AutoUpdater
-import kotlin.math.abs
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.minecraft.client.gui.screen.world.WorldCreator
 import org.lwjgl.glfw.GLFW
+import kotlin.math.abs
 
 /**
  * Walks through the interface the way a user would and takes a screenshot at every stop, so a

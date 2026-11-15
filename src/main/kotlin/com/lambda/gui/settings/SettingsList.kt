@@ -60,7 +60,6 @@ import com.lambda.gui.core.observe
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
-import com.lambda.gui.theme.Type
 
 /**
  * The settings of a config as they are organised in code: tabs become a strip that swaps the

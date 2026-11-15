@@ -26,9 +26,9 @@ import com.lambda.gui.theme.toCompose
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.util.NamedEnum
-import java.awt.Color
 import org.jetbrains.skiko.SystemTheme
 import org.jetbrains.skiko.currentSystemTheme
+import java.awt.Color
 
 object Style : Module(
     name = "Style",

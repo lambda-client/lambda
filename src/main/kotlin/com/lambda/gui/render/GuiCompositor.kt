@@ -25,9 +25,9 @@ import com.mojang.blaze3d.buffers.Std140SizeCalculator
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTextureView
-import java.awt.Color
-import java.util.OptionalInt
 import org.lwjgl.system.MemoryStack
+import java.awt.Color
+import java.util.*
 
 /**
  * Puts the GUI texture on screen, in one pass over the game's framebuffer.
