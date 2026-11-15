@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.lambda.gui.theme.Hairline
 import com.lambda.gui.theme.LocalBackdropBlur
 import com.lambda.gui.theme.LocalOutlines
+import com.lambda.gui.theme.LocalUnderlay
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.ColorMatrix
@@ -60,12 +61,22 @@ import org.jetbrains.skia.Rect
  * as the window a settings panel has opened over, is blurred here, so it reads as part of the
  * same background rather than showing through sharp or being cut out.
  *
+ * That half is also faded, to [LocalUnderlay] of what it was: the modules of the window under a
+ * settings panel are still there, faintly, and the game takes their place behind the glass.
+ *
  * With the blur switched off the pane simply replaces what is beneath it: stacked panes of
  * translucent text over text would be unreadable.
  */
 fun Modifier.glass(color: Color, shape: Shape): Modifier = clip(shape).composed {
     val sigma = with(LocalDensity.current) { LocalBackdropBlur.current.toPx() }
-    val blur = remember(sigma) { if (sigma > 0f) ImageFilter.makeBlur(sigma, sigma, FilterTileMode.CLAMP) else null }
+    val underlay = LocalUnderlay.current
+    val blur = remember(sigma, underlay) {
+        if (sigma <= 0f) return@remember null
+        val blurred = ImageFilter.makeBlur(sigma, sigma, FilterTileMode.CLAMP)
+        // Thinned out as well as blurred: where the interface is fainter the compositor lets
+        // more of the game through, so what the pane lies over does not crowd what is on it
+        if (underlay >= 1f) blurred else ImageFilter.makeColorFilter(faded(underlay), blurred, null)
+    }
     drawBehind {
         if (blur == null) {
             drawRect(color, blendMode = BlendMode.Src)
@@ -156,6 +167,16 @@ private val Drawn = ImageFilter.makeColorFilter(
     ),
     null,
     null
+)
+
+/** Scales the opacity of what it is applied to by [fraction] */
+private fun faded(fraction: Float) = ColorFilter.makeMatrix(
+    ColorMatrix(
+        1f, 0f, 0f, 0f, 0f,
+        0f, 1f, 0f, 0f, 0f,
+        0f, 0f, 1f, 0f, 0f,
+        0f, 0f, 0f, fraction, 0f,
+    )
 )
 
 private val Replace = Paint().apply { blendMode = org.jetbrains.skia.BlendMode.SRC }

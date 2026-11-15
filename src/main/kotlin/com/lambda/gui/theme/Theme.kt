@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lambda.gui.component.SlidingText
 import com.lambda.gui.core.observe
 import com.lambda.module.modules.client.Style
 import com.lambda.util.NamedEnum
@@ -176,6 +177,12 @@ val LocalContentColor = compositionLocalOf { Color.White }
  */
 val LocalBackdropBlur = staticCompositionLocalOf { 0.dp }
 
+/**
+ * How much of the interface beneath a pane of glass is left to show through it, from all of it
+ * at one to none at zero. See [com.lambda.gui.component.glass].
+ */
+val LocalUnderlay = staticCompositionLocalOf { 1f }
+
 /** Whether windows, panels and menus are drawn with a hairline border, see [com.lambda.gui.component.window] */
 val LocalOutlines = staticCompositionLocalOf { true }
 
@@ -186,6 +193,7 @@ fun LambdaTheme(content: @Composable () -> Unit) {
     val backdropBlur by observe { if (Style.blur) (Style.blurRadius / 2f).dp else 0.dp }
     val font by observe { Style.font }
     val outlines by observe { Style.outlines }
+    val underlay by observe { 1f - Style.layerFade }
     CompositionLocalProvider(
         LocalPalette provides palette,
         LocalTypography provides remember(font) { Typography(font) },
@@ -194,6 +202,7 @@ fun LambdaTheme(content: @Composable () -> Unit) {
         LocalContentColor provides palette.onSurface,
         LocalBackdropBlur provides backdropBlur,
         LocalOutlines provides outlines,
+        LocalUnderlay provides underlay,
         content = content
     )
 }
@@ -228,6 +237,8 @@ fun Text(
     maxLines: Int = Int.MAX_VALUE,
     softWrap: Boolean = true,
 ) {
+    // A single line too long for its room is never cut short with dots: it slides under the pointer
+    if (maxLines == 1) return SlidingText(text, modifier, color, style)
     BasicText(
         text = text,
         modifier = modifier,

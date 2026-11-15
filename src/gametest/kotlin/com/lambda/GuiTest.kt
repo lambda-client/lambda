@@ -474,6 +474,20 @@ object GuiTest : FabricClientGameTest {
         context.runOnClient<RuntimeException> { GuiConfig.keepSettingsOpen = false }
         context.closeGui()
 
+        // The light theme, picked the way a player picks it, in the settings of Style
+        context.openClickGui()
+        context.click(dpX = 830.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.waitTicks(10)
+        context.click(dpX = 760.0, dpY = 201.0)
+        context.waitTicks(10)
+        context.click(dpX = 760.0, dpY = 243.0)
+        context.waitTicks(10)
+        context.takeScreenshot("gui-12a-light-theme")
+        context.click(dpX = 110.0, dpY = 193.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.waitTicks(10)
+        context.takeScreenshot("gui-12b-light-theme-settings")
+        context.closeGui()
+
         singleplayer.close()
     }
 
