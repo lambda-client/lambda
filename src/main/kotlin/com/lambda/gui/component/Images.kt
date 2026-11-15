@@ -15,10 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui
+package com.lambda.gui.component
 
-import com.lambda.gui.dsl.ImGuiBuilder
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import com.lambda.util.stream
+import org.jetbrains.skia.Image
 
-interface Layout {
-    fun ImGuiBuilder.buildLayout()
-}
+/** One of Lambda's own images, by its path under `assets/lambda/` */
+@Composable
+fun rememberTexture(path: String): ImageBitmap =
+    remember(path) { path.stream.use { Image.makeFromEncoded(it.readAllBytes()) }.toComposeImageBitmap() }

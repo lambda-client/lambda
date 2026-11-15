@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.complex
 
-import com.lambda.Lambda.mc
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -25,11 +24,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
-import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
 
@@ -41,20 +36,6 @@ class BlockPosSetting(
 	visibility: () -> Boolean,
 	defaultValue: BlockPos
 ) : Setting<BlockPos>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {
-		button("Set##$name") {
-			mc.crosshairTarget?.blockResult?.blockPos?.let {
-				value = it
-			} ?: info("No block under crosshair")
-		}
-		lambdaTooltip("Set the coordinates to the block you are currently looking at")
-		sameLine()
-		treeNode(name, id = name) {
-			inputVec3i("##$name", value) { value = it.blockPos }
-		}
-		lambdaTooltip(description)
-	}
-
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(integer("X", -30000000, 30000000)) { x ->
 			required(integer("Y", -64, 319)) { y ->

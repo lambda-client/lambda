@@ -19,8 +19,7 @@ package com.lambda.mixin;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.*;
-import com.lambda.gui.DearImGui;
-import com.lambda.gui.components.ClickGuiLayout;
+import com.lambda.gui.GuiConfig;
 import com.lambda.interaction.handler.handlers.TimerHandler;
 import com.lambda.module.modules.movement.BetterFirework;
 import com.lambda.module.modules.player.Interact;
@@ -64,11 +63,6 @@ public class MinecraftClientMixin {
 
     @Shadow
     public int itemUseCooldown;
-
-    @Inject(method = "close", at = @At("HEAD"))
-    void closeImGui(CallbackInfo ci) {
-        DearImGui.INSTANCE.destroy();
-    }
 
     @WrapMethod(method = "render")
     void onLoopTick(boolean tick, Operation<Void> original) {
@@ -201,7 +195,7 @@ public class MinecraftClientMixin {
 
     @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)
     void updateWindowTitle(CallbackInfo ci) {
-        if (!ClickGuiLayout.getSetLambdaWindowTitle()) return;
+        if (!GuiConfig.getSetLambdaWindowTitle()) return;
         WindowUtils.setLambdaTitle();
         ci.cancel();
     }

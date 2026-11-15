@@ -20,7 +20,6 @@ package com.lambda.config.settings
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
 
 class FunctionSetting<T : () -> R, R>(
 	name: String,
@@ -30,8 +29,4 @@ class FunctionSetting<T : () -> R, R>(
 	layer: SettingEntryLayer<FunctionSetting<T, R>, T>,
 	visibility: () -> Boolean
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {
-        button(name) { value() }
-        lambdaTooltip(description)
-    }
 }

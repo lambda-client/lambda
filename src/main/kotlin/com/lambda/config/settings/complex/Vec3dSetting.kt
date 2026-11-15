@@ -24,7 +24,6 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
@@ -37,11 +36,6 @@ class Vec3dSetting(
     visibility: () -> Boolean,
     defaultValue: Vec3d
 ) : Setting<Vec3d>(name, description, defaultValue, layer, config, visibility) {
-    override fun ImGuiBuilder.buildLayout() {
-        inputVec3d(name, ::value as Vec3d) // FixMe: what the fuck
-        lambdaTooltip(description)
-    }
-
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(double("X", -30000000.0, 30000000.0)) { x ->
             required(double("Y", -64.0, 255.0)) { y ->

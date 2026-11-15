@@ -17,9 +17,14 @@
 
 package com.lambda.module.modules.hud
 
-import com.lambda.graphics.texture.TextureOwner.upload
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImGui
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.lambda.gui.component.rememberTexture
+import com.lambda.gui.core.observe
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 
@@ -29,12 +34,13 @@ object Watermark : HudModule(
     tag = ModuleTag.HUD,
     enabledByDefault = true,
 ) {
-    private val texture = upload("textures/lambda.png")
     private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
 
-    override fun ImGuiBuilder.buildLayout() {
-        val width = texture.width * scale
-        val height = texture.height * scale
-        ImGui.image(texture.id.toLong(), width, height)
+    @Composable
+    override fun Content() {
+        val logo = rememberTexture("textures/lambda.png")
+        val scale by observe { scale }
+        // Sized in dp from the image's own pixels, so the watermark grows with the screen
+        Image(logo, "Lambda", Modifier.size((logo.width * scale).dp, (logo.height * scale).dp))
     }
 }

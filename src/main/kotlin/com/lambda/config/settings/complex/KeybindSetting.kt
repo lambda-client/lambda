@@ -37,19 +37,12 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.flag.ImGuiCol
-import com.lambda.imgui.flag.ImGuiHoveredFlags
-import com.lambda.imgui.flag.ImGuiMouseButton
 import com.lambda.threading.runSafe
-import com.lambda.util.InputUtils
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT
-import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SUPER
 import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
 import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
@@ -87,8 +80,6 @@ class KeybindSetting(
     private val releaseListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
     private val unsafeReleaseListeners = mutableListOf<(ButtonEvent) -> Unit>()
 
-    private var listening = false
-
     override val isMuted
         get() = muteable?.isMuted == true && !alwaysListening
 
@@ -113,77 +104,6 @@ class KeybindSetting(
         } else if (event.isReleased) {
             unsafeReleaseListeners.forEach { it(event) }
             runSafe { releaseListeners.forEach { it(event) } }
-        }
-    }
-
-    override fun ImGuiBuilder.buildLayout() {
-        text(name)
-        sameLine()
-
-        val bind = value
-        val preview =
-            if (listening) "Press any key…"
-            else bind.name
-
-        withId("##Bind-${this@KeybindSetting.hashCode()}") {
-            if (listening) {
-                withStyleColor(ImGuiCol.Button, 0.20f, 0.50f, 1.00f, 1.00f) {
-                    withStyleColor(ImGuiCol.ButtonHovered, 0.25f, 0.60f, 1.00f, 1.00f) {
-                        withStyleColor(ImGuiCol.ButtonActive, 0.20f, 0.50f, 0.95f, 1.00f) {
-                            button(preview)
-                        }
-                    }
-                }
-            } else {
-                button(preview) { listening = true }
-            }
-        }
-
-        lambdaTooltip {
-            if (!listening) description.ifBlank { "Click to set. Esc cancels. Backspace/Delete unbinds." }
-            else "Listening… Press a key to bind. Esc to cancel. Backspace/Delete to unbind."
-        }
-
-        if (listening && !isAnyItemHovered && isMouseClicked(ImGuiMouseButton.Left)) {
-            listening = false
-        }
-
-        sameLine()
-        withId("##Unbind-${this@KeybindSetting.hashCode()}") {
-            smallButton("Unbind") {
-                value = Bind.EMPTY
-                listening = false
-            }
-        }
-        onItemHover(ImGuiHoveredFlags.Stationary) {
-            lambdaTooltip("Clear binding")
-        }
-
-        if (listening) {
-            InputUtils.newMouseEvent()
-                ?.let {
-                    value = Bind(0, it.modifiers, it.button)
-                    listening = false
-                    return
-                }
-
-            InputUtils.newKeyboardEvent()
-                ?.let {
-                    val isModKey = it.keyCode in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER
-
-                    // If a mod key is pressed first ignore it unless it was released without any other keys
-                    if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
-                        when (it.translated) {
-                            KeyCode.Escape -> {}
-                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
-                            else -> value = Bind(it.translated.code, it.modifiers, -1)
-                        }
-
-                        listening = false
-                    }
-
-                    return
-                }
         }
     }
 

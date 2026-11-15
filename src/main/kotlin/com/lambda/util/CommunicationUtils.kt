@@ -24,7 +24,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.ConfigLoader
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
-import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.GuiConfig
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.threading.runSafe
@@ -152,7 +152,7 @@ object CommunicationUtils {
             if (command.usage.isNotBlank()) {
                 literal("\n")
                 literal("Usage: ")
-                color(ClickGuiLayout.primaryColor) {
+                color(GuiConfig.primaryColor) {
                     literal(command.usage)
                 }
             }
@@ -160,7 +160,7 @@ object CommunicationUtils {
                 literal("\n")
                 literal("Aliases: ")
                 joinToText(command.aliases) {
-                    color(ClickGuiLayout.primaryColor) {
+                    color(GuiConfig.primaryColor) {
                         literal(it)
                     }
                 }
@@ -179,7 +179,7 @@ object CommunicationUtils {
                 literal("\n")
             }
             literal("Keybind: ")
-            color(ClickGuiLayout.primaryColor) {
+            color(GuiConfig.primaryColor) {
                 if (module.keybind.key != 0 || module.keybind.mouse > -1) {
                     literal(module.keybind.name)
                 } else {
