@@ -243,7 +243,13 @@ object LambdaGui : Loadable {
                     }
                 }
 
-                if (screen == Screen.HudEditor) HudEditor() else HudLayer()
+                // The HUD is for the game, and for other screens if the user says so. The click
+                // GUI never has it: it would only sit under the windows and get in their way.
+                when (screen) {
+                    Screen.HudEditor -> HudEditor()
+                    Screen.ClickGui -> Unit
+                    null -> HudLayer()
+                }
                 // Composed once and kept, so that opening the click GUI only has to show it
                 Retained(shown = screen == Screen.ClickGui || warmingUp, clickGuiObservations) { ClickGui() }
                 if (warmingUp) WarmUp()

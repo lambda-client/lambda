@@ -23,10 +23,12 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.Config
 import com.lambda.config.ConfigLoader
 import com.lambda.config.entries.Setting
+import com.lambda.gui.clickgui.ClickGuiState
 import com.lambda.gui.clickgui.Reveal
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
+import com.lambda.module.ModuleTag
 import com.lambda.util.StringUtils.levenshteinDistance
 import net.minecraft.client.gui.screen.ChatScreen
 
@@ -85,7 +87,12 @@ internal object Search {
             if (score > 0) add(result() to score + bonus)
         }
 
+        // Debug modules and what they hold are for developers: without developer mode, which
+        // is what shows their window, the search does not know them either
+        fun hidden(config: Any) = config is Module && config.tag == ModuleTag.DEBUG && !ClickGuiState.developerMode
+
         ModuleRegistry.modules.forEach { module ->
+            if (hidden(module)) return@forEach
             consider({ Result.OfModule(module) }, if (module is HudModule) HUD_MODULE_BONUS else MODULE_BONUS, module.name, module.tag.name)
         }
         CommandRegistry.commands.forEach { command ->
@@ -93,6 +100,7 @@ internal object Search {
         }
         ConfigLoader.configCategories.forEach { category ->
             category.configs.forEach { config ->
+                if (hidden(config)) return@forEach
                 config.settingLayers.forEachEntry { _, single ->
                     val setting = single.entry
                     if (setting.visibility()) consider({ Result.OfSetting(setting, config) }, 0, setting.name)

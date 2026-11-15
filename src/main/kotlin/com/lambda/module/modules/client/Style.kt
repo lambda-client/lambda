@@ -54,6 +54,7 @@ object Style : Module(
     val blur by setting("Blur", true, "Blurs what is behind windows for a frosted glass look")
     val blurRadius by setting("Blur Radius", 4f, 1f..32f, 1f, "Strength of the blur") { blur }
 
+    val layerFade by setting("Layer Fade", 0.5f, 0f..1f, 0.05f, "How far the interface fades out underneath a panel, menu or window opened over it, letting the game show there instead so the two do not run together") { blur }
     val outlines by setting("Outlines", true, "Draws a thin border around windows, panels and menus. Off for the look of pure glass")
 
     val glow by setting("Glow", true, "Surrounds the click GUI with a glow")
@@ -100,21 +101,21 @@ object Style : Module(
             this,
             primary = Color(214, 55, 88),
             secondary = Color(176, 0, 70),
-            surface = Color(252, 246, 247, 205),
-            panel = Color(247, 244, 245, 222),
+            surface = Color(252, 246, 247, 135),
+            panel = Color(247, 244, 245, 175),
             inset = Color(120, 0, 40, 34),
             onSurface = Color(40, 14, 20),
             onSurfaceVariant = Color(128, 102, 108),
             header = Color(214, 55, 88, 242),
             onHeader = Color(255, 250, 251),
-            moduleEnabled = Color(250, 180, 198, 190),
-            onModuleEnabled = Color(120, 0, 48),
+            moduleEnabled = Color(226, 72, 104, 190),
+            onModuleEnabled = Color(255, 250, 251),
             control = Color(214, 55, 88, 242),
             controlMenu = Color(246, 232, 235),
             controlSelected = Color(236, 198, 208),
             onControl = Color(40, 14, 20),
-            track = Color(214, 196, 201, 228),
-            input = Color(255, 255, 255, 235),
+            track = Color(214, 196, 201, 200),
+            input = Color(255, 255, 255, 200),
             border = Color(216, 134, 150, 238),
             textShadow = Color(0, 0, 0, 0),
         )
