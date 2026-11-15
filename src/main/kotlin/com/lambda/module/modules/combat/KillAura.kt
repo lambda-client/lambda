@@ -31,6 +31,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
@@ -58,6 +59,7 @@ object KillAura : Module(
     private const val TARGETING_TAB = "Targeting"
 
     @Tab(GENERAL_TAB) private val rotate by setting("Rotate", true)
+    @Tab(GENERAL_TAB) private val pauseBaritone by setting("Pause Baritone", true, "Pause Baritone to look at the target") { rotate }
     @Tab(GENERAL_TAB) private val swap by setting("Swap", true, "Swap to the item with the highest damage")
     @Tab(GENERAL_TAB) private val disableWhileGliding by setting("Disable While Gliding", false, "Disables when gliding with an elytra")
     @Tab(GENERAL_TAB) private val damageMode by setting("Damage Mode", DamageMode.Dps)
@@ -113,6 +115,7 @@ object KillAura : Module(
                 var rotated = true
                 if (rotate) withSafeAutomated {
                     val rotationRequest = lookAtEntity(entity)?.rotation?.let { rotationRequest { rotation(it) } }?.submit() ?: return@listen
+                    if (pauseBaritone) BaritoneHandler.pause()
                     rotated = rotationRequest.done && entity === prevEntity && validServerRot
                     prevEntity = entity
                     validServerRot = rotationRequest.done

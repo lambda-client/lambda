@@ -23,6 +23,7 @@ import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.task.Task
@@ -37,6 +38,8 @@ object AutoEat : Module(
     description = "Eats food when you are hungry",
     tag = ModuleTag.PLAYER,
 ) {
+    private val pauseBaritone by setting("Pause Baritone", true, "Pause Baritone while eating")
+
     private var eatTask: Task<*>? = null
 
     init {
@@ -46,6 +49,9 @@ object AutoEat : Module(
 		    }
 
         listen<TickEvent.Pre> {
+            val state = eatTask?.state
+            if (pauseBaritone && (state == Task.State.Running || state == Task.State.Paused)) BaritoneHandler.pause()
+
             val reason = withSafeAutomated { reasonEating() }
             if (eatTask != null || !reason.shouldEat()) return@listen
 
