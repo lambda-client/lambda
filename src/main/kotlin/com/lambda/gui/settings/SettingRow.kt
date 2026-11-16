@@ -249,7 +249,7 @@ private fun <T> Slider(setting: NumericSetting<T>) where T : Number, T : Compara
             }
             .padding(horizontal = 3.dp)
     ) {
-        Text(setting.name, Modifier.weight(1f), colors.onControl)
+        Text(setting.name, Modifier.weight(1f), colors.onControl, maxLines = 1)
         Text(label, Modifier.mouseClickable { typing = true }, colors.onControl, maxLines = 1)
     }
 }
@@ -281,7 +281,7 @@ private fun TextField(setting: StringSetting) {
     val value by observe { setting.value }
     // Text that runs over several lines is the one editor that cannot keep to a row
     if (setting.multiline) Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-        Text(setting.name, Modifier.padding(start = 3.dp, top = 1.dp))
+        Text(setting.name, Modifier.padding(start = 3.dp, top = 1.dp), maxLines = 1)
         TextInput(value, { setting.value = it }, Modifier.fillMaxWidth(), singleLine = false)
     }
     else Labeled(setting.name) {
