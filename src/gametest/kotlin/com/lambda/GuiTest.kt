@@ -488,6 +488,17 @@ object GuiTest : FabricClientGameTest {
         context.takeScreenshot("gui-12b-light-theme-settings")
         context.closeGui()
 
+        // Another font, picked the same way: the interface keeps its proportions
+        context.openClickGui()
+        context.click(dpX = 830.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.waitTicks(10)
+        context.click(dpX = 760.0, dpY = 215.0)
+        context.waitTicks(10)
+        context.click(dpX = 760.0, dpY = 243.0)
+        context.waitTicks(10)
+        context.takeScreenshot("gui-13-fira-sans")
+        context.closeGui()
+
         singleplayer.close()
     }
 

@@ -21,6 +21,8 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -137,12 +139,12 @@ enum class GuiFont(override val displayName: String, val size: TextUnit, val sma
 
 /** The text styles of a [GuiFont]. Lines are exactly as tall as the type, so rows are spaced by their padding alone. */
 @Immutable
-class Typography(font: GuiFont) {
-    val title = compact(font, font.size, font.titleWeight)
-    val body = compact(font, font.size)
+class Typography(font: GuiFont, scale: Float = 1f) {
+    val title = compact(font, font.size * scale, font.titleWeight)
+    val body = compact(font, font.size * scale)
 
     /** For what is secondary to the text beside it. No smaller than [body] in a pixel font, which cannot shrink. */
-    val label = compact(font, font.smallSize)
+    val label = compact(font, font.smallSize * scale)
 
     private fun compact(font: GuiFont, size: TextUnit, weight: FontWeight = FontWeight.Normal) = TextStyle(
         fontFamily = font.family,
@@ -186,6 +188,9 @@ val LocalUnderlay = staticCompositionLocalOf { 1f }
 /** Whether windows, panels and menus are drawn with a hairline border, see [com.lambda.gui.component.window] */
 val LocalOutlines = staticCompositionLocalOf { true }
 
+/** How tall a line of the Minecraft font is, in dp, and so how tall any font's may be. A shade under, as heights round up. */
+private const val LINE_HEIGHT = 10.95f
+
 @Composable
 fun LambdaTheme(content: @Composable () -> Unit) {
     val palette by observe { Style.palette }
@@ -193,10 +198,19 @@ fun LambdaTheme(content: @Composable () -> Unit) {
     val backdropBlur by observe { if (Style.blur) (Style.blurRadius / 2f).dp else 0.dp }
     val font by observe { Style.font }
     val outlines by observe { Style.outlines }
+    // Every row is built around the line of the Minecraft font. A font that asks for a taller
+    // line at its size, for more room above and below its letters, is set that much smaller:
+    // its lines keep the room they ask for, and the rows keep their height.
+    val measurer = rememberTextMeasurer()
+    val typography = remember(font) {
+        if (font == GuiFont.Minecraft) return@remember Typography(font)
+        val line = measurer.measure("Ag", Typography(font).body, density = Density(1f)).size.height
+        Typography(font, (LINE_HEIGHT / line).coerceAtMost(1f))
+    }
     val underlay by observe { 1f - Style.layerFade }
     CompositionLocalProvider(
         LocalPalette provides palette,
-        LocalTypography provides remember(font) { Typography(font) },
+        LocalTypography provides typography,
         // Selected text is marked in the accent colour rather than in Compose's own blue
         LocalTextSelectionColors provides TextSelectionColors(palette.primary, palette.primary.copy(alpha = 0.4f)),
         LocalContentColor provides palette.onSurface,
