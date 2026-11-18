@@ -17,6 +17,10 @@
 
 package com.lambda.gui.menu
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -27,19 +31,29 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.lambda.Lambda.REPO_URL
@@ -65,6 +79,7 @@ import com.lambda.gui.component.consumeClicks
 import com.lambda.gui.component.glass
 import com.lambda.gui.component.hoverHighlight
 import com.lambda.gui.component.mouseClickable
+import com.lambda.gui.component.rememberLast
 import com.lambda.gui.core.observe
 import com.lambda.gui.core.observeSafe
 import com.lambda.gui.hud.HudConfig
@@ -125,7 +140,7 @@ private fun BarMenu(label: String, content: @Composable ColumnScope.() -> Unit) 
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxHeight()
-            .hoverHighlight(LambdaTheme.colors.header)
+            .hoverHighlight(LambdaTheme.colors.controlSelected)
             .mouseClickable(onClick = menu::toggle)
             .padding(horizontal = 6.dp)
     ) {
@@ -135,16 +150,31 @@ private fun BarMenu(label: String, content: @Composable ColumnScope.() -> Unit) 
 }
 
 /**
- * The search field of the bar. Results drop down under it as the query is typed; Enter takes
- * the first, a click any, and Escape empties the field.
+ * The search field of the bar. Results drop down under it as the query is typed, and one of
+ * them is always marked, the first to begin with. The arrow keys, or Tab and Shift with Tab,
+ * move the mark up and down the list and round its ends, and so does the pointer; Enter takes
+ * the marked one, a click any, and Escape empties the field. Nothing in it needs a mouse:
+ * Control with F puts the cursor in the field.
  */
 @Composable
 private fun SearchField(modifier: Modifier = Modifier) {
     val focus = LocalFocusManager.current
+    // Control with F puts the cursor in the field from anywhere in the click GUI
+    val field = remember { FocusRequester() }
+    val asked = ClickGuiState.focusSearch
+    LaunchedEffect(asked) {
+        if (asked) field.requestFocus()
+        ClickGuiState.focusSearch = false
+    }
     var query by remember { mutableStateOf("") }
     // The results can be put away with a click elsewhere, and come back with the next keystroke
     var listed by remember { mutableStateOf(false) }
     val results = remember(query) { Search.find(query.trim()) }
+    val open = listed && query.isNotBlank()
+    // What was listed stays to be seen while the list folds away
+    val shown = rememberLast(results.takeIf { open }).orEmpty()
+    // Which result is marked. Every keystroke lists anew, with the best match first and marked.
+    var marked by remember(results) { mutableStateOf(0) }
 
     fun choose(result: Search.Result) {
         query = ""
@@ -157,14 +187,24 @@ private fun SearchField(modifier: Modifier = Modifier) {
         modifier.onPreviewKeyEvent { event ->
             when {
                 event.type != KeyEventType.KeyDown -> false
-                event.key == Key.Enter -> {
-                    results.firstOrNull()?.let(::choose)
-                    true
-                }
                 // An empty field lets Escape through, to close the click GUI as it does anywhere else
                 event.key == Key.Escape && query.isNotEmpty() -> {
                     query = ""
                     listed = false
+                    true
+                }
+                event.key == Key.Enter -> {
+                    results.getOrNull(marked)?.let(::choose)
+                    true
+                }
+                // Without a list to move through, Tab is left to go where it goes anywhere else
+                !open || results.isEmpty() -> false
+                event.key == Key.DirectionDown || event.key == Key.Tab && !event.isShiftPressed -> {
+                    marked = (marked + 1).mod(results.size)
+                    true
+                }
+                event.key == Key.DirectionUp || event.key == Key.Tab -> {
+                    marked = (marked - 1).mod(results.size)
                     true
                 }
                 else -> false
@@ -177,26 +217,49 @@ private fun SearchField(modifier: Modifier = Modifier) {
                 query = it
                 listed = true
             },
-            modifier = Modifier.width(SearchWidth),
+            modifier = Modifier.width(SearchWidth).focusRequester(field),
             placeholder = "Search modules and settings",
         )
-        if (listed && query.isNotBlank()) Suggestions(onDismiss = { listed = false }) {
-            if (results.isEmpty()) MenuLabel("Nothing found")
-            results.forEach { result -> ResultRow(result) { choose(result) } }
+        Suggestions(open, onDismiss = { listed = false }) {
+            if (shown.isEmpty()) MenuLabel("Nothing found")
+            shown.forEachIndexed { index, result ->
+                ResultRow(result, marked = index == marked, onPoint = { marked = index }) { choose(result) }
+            }
         }
     }
 }
 
+/**
+ * One result of the search. The [marked] one is lit and kept in view, and the light passes from
+ * one to the next rather than jumping. Moving the pointer over a row marks it, [onPoint]; a
+ * pointer that merely lies where the list happens to open does not, or it would take the mark
+ * from the keyboard with every letter typed.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ResultRow(result: Search.Result, onClick: () -> Unit) {
+private fun ResultRow(result: Search.Result, marked: Boolean, onPoint: () -> Unit, onClick: () -> Unit) {
     val colors = LambdaTheme.colors
+    val lit by animateColorAsState(if (marked) colors.controlSelected else Color.Transparent, tween(90))
+    val intoView = remember { BringIntoViewRequester() }
+    LaunchedEffect(marked) {
+        if (marked) intoView.bringIntoView()
+    }
+    val point by rememberUpdatedState(onPoint)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(min = SearchWidth)
-            .hoverHighlight(colors.header)
-            .mouseClickable(onClick = onClick)
+            .bringIntoViewRequester(intoView)
+            .background(lit)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        if (awaitPointerEvent().type == PointerEventType.Move) point()
+                    }
+                }
+            }
+            .mouseClickable(keyboard = false, onClick = onClick)
             .padding(horizontal = 5.dp, vertical = 1.dp)
     ) {
         Text(result.name, maxLines = 1)

@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,15 +35,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.unit.dp
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.component.KeyboardFocus
 import com.lambda.gui.component.NumberInput
 import com.lambda.gui.component.RowHeight
+import com.lambda.gui.component.isActivation
+import com.lambda.gui.component.keyboardFocusable
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.component.scrubbable
 import com.lambda.gui.core.observe
@@ -81,6 +89,9 @@ abstract class NumericSetting<T>(
 	/**
 	* A bar filled up to the value. Dragging anywhere on it sets the value; clicking the number
 	* swaps the bar for a text field to type an exact one, for ranges with more steps than pixels.
+	*
+	* With the keyboard focus on it, the left and right arrows take the value a step down and up,
+	* and Enter or Space opens the field to type in. Done typing, the focus is back on the bar.
 	*/
 	@Composable
 	override fun compose() {
@@ -88,16 +99,27 @@ abstract class NumericSetting<T>(
 		val value by observe { value }
 		val label by observe { toString() }
 		var typing by remember { mutableStateOf(false) }
+		// The bar is not there while its field is: it has to ask for the focus the field gave up
+		val bar = remember { FocusRequester() }
+		var refocus by remember { mutableStateOf(false) }
 
 		if (typing) {
 			NumberInput(value, { this.value = convert(it) }, Modifier.fillMaxWidth(), focused = true) {
 				typing = false
+				refocus = KeyboardFocus.visible
 			}
 			return
+		}
+		if (refocus) LaunchedEffect(Unit) {
+			bar.requestFocus()
+			refocus = false
 		}
 
 		val min = range.start.toDouble()
 		val max = range.endInclusive.toDouble()
+		/** The value [steps] of the setting's step up from the bottom of its range */
+		fun at(steps: Long) = convert(min + steps * step.toDouble())
+		fun stepsOf(value: Double) = ((value - min) / step.toDouble()).roundToLong()
 		// The value moves in steps; the bar glides from one to the next
 		val fraction by animateFloatAsState(((value.toDouble() - min) / (max - min)).toFloat().coerceIn(0f, 1f))
 		Row(
@@ -108,15 +130,24 @@ abstract class NumericSetting<T>(
 				.heightIn(min = RowHeight)
 				.clip(RoundedCornerShape(Radius.Small))
 				.background(colors.track)
-				.drawBehind { drawRect(colors.primary, size = Size(size.width * fraction, size.height)) }
+				.drawBehind { drawRect(colors.trackFilled, size = Size(size.width * fraction, size.height)) }
 				.scrubbable { position, size ->
-					val steps = ((position.x / size.width).coerceIn(0f, 1f) * (max - min) / step.toDouble()).roundToLong()
-					this.value = convert(min + steps * step.toDouble())
+					this.value = at(stepsOf(min + (position.x / size.width).coerceIn(0f, 1f) * (max - min)))
+				}
+				.focusRequester(bar)
+				.keyboardFocusable { event ->
+					when {
+						event.key == Key.DirectionLeft -> this.value = at(stepsOf(value.toDouble()) - 1)
+						event.key == Key.DirectionRight -> this.value = at(stepsOf(value.toDouble()) + 1)
+						event.isActivation -> typing = true
+						else -> return@keyboardFocusable false
+					}
+					true
 				}
 				.padding(horizontal = 3.dp)
 		) {
 			Text(name, Modifier.weight(1f), colors.onControl, maxLines = 1)
-			Text(label, Modifier.mouseClickable { typing = true }, colors.onControl, maxLines = 1)
+			Text(label, Modifier.mouseClickable(keyboard = false) { typing = true }, colors.onControl, maxLines = 1)
 		}
 	}
 

@@ -57,8 +57,9 @@ import com.lambda.util.stream
  */
 @Immutable
 data class Palette(
-    /** Accent: sliders, checked boxes, the selected tab, the outline of the module being edited */
+    /** Accent, for what is on or filled: sliders, checked boxes, the bar of an open group */
     val primary: Color,
+    /** Second accent, a hue apart, for what is chosen among options: an entry of a menu, the page of a panel */
     val secondary: Color,
     /** Fill of windows, tinted over the frosted game */
     val surface: Color,
@@ -87,6 +88,9 @@ data class Palette(
 ) {
     /** Text drawn on [primary]: whichever of dark and white stands out */
     val onPrimary: Color = if (primary.luminance() > 0.35f) Color(0xFF1B1024) else Color.White
+
+    /** The filled part of a slider: the accent held back, as it covers far more than a tick does and has text over it */
+    val trackFilled: Color = primary.copy(alpha = 0.6f)
 
     /** Laid over a surface to lift something off it: the heading of a group, the chosen tab */
     val raised: Color = onSurface.copy(alpha = 0.11f)

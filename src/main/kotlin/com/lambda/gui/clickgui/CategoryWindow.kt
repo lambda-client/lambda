@@ -262,7 +262,12 @@ private fun ModuleRow(module: Module, isEdited: Boolean, panel: SettingsPanelSta
             // A name too long for the window slides along rather than being cut short
             SlidingText(
                 text = module.name,
-                color = if (enabled || isEdited) colors.onModuleEnabled else colors.onSurfaceVariant,
+                // The fill is for what is on: one that is only being edited is merely lit
+                color = when {
+                    enabled -> colors.onModuleEnabled
+                    isEdited -> colors.onSurface
+                    else -> colors.onSurfaceVariant
+                },
                 style = Type.body.shadowed(),
             )
         }

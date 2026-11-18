@@ -22,8 +22,11 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandIn
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -55,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -157,6 +161,8 @@ private val Floating = PopupProperties(
  * ending at [unfoldFrom], the size of the element it slides out of, or a point. It asks to close
  * through [onDismiss] on Escape, a click anywhere outside of it, or the interface closing.
  *
+ * One that is [attached] continues an element with a square edge, and is square along it too.
+ *
  * ```
  * val menu = remember { MenuState() }
  * Box {
@@ -173,9 +179,10 @@ fun Menu(
     onDismiss: () -> Unit,
     placement: MenuPlacement = MenuPlacement.Below,
     unfoldFrom: IntSize = IntSize.Zero,
+    attached: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    MenuPopup(open, remember(placement) { UnfoldingPosition(placement::place) }, onDismiss, unfoldFrom, content)
+    MenuPopup(open, remember(placement) { UnfoldingPosition(placement::place) }, onDismiss, unfoldFrom, attached, content)
 }
 
 private fun MenuPlacement.place(anchor: IntRect, window: IntSize, popup: IntSize) = when (this) {
@@ -207,7 +214,7 @@ fun Popout(open: Boolean, onDismiss: () -> Unit, content: @Composable ColumnScop
 /** A [Menu] at [position], in scene pixels: the one a right click opens under the pointer */
 @Composable
 fun ContextMenu(open: Boolean, position: IntOffset, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) =
-    MenuPopup(open, remember(position) { UnfoldingPosition { _, _, _ -> position } }, onDismiss, IntSize.Zero, content)
+    MenuPopup(open, remember(position) { UnfoldingPosition { _, _, _ -> position } }, onDismiss, IntSize.Zero, false, content)
 
 /**
  * [value], or while that is null, what it last was: what a popup goes on showing while it folds
@@ -236,12 +243,19 @@ private fun MenuPopup(
     position: UnfoldingPosition,
     onDismiss: () -> Unit,
     unfoldFrom: IntSize,
+    attached: Boolean,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val open = open && LocalMenuOpen.current
     val dismissAll = LocalMenuDismiss.current ?: onDismiss
     val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    FloatingPanel(open, position, onDismiss, RoundedCornerShape(Radius.Medium), unfoldFrom) { panel ->
+    // One that is attached is of a piece with a square edge of its element: square there too, on whichever side it opened
+    val shape = when {
+        !attached -> RoundedCornerShape(Radius.Medium)
+        position.upwards -> RoundedCornerShape(topStart = Radius.Medium, topEnd = Radius.Medium)
+        else -> RoundedCornerShape(bottomStart = Radius.Medium, bottomEnd = Radius.Medium)
+    }
+    FloatingPanel(open, position, onDismiss, shape, unfoldFrom) { panel ->
         CompositionLocalProvider(LocalMenuDismiss provides dismissAll, LocalMenuOpen provides open) {
             ScrollColumn(
                 modifier = Modifier
@@ -251,7 +265,8 @@ private fun MenuPopup(
                     // As wide as the element it drops out of, at least
                     .widthIn(min = maxOf(80.dp, with(LocalDensity.current) { unfoldFrom.width.toDp() }))
                     .then(panel)
-                    .padding(vertical = 1.dp),
+                    // Entries run right up to the outline on every side, cut to its corners
+                    .clip(shape),
                 content = content
             )
         }
@@ -365,6 +380,7 @@ private fun FloatingPanel(
         properties = Floating,
         onKeyEvent = { open && it.dismissOnEscape(onDismiss) },
     ) {
+        if (open) KeyboardFocus.Layer()
         ContentColor(colors.onSurface) {
             // Unfolded by size alone, as a fade would draw it into a layer of its own with nothing behind the glass to blur
             AnimatedVisibility(
@@ -400,7 +416,8 @@ private class UnfoldingPosition(
     private var leftwards by mutableStateOf(false)
 
     /** Whether it opened above its element, and so grows upwards */
-    private var upwards by mutableStateOf(false)
+    var upwards by mutableStateOf(false)
+        private set
 
     /** The corner it grows out of */
     val corner
@@ -434,31 +451,49 @@ private class UnfoldingPosition(
  * A list that drops down under the element it is called inside while that element keeps the
  * keyboard: what a search field shows its results in. Its right edge lines up with the
  * element's. A press outside of it calls [onDismiss].
+ *
+ * It unfolds downwards while [open] and folds back up once it is not, and in between it grows
+ * and shrinks with what it lists rather than jumping from one length to the next.
  */
 @Composable
-fun Suggestions(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun Suggestions(open: Boolean, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    // Gone at once with the interface, which leaves nothing on screen to fold away
     if (!LocalShown.current) {
-        SideEffect(onDismiss)
+        if (open) SideEffect(onDismiss)
         return
     }
+    val visibility = remember { MutableTransitionState(false) }
+    visibility.targetState = open
+    if (!open && visibility.isIdle && !visibility.currentState) return
+
     val colors = LambdaTheme.colors
+    val shape = RoundedCornerShape(Radius.Medium)
     val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     Popup(
         popupPositionProvider = remember {
             positionProvider { anchor, _, popup -> IntOffset((anchor.right - popup.width).coerceAtLeast(0), anchor.bottom) }
         },
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (open) onDismiss() },
         properties = PopupProperties(focusable = false),
     ) {
         ContentColor(colors.onSurface) {
-            ScrollColumn(
-                modifier = Modifier
-                    .heightIn(max = screenHeight * 0.6f)
-                    .width(IntrinsicSize.Max)
-                    .window(colors.panel, colors.border, RoundedCornerShape(Radius.Medium), floating = true)
-                    .padding(vertical = 1.dp),
-                content = content
-            )
+            // By size alone and with the shadow cast from outside the clip, as every floating panel unfolds
+            AnimatedVisibility(
+                visibleState = visibility,
+                modifier = Modifier.dropShadow(shape),
+                enter = expandVertically(Unfold, Alignment.Top),
+                exit = shrinkVertically(Unfold, Alignment.Top),
+            ) {
+                ScrollColumn(
+                    modifier = Modifier
+                        .heightIn(max = screenHeight * 0.6f)
+                        .width(IntrinsicSize.Max)
+                        .window(colors.panel, colors.border, shape)
+                        .animateContentSize(Unfold)
+                        .clip(shape),
+                    content = content
+                )
+            }
         }
     }
 }
@@ -482,11 +517,11 @@ fun MenuItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            // The chosen one is filled like a ticked box, so it stands out from the rest at a glance
-            .background(if (selected) colors.primary else Color.Transparent)
+            // The chosen one is lifted and named in the second accent, so it stands out from the rest at a glance
+            .background(if (selected) colors.controlSelected else Color.Transparent)
             .then(
                 if (!enabled) Modifier
-                else Modifier.hoverHighlight(colors.header).mouseClickable {
+                else Modifier.hoverHighlight(colors.controlSelected).mouseClickable {
                     onClick()
                     if (checked == null) dismiss?.invoke()
                 }
@@ -496,7 +531,7 @@ fun MenuItem(
         if (checked != null) Checkmark(checked, Modifier.padding(end = 3.dp))
         val color = when {
             !enabled -> colors.onSurfaceVariant
-            selected -> colors.onControl
+            selected -> colors.secondary
             else -> colors.onSurface
         }
         Text(label, Modifier.weight(1f), color, maxLines = 1)
@@ -514,7 +549,7 @@ fun Submenu(label: String, enabled: Boolean = true, content: @Composable ColumnS
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (enabled) Modifier.hoverHighlight(colors.header).mouseClickable(onClick = menu::toggle) else Modifier)
+                .then(if (enabled) Modifier.hoverHighlight(colors.controlSelected).mouseClickable(onClick = menu::toggle) else Modifier)
                 .padding(horizontal = 5.dp, vertical = 1.dp)
         ) {
             Text(label, Modifier.weight(1f), if (enabled) colors.onSurface else colors.onSurfaceVariant, maxLines = 1)
@@ -576,12 +611,13 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
         properties = PopupProperties(focusable = true),
         onKeyEvent = { onDismiss != null && it.dismissOnEscape(onDismiss) },
     ) {
+        KeyboardFocus.Layer()
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxSize()
                 .glass(Color.Black.copy(alpha = 0.35f), RectangleShape)
-                .mouseClickable { onDismiss?.invoke() }
+                .mouseClickable(keyboard = false) { onDismiss?.invoke() }
         ) {
             ContentColor(colors.onSurface) {
                 Box(

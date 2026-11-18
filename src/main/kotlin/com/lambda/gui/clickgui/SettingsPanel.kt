@@ -376,7 +376,7 @@ private fun PageStrip(pages: List<PanelPage>, selected: PanelPage, onSelect: (Pa
     Row(Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
         pages.forEach { page ->
             val isSelected = page == selected
-            val line by animateColorAsState(if (isSelected) colors.primary else colors.raised)
+            val line by animateColorAsState(if (isSelected) colors.secondary else colors.raised)
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
