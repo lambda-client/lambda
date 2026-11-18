@@ -18,6 +18,7 @@
 package com.lambda
 
 import com.lambda.gui.GuiConfig
+import com.lambda.gui.GuiScreen
 import com.lambda.gui.LambdaGui
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.AutoUpdater
@@ -28,6 +29,7 @@ import com.lambda.module.modules.hud.Fps
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.minecraft.client.gui.screen.world.WorldCreator
+import net.minecraft.client.input.KeyInput
 import org.lwjgl.glfw.GLFW
 import kotlin.math.abs
 
@@ -279,6 +281,24 @@ object GuiTest : FabricClientGameTest {
         context.takeScreenshot("gui-4a-search-module")
         context.waitTicks(40)
 
+        // The arrow keys and Tab move the mark through the results, and Enter takes the marked one
+        context.click(dpX = 480.0, dpY = 7.0)
+        context.input.typeChars("auto")
+        context.waitTicks(1)
+        context.takeScreenshot("gui-4a1-search-unfolding")
+        context.waitTicks(10)
+        context.input.pressKey(GLFW.GLFW_KEY_DOWN)
+        context.input.pressKey(GLFW.GLFW_KEY_TAB)
+        context.waitTicks(5)
+        context.takeScreenshot("gui-4a2-search-third-marked")
+        context.input.pressKey(GLFW.GLFW_KEY_UP)
+        context.waitTicks(5)
+        context.takeScreenshot("gui-4a3-search-second-marked")
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.waitTicks(8)
+        context.takeScreenshot("gui-4a4-search-marked-chosen")
+        context.waitTicks(40)
+
         // A setting has the settings of its module opened on its tab, and is lit there
         context.click(dpX = 480.0, dpY = 7.0)
         context.input.typeChars("targeting range")
@@ -502,6 +522,12 @@ object GuiTest : FabricClientGameTest {
         context.waitTicks(5)
         context.closeGui()
 
+        // The glow is in the colours of the theme in use: the dark one's here, the light one's below
+        context.runOnClient<RuntimeException> { Style.glow = true }
+        context.openClickGui()
+        context.takeScreenshot("gui-11f-glow-dark")
+        context.closeGui()
+
         // The light theme, picked the way a player picks it, in the settings of Style
         context.openClickGui()
         context.click(dpX = 800.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
@@ -515,6 +541,7 @@ object GuiTest : FabricClientGameTest {
         context.waitTicks(10)
         context.takeScreenshot("gui-12b-light-theme-settings")
         context.closeGui()
+        context.runOnClient<RuntimeException> { Style.glow = false }
 
         // Another font, picked the same way: the interface keeps its proportions
         context.openClickGui()
@@ -541,6 +568,60 @@ object GuiTest : FabricClientGameTest {
         context.takeScreenshot("gui-14-font-size-and-module-height")
         context.closeGui()
 
+        // The whole of it from the keyboard. Tab puts the focus on the first thing there is, the
+        // header of the first window, and the arrows take it across to the third and down its list
+        context.openClickGui()
+        context.input.pressKey(GLFW.GLFW_KEY_TAB)
+        context.waitTicks(5)
+        context.takeScreenshot("gui-15a-keyboard-first-focus")
+        context.input.pressKey(GLFW.GLFW_KEY_RIGHT)
+        context.input.pressKey(GLFW.GLFW_KEY_RIGHT)
+        context.input.pressKey(GLFW.GLFW_KEY_DOWN)
+        context.input.pressKey(GLFW.GLFW_KEY_DOWN)
+        context.waitTicks(5)
+        context.takeScreenshot("gui-15b-keyboard-on-module")
+
+        // Enter is a click on it, and Shift with Enter a right click: its settings open beside it
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.waitTicks(5)
+        context.takeScreenshot("gui-15c-keyboard-toggled")
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.pressKey(GLFW.GLFW_KEY_ENTER, GLFW.GLFW_MOD_SHIFT)
+        context.waitTicks(15)
+        context.input.pressKey(GLFW.GLFW_KEY_RIGHT)
+        context.waitTicks(5)
+        context.takeScreenshot("gui-15d-keyboard-into-settings")
+        context.input.pressKey(GLFW.GLFW_KEY_DOWN)
+        context.input.pressKey(GLFW.GLFW_KEY_DOWN)
+        context.waitTicks(5)
+        context.takeScreenshot("gui-15e-keyboard-down-settings")
+        context.input.pressKey(GLFW.GLFW_KEY_RIGHT)
+        context.input.pressKey(GLFW.GLFW_KEY_RIGHT)
+        context.waitTicks(5)
+        context.takeScreenshot("gui-15f-keyboard-right-twice")
+
+        // A menu of the bar is its own layer of focus: Enter opens it, the arrows move inside it
+        context.pressKey(GLFW.GLFW_KEY_F, GLFW.GLFW_MOD_CONTROL)
+        context.waitTicks(5)
+        context.input.typeChars("zoo")
+        context.waitTicks(10)
+        context.takeScreenshot("gui-15g-keyboard-search")
+        context.input.pressKey(GLFW.GLFW_KEY_ESCAPE)
+        context.waitTicks(5)
+        repeat(5) { context.pressKey(GLFW.GLFW_KEY_TAB, GLFW.GLFW_MOD_SHIFT) }
+        context.waitTicks(5)
+        context.takeScreenshot("gui-15h-keyboard-on-menu-bar")
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.waitTicks(10)
+        context.input.pressKey(GLFW.GLFW_KEY_DOWN)
+        context.input.pressKey(GLFW.GLFW_KEY_DOWN)
+        context.waitTicks(5)
+        context.takeScreenshot("gui-15i-keyboard-in-menu")
+        context.input.pressKey(GLFW.GLFW_KEY_ESCAPE)
+        context.waitTicks(10)
+        context.takeScreenshot("gui-15j-keyboard-menu-closed")
+        context.closeGui()
+
         singleplayer.close()
     }
 
@@ -548,6 +629,15 @@ object GuiTest : FabricClientGameTest {
         runOnClient<RuntimeException> { LambdaGui.open(LambdaGui.Screen.ClickGui) }
         waitTicks(20)
         check(computeOnClient<Boolean, RuntimeException> { LambdaGui.screen != null }) { "The click GUI did not open" }
+    }
+
+    /** A key pressed with modifiers held, which the test's own input leaves out of the key it sends */
+    private fun ClientGameTestContext.pressKey(key: Int, modifiers: Int) {
+        runOnClient<RuntimeException> {
+            GuiScreen.keyPressed(KeyInput(key, 0, modifiers))
+            GuiScreen.keyReleased(KeyInput(key, 0, modifiers))
+        }
+        waitTicks(1)
     }
 
     private fun ClientGameTestContext.closeGui() {

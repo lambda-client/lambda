@@ -108,9 +108,9 @@ private fun Children(layer: EntryLayer.Multiple<Setting<*>>) = layer.layers.forE
  * The pages a config sorts its settings into, and over them a band that says which one is shown
  * and lists the others when clicked.
  *
- * What it picks decides everything under it, so the band is the strongest thing in a panel: as
- * wide as it and filled like an enabled module, where the choice of a setting is a chip at the
- * end of its row. It is one row however many pages there are, and no wider than its settings.
+ * What it picks decides everything under it, as a category does its modules, so the band is the
+ * header of a category over again: as wide as the panel, filled in its colour and rounded at the
+ * top alone, where the choice of a setting is a chip at the end of its row. It is one row however many pages there are, and no wider than its settings.
  * Changing pages slides the new one in from the side it is on in the list, while the panel
  * grows or shrinks to fit it.
  */
@@ -149,18 +149,19 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
     val choice = names.size > 1
 
     Box(Modifier.fillMaxWidth().onSizeChanged { band = it }) {
-        ContentColor(colors.onModuleEnabled) {
+        ContentColor(colors.onHeader) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = RowHeight + 2.dp)
-                    .clip(RoundedCornerShape(Radius.Small))
-                    .background(colors.moduleEnabled)
+                    // Square underneath, where its page hangs off it as the modules do off their category
+                    .clip(RoundedCornerShape(topStart = Radius.Medium, topEnd = Radius.Medium))
+                    .background(colors.header)
                     .then(
                         if (!choice) Modifier
-                        else Modifier.hoverHighlight(colors.onModuleEnabled.copy(alpha = 0.12f)).mouseClickable(onClick = menu::toggle)
+                        else Modifier.hoverHighlight(colors.onHeader.copy(alpha = 0.12f)).mouseClickable(onClick = menu::toggle)
                     )
                     .padding(horizontal = 6.dp)
             ) {
@@ -168,8 +169,8 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
                 if (choice) Chevron(90f)
             }
         }
-        // Drops out from under the band, as wide as it
-        Menu(menu.isOpen, onDismiss = menu::dismiss, unfoldFrom = IntSize(band.width, 0)) {
+        // Drops out from under the band, as wide as it and square where the two meet
+        Menu(menu.isOpen, onDismiss = menu::dismiss, unfoldFrom = IntSize(band.width, 0), attached = true) {
             names.forEach { name ->
                 MenuItem(name, selected = name == selected) {
                     if (name != selected) onSelect(name)

@@ -78,6 +78,9 @@ internal sealed interface ClickGuiDialog {
 internal object ClickGuiState {
     var dialog: ClickGuiDialog? by mutableStateOf(null)
     var developerMode by mutableStateOf(false)
+
+    /** Set to have the search field of the menu bar take the keyboard, which then unsets it */
+    var focusSearch by mutableStateOf(false)
 }
 
 /**
@@ -128,7 +131,7 @@ internal fun ClickGui() {
     val bounds = remember { mutableStateMapOf<ModuleTag, Rect>() }
     val snapping by observe { Snap.isActive }
 
-    Box(Modifier.fillMaxSize().mouseClickable { edited = null }) {
+    Box(Modifier.fillMaxSize().mouseClickable(keyboard = false) { edited = null }) {
         // The row is centred without the debug window, which takes the place after its end:
         // turning developer mode on or off leaves every other window where it is
         val inRow = tags.count { it != ModuleTag.DEBUG }

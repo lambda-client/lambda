@@ -35,6 +35,7 @@ import com.lambda.gui.LambdaGui.Content
 import com.lambda.gui.LambdaGui.warmUp
 import com.lambda.gui.clickgui.ClickGui
 import com.lambda.gui.clickgui.Reveal
+import com.lambda.gui.component.KeyboardFocus
 import com.lambda.gui.component.TextFocus
 import com.lambda.gui.core.GameClipboard
 import com.lambda.gui.core.LocalObservations
@@ -232,6 +233,7 @@ object LambdaGui : Loadable {
     private fun Content() {
         CompositionLocalProvider(LocalObservations provides observations, LocalClipboard provides GameClipboard) {
             LambdaTheme {
+                KeyboardFocus.Layer()
                 // What the search pointed at is lit for a moment, wherever it is shown
                 val revealed = Reveal.module ?: Reveal.setting
                 LaunchedEffect(revealed) {

@@ -18,6 +18,7 @@
 package com.lambda.gui.core
 
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -27,6 +28,7 @@ import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.scene.ComposeScene
+import com.lambda.gui.component.KeyboardFocus
 import org.lwjgl.glfw.GLFW
 import java.awt.Component
 import java.awt.event.KeyEvent as AwtKeyEvent
@@ -48,6 +50,7 @@ internal class SceneInput(private val scene: ComposeScene) {
     fun button(button: Int, pressed: Boolean, modifiers: Int) {
         val mask = 1 shl button
         pressedButtons = if (pressed) pressedButtons or mask else pressedButtons and mask.inv()
+        if (pressed) KeyboardFocus.visible = false
         pointer(if (pressed) PointerEventType.Press else PointerEventType.Release, button.toPointerButton(), modifiers)
     }
 
@@ -56,18 +59,42 @@ internal class SceneInput(private val scene: ComposeScene) {
         pointer(PointerEventType.Scroll, scroll = Offset(horizontal.toFloat(), -vertical.toFloat()) * LINES_PER_NOTCH)
     }
 
-    /** Returns whether something in the scene handled the key */
-    fun key(key: Int, pressed: Boolean, modifiers: Int): Boolean =
-        scene.sendKeyEvent(
+    /**
+     * Returns whether something in the scene handled the key.
+     *
+     * A Tab or an arrow key that nothing in the scene wanted for itself moves the keyboard focus,
+     * see [KeyboardFocus]. An arrow with nothing lying in its direction steps on in order as Tab
+     * would, which is also how the focus first gets onto something.
+     */
+    fun key(key: Int, pressed: Boolean, modifiers: Int): Boolean {
+        val shift = modifiers and GLFW.GLFW_MOD_SHIFT != 0
+        val direction = when (key.takeIf { pressed }) {
+            GLFW.GLFW_KEY_TAB -> if (shift) FocusDirection.Previous else FocusDirection.Next
+            GLFW.GLFW_KEY_UP -> FocusDirection.Up
+            GLFW.GLFW_KEY_DOWN -> FocusDirection.Down
+            GLFW.GLFW_KEY_LEFT -> FocusDirection.Left
+            GLFW.GLFW_KEY_RIGHT -> FocusDirection.Right
+            else -> null
+        }
+        if (direction != null) KeyboardFocus.visible = true
+
+        val handled = scene.sendKeyEvent(
             KeyEvent(
                 key = Key(key.toAwtKeyCode()),
                 type = if (pressed) KeyEventType.KeyDown else KeyEventType.KeyUp,
                 isCtrlPressed = modifiers and GLFW.GLFW_MOD_CONTROL != 0,
                 isMetaPressed = modifiers and GLFW.GLFW_MOD_SUPER != 0,
                 isAltPressed = modifiers and GLFW.GLFW_MOD_ALT != 0,
-                isShiftPressed = modifiers and GLFW.GLFW_MOD_SHIFT != 0,
+                isShiftPressed = shift,
             )
         )
+        if (handled || direction == null) return handled
+        val inOrder = when (direction) {
+            FocusDirection.Up, FocusDirection.Left -> FocusDirection.Previous
+            else -> FocusDirection.Next
+        }
+        return KeyboardFocus.move(direction) || direction != inOrder && KeyboardFocus.move(inOrder)
+    }
 
     /**
      * Sends a typed character. Compose's desktop text fields only accept text from an AWT
@@ -93,6 +120,7 @@ internal class SceneInput(private val scene: ComposeScene) {
         pointer(PointerEventType.Exit)
         scene.cancelPointerInput()
         scene.focusManager.releaseFocus()
+        KeyboardFocus.visible = false
     }
 
     private fun pointer(
@@ -145,6 +173,7 @@ internal class SceneInput(private val scene: ComposeScene) {
             GLFW.GLFW_KEY_ESCAPE -> AwtKeyEvent.VK_ESCAPE
             GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> AwtKeyEvent.VK_ENTER
             GLFW.GLFW_KEY_TAB -> AwtKeyEvent.VK_TAB
+            GLFW.GLFW_KEY_SPACE -> AwtKeyEvent.VK_SPACE
             GLFW.GLFW_KEY_BACKSPACE -> AwtKeyEvent.VK_BACK_SPACE
             GLFW.GLFW_KEY_INSERT -> AwtKeyEvent.VK_INSERT
             GLFW.GLFW_KEY_DELETE -> AwtKeyEvent.VK_DELETE

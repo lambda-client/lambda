@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -68,10 +69,16 @@ import kotlinx.coroutines.launch
  * as the pointer is moved off before letting go.
  *
  * Handled clicks are consumed: an element underneath never sees them.
+ *
+ * What can be clicked can be reached from the [keyboard] too, see [KeyboardFocus]: with the
+ * focus on it, Enter or Space is a left click and Shift with either a right click. Where there
+ * is nothing for a left click to do, the plain keys do what the right click does. Turn it off
+ * for what is clicked as a backdrop rather than as a thing.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 fun Modifier.mouseClickable(
     enabled: Boolean = true,
+    keyboard: Boolean = true,
     onRightClick: (() -> Unit)? = null,
     onMiddleClick: (() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
@@ -87,7 +94,12 @@ fun Modifier.mouseClickable(
                 else -> null
             }
         }
-        pointerInput(onRelease) {
+        val keys = if (!keyboard) Modifier else Modifier.keyboardFocusable { event ->
+            val action = if (event.isShiftPressed) onRightClick else onClick ?: onRightClick
+            if (event.isActivation) action?.invoke()
+            event.isActivation && action != null
+        }
+        keys.pointerInput(onRelease) {
             awaitPointerEventScope {
                 while (true) {
                     val press = awaitPointerEvent()

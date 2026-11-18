@@ -60,76 +60,94 @@ object Style : Module(
     val outlines by setting("Outlines", true, "Draws a thin border around windows, panels and menus. Off for the look of pure glass")
     val emboss by setting("Emboss", false, "Lights each module faintly from above, so the list feels less flat")
 
-    val glow by setting("Glow", true, "Surrounds the click GUI with a glow")
+    var glow by setting("Glow", false, "Surrounds the click GUI with a glow, in the two glow colours of the theme in use")
     val glowRadius by setting("Glow Radius", 17f, 1f..100f, 1f) { glow }
     val glowIntensity by setting("Glow Intensity", 0.3f, 0.1f..3f, 0.1f) { glow }
-    val glowColorA by setting("Glow Color 1", Color(176, 0, 70)) { glow }
-    val glowColorB by setting("Glow Color 2", Color(255, 94, 128)) { glow }
 
-    // Both themes are built from the colours of Lambda's logo and nothing else: its light rose
-    // (255, 94, 128), its red (214, 55, 88), its crimson (176, 0, 70), and the two shades it is
-    // shadowed with, (107, 27, 44) and (88, 0, 35). The glow above runs from crimson to rose.
+    /** The colours the glow runs between, which are the theme's: what suits dark glass is lost around light */
+    val glowColorA: Color get() = theme.glowA
+    val glowColorB: Color get() = theme.glowB
+
+    // Both themes are Lambda's rose and nothing else, structured the way Catppuccin structures
+    // its own. Most of what is on screen is a neutral warmed with a tenth of rose, stepped
+    // in tiers: wells, panels, windows, controls, borders. Kept that light and well clear of
+    // black it reads as a warm grey, where a darker one with as much rose in it turns to wine.
+    //
+    // Over it the rose comes in a few pastel variants, each with one job, which shift in hue as
+    // they do in lightness, the way a colour does in light: deeper ones lean to crimson, paler
+    // ones to salmon. The deepest fills a header, a softer tone of it an enabled module. The
+    // pale rose marks what is on or filled in a control, and the salmon what is chosen among
+    // options. Fills of rose are opaque, as glass in a hue takes on whatever is behind it.
     @Group(DARK_THEME_GROUP) private val darkTheme by configBlock(
         PaletteSettings(
             this,
-            primary = Color(214, 55, 88),
-            secondary = Color(255, 94, 128),
-            surface = Color(18, 0, 7, 80),
-            panel = Color(16, 12, 14, 140),
+            primary = Color(250, 140, 164),
+            secondary = Color(255, 168, 158),
+            surface = Color(60, 48, 52, 175),
+            panel = Color(48, 38, 42, 225),
             inset = Color(0, 0, 0, 90),
-            onSurface = Color(240, 240, 245),
-            onSurfaceVariant = Color(140, 140, 150),
-            header = Color(176, 0, 70, 240),
-            onHeader = Color(240, 240, 245),
-            // A step under the header: the name of a category stays the strongest thing in its window
-            moduleEnabled = Color(140, 0, 56),
-            onModuleEnabled = Color(240, 240, 245),
-            // Controls are filled in the colour of a slider's fill and a ticked box, so all of them read as one kind of thing
-            control = Color(214, 55, 88, 240),
-            controlMenu = Color(48, 16, 23),
-            controlSelected = Color(88, 32, 45),
-            onControl = Color(255, 255, 255),
+            onSurface = Color(246, 236, 239),
+            onSurfaceVariant = Color(172, 152, 159),
+            header = Color(190, 62, 98),
+            onHeader = Color(255, 246, 248),
+            // A tone of the header, greyer and a step down: the name of a category stays the strongest thing in its window
+            moduleEnabled = Color(160, 76, 102),
+            onModuleEnabled = Color(255, 240, 244),
+            // Controls are a tier above anything they sit on, and say what they hold in plain text
+            control = Color(92, 75, 81),
+            controlMenu = Color(48, 38, 42),
+            controlSelected = Color(81, 65, 71),
+            onControl = Color(246, 236, 239),
             // Wells cut into the panel, darker than any glass they sit on so they never blend into it
-            track = Color(22, 18, 20, 220),
-            input = Color(14, 11, 13, 220),
-            border = Color(140, 0, 56, 235),
-            textShadow = Color(0, 0, 0, 180),
+            track = Color(34, 27, 30, 230),
+            input = Color(29, 23, 25, 230),
+            border = Color(114, 93, 100, 235),
+            textShadow = Color(0, 0, 0, 150),
+            // From the rose of the headers to the salmon, the two ends of the theme's range
+            glowA = Color(190, 62, 98),
+            glowB = Color(255, 168, 158),
         )
     )
 
     // Light glass has to be nearly solid: dark text over whatever the game shows through it
-    // cannot be read, and a shadow under dark text only smears it
+    // cannot be read, and a shadow under dark text only smears it. Its tiers run the other way,
+    // darker for what is deeper, and its rose is the crimson of the logo, which holds on white.
     @Group(LIGHT_THEME_GROUP) private val lightTheme by configBlock(
         PaletteSettings(
             this,
             primary = Color(214, 55, 88),
-            secondary = Color(176, 0, 70),
-            surface = Color(252, 246, 247, 135),
-            panel = Color(247, 244, 245, 175),
+            secondary = Color(196, 58, 52),
+            surface = Color(246, 240, 243, 200),
+            panel = Color(240, 233, 237, 225),
             inset = Color(120, 0, 40, 34),
-            onSurface = Color(40, 14, 20),
-            onSurfaceVariant = Color(128, 102, 108),
+            onSurface = Color(64, 44, 54),
+            onSurfaceVariant = Color(128, 108, 117),
             header = Color(214, 55, 88, 242),
             onHeader = Color(255, 250, 251),
-            moduleEnabled = Color(226, 72, 104),
-            onModuleEnabled = Color(255, 250, 251),
-            control = Color(214, 55, 88, 242),
-            controlMenu = Color(246, 232, 235),
-            controlSelected = Color(236, 198, 208),
-            onControl = Color(40, 14, 20),
-            track = Color(214, 196, 201, 200),
+            moduleEnabled = Color(243, 217, 225),
+            onModuleEnabled = Color(176, 0, 70),
+            control = Color(216, 202, 209),
+            controlMenu = Color(240, 233, 237),
+            controlSelected = Color(228, 210, 218),
+            onControl = Color(64, 44, 54),
+            track = Color(214, 203, 208, 220),
             input = Color(255, 255, 255, 200),
-            border = Color(216, 134, 150, 238),
+            border = Color(190, 172, 180, 238),
             textShadow = Color(0, 0, 0, 0),
+            // From the rose of the headers to a paler one: around light glass a glow has to stay light itself
+            glowA = Color(214, 55, 88),
+            glowB = Color(255, 150, 172),
         )
     )
 
-    val palette: Palette
+    private val theme: PaletteSettings
         get() = when (themeMode) {
             ThemeMode.Dark -> darkTheme
             ThemeMode.Light -> lightTheme
             ThemeMode.Auto -> if (SystemAppearance.isDark) darkTheme else lightTheme
-        }.toPalette()
+        }
+
+    val palette: Palette get() = theme.toPalette()
 
     /** Asking the operating system is not free, so the answer is reused for a moment */
     private object SystemAppearance {
@@ -171,9 +189,11 @@ class PaletteSettings(
     input: Color,
     border: Color,
     textShadow: Color,
+    glowA: Color,
+    glowB: Color,
 ) : ConfigBlock {
-    private val primary by c.setting("Primary", primary, "Accent colour of sliders, checkboxes and selections")
-    private val secondary by c.setting("Secondary", secondary)
+    private val primary by c.setting("Primary", primary, "Accent colour: the fill of sliders, ticked boxes, what is chosen")
+    private val secondary by c.setting("Secondary", secondary, "Second accent: what is chosen among options, as in a menu or a row of pages")
     private val surface by c.setting("Surface", surface, "Fill of windows. Lower its opacity to see more of the blur")
     private val panel by c.setting("Panel", panel, "Fill of settings panels, menus and dialogs")
     private val inset by c.setting("Inset", inset, "Shade over the module whose settings are open, which looks pressed in")
@@ -185,12 +205,14 @@ class PaletteSettings(
     private val onModuleEnabled by c.setting("On Module Enabled", onModuleEnabled)
     private val control by c.setting("Control", control, "Fill of dropdowns, buttons and unchecked boxes")
     private val controlMenu by c.setting("Control Menu", controlMenu, "Fill of an open dropdown's list")
-    private val controlSelected by c.setting("Control Selected", controlSelected)
+    private val controlSelected by c.setting("Control Selected", controlSelected, "Fill of the entry of a menu or list that is chosen or under the pointer")
     private val onControl by c.setting("On Control", onControl)
     private val track by c.setting("Slider Track", track)
     private val input by c.setting("Text Field", input)
     private val border by c.setting("Border", border)
     private val textShadow by c.setting("Text Shadow", textShadow)
+    val glowA by c.setting("Glow Color 1", glowA, "Where the glow around the click GUI starts") { Style.glow }
+    val glowB by c.setting("Glow Color 2", glowB, "Where the glow around the click GUI ends") { Style.glow }
 
     fun toPalette() = Palette(
         primary = primary.toCompose(),

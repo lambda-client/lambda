@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Offset
 import com.lambda.Lambda.mc
 import com.lambda.config.settings.complex.Bind
 import com.lambda.event.events.ButtonEvent
+import com.lambda.gui.clickgui.ClickGuiState
 import com.lambda.gui.component.TextFocus
 import com.lambda.module.modules.client.Style
 import com.lambda.module.modules.combat.autodisconnect.AutoDisconnectScreen
@@ -148,6 +149,11 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
     override fun keyPressed(input: KeyInput): Boolean {
         if (recordKey(input, pressed = true)) return true
         if (LambdaGui.input?.key(input.key(), true, input.modifiers()) == true) return true
+        // Where every program has its search: the field of the menu bar takes the keyboard
+        if (input.key() == GLFW.GLFW_KEY_F && input.modifiers() and GLFW.GLFW_MOD_CONTROL != 0) {
+            ClickGuiState.focusSearch = LambdaGui.screen == LambdaGui.Screen.ClickGui
+            return true
+        }
         if (input.isEscape && LambdaGui.onEscape?.invoke() != true) LambdaGui.back()
         return true
     }
