@@ -27,6 +27,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.context.BuildContext
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -82,7 +83,10 @@ object FastBreak : Module(
 				hotbarConfig::tickStageMask.editSetting { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
 			}
 
-		listen<PlayerEvent.Attack.Block> { it.cancel() }
+		listen<PlayerEvent.Attack.Block> { event ->
+			event.cancel()
+			if (BaritoneHandler.isBreaking) interaction.updateBlockBreakingProgress(event.pos, event.side)
+		}
 		listen<PlayerEvent.Breaking.Update> { event ->
 			event.cancel()
 			withSafeAutomated {

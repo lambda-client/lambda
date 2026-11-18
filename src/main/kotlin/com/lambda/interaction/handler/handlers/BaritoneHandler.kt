@@ -20,7 +20,12 @@ package com.lambda.interaction.handler.handlers
 import baritone.api.BaritoneAPI
 import baritone.api.IBaritone
 import baritone.api.Settings
+import baritone.api.command.ICommand
+import baritone.api.command.argument.IArgConsumer
 import baritone.api.pathing.goals.Goal
+import baritone.api.pathing.goals.GoalBlock
+import baritone.api.utils.input.Input
+import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.config.Group
@@ -30,9 +35,11 @@ import com.lambda.config.blocks.RotationSettings
 import com.lambda.config.categories.LambdaCategory
 import com.lambda.config.entries.onValueChange
 import com.lambda.context.Automated
+import com.lambda.module.modules.render.Freecam
 import com.lambda.util.BlockUtils.blockPos
 import net.minecraft.util.BlockMirror
 import net.minecraft.util.BlockRotation
+import java.util.stream.Stream
 
 @Suppress("unused")
 object BaritoneHandler : Config(
@@ -59,11 +66,25 @@ object BaritoneHandler : Config(
     @JvmStatic
     val primary: IBaritone? = baritone?.primaryBaritone
 
+    init {
+        val commands = primary?.commandManager
+        commands?.getCommand("come")?.let { come ->
+            commands.registry.unregister(come)
+            commands.registry.register(FreecamComeCommand(come))
+        }
+    }
+
     /**
      * Whether Baritone is currently pathing
      */
     val isPathing: Boolean
         get() = baritoneAvailable && primary?.pathingBehavior?.isPathing == true
+
+    /**
+     * Whether Baritone is breaking a block
+     */
+    val isBreaking: Boolean
+        get() = baritoneAvailable && primary?.inputOverrideHandler?.isInputForcedDown(Input.CLICK_LEFT) == true
 
     /**
      * Whether Baritone is active (pathing, calculating goal, etc.)
@@ -103,6 +124,29 @@ object BaritoneHandler : Config(
         if (!baritoneAvailable) return
         primary?.pathingBehavior?.cancelEverything()
         primary?.elytraProcess?.resetState()
+    }
+
+    /**
+     * Baritone's own #come, heading to the Freecam camera instead while Freecam is on
+     */
+    private class FreecamComeCommand(private val come: ICommand) : ICommand {
+        override fun execute(label: String, args: IArgConsumer) {
+            if (Freecam.isEnabled) {
+                args.requireMax(0)
+                setGoalAndPath(GoalBlock(mc.gameRenderer.camera.blockPos))
+                logDirect("Coming")
+            } else {
+                come.execute(label, args)
+            }
+        }
+
+        override fun tabComplete(label: String, args: IArgConsumer): Stream<String> = come.tabComplete(label, args)
+
+        override fun getShortDesc(): String = come.shortDesc
+
+        override fun getLongDesc(): List<String> = come.longDesc
+
+        override fun getNames(): List<String> = come.names
     }
 
     class BaritoneConfigSettings(
