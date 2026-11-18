@@ -70,9 +70,7 @@ import kotlin.concurrent.thread
 object LambdaGui : Loadable {
     enum class Screen {
         ClickGui,
-
-        /** Reached from the click GUI, and returns to it */
-        HudEditor,
+        HudEditor
     }
 
     /** The screen that is open, or null while only the HUD shows */

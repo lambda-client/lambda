@@ -17,6 +17,16 @@
 
 package com.lambda.config.settings.comparable
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -24,6 +34,11 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.component.Checkmark
+import com.lambda.gui.component.RowHeight
+import com.lambda.gui.component.mouseClickable
+import com.lambda.gui.core.observe
+import com.lambda.gui.theme.Text
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -35,6 +50,24 @@ class BooleanSetting(
 	visibility: () -> Boolean,
 	defaultValue: Boolean
 ) : Setting<Boolean>(name, description, defaultValue, layer, config, visibility) {
+	/** A tick box and the name: the whole row flips it */
+	@Composable
+	override fun compose() {
+		val checked by observe { value }
+		Row(
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(3.dp),
+			modifier = Modifier
+				.fillMaxWidth()
+				.heightIn(min = RowHeight)
+				.mouseClickable { value = !value }
+				.padding(horizontal = 3.dp)
+		) {
+			Checkmark(checked)
+			Text(name, maxLines = 1)
+		}
+	}
+
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(boolean(name)) { parameter ->
 			execute {

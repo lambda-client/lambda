@@ -19,6 +19,7 @@
 
 package com.lambda.config.settings.collections
 
+import androidx.compose.runtime.Composable
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.SettingEditBuilder
@@ -26,6 +27,7 @@ import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.context.SafeContext
+import com.lambda.gui.settings.CollectionButton
 import com.lambda.threading.runSafe
 import net.minecraft.item.ItemStack
 import tools.jackson.databind.JavaType
@@ -66,6 +68,10 @@ open class CollectionSetting<R : Any>(
 		get() = with(originalCore) {
 			value.size != defaultValue.size || defaultValue.any { !value.contains(it) }
 		}
+
+	/** A chip with how much is selected, which opens the editor in a window of its own */
+	@Composable
+	override fun compose() = CollectionButton(this)
 
 	/** How [item] is shown to the user */
 	open fun label(item: R): String = item.toString()

@@ -19,6 +19,21 @@
 
 package com.lambda.config.settings.complex
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import com.fasterxml.jackson.annotation.JsonIncludeProperties
 import com.lambda.Lambda.mc
 import com.lambda.brigadier.CommandResult.Companion.failure
@@ -37,6 +52,15 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.gui.GuiScreen
+import com.lambda.gui.component.RowHeight
+import com.lambda.gui.component.Tooltip
+import com.lambda.gui.component.mouseClickable
+import com.lambda.gui.core.observe
+import com.lambda.gui.settings.Labeled
+import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Radius
+import com.lambda.gui.theme.Text
 import com.lambda.threading.runSafe
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
@@ -104,6 +128,47 @@ class KeybindSetting(
         } else if (event.isReleased) {
             unsafeReleaseListeners.forEach { it(event) }
             runSafe { releaseListeners.forEach { it(event) } }
+        }
+    }
+
+    /**
+    * Shows the bind as the cap of a key and, once clicked, records the next key or mouse button
+    * as the new one. The recording itself happens in [GuiScreen], which sees the raw input
+    * before the interface does.
+    */
+    @Composable
+    override fun compose() {
+        val colors = LambdaTheme.colors
+        val bind by observe { value }
+        var recording by remember { mutableStateOf(false) }
+        DisposableEffect(Unit) {
+            onDispose { if (recording) GuiScreen.keybindRecorder = null }
+        }
+
+        Labeled(name) {
+            Tooltip("Click, then press a key or mouse button. Backspace unbinds, Escape cancels.") {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(RowHeight)
+                        .clip(RoundedCornerShape(Radius.Small))
+                        .background(if (recording) colors.primary else colors.track)
+                        .mouseClickable {
+                            recording = true
+                            GuiScreen.keybindRecorder = { recorded ->
+                                recorded?.let { value = it }
+                                recording = false
+                            }
+                        }
+                        .padding(horizontal = 4.dp)
+                ) {
+                    Text(
+                        text = if (recording) "Press a key" else bind.name,
+                        color = if (recording) colors.onPrimary else colors.onSurface,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 

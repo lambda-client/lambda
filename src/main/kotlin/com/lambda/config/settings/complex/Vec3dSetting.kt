@@ -17,6 +17,10 @@
 
 package com.lambda.config.settings.complex
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -24,6 +28,10 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.component.NumberInput
+import com.lambda.gui.core.observe
+import com.lambda.gui.settings.Labeled
+import com.lambda.gui.settings.NumberFieldWidth
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
@@ -36,6 +44,17 @@ class Vec3dSetting(
     visibility: () -> Boolean,
     defaultValue: Vec3d
 ) : Setting<Vec3d>(name, description, defaultValue, layer, config, visibility) {
+    /** A field for each coordinate */
+    @Composable
+    override fun compose() {
+        val vec by observe { value }
+        Labeled(name) {
+            NumberInput(vec.x, { value = Vec3d(it, vec.y, vec.z) }, Modifier.width(NumberFieldWidth))
+            NumberInput(vec.y, { value = Vec3d(vec.x, it, vec.z) }, Modifier.width(NumberFieldWidth))
+            NumberInput(vec.z, { value = Vec3d(vec.x, vec.y, it) }, Modifier.width(NumberFieldWidth))
+        }
+    }
+
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(double("X", -30000000.0, 30000000.0)) { x ->
             required(double("Y", -64.0, 255.0)) { y ->

@@ -17,6 +17,11 @@
 
 package com.lambda.config.settings.comparable
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.value
@@ -26,8 +31,11 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.component.Dropdown
+import com.lambda.gui.core.observe
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
+import com.lambda.util.extension.displayValue
 import net.minecraft.command.CommandRegistryAccess
 
 class EnumSetting<T : Enum<T>>(
@@ -38,6 +46,19 @@ class EnumSetting<T : Enum<T>>(
     visibility: () -> Boolean,
     defaultValue: T
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
+    /** The name, and a chip that drops the options down under it */
+    @Composable
+    override fun compose() {
+        val selected by observe { value }
+        Dropdown(
+            label = name,
+            options = selected.enumValues.asList(),
+            selected = selected,
+            optionLabel = { it.displayValue },
+            modifier = Modifier.padding(start = 3.dp),
+        ) { value = it }
+    }
+
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->
             suggests { _, builder ->

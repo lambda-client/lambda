@@ -48,6 +48,8 @@ object Style : Module(
     private val themeMode by setting("Theme", ThemeMode.Auto, "Auto follows the theme of your operating system")
     val font by setting("Font", GuiFont.Minecraft, "The Minecraft font is sharpest where the interface is a whole number of times its natural size: at 1080p and 2160p with a scale of 1")
     val scale by setting("Scale", 1f, 0.5f..2f, 0.05f, "Size of the interface")
+    var fontSize by setting("Font Size", 0.85f, 0.5f..1.2f, 0.05f, "Size of text, as a share of the size the font reads best at. Rows grow to fit larger text. The Minecraft font is only sharp at 1")
+    var elementHeight by setting("Element Height", 11.5f, 10f..24f, 0.5f, "Height of a module in its category and of a row of settings, never less than its text needs")
     val dimBackground by setting("Dim Background", true, "Darkens what is behind the click GUI while it is open, whatever NoRender says about GUI shadows")
     val dimStrength by setting("Dim Strength", 0.6f, 0.05f..1f, 0.05f, "How dark the background gets. Minecraft's own menus use about 0.8") { dimBackground }
 
@@ -56,6 +58,7 @@ object Style : Module(
 
     val layerFade by setting("Layer Fade", 0.5f, 0f..1f, 0.05f, "How far the interface fades out underneath a panel, menu or window opened over it, letting the game show there instead so the two do not run together") { blur }
     val outlines by setting("Outlines", true, "Draws a thin border around windows, panels and menus. Off for the look of pure glass")
+    val emboss by setting("Emboss", false, "Lights each module faintly from above, so the list feels less flat")
 
     val glow by setting("Glow", true, "Surrounds the click GUI with a glow")
     val glowRadius by setting("Glow Radius", 17f, 1f..100f, 1f) { glow }
@@ -79,7 +82,7 @@ object Style : Module(
             header = Color(176, 0, 70, 240),
             onHeader = Color(240, 240, 245),
             // A step under the header: the name of a category stays the strongest thing in its window
-            moduleEnabled = Color(205, 10, 80, 175),
+            moduleEnabled = Color(140, 0, 56),
             onModuleEnabled = Color(240, 240, 245),
             // Controls are filled in the colour of a slider's fill and a ticked box, so all of them read as one kind of thing
             control = Color(214, 55, 88, 240),
@@ -108,7 +111,7 @@ object Style : Module(
             onSurfaceVariant = Color(128, 102, 108),
             header = Color(214, 55, 88, 242),
             onHeader = Color(255, 250, 251),
-            moduleEnabled = Color(226, 72, 104, 190),
+            moduleEnabled = Color(226, 72, 104),
             onModuleEnabled = Color(255, 250, 251),
             control = Color(214, 55, 88, 242),
             controlMenu = Color(246, 232, 235),

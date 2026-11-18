@@ -45,10 +45,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -62,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.lambda.gui.GuiConfig
 import com.lambda.gui.Snap
+import com.lambda.gui.component.RowHeight
 import com.lambda.gui.component.ScrollColumn
 import com.lambda.gui.component.SlidingText
 import com.lambda.gui.component.Tooltip
@@ -79,12 +82,20 @@ import com.lambda.gui.theme.shadowed
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleTag
+import com.lambda.module.modules.client.Style
 
-internal val CategoryWindowWidth = 100.dp
+internal val CategoryWindowWidth = 90.dp
 internal val CategoryWindowGap = 2.dp
 
 /** Room between the edge of a window and the text of its rows */
 private val RowPadding = 4.dp
+
+/**
+ * What makes a module a tile rather than a flat stripe, when the style asks for it: a trace of light along the top that is gone
+ * by the bottom, over whatever the tile is filled with. Only just there: it is felt more than seen.
+ * The tiles touch, as a gap would show the dark panel as a black line between two enabled ones.
+ */
+private val Emboss = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.05f), Color.Transparent))
 
 /**
  * A draggable window listing the modules of [tag]. Left click on a module toggles it, right click
@@ -212,6 +223,7 @@ internal fun CategoryWindow(
 private fun ModuleRow(module: Module, isEdited: Boolean, panel: SettingsPanelState?, onEdit: () -> Unit) {
     val colors = LambdaTheme.colors
     val enabled by observe { module.isEnabled }
+    val embossed by observe { Style.emboss }
     val fill by animateColorAsState(if (enabled) colors.moduleEnabled else Color.Transparent, spring())
     // Pressed in like a button that is held down, for as long as its settings are out
     val pressed by animateColorAsState(if (isEdited) colors.inset else Color.Transparent, spring())
@@ -227,6 +239,7 @@ private fun ModuleRow(module: Module, isEdited: Boolean, panel: SettingsPanelSta
 
     Tooltip(module.description, Modifier.fillMaxWidth()) {
         Box(
+            contentAlignment = Alignment.CenterStart,
             modifier = Modifier
                 .fillMaxWidth()
                 .then(
@@ -234,14 +247,17 @@ private fun ModuleRow(module: Module, isEdited: Boolean, panel: SettingsPanelSta
                     else Modifier.onGloballyPositioned { panel.row = Rect(it.positionInRoot(), it.size.toSize()) }
                 )
                 .bringIntoViewRequester(intoView)
+                // One that is always enabled has nothing to toggle: either click opens its settings
+                .mouseClickable(onRightClick = onEdit) { if (module.alwaysEnabled) onEdit() else module.toggle() }
                 .background(fill)
                 .background(pressed)
                 .background(lit)
                 // A shade lighter under the pointer, or darker in the light theme
                 .hoverHighlight(colors.raised)
-                // One that is always enabled has nothing to toggle: either click opens its settings
-                .mouseClickable(onRightClick = onEdit) { if (module.alwaysEnabled) onEdit() else module.toggle() }
-                .padding(horizontal = RowPadding, vertical = 1.dp)
+                .then(if (embossed) Modifier.background(Emboss) else Modifier)
+                // As tall as the style asks, or as its name needs if that is more
+                .heightIn(min = RowHeight)
+                .padding(horizontal = RowPadding)
         ) {
             // A name too long for the window slides along rather than being cut short
             SlidingText(

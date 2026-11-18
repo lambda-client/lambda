@@ -150,7 +150,9 @@ class Typography(font: GuiFont, scale: Float = 1f) {
         fontFamily = font.family,
         fontWeight = weight,
         fontSize = size,
-        lineHeight = size,
+        // Only between the lines of text that wraps: the first and the last keep to the type.
+        // A pixel font fills its grid, an outline font needs air or its lines touch.
+        lineHeight = if (font == GuiFont.Minecraft) size else size * 1.25f,
         lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
     )
 }
@@ -185,6 +187,9 @@ val LocalBackdropBlur = staticCompositionLocalOf { 0.dp }
  */
 val LocalUnderlay = staticCompositionLocalOf { 1f }
 
+/** How tall rows and controls are at least, see [com.lambda.gui.component.RowHeight] */
+val LocalRowHeight = staticCompositionLocalOf { 12.dp }
+
 /** Whether windows, panels and menus are drawn with a hairline border, see [com.lambda.gui.component.window] */
 val LocalOutlines = staticCompositionLocalOf { true }
 
@@ -202,12 +207,15 @@ fun LambdaTheme(content: @Composable () -> Unit) {
     // line at its size, for more room above and below its letters, is set that much smaller:
     // its lines keep the room they ask for, and the rows keep their height.
     val measurer = rememberTextMeasurer()
-    val typography = remember(font) {
-        if (font == GuiFont.Minecraft) return@remember Typography(font)
+    // On top of that comes the size the player asks for, which rows that hold text grow to fit.
+    val fontSize by observe { Style.fontSize }
+    val typography = remember(font, fontSize) {
+        if (font == GuiFont.Minecraft) return@remember Typography(font, fontSize)
         val line = measurer.measure("Ag", Typography(font).body, density = Density(1f)).size.height
-        Typography(font, (LINE_HEIGHT / line).coerceAtMost(1f))
+        Typography(font, (LINE_HEIGHT / line).coerceAtMost(1f) * fontSize)
     }
     val underlay by observe { 1f - Style.layerFade }
+    val rowHeight by observe { Style.elementHeight.dp }
     CompositionLocalProvider(
         LocalPalette provides palette,
         LocalTypography provides typography,
@@ -217,6 +225,7 @@ fun LambdaTheme(content: @Composable () -> Unit) {
         LocalBackdropBlur provides backdropBlur,
         LocalOutlines provides outlines,
         LocalUnderlay provides underlay,
+        LocalRowHeight provides rowHeight,
         content = content
     )
 }

@@ -21,6 +21,7 @@ import com.lambda.gui.GuiConfig
 import com.lambda.gui.LambdaGui
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.AutoUpdater
+import com.lambda.module.modules.client.Style
 import com.lambda.module.modules.hud.Armor
 import com.lambda.module.modules.hud.Coordinates
 import com.lambda.module.modules.hud.Fps
@@ -55,37 +56,46 @@ object GuiTest : FabricClientGameTest {
         context.waitTicks(10)
         context.takeScreenshot("gui-1-title-screen")
 
+        // That was the interface as it comes. The places clicked from here on are those of the
+        // Minecraft font at its full size and of rows 13 dp tall, which is set here rather than
+        // left to the defaults, so that the defaults can change without moving every click.
+        context.runOnClient<RuntimeException> {
+            Style.fontSize = 1f
+            Style.elementHeight = 13f
+        }
+        context.waitTicks(5)
+
         // A left click on the first module of the first window toggles it
         val enabledBefore = context.enabledModules()
-        context.click(dpX = 110.0, dpY = 115.0)
+        context.click(dpX = 150.0, dpY = 115.0)
         check(context.enabledModules() != enabledBefore) { "Clicking a module did not toggle it" }
         context.takeScreenshot("gui-1-module-enabled")
-        context.click(dpX = 110.0, dpY = 115.0)
+        context.click(dpX = 150.0, dpY = 115.0)
 
         // A module is toggled the moment the button goes down, not when it is let go
         val enabledBeforePress = context.enabledModules()
-        context.input.setCursorPos(110.0 * DENSITY, 115.0 * DENSITY)
+        context.input.setCursorPos(150.0 * DENSITY, 115.0 * DENSITY)
         context.waitTicks(2)
         context.input.holdMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(3)
         check(context.enabledModules() != enabledBeforePress) { "A module was not toggled by the press" }
         context.input.releaseMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(3)
-        context.click(dpX = 110.0, dpY = 115.0)
+        context.click(dpX = 150.0, dpY = 115.0)
 
         // A name too long for its window slides along while the pointer rests on it, and home after
-        context.input.setCursorPos(210.0 * DENSITY, 193.0 * DENSITY)
+        context.input.setCursorPos(240.0 * DENSITY, 193.0 * DENSITY)
         context.waitTicks(30)
         context.takeScreenshot("gui-1a-long-name-hovered")
-        context.input.setCursorPos(210.0 * DENSITY, 60.0 * DENSITY)
+        context.input.setCursorPos(240.0 * DENSITY, 60.0 * DENSITY)
         context.waitTicks(10)
         context.takeScreenshot("gui-1b-long-name-left")
 
         // A window goes exactly where it is dragged by its header...
-        context.input.setCursorPos(630.0 * DENSITY, 101.0 * DENSITY)
+        context.input.setCursorPos(620.0 * DENSITY, 101.0 * DENSITY)
         context.dragBy(3.5, 7.5)
         val free = context.windowPlacement("Network")
-        check(abs(free.x - 586.5f) < 0.6f && abs(free.y - 101.5f) < 0.6f) { "A dragged window did not follow the pointer: $free" }
+        check(abs(free.x - 576.5f) < 0.6f && abs(free.y - 101.5f) < 0.6f) { "A dragged window did not follow the pointer: $free" }
 
         // ...and with the snap key held it lines up with its neighbours instead
         context.input.holdKey(GLFW.GLFW_KEY_LEFT_SHIFT)
@@ -93,7 +103,7 @@ object GuiTest : FabricClientGameTest {
         context.dragBy(2.0, 2.0)
         context.input.releaseKey(GLFW.GLFW_KEY_LEFT_SHIFT)
         val snapped = context.windowPlacement("Network")
-        check(abs(snapped.x - 583f) < 0.1f) { "A window dragged with the snap key held did not snap back between its neighbours: $snapped" }
+        check(abs(snapped.x - 573f) < 0.1f) { "A window dragged with the snap key held did not snap back between its neighbours: $snapped" }
 
         // Resetting the layout forgets every placement, which puts the windows back in their row
         context.runOnClient<RuntimeException> { GuiConfig.resetWindows() }
@@ -101,11 +111,11 @@ object GuiTest : FabricClientGameTest {
         check(context.computeOnClient<Boolean, RuntimeException> { GuiConfig.windows.isEmpty() }) { "Resetting the layout left a window placed" }
 
         // A right click pops its settings out beside it, over the next window, which blurs behind it
-        context.click(dpX = 110.0, dpY = 115.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 150.0, dpY = 115.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.takeScreenshot("gui-2-module-settings")
 
         // Right clicking another module straight away has one panel fold while the other opens
-        context.input.setCursorPos(110.0 * DENSITY, 128.0 * DENSITY)
+        context.input.setCursorPos(150.0 * DENSITY, 128.0 * DENSITY)
         context.input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.waitTicks(1)
         context.takeScreenshot("gui-2a-switching-settings")
@@ -113,42 +123,42 @@ object GuiTest : FabricClientGameTest {
 
         // KillAura sorts its settings into tabs and groups: a group unfolds into a darker block,
         // and the page slides over when another tab is picked
-        context.click(dpX = 110.0, dpY = 193.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 150.0, dpY = 193.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
 
         // What every module has is kept off its own settings, on pages the strip at the top turns to
-        context.click(dpX = 268.5, dpY = 198.0)
+        context.click(dpX = 298.5, dpY = 198.0)
         context.takeScreenshot("gui-2c2-module-page")
-        context.input.setCursorPos(330.0 * DENSITY, 198.0 * DENSITY)
+        context.input.setCursorPos(360.0 * DENSITY, 198.0 * DENSITY)
         context.waitTicks(2)
         context.input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(1)
         context.takeScreenshot("gui-2c3-page-turning")
         context.waitTicks(10)
         context.takeScreenshot("gui-2c1-automation-page")
-        context.input.setCursorPos(231.0 * DENSITY, 247.0 * DENSITY)
+        context.input.setCursorPos(261.0 * DENSITY, 247.0 * DENSITY)
         context.waitTicks(2)
         context.input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(1)
         context.takeScreenshot("gui-2c0-group-unfolding")
         context.waitTicks(10)
         context.takeScreenshot("gui-2c-group")
-        context.click(dpX = 231.0, dpY = 247.0)
-        context.click(dpX = 206.5, dpY = 198.0)
+        context.click(dpX = 261.0, dpY = 247.0)
+        context.click(dpX = 236.5, dpY = 198.0)
 
         // A setting is changed when the button is let go: pressed on a toggle and let go off it, nothing changes
-        context.input.setCursorPos(220.0 * DENSITY, 231.0 * DENSITY)
+        context.input.setCursorPos(250.0 * DENSITY, 231.0 * DENSITY)
         context.waitTicks(2)
         context.input.holdMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(3)
         context.takeScreenshot("gui-2g3-setting-pressed")
-        context.input.setCursorPos(220.0 * DENSITY, 150.0 * DENSITY)
+        context.input.setCursorPos(250.0 * DENSITY, 150.0 * DENSITY)
         context.waitTicks(2)
         context.input.releaseMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(3)
         context.takeScreenshot("gui-2g4-setting-click-cancelled")
 
         // An enum lists its options over the panel, without moving the settings under it
-        context.input.setCursorPos(290.0 * DENSITY, 273.0 * DENSITY)
+        context.input.setCursorPos(320.0 * DENSITY, 273.0 * DENSITY)
         context.waitTicks(2)
         context.input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(1)
@@ -161,7 +171,7 @@ object GuiTest : FabricClientGameTest {
         context.waitTicks(2)
         context.takeScreenshot("gui-2g2-dropdown-folded-in")
         context.waitTicks(3)
-        context.input.setCursorPos(266.0 * DENSITY, 216.0 * DENSITY)
+        context.input.setCursorPos(296.0 * DENSITY, 216.0 * DENSITY)
         context.input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(1)
         context.takeScreenshot("gui-2d-tab-changing")
@@ -169,7 +179,7 @@ object GuiTest : FabricClientGameTest {
         context.takeScreenshot("gui-2e-tab-changed")
 
         // A collection is edited in a window of its own, each entry with its icon
-        context.input.setCursorPos(330.0 * DENSITY, 260.0 * DENSITY)
+        context.input.setCursorPos(360.0 * DENSITY, 260.0 * DENSITY)
         context.waitTicks(2)
         context.input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(1)
@@ -188,13 +198,13 @@ object GuiTest : FabricClientGameTest {
 
         // Settings too long for the room under their module scroll, and the top edge of the
         // panel then has a grip that drags it taller, up past the module
-        context.click(dpX = 330.0, dpY = 198.0)
+        context.click(dpX = 360.0, dpY = 198.0)
         // Unfolded from the last up, so none moves before it is clicked
-        for (y in listOf(289.0, 275.0, 261.0, 247.0)) context.click(dpX = 231.0, dpY = y)
+        for (y in listOf(289.0, 275.0, 261.0, 247.0)) context.click(dpX = 261.0, dpY = y)
         context.takeScreenshot("gui-2i-scrolling")
 
         // The wheel sets the list off fast and lets it glide to rest
-        context.input.setCursorPos(260.0 * DENSITY, 400.0 * DENSITY)
+        context.input.setCursorPos(290.0 * DENSITY, 400.0 * DENSITY)
         context.waitTicks(2)
         context.input.scroll(-2.0)
         context.waitTicks(1)
@@ -203,7 +213,7 @@ object GuiTest : FabricClientGameTest {
         context.takeScreenshot("gui-2i2-wheel-settled")
         context.input.scroll(10.0)
         context.waitTicks(15)
-        context.input.setCursorPos(287.0 * DENSITY, 189.0 * DENSITY)
+        context.input.setCursorPos(317.0 * DENSITY, 189.0 * DENSITY)
         context.waitTicks(2)
         context.dragBy(0.0, -60.0)
         context.takeScreenshot("gui-2j-extended")
@@ -213,12 +223,12 @@ object GuiTest : FabricClientGameTest {
         context.takeScreenshot("gui-2k-extended-to-the-bar")
 
         // Folding the category away takes the settings hanging off it along
-        context.click(dpX = 110.0, dpY = 101.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 150.0, dpY = 101.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.takeScreenshot("gui-2f-category-folded")
-        context.click(dpX = 110.0, dpY = 101.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 150.0, dpY = 101.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
 
         // The settings of the Style module hold the colour pickers
-        context.click(dpX = 830.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 800.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.takeScreenshot("gui-2b-style-settings")
 
         // The first of the buttons opens a menu, which Escape closes without closing the GUI
@@ -278,13 +288,13 @@ object GuiTest : FabricClientGameTest {
         context.waitTicks(10)
         context.input.pressKey(GLFW.GLFW_KEY_ENTER)
         context.waitTicks(15)
-        context.click(dpX = 110.0, dpY = 219.5, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 150.0, dpY = 219.5, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.takeScreenshot("gui-4c-block-settings")
-        context.click(dpX = 320.0, dpY = 242.0)
+        context.click(dpX = 350.0, dpY = 242.0)
         context.takeScreenshot("gui-4d-block-list")
 
         // Lists that scroll have a scrollbar on their right, like every other
-        context.input.setCursorPos(370.0 * DENSITY, 346.0 * DENSITY)
+        context.input.setCursorPos(400.0 * DENSITY, 346.0 * DENSITY)
         context.waitTicks(2)
         context.input.scroll(-5.0)
         context.waitTicks(15)
@@ -332,7 +342,7 @@ object GuiTest : FabricClientGameTest {
         // A tooltip that is up when the GUI closes goes with it, and is not back when it reopens
         context.input.setCursorPos(300.0 * DENSITY, 400.0 * DENSITY)
         context.waitTicks(2)
-        context.input.setCursorPos(110.0 * DENSITY, 115.0 * DENSITY)
+        context.input.setCursorPos(150.0 * DENSITY, 115.0 * DENSITY)
         context.waitTicks(40)
         context.takeScreenshot("gui-6a-tooltip")
         context.input.pressKey(GLFW.GLFW_KEY_Y)
@@ -443,9 +453,9 @@ object GuiTest : FabricClientGameTest {
 
         // A panel closed with a menu open on one of its settings takes the menu with it as it folds
         context.openClickGui()
-        context.click(dpX = 110.0, dpY = 193.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 150.0, dpY = 193.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.waitTicks(10)
-        context.click(dpX = 290.0, dpY = 273.0)
+        context.click(dpX = 320.0, dpY = 273.0)
         context.waitTicks(10)
         context.takeScreenshot("gui-10a-panel-with-menu")
         context.input.setCursorPos(700.0 * DENSITY, 450.0 * DENSITY)
@@ -461,7 +471,7 @@ object GuiTest : FabricClientGameTest {
 
         // Settings kept open come back once the categories have unfolded, not riding their row down
         context.runOnClient<RuntimeException> { GuiConfig.keepSettingsOpen = true }
-        context.click(dpX = 110.0, dpY = 193.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 150.0, dpY = 193.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.waitTicks(10)
         context.closeGui()
         context.runOnClient<RuntimeException> { LambdaGui.open(LambdaGui.Screen.ClickGui) }
@@ -476,27 +486,41 @@ object GuiTest : FabricClientGameTest {
 
         // The light theme, picked the way a player picks it, in the settings of Style
         context.openClickGui()
-        context.click(dpX = 830.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 800.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.waitTicks(10)
-        context.click(dpX = 760.0, dpY = 201.0)
+        context.click(dpX = 730.0, dpY = 201.0)
         context.waitTicks(10)
-        context.click(dpX = 760.0, dpY = 243.0)
+        context.click(dpX = 730.0, dpY = 243.0)
         context.waitTicks(10)
         context.takeScreenshot("gui-12a-light-theme")
-        context.click(dpX = 110.0, dpY = 193.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 150.0, dpY = 193.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.waitTicks(10)
         context.takeScreenshot("gui-12b-light-theme-settings")
         context.closeGui()
 
         // Another font, picked the same way: the interface keeps its proportions
         context.openClickGui()
-        context.click(dpX = 830.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.click(dpX = 800.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.waitTicks(10)
-        context.click(dpX = 760.0, dpY = 215.0)
+        context.click(dpX = 730.0, dpY = 215.0)
         context.waitTicks(10)
-        context.click(dpX = 760.0, dpY = 243.0)
+        context.click(dpX = 730.0, dpY = 243.0)
         context.waitTicks(10)
         context.takeScreenshot("gui-13-fira-sans")
+        context.closeGui()
+
+        // Smaller text and taller modules, set on their sliders: the rows follow both
+        context.openClickGui()
+        context.click(dpX = 800.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.waitTicks(10)
+        context.input.setCursorPos(700.0 * DENSITY, 243.0 * DENSITY)
+        context.waitTicks(2)
+        context.dragBy(-30.0, 0.0)
+        context.input.setCursorPos(680.0 * DENSITY, 257.0 * DENSITY)
+        context.waitTicks(2)
+        context.dragBy(40.0, 0.0)
+        context.waitTicks(10)
+        context.takeScreenshot("gui-14-font-size-and-module-height")
         context.closeGui()
 
         singleplayer.close()
