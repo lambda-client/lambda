@@ -118,8 +118,11 @@ private val Padding = 4.dp
 /** A panel is given at least this much height, even under a module at the bottom of the screen */
 private val MinHeight = 120.dp
 
-/** ...nor wider than this, so one long name cannot swallow the screen */
-private val MaxWidth = 260.dp
+/**
+ * ...nor wider than this, twice a category window. What is too long for it gives way rather
+ * than widening the panel: a value slides along under the pointer, tabs wrap onto another line.
+ */
+private val MaxWidth = 180.dp
 
 /** The settings of [module] as a panel on screen, and the [row] of the module list it hangs off */
 internal class SettingsPanelState(val module: Module) {
@@ -363,8 +366,8 @@ private fun moduleSettings(module: Module): List<Setting<*>> = listOfNotNull(
 )
 
 /**
- * The strip along the top of a panel that turns its pages. It spans the panel in equal parts
- * and marks the chosen page with a line under its name, where the tabs a module's settings
+ * The strip along the top of a panel that turns its pages. It spans the panel, each page with
+ * a share to match its name, and marks the chosen page with a line under its name, where the tabs a module's settings
  * bring are filled: the two are told apart at a glance when one sits over the other.
  */
 @Composable
@@ -377,7 +380,9 @@ private fun PageStrip(pages: List<PanelPage>, selected: PanelPage, onSelect: (Pa
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .weight(1f)
+                    // By the length of its name and its padding: in equal parts a long name
+                    // would be cut short in a narrow panel while a short one had room to spare
+                    .weight(page.title.length + 2f)
                     .height(RowHeight + 1.dp)
                     .hoverHighlight(colors.raised)
                     .mouseClickable { onSelect(page) }
