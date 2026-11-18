@@ -599,6 +599,10 @@ object GuiTest : FabricClientGameTest {
         context.input.pressKey(GLFW.GLFW_KEY_RIGHT)
         context.waitTicks(5)
         context.takeScreenshot("gui-15f-keyboard-right-twice")
+        // Stepped back down, the value is the default again and not a rounding error beside it
+        context.input.pressKey(GLFW.GLFW_KEY_LEFT)
+        context.input.pressKey(GLFW.GLFW_KEY_LEFT)
+        context.waitTicks(5)
 
         // A menu of the bar is its own layer of focus: Enter opens it, the arrows move inside it
         context.pressKey(GLFW.GLFW_KEY_F, GLFW.GLFW_MOD_CONTROL)
