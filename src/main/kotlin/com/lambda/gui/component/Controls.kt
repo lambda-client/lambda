@@ -51,6 +51,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,17 +85,23 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.lambda.gui.theme.ContentColor
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.LocalContentColor
+import com.lambda.gui.theme.LocalRowHeight
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
 
-/** How tall a row of a list or a control is at least, so stacked ones line up: a line of text and a hair of room */
-val RowHeight = 13.dp
+/**
+ * How tall a module, a row of settings or a control is at least, so stacked ones line up. Set in
+ * the style as its element height; by default a line of text and a hair of room.
+ */
+val RowHeight: Dp
+    @Composable @ReadOnlyComposable get() = LocalRowHeight.current
 
 private const val TOGGLE_MILLIS = 150
 
@@ -379,6 +386,7 @@ fun Section(
         if (revealed) expanded = true
     }
     val turn by animateFloatAsState(if (expanded) 90f else 0f, tween(TOGGLE_MILLIS))
+    val rowHeight = RowHeight
 
     Column(
         Modifier
@@ -387,7 +395,7 @@ fun Section(
             .drawWithContent {
                 drawContent()
                 // Taller than its header, the section has something unfolded, or is unfolding
-                if (size.height > RowHeight.toPx() + 1f) {
+                if (size.height > rowHeight.toPx() + 1f) {
                     drawRect(colors.primary, size = Size(SectionBar.toPx(), size.height))
                 }
             }

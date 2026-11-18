@@ -17,6 +17,11 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.value
@@ -26,6 +31,9 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.component.TextInput
+import com.lambda.gui.core.observe
+import com.lambda.gui.settings.Labeled
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -40,6 +48,15 @@ class CharSetting(
 	defaultValue: Char,
 	visibility: () -> Boolean
 ) : Setting<Char>(name, description, defaultValue, layer, config, visibility) {
+	/** A field one character wide: whatever is typed last replaces what it holds */
+	@Composable
+	override fun compose() {
+		val value by observe { value }
+		Labeled(name) {
+			TextInput(value.toString(), { text -> text.lastOrNull()?.let { this@CharSetting.value = it } }, Modifier.width(18.dp))
+		}
+	}
+
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(word(name)) { parameter ->
 			executeWithResult {

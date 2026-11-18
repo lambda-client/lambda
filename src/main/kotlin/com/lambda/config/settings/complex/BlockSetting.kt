@@ -17,6 +17,7 @@
 
 package com.lambda.config.settings.complex
 
+import androidx.compose.runtime.Composable
 import com.lambda.brigadier.argument.blockState
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -24,6 +25,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.settings.BlockPicker
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.block.Block
 import net.minecraft.command.CommandRegistryAccess
@@ -36,6 +38,10 @@ class BlockSetting(
 	visibility: () -> Boolean,
 	defaultValue: Block
 ) : Setting<Block>(name, description, defaultValue, layer, config, visibility) {
+	/** A chip with the block and its icon, which opens a window listing every block */
+	@Composable
+	override fun compose() = BlockPicker(this)
+
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(blockState(name, registry)) { argument ->
 			execute {
