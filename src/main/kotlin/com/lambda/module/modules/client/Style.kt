@@ -68,30 +68,21 @@ object Style : Module(
     val glowColorA: Color get() = theme.glowA
     val glowColorB: Color get() = theme.glowB
 
-    // Both themes are Lambda's rose and nothing else, structured the way Catppuccin structures
-    // its own. Most of what is on screen is a neutral warmed with a tenth of rose, stepped
-    // in tiers: wells, panels, windows, controls, borders. Kept that light and well clear of
-    // black it reads as a warm grey, where a darker one with as much rose in it turns to wine.
-    //
-    // Over it the rose comes in a few pastel variants, each with one job, which shift in hue as
-    // they do in lightness, the way a colour does in light: deeper ones lean to crimson, paler
-    // ones to salmon. The deepest fills a header, a softer tone of it an enabled module. The
-    // pale rose marks what is on or filled in a control, and the salmon what is chosen among
-    // options. Fills of rose are opaque, as glass in a hue takes on whatever is behind it.
     @Group(DARK_THEME_GROUP) private val darkTheme by configBlock(
         PaletteSettings(
             this,
-            primary = Color(250, 140, 164),
+            // A brighter rose than the header rather than a paler one: pale, it is a pastel pink
+            primary = Color(226, 88, 120),
             secondary = Color(255, 168, 158),
-            surface = Color(60, 48, 52, 175),
-            panel = Color(48, 38, 42, 225),
+            surface = Color(60, 48, 52, 165),
+            panel = Color(48, 38, 42, 200),
             inset = Color(0, 0, 0, 90),
             onSurface = Color(246, 236, 239),
             onSurfaceVariant = Color(172, 152, 159),
             header = Color(190, 62, 98),
             onHeader = Color(255, 246, 248),
-            // A tone of the header, greyer and a step down: the name of a category stays the strongest thing in its window
-            moduleEnabled = Color(160, 76, 102),
+            // A shade of the header, as strong and a good step darker: greyed and left as light it turns to a dusty pink
+            moduleEnabled = Color(138, 46, 72),
             onModuleEnabled = Color(255, 240, 244),
             // Controls are a tier above anything they sit on, and say what they hold in plain text
             control = Color(92, 75, 81),

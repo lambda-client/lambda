@@ -57,8 +57,11 @@ import com.lambda.gui.core.observe
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.*
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
@@ -118,7 +121,7 @@ abstract class NumericSetting<T>(
 		val min = range.start.toDouble()
 		val max = range.endInclusive.toDouble()
 		/** The value [steps] of the setting's step up from the bottom of its range */
-		fun at(steps: Long) = convert(min + steps * step.toDouble())
+		fun at(steps: Long) = convert(range.start.decimal + step.decimal * BigDecimal.valueOf(steps))
 		fun stepsOf(value: Double) = ((value - min) / step.toDouble()).roundToLong()
 		// The value moves in steps; the bar glides from one to the next
 		val fraction by animateFloatAsState(((value.toDouble() - min) / (max - min)).toFloat().coerceIn(0f, 1f))
@@ -151,6 +154,33 @@ abstract class NumericSetting<T>(
 		}
 	}
 
+	/**
+	* A value is only saved once it is other than the default. One that is a rounding error
+	* away from it is not: files written while sliders still counted in binary hold such values,
+	* 0.14999999 for a default of 0.15, and they are the default.
+	*/
+	override val isModified
+		get() = abs(originalCore.value.toDouble() - originalCore.defaultValue.toDouble()) > step.toDouble() * SAME
+
+	/**
+	* The number as the decimal it is written as. A slider counts its steps in these, because a
+	* step of 0.01 is not 0.01 in binary and thirty of them do not add up to 0.3: counted in
+	* binary, a bar dragged back to its default arrives a hair beside it, which shows the same
+	* and is saved as a change. Counted in decimal, every stop of the bar is exactly the number
+	* the code would write for it, however fine the step and however long the range.
+	*/
+	private val Number.decimal get() = BigDecimal(toString())
+
+	/** A decimal as the setting's own number type: the float or double nearest to it, as a literal of it would be */
+	@Suppress("UNCHECKED_CAST")
+	private fun convert(number: BigDecimal): T =
+		when (value) {
+			is Int -> number.setScale(0, RoundingMode.HALF_UP).toInt()
+			is Long -> number.setScale(0, RoundingMode.HALF_UP).toLong()
+			is Float -> number.toPlainString().toFloat()
+			else -> number.toPlainString().toDouble()
+		} as T
+
 	/** A double as the setting's own number type; setting it clamps it to the range */
 	@Suppress("UNCHECKED_CAST")
 	private fun convert(number: Double): T =
@@ -161,6 +191,9 @@ abstract class NumericSetting<T>(
 			else -> number
 		} as T
 }
+
+/** How far from its default, as a share of its step, a number may be and still be the default: a rounding error, never a step */
+private const val SAME = 1e-4
 
 @Suppress("unchecked_cast")
 @ConfigEditorD5l

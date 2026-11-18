@@ -86,8 +86,11 @@ data class Palette(
     val border: Color,
     val textShadow: Color,
 ) {
-    /** Text drawn on [primary]: whichever of dark and white stands out */
-    val onPrimary: Color = if (primary.luminance() > 0.35f) Color(0xFF1B1024) else Color.White
+    /**
+     * Text drawn on [primary], the tick of a box among it: dark on all but a deep accent. Dark
+     * is the quieter of the two and reads on a rose of middling lightness as well as on a pale one.
+     */
+    val onPrimary: Color = if (primary.luminance() > 0.2f) Color(0xFF1B1024) else Color.White
 
     /** The filled part of a slider: the accent held back, as it covers far more than a tick does and has text over it */
     val trackFilled: Color = primary.copy(alpha = 0.6f)
