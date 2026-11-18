@@ -21,7 +21,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,12 +28,13 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,24 +45,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.lambda.config.EntryLayer
 import com.lambda.config.MultipleLayerType
 import com.lambda.config.entries.Setting
 import com.lambda.gui.clickgui.Reveal
+import com.lambda.gui.component.Chevron
 import com.lambda.gui.component.Expandable
+import com.lambda.gui.component.Menu
+import com.lambda.gui.component.MenuItem
+import com.lambda.gui.component.MenuState
+import com.lambda.gui.component.RowHeight
 import com.lambda.gui.component.Section
+import com.lambda.gui.component.hoverHighlight
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.core.observe
+import com.lambda.gui.theme.ContentColor
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
+import com.lambda.gui.theme.Type
 
 /**
- * The settings of a config as they are organised in code: tabs become a strip that swaps the
+ * The settings of a config as they are organised in code: tabs become a band that picks the
  * page under it, groups become collapsible sections, and a setting appears only while it is
  * visible. A group is nested under its heading, a tab's page framed under its tab.
  */
@@ -97,18 +105,17 @@ fun SettingsList(layer: EntryLayer<Setting<*>>) {
 private fun Children(layer: EntryLayer.Multiple<Setting<*>>) = layer.layers.forEach { SettingsList(it) }
 
 /**
- * Tabs over the page of whichever one is chosen. The names wrap onto as many lines as they
- * need, as splitting the width evenly would squeeze long ones in a narrow panel.
+ * The pages a config sorts its settings into, and over them a band that says which one is shown
+ * and lists the others when clicked.
  *
- * The tabs decide everything that is shown under them, so they are the strongest thing in a
- * panel: a band across its width, with the chosen tab filled in the colour of a window's header.
- * Changing tabs slides the new page in from the side its tab is on while the page grows or
- * shrinks to fit in height; in width the pages are kept alike.
+ * What it picks decides everything under it, so the band is the strongest thing in a panel: as
+ * wide as it and filled like an enabled module, where the choice of a setting is a chip at the
+ * end of its row. It is one row however many pages there are, and no wider than its settings.
+ * Changing pages slides the new one in from the side it is on in the list, while the panel
+ * grows or shrinks to fit it.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Tabs(tabs: List<EntryLayer.Tab<Setting<*>>>) {
-    val colors = LambdaTheme.colors
     val shown by observe { tabs.filter { it.hasVisibleSettings() } }
     if (shown.isEmpty()) return
     var selectedName by remember { mutableStateOf(shown.first().name) }
@@ -119,54 +126,55 @@ private fun Tabs(tabs: List<EntryLayer.Tab<Setting<*>>>) {
     LaunchedEffect(revealed) {
         if (revealed != null) shown.firstOrNull { it.holds(revealed) }?.let { selectedName = it.name }
     }
-    // How wide each page wanted to be when it was last shown. Every page is given the width of
-    // the widest, so changing tabs does not change the width of the panel, while a page that
-    // gets narrower, a group in it having been folded away, lets the panel shrink again.
-    val widths = remember { HashMap<String, Int>() }
 
     Column(Modifier.fillMaxWidth().padding(top = 1.dp)) {
-        val shape = RoundedCornerShape(Radius.Small)
-        FlowRow(Modifier.fillMaxWidth().clip(shape).background(colors.raised)) {
-            shown.forEach { tab ->
-                val isSelected = tab === selected
-                // Filled like an enabled module: the same bright, see-through crimson for "this one is on"
-                val fill by animateColorAsState(if (isSelected) colors.moduleEnabled else Color.Transparent, tween(TAB_MILLIS))
-                Text(
-                    text = tab.name,
-                    color = if (isSelected) colors.onModuleEnabled else colors.onSurfaceVariant,
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier
-                        // The only tab left, the others having nothing to show, takes the whole
-                        // strip: a heading over one page rather than a choice of one
-                        .then(if (shown.size == 1) Modifier.fillMaxWidth() else Modifier)
-                        .clip(shape)
-                        .background(fill)
-                        .mouseClickable { selectedName = tab.name }
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                        // ...with its name in the middle, as a heading's is
-                        .then(if (shown.size == 1) Modifier.wrapContentWidth(Alignment.CenterHorizontally) else Modifier)
-                )
-            }
-        }
+        TabPicker(shown.map { it.name }, selected.name) { selectedName = it }
         AnimatedContent(
             targetState = selected,
             modifier = Modifier.fillMaxWidth(),
             transitionSpec = { pageTurn(towardsEnd = shown.indexOf(targetState) > shown.indexOf(initialState)) },
         ) { tab ->
-            Column(
-                Modifier
-                    .layout { measurable, constraints ->
-                        widths[tab.name] = measurable.maxIntrinsicWidth(constraints.maxHeight)
-                        val widest = widths.values.max().coerceIn(constraints.minWidth, constraints.maxWidth)
-                        val placeable = measurable.measure(constraints.copy(minWidth = widest))
-                        // Stated outright as well: asked how wide it would like to be, rather
-                        // than measured, the page answers through this without the minimum applied
-                        layout(maxOf(placeable.width, widest), placeable.height) { placeable.place(0, 0) }
-                    }
+            Column(Modifier.fillMaxWidth().padding(vertical = 1.dp)) { Children(tab) }
+        }
+    }
+}
+
+/** The band over a config's pages: the [selected] one of [names], and a menu of them all under it */
+@Composable
+private fun TabPicker(names: List<String>, selected: String, onSelect: (String) -> Unit) {
+    val colors = LambdaTheme.colors
+    val menu = remember { MenuState() }
+    var band by remember { mutableStateOf(IntSize.Zero) }
+    // The only page left, the others having nothing to show, is a heading rather than a choice of one
+    val choice = names.size > 1
+
+    Box(Modifier.fillMaxWidth().onSizeChanged { band = it }) {
+        ContentColor(colors.onModuleEnabled) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 1.dp)
-            ) { Children(tab) }
+                    .heightIn(min = RowHeight + 2.dp)
+                    .clip(RoundedCornerShape(Radius.Small))
+                    .background(colors.moduleEnabled)
+                    .then(
+                        if (!choice) Modifier
+                        else Modifier.hoverHighlight(colors.onModuleEnabled.copy(alpha = 0.12f)).mouseClickable(onClick = menu::toggle)
+                    )
+                    .padding(horizontal = 6.dp)
+            ) {
+                Text(selected, Modifier.weight(1f), style = Type.title, maxLines = 1)
+                if (choice) Chevron(90f)
+            }
+        }
+        // Drops out from under the band, as wide as it
+        Menu(menu.isOpen, onDismiss = menu::dismiss, unfoldFrom = IntSize(band.width, 0)) {
+            names.forEach { name ->
+                MenuItem(name, selected = name == selected) {
+                    if (name != selected) onSelect(name)
+                }
+            }
         }
     }
 }

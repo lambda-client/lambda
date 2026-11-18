@@ -128,7 +128,7 @@ object GuiTest : FabricClientGameTest {
         // What every module has is kept off its own settings, on pages the strip at the top turns to
         context.click(dpX = 298.5, dpY = 198.0)
         context.takeScreenshot("gui-2c2-module-page")
-        context.input.setCursorPos(360.0 * DENSITY, 198.0 * DENSITY)
+        context.input.setCursorPos(340.0 * DENSITY, 198.0 * DENSITY)
         context.waitTicks(2)
         context.input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(1)
@@ -171,7 +171,12 @@ object GuiTest : FabricClientGameTest {
         context.waitTicks(2)
         context.takeScreenshot("gui-2g2-dropdown-folded-in")
         context.waitTicks(3)
-        context.input.setCursorPos(296.0 * DENSITY, 216.0 * DENSITY)
+
+        // The pages a module sorts its settings into are picked from the band over them
+        context.click(dpX = 296.0, dpY = 216.0)
+        context.takeScreenshot("gui-2d0-tab-list")
+        context.input.setCursorPos(296.0 * DENSITY, 245.0 * DENSITY)
+        context.waitTicks(2)
         context.input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
         context.waitTicks(1)
         context.takeScreenshot("gui-2d-tab-changing")
@@ -198,7 +203,7 @@ object GuiTest : FabricClientGameTest {
 
         // Settings too long for the room under their module scroll, and the top edge of the
         // panel then has a grip that drags it taller, up past the module
-        context.click(dpX = 360.0, dpY = 198.0)
+        context.click(dpX = 340.0, dpY = 198.0)
         // Unfolded from the last up, so none moves before it is clicked
         for (y in listOf(289.0, 275.0, 261.0, 247.0)) context.click(dpX = 261.0, dpY = y)
         context.takeScreenshot("gui-2i-scrolling")
@@ -482,6 +487,19 @@ object GuiTest : FabricClientGameTest {
         context.waitTicks(15)
         context.takeScreenshot("gui-11c-kept-settings-open")
         context.runOnClient<RuntimeException> { GuiConfig.keepSettingsOpen = false }
+        context.closeGui()
+
+        // However many pages a config has, the band that picks one is a single row
+        context.openClickGui()
+        context.click(dpX = 520.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+        context.waitTicks(10)
+        context.takeScreenshot("gui-11d-settings-of-many-tabs")
+        context.click(dpX = 728.0, dpY = 185.0)
+        context.waitTicks(10)
+        context.click(dpX = 650.0, dpY = 216.0)
+        context.takeScreenshot("gui-11e-many-tabs-listed")
+        context.input.pressKey(GLFW.GLFW_KEY_ESCAPE)
+        context.waitTicks(5)
         context.closeGui()
 
         // The light theme, picked the way a player picks it, in the settings of Style
