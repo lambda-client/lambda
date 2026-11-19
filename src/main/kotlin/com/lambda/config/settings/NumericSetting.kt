@@ -48,22 +48,22 @@ import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.component.KeyboardFocus
 import com.lambda.gui.component.NumberInput
-import com.lambda.gui.component.RowHeight
+import com.lambda.gui.component.Text
 import com.lambda.gui.component.isActivation
 import com.lambda.gui.component.keyboardFocusable
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.component.scrubbable
 import com.lambda.gui.core.observe
+import com.lambda.gui.settings.ROW_INSET
 import com.lambda.gui.theme.LambdaTheme
-import com.lambda.gui.theme.Radius
-import com.lambda.gui.theme.Text
+import com.lambda.gui.theme.Look
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.*
 import kotlin.math.abs
-import kotlin.math.roundToInt
-import kotlin.math.roundToLong
+
+private const val SAME = 1e-4
 
 /**
  * @see [com.lambda.config.Config]
@@ -86,34 +86,56 @@ abstract class NumericSetting<T>(
 		}
 
 	private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
+	private val lowest get() = range.start.decimal
+	private val highest get() = range.endInclusive.decimal
+	private val Number.decimal get() = BigDecimal(toString())
 
-	/**
-	* Whether dragging the bar only sets the value once the button is let go, see [appliedOnRelease].
-	* Until then the bar and its number show what the value is about to be.
-	*/
 	var appliedOnRelease = false
 
-	override fun toString() = "${formatter.format(value)}$unit"
+	override val isModified
+		get() = abs(originalCore.value.toDouble() - originalCore.defaultValue.toDouble()) > step.toDouble() * SAME
 
-	/**
-	* A bar filled up to the value. Dragging anywhere on it sets the value; clicking the number
-	* swaps the bar for a text field to type an exact one, for ranges with more steps than pixels.
-	*
-	* With the keyboard focus on it, the left and right arrows take the value a step down and up,
-	* and Enter or Space opens the field to type in. Done typing, the focus is back on the bar.
-	*/
+	protected abstract fun convert(number: BigDecimal): T
+
+	override fun toString() = format(value)
+
+	private fun format(value: T) = "${formatter.format(value)}$unit"
+
+	private fun parse(text: String): T? =
+		text.replace(',', '.').toBigDecimalOrNull()?.let { convert(it.coerceIn(lowest, highest)) }
+
+	private fun fractionOf(value: T): Float {
+		val span = range.endInclusive.toDouble() - range.start.toDouble()
+		val fraction = ((value.toDouble() - range.start.toDouble()) / span).toFloat()
+		return if (span > 0 && !fraction.isNaN()) fraction.coerceIn(0f, 1f) else 0f
+	}
+
+	private fun at(fraction: Float): T = when {
+		fraction <= 0f -> range.start
+		fraction >= 1f -> range.endInclusive
+		else -> onGrid(lowest + (highest - lowest) * fraction.toBigDecimal(), RoundingMode.HALF_UP)
+	}
+
+	private fun stepped(by: Int): T =
+		onGrid(value.decimal, if (by < 0) RoundingMode.CEILING else RoundingMode.FLOOR, by)
+
+	private fun onGrid(target: BigDecimal, rounding: RoundingMode, offset: Int = 0): T {
+		val step = step.decimal
+		if (step.signum() <= 0) return convert(target.coerceIn(lowest, highest))
+		val steps = (target - lowest).divide(step, 0, rounding) + offset.toBigDecimal()
+		return convert((lowest + step * steps).coerceIn(lowest, highest))
+	}
+
 	@Composable
-	override fun compose() {
+	override fun Editor() {
 		val colors = LambdaTheme.colors
-		val value by observe { value }
-		val label by observe { toString() }
+		val current by observe { value }
 		var typing by remember { mutableStateOf(false) }
-		// The bar is not there while its field is: it has to ask for the focus the field gave up
 		val bar = remember { FocusRequester() }
 		var refocus by remember { mutableStateOf(false) }
 
 		if (typing) {
-			NumberInput(value, { this.value = convert(it) }, Modifier.fillMaxWidth(), focused = true) {
+			NumberInput(current, ::parse, { value = it }, Modifier.fillMaxWidth(), focused = true) {
 				typing = false
 				refocus = KeyboardFocus.visible
 			}
@@ -124,100 +146,49 @@ abstract class NumericSetting<T>(
 			refocus = false
 		}
 
-		val min = range.start.toDouble()
-		val max = range.endInclusive.toDouble()
-		/** The value [steps] of the setting's step up from the bottom of its range */
-		fun at(steps: Long) = convert(range.start.decimal + step.decimal * BigDecimal.valueOf(steps))
-		fun stepsOf(value: Double) = ((value - min) / step.toDouble()).roundToLong()
-		// The value moves in steps; the bar glides from one to the next
-		// What the bar has been dragged to but not let go at, for a setting that waits for that
 		var held by remember { mutableStateOf<T?>(null) }
-		val shown = held ?: value
-		val fraction by animateFloatAsState(((shown.toDouble() - min) / (max - min)).toFloat().coerceIn(0f, 1f))
+		val shown = held ?: current
+		val label = remember(shown, unit) { format(shown) }
+		val fraction by animateFloatAsState(fractionOf(shown))
 		Row(
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(8.dp),
 			modifier = Modifier
 				.fillMaxWidth()
-				.heightIn(min = RowHeight)
-				.clip(RoundedCornerShape(Radius.Control))
+				.heightIn(min = Look.rowHeight)
+				.clip(RoundedCornerShape(Look.controlRounding))
 				.background(colors.track)
 				.drawBehind { drawRect(colors.trackFilled, size = Size(size.width * fraction, size.height)) }
 				.scrubbable(onEnd = {
-					held?.let { this.value = it }
+					held?.let { value = it }
 					held = null
 				}) { position, size ->
-					val dragged = at(stepsOf(min + (position.x / size.width).coerceIn(0f, 1f) * (max - min)))
-					if (appliedOnRelease) held = dragged.coerceIn(range) else this.value = dragged
+					val dragged = at(position.x / size.width)
+					if (appliedOnRelease) held = dragged else value = dragged
 				}
 				.focusRequester(bar)
 				.keyboardFocusable { event ->
 					when {
-						event.key == Key.DirectionLeft -> this.value = at(stepsOf(value.toDouble()) - 1)
-						event.key == Key.DirectionRight -> this.value = at(stepsOf(value.toDouble()) + 1)
+						event.key == Key.DirectionLeft -> value = stepped(-1)
+						event.key == Key.DirectionRight -> value = stepped(1)
 						event.isActivation -> typing = true
 						else -> return@keyboardFocusable false
 					}
 					true
 				}
-				.padding(horizontal = 3.dp)
+				.padding(horizontal = ROW_INSET)
 		) {
 			Text(name, Modifier.weight(1f), colors.onControl, maxLines = 1)
 			Text(
-				text = held?.let { "${formatter.format(it)}$unit" } ?: label,
+				text = label,
 				modifier = Modifier.mouseClickable(keyboard = false) { typing = true },
 				color = colors.onControl,
 				maxLines = 1,
 			)
 		}
 	}
-
-	/**
-	* A value is only saved once it is other than the default. One that is a rounding error
-	* away from it is not: files written while sliders still counted in binary hold such values,
-	* 0.14999999 for a default of 0.15, and they are the default.
-	*/
-	override val isModified
-		get() = abs(originalCore.value.toDouble() - originalCore.defaultValue.toDouble()) > step.toDouble() * SAME
-
-	/**
-	* The number as the decimal it is written as. A slider counts its steps in these, because a
-	* step of 0.01 is not 0.01 in binary and thirty of them do not add up to 0.3: counted in
-	* binary, a bar dragged back to its default arrives a hair beside it, which shows the same
-	* and is saved as a change. Counted in decimal, every stop of the bar is exactly the number
-	* the code would write for it, however fine the step and however long the range.
-	*/
-	private val Number.decimal get() = BigDecimal(toString())
-
-	/** A decimal as the setting's own number type: the float or double nearest to it, as a literal of it would be */
-	@Suppress("UNCHECKED_CAST")
-	private fun convert(number: BigDecimal): T =
-		when (value) {
-			is Int -> number.setScale(0, RoundingMode.HALF_UP).toInt()
-			is Long -> number.setScale(0, RoundingMode.HALF_UP).toLong()
-			is Float -> number.toPlainString().toFloat()
-			else -> number.toPlainString().toDouble()
-		} as T
-
-	/** A double as the setting's own number type; setting it clamps it to the range */
-	@Suppress("UNCHECKED_CAST")
-	private fun convert(number: Double): T =
-		when (value) {
-			is Int -> number.roundToInt()
-			is Long -> number.roundToLong()
-			is Float -> number.toFloat()
-			else -> number
-		} as T
 }
 
-/** How far from its default, as a share of its step, a number may be and still be the default: a rounding error, never a step */
-private const val SAME = 1e-4
-
-/**
- * Has dragging the bar set the value only when the button is let go, where it otherwise follows
- * the pointer. For a value that moves the bar it is set on, the scale of the interface: applied
- * as it is dragged, the bar would shift and resize under the pointer that is setting it.
- */
 fun <S : NumericSetting<*>> S.appliedOnRelease() = apply { appliedOnRelease = true }
 
 @Suppress("unchecked_cast")

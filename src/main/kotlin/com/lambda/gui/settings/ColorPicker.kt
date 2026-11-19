@@ -51,27 +51,24 @@ import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.gui.component.MenuState
 import com.lambda.gui.component.NumberInput
 import com.lambda.gui.component.Popout
+import com.lambda.gui.component.Text
 import com.lambda.gui.component.TextInput
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.component.scrubbable
 import com.lambda.gui.core.observe
 import com.lambda.gui.theme.LambdaTheme
-import com.lambda.gui.theme.Radius
-import com.lambda.gui.theme.Text
+import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Type
-import com.lambda.gui.theme.toCompose
+import com.lambda.util.math.toCompose
 import kotlin.math.roundToInt
 import java.awt.Color as AwtColor
 
-/**
- * A colour setting: its name and a swatch, which opens a picker beside the row when clicked.
- * The picker works in hue, saturation and brightness, and offers the channels and a hex code
- * to type.
- */
+private val PICKER_WIDTH = 130.dp
+private val HUES = (0..6).map { Color.hsv(it * 60f % 360f, 1f, 1f) }
+
 @Composable
 internal fun ColorPicker(setting: ColorSetting) {
     val color by observe { setting.value }
-    // Kept like a menu's, so clicking the row again shuts the picker it opened
     val picker = remember { MenuState() }
 
     Labeled(setting.name, Modifier.mouseClickable(onClick = picker::toggle)) {
@@ -79,27 +76,23 @@ internal fun ColorPicker(setting: ColorSetting) {
             Spacer(
                 Modifier
                     .size(20.dp, 9.dp)
-                    .clip(RoundedCornerShape(Radius.Box))
+                    .clip(RoundedCornerShape(Look.boxRounding))
                     .drawBehind {
                         drawCheckerboard()
                         drawRect(color.toCompose())
                     }
             )
             Popout(picker.isOpen, onDismiss = picker::dismiss) {
-                Column(Modifier.width(PickerWidth)) { Picker(color) { setting.value = it } }
+                Column(Modifier.width(PICKER_WIDTH)) { Picker(color) { setting.value = it } }
             }
         }
     }
 }
 
-private val PickerWidth = 130.dp
-
 @Composable
 private fun Picker(color: AwtColor, onColorChange: (AwtColor) -> Unit) {
     val colors = LambdaTheme.colors
 
-    // Hue and saturation are kept here, because the colour alone forgets them: every grey has
-    // no hue and black has no saturation, and the picker should not jump when dragged there.
     var hsb by remember { mutableStateOf(AwtColor.RGBtoHSB(color.red, color.green, color.blue, null)) }
     var adopted by remember { mutableStateOf(color) }
     if (color != adopted) {
@@ -116,12 +109,11 @@ private fun Picker(color: AwtColor, onColorChange: (AwtColor) -> Unit) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        // Saturation across, brightness up
         Spacer(
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(1.4f)
-                .clip(RoundedCornerShape(Radius.Box))
+                .clip(RoundedCornerShape(Look.boxRounding))
                 .drawBehind {
                     drawRect(Color.hsv(hsb[0] * 360f, 1f, 1f))
                     drawRect(Brush.horizontalGradient(listOf(Color.White, Color.Transparent)))
@@ -158,14 +150,13 @@ private fun Picker(color: AwtColor, onColorChange: (AwtColor) -> Unit) {
     }
 }
 
-/** A horizontal strip painted by [background], with a thumb at [fraction] that drags along it */
 @Composable
 private fun Bar(fraction: Float, onChange: (Float) -> Unit, background: DrawScope.() -> Unit) {
     Spacer(
         Modifier
             .fillMaxWidth()
             .height(10.dp)
-            .clip(RoundedCornerShape(Radius.Box))
+            .clip(RoundedCornerShape(Look.boxRounding))
             .drawBehind {
                 background()
                 val thumb = Size(4.dp.toPx(), size.height)
@@ -182,11 +173,10 @@ private fun Bar(fraction: Float, onChange: (Float) -> Unit, background: DrawScop
 private fun RowScope.Channel(label: String, value: Int, onChange: (Int) -> Unit) {
     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, color = LambdaTheme.colors.onSurfaceVariant, style = Type.label)
-        NumberInput(value, { onChange(it.roundToInt().coerceIn(0, 255)) }, Modifier.fillMaxWidth())
+        NumberInput(value, { it.toIntOrNull()?.coerceIn(0, 255) }, onChange, Modifier.fillMaxWidth())
     }
 }
 
-/** The grey chequers a translucent colour is shown over */
 private fun DrawScope.drawCheckerboard() {
     val cell = 4.dp.toPx()
     drawRect(Color(0xFFCCCCCC))
@@ -205,12 +195,9 @@ private fun AwtColor.toHex() =
     if (alpha == 255) "#%02X%02X%02X".format(red, green, blue)
     else "#%02X%02X%02X%02X".format(red, green, blue, alpha)
 
-/** Reads "#RRGGBB" or "#RRGGBBAA", with or without the hash */
 private fun parseHex(text: String): AwtColor? {
     val digits = text.removePrefix("#")
-    if (digits.length != 6 && digits.length != 8) return null
+    if (digits.length != 6 && digits.length != 8 || digits.any { it.digitToIntOrNull(16) == null }) return null
     val channels = digits.chunked(2).map { it.toIntOrNull(16) ?: return null }
     return AwtColor(channels[0], channels[1], channels[2], channels.getOrElse(3) { 255 })
 }
-
-private val HUES = (0..6).map { Color.hsv(it * 60f % 360f, 1f, 1f) }

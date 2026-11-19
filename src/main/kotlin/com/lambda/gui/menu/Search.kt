@@ -23,8 +23,8 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.Config
 import com.lambda.config.ConfigLoader
 import com.lambda.config.entries.Setting
+import com.lambda.gui.Reveal
 import com.lambda.gui.clickgui.ClickGuiState
-import com.lambda.gui.clickgui.Reveal
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
@@ -32,15 +32,10 @@ import com.lambda.module.ModuleTag
 import com.lambda.util.StringUtils.levenshteinDistance
 import net.minecraft.client.gui.screen.ChatScreen
 
-/**
- * Finds modules, settings and commands by name. Choosing a result does not change anything:
- * a module or a setting is shown where it lives, see [Reveal], and a command is put into chat.
- */
 internal object Search {
     sealed interface Result {
         val name: String
 
-        /** Where the result comes from, shown beside its name */
         val origin: String
 
         fun choose()
@@ -51,11 +46,6 @@ internal object Search {
             override fun choose() = Reveal.show(module)
         }
 
-        /**
-         * A setting of [config], under the tabs and groups of [path] from the outermost in. Its
-         * origin spells all of that out: settings of one name are in many configs, every module
-         * that builds has an Air Place, and the origin is all that tells them apart in a list.
-         */
         class OfSetting(val setting: Setting<*>, val config: Config, path: List<String>) : Result {
             override val name get() = setting.name
             override val origin = (listOf(config.name) + path).joinToString(" \u00bb ")
@@ -71,12 +61,10 @@ internal object Search {
 
     private const val MAX_RESULTS = 30
 
-    // Results of a kind rank together, so a module is never buried under settings that share its name
     private const val MODULE_BONUS = 300
     private const val HUD_MODULE_BONUS = 270
     private const val COMMAND_BONUS = 200
 
-    /** The best matches for [query], strict ones if there are any and fuzzier ones otherwise */
     fun find(query: String): List<Result> {
         if (query.isEmpty()) return emptyList()
         val needle = query.lowercase()
@@ -92,8 +80,6 @@ internal object Search {
             if (score > 0) add(result() to score + bonus)
         }
 
-        // Debug modules and what they hold are for developers: without developer mode, which
-        // is what shows their window, the search does not know them either
         fun hidden(config: Any) = config is Module && config.tag == ModuleTag.DEBUG && !ClickGuiState.developerMode
 
         ModuleRegistry.modules.forEach { module ->
@@ -114,14 +100,12 @@ internal object Search {
         }
     }
 
-    /** How well [target] matches [query], from 200 for the same word down to 0 for no match */
     private fun score(query: String, target: String, lenient: Boolean): Int {
         if (target.isEmpty()) return 0
         if (target == query) return 200
         if (target.startsWith(query)) return 100 + query.length * 50 / target.length
         if (target.contains(query)) return 50 + query.length * 40 / target.length
 
-        // Not contained: allow a few typos, more of them in a longer query
         val distance = query.levenshteinDistance(target)
         val allowed = if (lenient) (query.length / 2).coerceIn(2, 6) else (query.length / 3).coerceIn(1, 4)
         return if (distance <= allowed) (50 - distance * 10).coerceAtLeast(1) else 0

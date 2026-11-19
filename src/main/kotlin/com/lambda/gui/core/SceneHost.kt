@@ -29,8 +29,6 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
-import com.lambda.gui.theme.Motion
-import kotlinx.coroutines.Dispatchers
 import net.minecraft.client.texture.GlTexture
 import org.jetbrains.skia.BackendRenderTarget
 import org.jetbrains.skia.Color
@@ -55,20 +53,13 @@ import org.lwjgl.opengl.GL30.glFramebufferTexture2D
 import org.lwjgl.opengl.GL30.glGenFramebuffers
 import org.lwjgl.opengl.GL30.glGenRenderbuffers
 import org.lwjgl.opengl.GL30.glRenderbufferStorage
+import kotlin.coroutines.CoroutineContext
 
-/**
- * A Compose scene that renders into a texture through Skia, on the game's own OpenGL context.
- *
- * The scene is retained: [advance] runs composition, animation and layout every frame, which is
- * cheap when nothing changed, and reports whether any pixel did. Only then does [draw] have to
- * hand the context to Skia, so an idle interface costs the game nothing but compositing [texture].
- */
 @OptIn(InternalComposeUiApi::class)
-internal class SceneHost(content: @Composable () -> Unit) : AutoCloseable {
+internal class SceneHost(context: CoroutineContext, content: @Composable () -> Unit) : AutoCloseable {
     val platform = ScenePlatform()
 
-    // With the pace of every animation in the scene, which the style sets
-    private val recomposer = FrameRecomposer(Dispatchers.Unconfined + Motion)
+    private val recomposer = FrameRecomposer(RenderThread + context)
     private var invalidated = true
 
     private val scene: ComposeScene = CanvasLayersComposeScene(
@@ -82,10 +73,8 @@ internal class SceneHost(content: @Composable () -> Unit) : AutoCloseable {
     private var skia: DirectContext? = null
     private var target: SkiaTarget? = null
 
-    /** What the scene last drew, premultiplied; null until the first [draw] */
     val texture: GpuTextureView? get() = target?.view
 
-    /** Brings the scene up to date for this frame and returns whether it has to be drawn again */
     fun advance(size: IntSize, density: Float): Boolean {
         if (scene.size != size || scene.density.density != density) {
             scene.density = Density(density)
@@ -98,37 +87,44 @@ internal class SceneHost(content: @Composable () -> Unit) : AutoCloseable {
         return invalidated || scene.hasPendingDraw || target == null
     }
 
-    /** Draws the scene. [beforeScene] runs first with Skia in control of the context, to import textures. */
     fun draw(beforeScene: (DirectContext) -> Unit = {}) {
         val size = scene.size ?: return
+        val outgrown = target?.takeIf { it.size != size }
+        val target = target?.takeIf { it.size == size } ?: SkiaTarget(size).also { target = it }
         GlState.borrow {
             val skia = skia ?: DirectContext.makeGL().also { skia = it }
-            val target = target?.takeIf { it.size == size } ?: run {
-                target?.close()
-                SkiaTarget(skia, size).also { target = it }
-            }
-            // Everything the game did since the last draw happened behind Skia's back
+            outgrown?.detach()
+            val surface = target.attach(skia)
             skia.resetGLAll()
             beforeScene(skia)
-            target.surface.canvas.clear(Color.TRANSPARENT)
-            scene.draw(target.surface.canvas.asComposeCanvas())
-            target.surface.flushAndSubmit()
+            surface.canvas.clear(Color.TRANSPARENT)
+            scene.draw(surface.canvas.asComposeCanvas())
+            surface.flushAndSubmit()
         }
+        outgrown?.close()
         invalidated = false
     }
 
-    /** Stops the scene. Its GPU resources are left to die with the context, which is going away too. */
     override fun close() {
         scene.close()
         recomposer.close()
     }
+
+    fun closeAndFree() {
+        runCatching { scene.close() }
+        runCatching { recomposer.close() }
+        val freed = target
+        target = null
+        GlState.borrow {
+            freed?.detach()
+            skia?.close()
+        }
+        skia = null
+        freed?.close()
+    }
 }
 
-/**
- * The texture Skia draws the scene into. The colour texture belongs to the game so its pipelines
- * can sample it; the framebuffer around it is ours because Skia needs a stencil buffer for clips.
- */
-private class SkiaTarget(skia: DirectContext, val size: IntSize) : AutoCloseable {
+private class SkiaTarget(val size: IntSize) : AutoCloseable {
     private val texture: GpuTexture = RenderSystem.getDevice().createTexture(
         { "Lambda GUI" },
         GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
@@ -137,29 +133,39 @@ private class SkiaTarget(skia: DirectContext, val size: IntSize) : AutoCloseable
     )
     val view: GpuTextureView = RenderSystem.getDevice().createTextureView(texture)
 
-    private val framebuffer = glGenFramebuffers()
-    private val stencil = glGenRenderbuffers()
-    private val renderTarget: BackendRenderTarget
-    val surface: Surface
+    private var framebuffer = 0
+    private var stencil = 0
+    private var renderTarget: BackendRenderTarget? = null
+    private var surface: Surface? = null
 
-    init {
+    fun attach(skia: DirectContext): Surface = surface ?: run {
+        framebuffer = glGenFramebuffers()
+        stencil = glGenRenderbuffers()
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, (texture as GlTexture).glId, 0)
         glBindRenderbuffer(GL_RENDERBUFFER, stencil)
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, size.width, size.height)
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, stencil)
 
-        renderTarget = BackendRenderTarget.makeGL(size.width, size.height, 0, 8, framebuffer, FramebufferFormat.GR_GL_RGBA8)
-        surface = Surface.makeFromBackendRenderTarget(
+        val renderTarget = BackendRenderTarget.makeGL(size.width, size.height, 0, 8, framebuffer, FramebufferFormat.GR_GL_RGBA8)
+            .also { renderTarget = it }
+        Surface.makeFromBackendRenderTarget(
             skia, renderTarget, SurfaceOrigin.BOTTOM_LEFT, SurfaceColorFormat.RGBA_8888, ColorSpace.sRGB
-        ) ?: error("Skia rejected the GUI render target")
+        )?.also { surface = it } ?: error("Skia rejected the GUI render target")
+    }
+
+    fun detach() {
+        surface?.close()
+        surface = null
+        renderTarget?.close()
+        renderTarget = null
+        if (framebuffer != 0) glDeleteFramebuffers(framebuffer)
+        if (stencil != 0) glDeleteRenderbuffers(stencil)
+        framebuffer = 0
+        stencil = 0
     }
 
     override fun close() {
-        surface.close()
-        renderTarget.close()
-        glDeleteFramebuffers(framebuffer)
-        glDeleteRenderbuffers(stencil)
         view.close()
         texture.close()
     }

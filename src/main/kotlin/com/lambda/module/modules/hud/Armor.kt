@@ -23,10 +23,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
+import com.lambda.gui.component.ItemIcon
 import com.lambda.gui.core.observe
 import com.lambda.gui.core.observeSafe
 import com.lambda.gui.hud.HudText
-import com.lambda.gui.hud.ItemIcon
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 import com.lambda.util.NamedEnum
@@ -50,7 +50,6 @@ object Armor : HudModule(
 
     @Composable
     override fun Content() {
-        // The stacks themselves: an icon keeps up with the wear on the one it was given
         val worn by observeSafe { slots.map(player::getEquippedStack).filterNot { it.isEmpty } }
         val layout by observe { layout }
         val size by observe { iconSize.dp }
@@ -60,7 +59,6 @@ object Armor : HudModule(
             HudText("No armor")
             return
         }
-        // Spaced like the slots of an inventory
         val spacing = Arrangement.spacedBy(size / 8)
         when (layout) {
             Layout.Horizontal -> Row(horizontalArrangement = spacing) { pieces.forEach { ItemIcon(it, size) } }

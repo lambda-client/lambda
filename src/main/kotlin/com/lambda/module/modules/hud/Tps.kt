@@ -33,12 +33,12 @@ import androidx.compose.ui.unit.dp
 import com.lambda.gui.core.observe
 import com.lambda.gui.hud.HudConfig
 import com.lambda.gui.hud.HudText
-import com.lambda.gui.theme.toCompose
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 import com.lambda.util.FormattingUtils.format
 import com.lambda.util.ServerTPSUtils
 import com.lambda.util.ServerTPSUtils.recentData
+import com.lambda.util.math.toCompose
 
 @Suppress("unused")
 object Tps : HudModule(
@@ -75,7 +75,6 @@ object Tps : HudModule(
 		}
 	}
 
-	/** A line through every [stride]th sample, scaled to the range of the samples, over a dim backdrop */
 	private fun DrawScope.drawGraph(values: List<Float>, stride: Int, color: Color) {
 		drawRect(Color.Black.copy(alpha = 0.35f))
 		val points = values.filterIndexed { index, _ -> index % stride == 0 }

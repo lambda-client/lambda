@@ -26,6 +26,7 @@ import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+import java.math.BigDecimal
 
 /**
  * @see [com.lambda.config.Config]
@@ -41,6 +42,8 @@ class DoubleSetting(
 	override var step: Double,
 	unit: String
 ) : NumericSetting<Double>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
+	override fun convert(number: BigDecimal) = number.toDouble()
+
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(double(name, range.start, range.endInclusive)) { parameter ->
 			execute {

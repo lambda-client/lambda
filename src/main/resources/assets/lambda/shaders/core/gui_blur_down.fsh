@@ -1,8 +1,5 @@
 #version 330
 
-// Downsampling half of a dual Kawase blur: the target is half the size of InSampler, so the
-// centre tap and the four diagonal ones each average a 2x2 block through bilinear filtering.
-
 uniform sampler2D InSampler;
 
 layout(std140) uniform BlurSpread {

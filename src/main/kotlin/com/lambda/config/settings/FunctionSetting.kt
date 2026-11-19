@@ -25,7 +25,7 @@ import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.component.Button
-import com.lambda.gui.component.RowHeight
+import com.lambda.gui.theme.Look
 
 class FunctionSetting<T : () -> R, R>(
 	name: String,
@@ -35,7 +35,6 @@ class FunctionSetting<T : () -> R, R>(
 	layer: SettingEntryLayer<FunctionSetting<T, R>, T>,
 	visibility: () -> Boolean
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
-	/** A button that calls the function */
 	@Composable
-	override fun compose() = Button(name, Modifier.fillMaxWidth().height(RowHeight)) { value() }
+	override fun Editor() = Button(name, Modifier.fillMaxWidth().height(Look.rowHeight)) { value() }
 }

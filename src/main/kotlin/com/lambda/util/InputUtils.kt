@@ -32,7 +32,6 @@ object InputUtils {
     fun SafeContext.isKeyPressed(vararg keys: Int) =
         keys.any { glfwGetKey(mc.window.handle, it) >= GLFW_PRESS }
 
-	/** Whether everything the bind is made of is held down right now. Never true for an unbound one. */
 	fun Bind.isSatisfied(): Boolean =
 		(isKeyBind || isMouseBind) &&
 				(!isKeyBind || InputUtil.isKeyPressed(mc.window, key)) &&

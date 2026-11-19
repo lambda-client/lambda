@@ -69,14 +69,11 @@ open class CollectionSetting<R : Any>(
 			value.size != defaultValue.size || defaultValue.any { !value.contains(it) }
 		}
 
-	/** A chip with how much is selected, which opens the editor in a window of its own */
 	@Composable
-	override fun compose() = CollectionButton(this)
+	override fun Editor() = CollectionButton(this)
 
-	/** How [item] is shown to the user */
 	open fun label(item: R): String = item.toString()
 
-	/** What Minecraft shows [item] as in an inventory, for settings of game content; null for the rest */
 	open fun icon(item: R): ItemStack? = null
 
 	fun select(item: R) {
@@ -92,7 +89,6 @@ open class CollectionSetting<R : Any>(
 		runSafe { deselectListeners.forEach { it(item) } }
 	}
 
-	/** Selects everything that was not selected, and the other way around */
 	fun invertSelection() {
 		val selected = value.toSet()
 		immutableCollection.forEach { if (it in selected) deselect(it) else select(it) }

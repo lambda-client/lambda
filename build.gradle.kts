@@ -39,8 +39,6 @@ val maLiLibVersion: String by project
 val composeVersion: String by project
 val skikoVersion: String by project
 
-// Skiko (the Skia binding Compose draws with) ships its native library in one artifact per platform.
-// Every platform is bundled so a single jar runs everywhere; skiko loads the one matching the host.
 val skikoPlatforms = listOf("windows-x64", "windows-arm64", "linux-x64", "linux-arm64", "macos-x64", "macos-arm64")
 
 val libs = file("libs")
@@ -78,7 +76,6 @@ configurations.all {
         if (requested.group == "org.lwjgl") {
             useVersion(lwjglVersion)
         }
-        // The natives must be the exact build the skiko classes Compose pulls in were compiled against
         if (requested.group == "org.jetbrains.skiko") {
             useVersion(skikoVersion)
         }
@@ -91,7 +88,7 @@ repositories {
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
     maven("https://api.modrinth.com/maven")
-    google() // AndroidX libraries Compose depends on
+    google()
     mavenCentral()
 
     // Allow the use of local libraries
@@ -181,7 +178,6 @@ dependencies {
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
 
-    // Compose. Kotlin and kotlinx are left out because fabric-language-kotlin already provides them
     listOf("runtime:runtime", "ui:ui", "foundation:foundation").forEach { module ->
         shadowLib("org.jetbrains.compose.$module-desktop:$composeVersion") {
             exclude(group = "org.jetbrains.kotlin")

@@ -43,10 +43,8 @@ object ModuleList : HudModule(
 
     @Composable
     override fun Content() {
-        // Every listed module with its keybind, which is null for a module that has none
         val entries by observe {
             ModuleRegistry.modules
-                // One that is always enabled says nothing by being listed
                 .filter { it.isEnabled && it.draw && !it.alwaysEnabled }
                 .map { it.name to it.keybind.takeIf { bind -> bind.key != 0 || bind.mouse != -1 } }
                 .filter { (_, bind) -> bind != null || !onlyBound }

@@ -37,6 +37,13 @@ class UserAutomationConfig(name: String) : AutomationConfig(name, UserAutomation
 		    }
 	    }
 
+	fun delete() {
+		linkedModules.value.forEach { name ->
+			moduleNameMap[name]?.let { it.automationConfig = it.defaultAutomationConfig }
+		}
+		UserAutomationCategory.configs.remove(this)
+	}
+
 	private fun Module.removeLink() {
 		(automationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(name)
 	}

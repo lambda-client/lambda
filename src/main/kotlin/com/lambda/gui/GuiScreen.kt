@@ -38,21 +38,11 @@ import net.minecraft.client.input.KeyInput
 import net.minecraft.text.Text
 import org.lwjgl.glfw.GLFW
 
-/**
- * The Minecraft screen behind every [LambdaGui.Screen]. It draws nothing itself: it frees the
- * cursor, keeps the game from reacting to input, and hands that input to the Compose scene.
- */
 object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
-    /** The screen the GUI was opened over, such as the title screen. Null when opened in game. */
     private var parent: Screen? = null
 
-    /**
-     * Set while a keybind setting waits for the user to press what they want to bind. The next
-     * key or mouse button goes to it instead of the interface; null means the user cancelled.
-     */
     internal var keybindRecorder: ((Bind?) -> Unit)? = null
 
-    /** Screens, besides none at all, that the GUI may be opened over */
     private val backgroundScreens = listOf(
         TitleScreen::class.java,
         MultiplayerScreen::class.java,
@@ -63,7 +53,6 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
 
     internal fun show() {
         parent = mc.currentScreen
-        // The parent comes back when the GUI closes, so it must keep what removed() would free
         (parent as? OverlayBackgroundScreen)?.onOverlaidByGui()
         mc.setScreen(this)
     }
@@ -82,20 +71,15 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
 
     override fun shouldPause() = false
 
-    // The interface is drawn by LambdaGui.render once the whole vanilla GUI is on screen
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, deltaTicks: Float) = Unit
 
     override fun renderBackground(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
         val parent = parent
         if (parent != null) {
-            // Off-screen mouse coordinates keep the parent's widgets from looking hovered
             parent.renderBackground(context, -1, -1, delta)
             parent.render(context, -1, -1, delta)
             context.drawDeferredElements()
         }
-        // Over the world or the screen the GUI was opened on, whichever is behind it. Drawn here
-        // rather than asked of Minecraft, whose own darkening NoRender can switch off for every
-        // other screen: this one has its own setting.
         if (Style.dimBackground && LambdaGui.screen == LambdaGui.Screen.ClickGui) {
             val alpha = (Style.dimStrength * 255).toInt().coerceIn(0, 255)
             context.fill(0, 0, width, height, (alpha shl 24) or DIM_COLOR)
@@ -120,11 +104,9 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
                 record(Bind(0, click.modifiers(), click.button()))
                 return true
             }
-            // The left button abandons the recording, and then is the click it would have been
             record(null)
         }
         val position = scenePosition(click.x(), click.y())
-        // Pressing anywhere else is done typing, as in any other window
         TextFocus.press(position)
         LambdaGui.input?.run {
             move(position)
@@ -149,7 +131,6 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
     override fun keyPressed(input: KeyInput): Boolean {
         if (recordKey(input, pressed = true)) return true
         if (LambdaGui.input?.key(input.key(), true, input.modifiers()) == true) return true
-        // Where every program has its search: the field of the menu bar takes the keyboard
         if (input.key() == GLFW.GLFW_KEY_F && input.modifiers() and GLFW.GLFW_MOD_CONTROL != 0) {
             ClickGuiState.focusSearch = LambdaGui.screen == LambdaGui.Screen.ClickGui
             return true
@@ -169,10 +150,6 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
         return true
     }
 
-    /**
-     * Feeds a key to the [keybindRecorder]. A modifier pressed on its own is only bound when it is
-     * released again, so holding it to combine with another key still works.
-     */
     private fun recordKey(input: KeyInput, pressed: Boolean): Boolean {
         val record = keybindRecorder ?: return false
         val key = ButtonEvent.Keyboard.Press(
@@ -185,7 +162,6 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
             when (key) {
                 KeyCode.Escape -> null
                 KeyCode.Backspace, KeyCode.Delete -> Bind.EMPTY
-                // A released modifier still reports itself as held; it is the key here, not a modifier
                 else -> Bind(key.code, if (isModifier) 0 else input.modifiers(), -1)
             }
         )
@@ -193,12 +169,10 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
         return true
     }
 
-    /** The interface is laid out in framebuffer pixels; Minecraft reports the mouse in scaled GUI units */
     private fun scenePosition(x: Double, y: Double): Offset {
         val scale = mc.window.scaleFactor
         return Offset((x * scale).toFloat(), (y * scale).toFloat())
     }
 
-    /** The near black Minecraft darkens the world with behind a menu */
     private const val DIM_COLOR = 0x101010
 }

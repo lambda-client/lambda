@@ -72,7 +72,7 @@ import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.gui.GuiConfig
 import com.lambda.gui.LambdaGui
-import com.lambda.gui.clickgui.ClickGuiCategories
+import com.lambda.gui.clickgui.CLICK_GUI_CATEGORIES
 import com.lambda.gui.clickgui.ClickGuiDialog
 import com.lambda.gui.clickgui.ClickGuiState
 import com.lambda.gui.component.Menu
@@ -82,6 +82,7 @@ import com.lambda.gui.component.MenuLabel
 import com.lambda.gui.component.MenuState
 import com.lambda.gui.component.Submenu
 import com.lambda.gui.component.Suggestions
+import com.lambda.gui.component.Text
 import com.lambda.gui.component.TextInput
 import com.lambda.gui.component.consumeClicks
 import com.lambda.gui.component.glass
@@ -93,7 +94,6 @@ import com.lambda.gui.core.observe
 import com.lambda.gui.core.observeSafe
 import com.lambda.gui.hud.HudConfig
 import com.lambda.gui.theme.LambdaTheme
-import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.ModuleRegistry
@@ -112,18 +112,13 @@ import net.minecraft.world.GameMode
 import java.nio.file.Path
 import java.util.*
 
-internal val MenuBarHeight = 15.dp
+internal val MENU_BAR_HEIGHT = 15.dp
+private val ICON_SIZE = 9.dp
+private val SEARCH_WIDTH = 150.dp
 
-/**
- * The strip across the top of the click GUI. Everything that is not a module is in one of its
- * menus, and its search field finds modules and settings and shows where they are.
- */
 @Composable
 internal fun MenuBar(modifier: Modifier = Modifier) {
     val colors = LambdaTheme.colors
-    // The search field is in the middle of the bar for as long as the menus leave the middle
-    // free. On a bar too short for that, a large scale on a narrow screen, it moves over just
-    // far enough to clear them.
     var bar by remember { mutableStateOf(IntSize.Zero) }
     var menus by remember { mutableStateOf(IntSize.Zero) }
     var search by remember { mutableStateOf(IntSize.Zero) }
@@ -131,9 +126,8 @@ internal fun MenuBar(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxWidth()
-            .height(MenuBarHeight)
+            .height(MENU_BAR_HEIGHT)
             .onSizeChanged { bar = it }
-            // Glass like a window, but running from edge to edge it needs no outline
             .glass(colors.surface, RectangleShape)
             .consumeClicks()
     ) {
@@ -152,7 +146,6 @@ internal fun MenuBar(modifier: Modifier = Modifier) {
     }
 }
 
-/** An entry of the bar that drops a menu down underneath itself, with the texture at [icon] before its [label] if it has one */
 @Composable
 private fun BarMenu(label: String, icon: String? = null, content: @Composable ColumnScope.() -> Unit) {
     val menu = remember { MenuState() }
@@ -165,30 +158,16 @@ private fun BarMenu(label: String, icon: String? = null, content: @Composable Co
             .padding(horizontal = 6.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            // Drawn far smaller than it is made, which only looks clean when it is filtered well
-            if (icon != null) Image(rememberTexture(icon), contentDescription = null, Modifier.size(IconSize), filterQuality = FilterQuality.High)
+            if (icon != null) Image(rememberTexture(icon), contentDescription = null, Modifier.size(ICON_SIZE), filterQuality = FilterQuality.High)
             Text(label, maxLines = 1)
         }
-        // Beside the label and not after it in its row, where the menu, once open, would be
-        // one more thing for the row to space out and the entry would grow by a gap
         Menu(menu.isOpen, onDismiss = menu::dismiss, content = content)
     }
 }
 
-/** Edge length of the logo in the bar: the height of a capital of the Minecraft font and a little over */
-private val IconSize = 9.dp
-
-/**
- * The search field of the bar. Results drop down under it as the query is typed, and one of
- * them is always marked, the first to begin with. The arrow keys, or Tab and Shift with Tab,
- * move the mark up and down the list and round its ends, and so does the pointer; Enter takes
- * the marked one, a click any, and Escape empties the field. Nothing in it needs a mouse:
- * Control with F puts the cursor in the field.
- */
 @Composable
 private fun SearchField(modifier: Modifier = Modifier) {
     val focus = LocalFocusManager.current
-    // Control with F puts the cursor in the field from anywhere in the click GUI
     val field = remember { FocusRequester() }
     val asked = ClickGuiState.focusSearch
     LaunchedEffect(asked) {
@@ -196,13 +175,10 @@ private fun SearchField(modifier: Modifier = Modifier) {
         ClickGuiState.focusSearch = false
     }
     var query by remember { mutableStateOf("") }
-    // The results can be put away with a click elsewhere, and come back with the next keystroke
     var listed by remember { mutableStateOf(false) }
     val results = remember(query) { Search.find(query.trim()) }
     val open = listed && query.isNotBlank()
-    // What was listed stays to be seen while the list folds away
     val shown = rememberLast(results.takeIf { open }).orEmpty()
-    // Which result is marked. Every keystroke lists anew, with the best match first and marked.
     var marked by remember(results) { mutableStateOf(0) }
 
     fun choose(result: Search.Result) {
@@ -216,17 +192,15 @@ private fun SearchField(modifier: Modifier = Modifier) {
         modifier.onPreviewKeyEvent { event ->
             when {
                 event.type != KeyEventType.KeyDown -> false
-                // An empty field lets Escape through, to close the click GUI as it does anywhere else
                 event.key == Key.Escape && query.isNotEmpty() -> {
                     query = ""
                     listed = false
                     true
                 }
                 event.key == Key.Enter -> {
-                    results.getOrNull(marked)?.let(::choose)
+                    if (open) results.getOrNull(marked)?.let(::choose)
                     true
                 }
-                // Without a list to move through, Tab is left to go where it goes anywhere else
                 !open || results.isEmpty() -> false
                 event.key == Key.DirectionDown || event.key == Key.Tab && !event.isShiftPressed -> {
                     marked = (marked + 1).mod(results.size)
@@ -246,7 +220,7 @@ private fun SearchField(modifier: Modifier = Modifier) {
                 query = it
                 listed = true
             },
-            modifier = Modifier.width(SearchWidth).focusRequester(field),
+            modifier = Modifier.width(SEARCH_WIDTH).focusRequester(field),
             placeholder = "Search modules and settings",
         )
         Suggestions(open, onDismiss = { listed = false }) {
@@ -258,12 +232,6 @@ private fun SearchField(modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * One result of the search. The [marked] one is lit and kept in view, and the light passes from
- * one to the next rather than jumping. Moving the pointer over a row marks it, [onPoint]; a
- * pointer that merely lies where the list happens to open does not, or it would take the mark
- * from the keyboard with every letter typed.
- */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ResultRow(result: Search.Result, marked: Boolean, onPoint: () -> Unit, onClick: () -> Unit) {
@@ -278,7 +246,7 @@ private fun ResultRow(result: Search.Result, marked: Boolean, onPoint: () -> Uni
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(min = SearchWidth)
+            .widthIn(min = SEARCH_WIDTH)
             .bringIntoViewRequester(intoView)
             .background(lit)
             .pointerInput(Unit) {
@@ -296,8 +264,6 @@ private fun ResultRow(result: Search.Result, marked: Boolean, onPoint: () -> Uni
         Text(result.origin, color = colors.onSurfaceVariant, style = Type.label, maxLines = 1)
     }
 }
-
-private val SearchWidth = 150.dp
 
 @Composable
 private fun LambdaMenu() {
@@ -354,17 +320,16 @@ private fun LambdaMenu() {
     MenuItem("Exit Client") { mc.scheduleStop() }
 }
 
-/** Which categories have a window, and which modules are listed in them */
 @Composable
 private fun ModulesMenu() {
     Submenu("Shown Categories") {
-        ClickGuiCategories.forEach { tag ->
+        CLICK_GUI_CATEGORIES.forEach { tag ->
             val shown by observe { ModuleTag.isTagShown(tag) }
             MenuItem(tag.name, checked = shown) { ModuleTag.toggleTag(tag) }
         }
     }
     MenuDivider()
-    ClickGuiCategories.forEach { tag ->
+    CLICK_GUI_CATEGORIES.forEach { tag ->
         Submenu(tag.name) {
             ModuleRegistry.modules.filter { it.tag == tag }.forEach { module ->
                 val shown by observe { module.showInClickGui.value }

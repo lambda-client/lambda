@@ -17,29 +17,27 @@
 
 package com.lambda.gui
 
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.lambda.config.settings.complex.Bind
 import com.lambda.util.InputUtils.isSatisfied
+import com.lambda.util.math.toCompose
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-/**
- * Where something that is dragged ends up, in scene pixels: on the screen, and snapped into
- * line with its surroundings while the snap key is held. HUD elements in the HUD editor and
- * the windows of the click GUI are placed by it alike.
- *
- * Each axis is snapped on its own, and the guides come in tiers: the other elements and the
- * screen edges are tried first, then the centre of the screen, then the grid. The first tier
- * with a guide in reach wins, and within it the guide closest to any of the element's three
- * lines (its two edges and its centre) does.
- */
 internal object Snap {
-    /** The guides the element snapped to, drawn while dragging. Null where it snapped to nothing worth showing. */
+    private const val MIN_GRID_STEP = 4f
+    private val GRID_COLOR = Color.White.copy(alpha = 0.11f)
+
     data class Guides(val x: Float?, val y: Float?) {
         companion object {
             val NONE = Guides(null, null)
@@ -48,76 +46,82 @@ internal object Snap {
 
     data class Result(val position: Offset, val guides: Guides)
 
-    /** Whether a dragged element snaps right now: snapping is on and its key, if it has one, is held */
+    private class Target(val shift: Float, val guide: Float?)
+
     val isActive: Boolean
         get() = GuiConfig.snapEnabled && (GuiConfig.snapKey == Bind.EMPTY || GuiConfig.snapKey.isSatisfied())
 
-    /** [element] left where it was dragged to, only kept on the [screen] */
-    fun free(element: Rect, screen: Size) = Result(element.topLeft.keptOn(screen, element.size), Guides.NONE)
+    fun gridStep(density: Density) = with(density) { max(MIN_GRID_STEP, GuiConfig.gridSize.dp.toPx()) }
 
-    /**
-     * The [lines] of the element along one axis, positions to snap them to, and how close a line
-     * has to be to one. Grid snaps are not drawn.
-     */
-    private class Tier(val lines: List<Float>, val reach: Float, val shown: Boolean, val nearest: (line: Float) -> Float?)
+    fun free(element: Rect, area: Rect) = Result(element.topLeft.keptIn(area, element.size), Guides.NONE)
 
-    /**
-     * [element] moved onto the nearest guide in reach, of the [others] and the [screen].
-     *
-     * @param spacing the room left between [element] and one of the [others] it is snapped
-     * beside, in pixels. Two that are lined up edge on edge are still exactly in line.
-     */
-    fun snap(element: Rect, others: Collection<Rect>, screen: Size, density: Density, spacing: Float = 0f): Result = with(density) {
-        fun tiers(extent: Float, start: (Rect) -> Float, end: (Rect) -> Float): List<Tier> {
+    fun snap(element: Rect, others: Collection<Rect>, area: Rect, density: Density, spacing: Float = 0f): Result = with(density) {
+        fun axis(start: (Rect) -> Float, end: (Rect) -> Float): Target {
             fun center(rect: Rect) = (start(rect) + end(rect)) / 2
-            val lines = listOf(start(element), center(element), end(element))
+            val from = start(element)
+            val size = end(element) - from
+            fun startAt(at: Float, guide: Float? = at) = Target(at - from, guide)
+            fun endAt(at: Float, guide: Float? = at) = Target(at - size - from, guide)
+            fun centerAt(at: Float, guide: Float? = at) = Target(at - size / 2 - from, guide)
 
-            // Against its neighbours, everything is taken to be half the spacing larger all
-            // round. Side by side that leaves the spacing between two; in line it changes nothing.
-            val half = spacing / 2
-            val spacedLines = listOf(start(element) - half, center(element), end(element) + half)
-            val neighbourGuides = buildList {
+            val neighbours = buildList {
                 if (GuiConfig.snapToEdges) {
-                    add(-half)
-                    add(extent + half)
-                    others.forEach {
-                        add(start(it) - half)
-                        add(end(it) + half)
+                    add(startAt(start(area)))
+                    add(endAt(end(area)))
+                    others.forEach { other ->
+                        add(startAt(start(other)))
+                        add(endAt(end(other)))
+                        add(startAt(end(other) + spacing, end(other) + spacing / 2))
+                        add(endAt(start(other) - spacing, start(other) - spacing / 2))
                     }
                 }
-                if (GuiConfig.snapToCenters) others.forEach { add(center(it)) }
+                if (GuiConfig.snapToCenters) others.forEach { add(centerAt(center(it))) }
             }
-            val gridStep = max(4f, GuiConfig.gridSize.dp.toPx())
-            return listOfNotNull(
-                Tier(spacedLines, GuiConfig.snapDistanceElement.dp.toPx(), shown = true) { line ->
-                    neighbourGuides.minByOrNull { abs(it - line) }
-                },
-                Tier(lines, GuiConfig.snapDistanceScreen.dp.toPx(), shown = true) { extent / 2 }
-                    .takeIf { GuiConfig.snapToScreenCenter },
-                Tier(lines, GuiConfig.snapDistanceGrid.dp.toPx(), shown = false) { line -> (line / gridStep).roundToInt() * gridStep }
-                    .takeIf { GuiConfig.snapToGrid },
-            )
+            val middle = center(area)
+            val screenCenter = listOf(startAt(middle), centerAt(middle), endAt(middle)).takeIf { GuiConfig.snapToScreenCenter }.orEmpty()
+            val step = gridStep(density)
+            fun onGrid(line: Float) = (line / step).roundToInt() * step
+            val grid = listOf(
+                startAt(onGrid(from), null),
+                centerAt(onGrid(from + size / 2), null),
+                endAt(onGrid(from + size), null),
+            ).takeIf { GuiConfig.snapToGrid }.orEmpty()
+
+            return listOf(
+                neighbours to GuiConfig.snapDistanceElement.dp.toPx(),
+                screenCenter to GuiConfig.snapDistanceScreen.dp.toPx(),
+                grid to GuiConfig.snapDistanceGrid.dp.toPx(),
+            ).firstNotNullOfOrNull { (targets, reach) ->
+                targets.minByOrNull { abs(it.shift) }?.takeIf { abs(it.shift) <= reach }
+            } ?: Target(0f, null)
         }
 
-        val (shiftX, guideX) = snapAxis(tiers(screen.width, { it.left }, { it.right }))
-        val (shiftY, guideY) = snapAxis(tiers(screen.height, { it.top }, { it.bottom }))
-        Result((element.topLeft + Offset(shiftX, shiftY)).keptOn(screen, element.size), Guides(guideX, guideY))
+        val x = axis({ it.left }, { it.right })
+        val y = axis({ it.top }, { it.bottom })
+        Result((element.topLeft + Offset(x.shift, y.shift)).keptIn(area, element.size), Guides(x.guide, y.guide))
     }
 
-    /** How far to move along the axis to reach the best guide, and that guide if it should be drawn */
-    private fun snapAxis(tiers: List<Tier>): Pair<Float, Float?> {
-        for (tier in tiers) {
-            val (line, guide) = tier.lines
-                .mapNotNull { line -> tier.nearest(line)?.let { line to it } }
-                .minByOrNull { (line, guide) -> abs(guide - line) }
-                ?: continue
-            if (abs(guide - line) <= tier.reach) return guide - line to guide.takeIf { tier.shown }
+    fun Modifier.snapLines(drop: () -> Result?): Modifier = drawWithContent {
+        val guides = drop()?.guides.takeIf { GuiConfig.showSnapLines }
+        if (guides != null && isActive && GuiConfig.snapToGrid) drawGrid()
+        drawContent()
+        if (guides != null) {
+            val color = GuiConfig.snapLineColor.toCompose()
+            guides.x?.let { drawLine(color, Offset(it, 0f), Offset(it, size.height), Stroke.HairlineWidth) }
+            guides.y?.let { drawLine(color, Offset(0f, it), Offset(size.width, it), Stroke.HairlineWidth) }
         }
-        return 0f to null
     }
 
-    private fun Offset.keptOn(screen: Size, element: Size) = Offset(
-        x.coerceIn(0f, max(0f, screen.width - element.width)),
-        y.coerceIn(0f, max(0f, screen.height - element.height))
+    private fun DrawScope.drawGrid() {
+        val step = gridStep(this)
+        generateSequence(0f) { it + step }.takeWhile { it <= size.width }
+            .forEach { drawLine(GRID_COLOR, Offset(it, 0f), Offset(it, size.height), Stroke.HairlineWidth) }
+        generateSequence(0f) { it + step }.takeWhile { it <= size.height }
+            .forEach { drawLine(GRID_COLOR, Offset(0f, it), Offset(size.width, it), Stroke.HairlineWidth) }
+    }
+
+    private fun Offset.keptIn(area: Rect, element: Size) = Offset(
+        x.coerceIn(area.left, max(area.left, area.right - element.width)),
+        y.coerceIn(area.top, max(area.top, area.bottom - element.height))
     )
 }

@@ -33,10 +33,15 @@ import org.lwjgl.glfw.GLFW
 import java.awt.Component
 import java.awt.event.KeyEvent as AwtKeyEvent
 
-/**
- * Translates the game's GLFW input into the pointer and key events a Compose scene consumes.
- * Positions are in framebuffer pixels, which is the scene's coordinate space.
- */
+internal object Press {
+    var id = 0L
+        private set
+
+    fun begin() {
+        id++
+    }
+}
+
 @OptIn(InternalComposeUiApi::class)
 internal class SceneInput(private val scene: ComposeScene) {
     private var position = Offset.Zero
@@ -50,23 +55,19 @@ internal class SceneInput(private val scene: ComposeScene) {
     fun button(button: Int, pressed: Boolean, modifiers: Int) {
         val mask = 1 shl button
         pressedButtons = if (pressed) pressedButtons or mask else pressedButtons and mask.inv()
-        if (pressed) KeyboardFocus.visible = false
+        if (pressed) {
+            Press.begin()
+            KeyboardFocus.visible = false
+        }
         pointer(if (pressed) PointerEventType.Press else PointerEventType.Release, button.toPointerButton(), modifiers)
     }
 
     fun scroll(horizontal: Double, vertical: Double) {
-        // GLFW counts a notch away from the user as positive, Compose one towards the user
         pointer(PointerEventType.Scroll, scroll = Offset(horizontal.toFloat(), -vertical.toFloat()) * LINES_PER_NOTCH)
     }
 
-    /**
-     * Returns whether something in the scene handled the key.
-     *
-     * A Tab or an arrow key that nothing in the scene wanted for itself moves the keyboard focus,
-     * see [KeyboardFocus]. An arrow with nothing lying in its direction steps on in order as Tab
-     * would, which is also how the focus first gets onto something.
-     */
     fun key(key: Int, pressed: Boolean, modifiers: Int): Boolean {
+        if (pressed) Press.begin()
         val shift = modifiers and GLFW.GLFW_MOD_SHIFT != 0
         val direction = when (key.takeIf { pressed }) {
             GLFW.GLFW_KEY_TAB -> if (shift) FocusDirection.Previous else FocusDirection.Next
@@ -96,10 +97,6 @@ internal class SceneInput(private val scene: ComposeScene) {
         return KeyboardFocus.move(direction) || direction != inOrder && KeyboardFocus.move(inOrder)
     }
 
-    /**
-     * Sends a typed character. Compose's desktop text fields only accept text from an AWT
-     * `KEY_TYPED` event, so one is built to carry the character; it never touches the AWT queue.
-     */
     fun type(codePoint: Int): Boolean =
         Character.toChars(codePoint).fold(false) { handled, char ->
             val typed = AwtKeyEvent(
@@ -110,12 +107,8 @@ internal class SceneInput(private val scene: ComposeScene) {
             ) || handled
         }
 
-    /** Ends every interaction in progress, for when the scene stops receiving input */
     fun release() {
         pressedButtons = 0
-        // The pointer leaves for somewhere off the screen, and before anything is cancelled:
-        // a tooltip only goes once the pointer is outside its element, and the element only
-        // hears of it while it still counts as being under the pointer
         position = OFF_SCREEN
         pointer(PointerEventType.Exit)
         scene.cancelPointerInput()
@@ -151,10 +144,8 @@ internal class SceneInput(private val scene: ComposeScene) {
     }
 
     private companion object {
-        /** Where the pointer is taken to be once the scene has no input: nowhere any element is */
         val OFF_SCREEN = Offset(-1e6f, -1e6f)
 
-        /** A desktop scrolls three lines per wheel notch; Compose expects the event to say so */
         const val LINES_PER_NOTCH = 3f
 
         val awtSource = object : Component() {}
@@ -168,7 +159,6 @@ internal class SceneInput(private val scene: ComposeScene) {
             else -> null
         }
 
-        /** Compose identifies keys by AWT key code. Letters and digits share theirs with GLFW. */
         fun Int.toAwtKeyCode() = when (this) {
             GLFW.GLFW_KEY_ESCAPE -> AwtKeyEvent.VK_ESCAPE
             GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> AwtKeyEvent.VK_ENTER
@@ -189,7 +179,7 @@ internal class SceneInput(private val scene: ComposeScene) {
             GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL -> AwtKeyEvent.VK_CONTROL
             GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT -> AwtKeyEvent.VK_ALT
             GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER -> AwtKeyEvent.VK_META
-            in GLFW.GLFW_KEY_A..GLFW.GLFW_KEY_Z, in GLFW.GLFW_KEY_0..GLFW.GLFW_KEY_9, GLFW.GLFW_KEY_SPACE -> this
+            in GLFW.GLFW_KEY_A..GLFW.GLFW_KEY_Z, in GLFW.GLFW_KEY_0..GLFW.GLFW_KEY_9 -> this
             in GLFW.GLFW_KEY_F1..GLFW.GLFW_KEY_F12 -> AwtKeyEvent.VK_F1 + (this - GLFW.GLFW_KEY_F1)
             else -> AwtKeyEvent.VK_UNDEFINED
         }

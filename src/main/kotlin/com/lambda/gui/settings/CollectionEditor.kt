@@ -51,25 +51,22 @@ import com.lambda.gui.component.Button
 import com.lambda.gui.component.Chip
 import com.lambda.gui.component.Dialog
 import com.lambda.gui.component.Ellipsis
-import com.lambda.gui.component.RowHeight
+import com.lambda.gui.component.ItemIcon
 import com.lambda.gui.component.Scrollbar
+import com.lambda.gui.component.Text
 import com.lambda.gui.component.TextInput
 import com.lambda.gui.component.hoverHighlight
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.component.wheelScrollable
 import com.lambda.gui.core.observe
-import com.lambda.gui.hud.ItemIcon
 import com.lambda.gui.theme.LambdaTheme
-import com.lambda.gui.theme.Radius
-import com.lambda.gui.theme.Text
+import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Type
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.Registries
 
-/**
- * A collection setting: its name and, on a chip, how much of it is selected. The chip opens the
- * editor in a window of its own, as the lists it holds would never fit into a row.
- */
+private val ICON_SIZE = 8.dp
+
 @Composable
 internal fun <R : Any> CollectionButton(setting: CollectionSetting<R>) {
     val count by observe { setting.value.size }
@@ -84,13 +81,8 @@ internal fun <R : Any> CollectionButton(setting: CollectionSetting<R>) {
     if (editing) CollectionWindow(setting) { editing = false }
 }
 
-/**
- * Two lists side by side, what can be selected and what is. Clicking an entry moves it across,
- * and the search narrows both.
- */
 @Composable
 private fun <R : Any> CollectionWindow(setting: CollectionSetting<R>, onDismiss: () -> Unit) {
-    // Selections are edited in place, so a copy is what tells one frame's selection from the next
     val selected by observe { setting.value.toSet() }
     val entries = remember(setting.immutableCollection) {
         setting.immutableCollection.map { Entry(it, setting.label(it), setting.icon(it)) }
@@ -104,7 +96,7 @@ private fun <R : Any> CollectionWindow(setting: CollectionSetting<R>, onDismiss:
             Text(setting.name)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 TextInput(query, { query = it }, Modifier.weight(1f), placeholder = "Search ${setting.name}", focused = true)
-                Button("Invert", Modifier.height(RowHeight)) { setting.invertSelection() }
+                Button("Invert", Modifier.height(Look.rowHeight)) { setting.invertSelection() }
             }
             Row(Modifier.height(220.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 Pane("Available (${available.size})", available, Modifier.weight(1f)) { setting.select(it) }
@@ -114,19 +106,14 @@ private fun <R : Any> CollectionWindow(setting: CollectionSetting<R>, onDismiss:
     }
 }
 
-/**
- * A setting that is one block: its name and, on a chip, the block with its icon. The chip opens
- * a window listing every block, where clicking one picks it.
- */
 @Composable
 internal fun BlockPicker(setting: BlockSetting) {
     val block by observe { setting.value }
     var picking by remember { mutableStateOf(false) }
 
-    // A block with a long name slides along under the pointer in the room its chip is given
     Labeled(setting.name) {
         Chip(onClick = { picking = true }) {
-            Box(Modifier.size(IconSize)) { ItemIcon(ItemStack(block.asItem()), IconSize) }
+            Box(Modifier.size(ICON_SIZE)) { ItemIcon(ItemStack(block.asItem()), ICON_SIZE) }
             Text(BlockSerializer.stringify(block), Modifier.weight(1f, fill = false), maxLines = 1)
             Ellipsis()
         }
@@ -148,7 +135,6 @@ internal fun BlockPicker(setting: BlockSetting) {
     }
 }
 
-/** One of the things a collection can hold, with what it is shown as */
 private class Entry<R>(val item: R, val label: String, val icon: ItemStack?)
 
 @Composable
@@ -156,9 +142,8 @@ private fun <R> Pane(title: String, entries: List<Entry<R>>, modifier: Modifier,
     val colors = LambdaTheme.colors
     Column(modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(title, color = colors.onSurfaceVariant, style = Type.label)
-        // Lazy, because a list of every block or item in the game runs to over a thousand rows
         val list = rememberLazyListState()
-        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(Radius.Control)).background(colors.input)) {
+        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(Look.controlRounding)).background(colors.input)) {
             LazyColumn(state = list, modifier = Modifier.fillMaxSize().wheelScrollable(list)) {
                 items(entries) { entry ->
                     Row(
@@ -166,13 +151,12 @@ private fun <R> Pane(title: String, entries: List<Entry<R>>, modifier: Modifier,
                         horizontalArrangement = Arrangement.spacedBy(3.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = RowHeight)
+                            .heightIn(min = Look.rowHeight)
                             .hoverHighlight(colors.controlSelected)
                             .mouseClickable { onClick(entry.item) }
                             .padding(horizontal = 4.dp)
                     ) {
-                        // A slot of the same width for every entry, even one with nothing in it, so the names line up
-                        if (entry.icon != null) Box(Modifier.size(IconSize)) { ItemIcon(entry.icon, IconSize) }
+                        if (entry.icon != null) Box(Modifier.size(ICON_SIZE)) { ItemIcon(entry.icon, ICON_SIZE) }
                         Text(entry.label, color = colors.onControl, maxLines = 1)
                     }
                 }
@@ -181,6 +165,3 @@ private fun <R> Pane(title: String, entries: List<Entry<R>>, modifier: Modifier,
         }
     }
 }
-
-/** Edge length of an entry's icon: the 16 pixels Minecraft draws an item at, at 1080p */
-private val IconSize = 8.dp

@@ -25,10 +25,10 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.GuiConfig
 import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
+import com.lambda.module.modules.client.Style
 import com.lambda.module.modules.network.AutoReconnect
 import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.CommunicationUtils
@@ -44,6 +44,7 @@ import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.item.ItemStackUtils.bundleStacks
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
+import com.lambda.util.math.toAwt
 import com.lambda.util.player.MovementUtils.moveDelta
 import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
 import com.lambda.util.player.SlotUtils.allStacks
@@ -654,7 +655,7 @@ object AutoDisconnect : Module(
                         buildText {
                             text(effect.effectType.value().name)
                             if (effect.amplifier > 0) literal(" ${effect.amplifier + 1}")
-                            color(GuiConfig.textDisabled) { literal(" (${effectDuration(effect)})") }
+                            color(Style.palette.onSurfaceVariant.toAwt()) { literal(" (${effectDuration(effect)})") }
                         }
                     )
                 }
@@ -741,7 +742,7 @@ object AutoDisconnect : Module(
         val customName = stack.get(DataComponentTypes.CUSTOM_NAME)
         if (customName != null) {
             text(stack.itemName)
-            color(GuiConfig.textDisabled) {
+            color(Style.palette.onSurfaceVariant.toAwt()) {
                 literal(" (")
                 text(customName)
                 literal(")")
@@ -751,11 +752,11 @@ object AutoDisconnect : Module(
         }
 
         if (stack.isDamageable) {
-            color(GuiConfig.textDisabled) { literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})") }
+            color(Style.palette.onSurfaceVariant.toAwt()) { literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})") }
         }
 
         if (stack.maxCount > 1) {
-            color(GuiConfig.textDisabled) { literal(" (${stack.count})") }
+            color(Style.palette.onSurfaceVariant.toAwt()) { literal(" (${stack.count})") }
         }
 
         if (selected) {

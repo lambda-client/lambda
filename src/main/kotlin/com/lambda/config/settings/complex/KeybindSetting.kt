@@ -53,14 +53,13 @@ import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.GuiScreen
-import com.lambda.gui.component.RowHeight
+import com.lambda.gui.component.Text
 import com.lambda.gui.component.Tooltip
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.core.observe
 import com.lambda.gui.settings.Labeled
 import com.lambda.gui.theme.LambdaTheme
-import com.lambda.gui.theme.Radius
-import com.lambda.gui.theme.Text
+import com.lambda.gui.theme.Look
 import com.lambda.threading.runSafe
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
@@ -131,13 +130,8 @@ class KeybindSetting(
         }
     }
 
-    /**
-    * Shows the bind as the cap of a key and, once clicked, records the next key or mouse button
-    * as the new one. The recording itself happens in [GuiScreen], which sees the raw input
-    * before the interface does.
-    */
     @Composable
-    override fun compose() {
+    override fun Editor() {
         val colors = LambdaTheme.colors
         val bind by observe { value }
         var recording by remember { mutableStateOf(false) }
@@ -150,9 +144,8 @@ class KeybindSetting(
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .height(RowHeight)
-                        .clip(RoundedCornerShape(Radius.Control))
-                        // Filled as every control is, and in the second accent while it waits for a key
+                        .height(Look.rowHeight)
+                        .clip(RoundedCornerShape(Look.controlRounding))
                         .background(if (recording) colors.secondary else colors.control)
                         .mouseClickable {
                             recording = true

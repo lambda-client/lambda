@@ -18,29 +18,18 @@
 package com.lambda.mixin.render;
 
 import androidx.compose.ui.Actuals_skikoKt;
+import com.lambda.gui.core.RenderThread;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function0;
-import net.minecraft.client.MinecraftClient;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Keeps the work Compose puts off until later on the render thread.
- * <p>
- * Compose waits on AWT's event thread and then does the work right there, which in a desktop
- * application is the thread its interface lives on. Lambda's interface lives on the render
- * thread, so that work, the bookkeeping of where every element is, ran alongside a layout in
- * progress and now and then lost an element, which took the whole interface down with
- * "LayoutNode not found in RectList".
- */
 @Mixin(value = Actuals_skikoKt.class, remap = false)
 public class ComposeDelayMixin {
-    @ModifyVariable(method = "postDelayed", at = @At("HEAD"), argsOnly = true, require = 1)
-    private static Function0<Unit> runOnRenderThread(Function0<Unit> block) {
-        return () -> {
-            MinecraftClient.getInstance().execute(block::invoke);
-            return Unit.INSTANCE;
-        };
+    @Inject(method = "postDelayed", at = @At("HEAD"), cancellable = true, require = 1)
+    private static void delayOnRenderThread(long delayMillis, Function0<Unit> block, CallbackInfoReturnable<Object> cir) {
+        cir.setReturnValue(RenderThread.after(delayMillis, block));
     }
 }

@@ -29,18 +29,7 @@ import org.lwjgl.system.MemoryStack
 import java.awt.Color
 import java.util.*
 
-/**
- * Puts the GUI texture on screen, in one pass over the game's framebuffer.
- *
- * The effects live here rather than in the GUI's own drawing so that they cost nothing the GUI
- * has to redraw for: the game behind a frosted window changes every frame, but the window does
- * not, and the glow only depends on the GUI's silhouette, so its blur is reused until that changes.
- */
 internal object GuiCompositor {
-    /**
-     * @property frost blur radius, in pixels, of the game behind the GUI; zero for none
-     * @property glow blur radius, in pixels, of the glow around the GUI; zero for none
-     */
     data class Effects(
         val frost: Float = 0f,
         val glow: Float = 0f,
@@ -58,7 +47,6 @@ internal object GuiCompositor {
     private var haloView: GpuTextureView? = null
     private var haloRadius = 0f
 
-    // std140 rounds a block up to a multiple of its largest member, the 16 byte vec4
     private val uniformSize = Std140SizeCalculator().putVec4().putVec4().putFloat().putFloat().putFloat().align(16).get()
     private val uniforms: GpuBuffer by lazy {
         RenderSystem.getDevice().createBuffer(
@@ -66,11 +54,6 @@ internal object GuiCompositor {
         )
     }
 
-    /**
-     * Draws [gui] over the game.
-     *
-     * @param guiChanged whether [gui] was redrawn since the last call
-     */
     fun composite(gui: GpuTextureView, width: Int, height: Int, guiChanged: Boolean, effects: Effects) {
         val screen = mc.framebuffer.colorAttachmentView ?: return
         val linear = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
@@ -124,6 +107,5 @@ internal object GuiCompositor {
     private fun Std140Builder.putColor(color: Color) =
         putVec4(color.red / 255f, color.green / 255f, color.blue / 255f, color.alpha / 255f)
 
-    /** The glow's colour wave repeats every pi seconds; wrapping on a multiple keeps it seamless */
     private const val GLOW_CYCLE_MILLIS = 3_141_592L
 }
