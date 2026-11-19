@@ -49,9 +49,9 @@ class Vec3dSetting(
     override fun compose() {
         val vec by observe { value }
         Labeled(name) {
-            NumberInput(vec.x, { value = Vec3d(it, vec.y, vec.z) }, Modifier.width(NumberFieldWidth))
-            NumberInput(vec.y, { value = Vec3d(vec.x, it, vec.z) }, Modifier.width(NumberFieldWidth))
-            NumberInput(vec.z, { value = Vec3d(vec.x, vec.y, it) }, Modifier.width(NumberFieldWidth))
+            NumberInput(vec.x, { value = Vec3d(it, vec.y, vec.z) }, Modifier.weight(1f, fill = false).width(NumberFieldWidth))
+            NumberInput(vec.y, { value = Vec3d(vec.x, it, vec.z) }, Modifier.weight(1f, fill = false).width(NumberFieldWidth))
+            NumberInput(vec.z, { value = Vec3d(vec.x, vec.y, it) }, Modifier.weight(1f, fill = false).width(NumberFieldWidth))
         }
     }
 

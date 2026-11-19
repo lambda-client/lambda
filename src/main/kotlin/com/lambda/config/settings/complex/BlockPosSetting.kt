@@ -57,9 +57,9 @@ class BlockPosSetting(
 	override fun compose() {
 		val pos by observe { value.toImmutable() }
 		Labeled(name) {
-			NumberInput(pos.x, { value = BlockPos(it.roundToInt(), pos.y, pos.z) }, Modifier.width(NumberFieldWidth))
-			NumberInput(pos.y, { value = BlockPos(pos.x, it.roundToInt(), pos.z) }, Modifier.width(NumberFieldWidth))
-			NumberInput(pos.z, { value = BlockPos(pos.x, pos.y, it.roundToInt()) }, Modifier.width(NumberFieldWidth))
+			NumberInput(pos.x, { value = BlockPos(it.roundToInt(), pos.y, pos.z) }, Modifier.weight(1f, fill = false).width(NumberFieldWidth))
+			NumberInput(pos.y, { value = BlockPos(pos.x, it.roundToInt(), pos.z) }, Modifier.weight(1f, fill = false).width(NumberFieldWidth))
+			NumberInput(pos.z, { value = BlockPos(pos.x, pos.y, it.roundToInt()) }, Modifier.weight(1f, fill = false).width(NumberFieldWidth))
 			Tooltip("Use the block you are looking at") {
 				Button("Target", Modifier.height(RowHeight)) {
 					mc.crosshairTarget?.blockResult?.blockPos?.let { value = it }

@@ -20,7 +20,9 @@ package com.lambda.gui.menu
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -28,7 +30,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -45,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -54,7 +59,10 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
@@ -80,6 +88,7 @@ import com.lambda.gui.component.glass
 import com.lambda.gui.component.hoverHighlight
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.component.rememberLast
+import com.lambda.gui.component.rememberTexture
 import com.lambda.gui.core.observe
 import com.lambda.gui.core.observeSafe
 import com.lambda.gui.hud.HudConfig
@@ -112,29 +121,40 @@ internal val MenuBarHeight = 15.dp
 @Composable
 internal fun MenuBar(modifier: Modifier = Modifier) {
     val colors = LambdaTheme.colors
+    // The search field is in the middle of the bar for as long as the menus leave the middle
+    // free. On a bar too short for that, a large scale on a narrow screen, it moves over just
+    // far enough to clear them.
+    var bar by remember { mutableStateOf(IntSize.Zero) }
+    var menus by remember { mutableStateOf(IntSize.Zero) }
+    var search by remember { mutableStateOf(IntSize.Zero) }
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxWidth()
             .height(MenuBarHeight)
+            .onSizeChanged { bar = it }
             // Glass like a window, but running from edge to edge it needs no outline
             .glass(colors.surface, RectangleShape)
             .consumeClicks()
     ) {
-        Row(Modifier.align(Alignment.CenterStart).fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
-            BarMenu("Lambda") { LambdaMenu() }
+        Row(Modifier.align(Alignment.CenterStart).fillMaxHeight().onSizeChanged { menus = it }, verticalAlignment = Alignment.CenterVertically) {
+            BarMenu("Lambda", icon = "textures/lambda.png") { LambdaMenu() }
             BarMenu("Modules") { ModulesMenu() }
             BarMenu("Automation") { AutomationMenu() }
             BarMenu("Minecraft") { MinecraftMenu() }
             BarMenu("Help") { HelpMenu() }
         }
-        SearchField()
+        SearchField(
+            Modifier
+                .onSizeChanged { search = it }
+                .offset { IntOffset((menus.width - (bar.width - search.width) / 2).coerceAtLeast(0), 0) }
+        )
     }
 }
 
-/** An entry of the bar that drops a menu down underneath itself */
+/** An entry of the bar that drops a menu down underneath itself, with the texture at [icon] before its [label] if it has one */
 @Composable
-private fun BarMenu(label: String, content: @Composable ColumnScope.() -> Unit) {
+private fun BarMenu(label: String, icon: String? = null, content: @Composable ColumnScope.() -> Unit) {
     val menu = remember { MenuState() }
     Box(
         contentAlignment = Alignment.Center,
@@ -144,10 +164,19 @@ private fun BarMenu(label: String, content: @Composable ColumnScope.() -> Unit) 
             .mouseClickable(onClick = menu::toggle)
             .padding(horizontal = 6.dp)
     ) {
-        Text(label, maxLines = 1)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            // Drawn far smaller than it is made, which only looks clean when it is filtered well
+            if (icon != null) Image(rememberTexture(icon), contentDescription = null, Modifier.size(IconSize), filterQuality = FilterQuality.High)
+            Text(label, maxLines = 1)
+        }
+        // Beside the label and not after it in its row, where the menu, once open, would be
+        // one more thing for the row to space out and the entry would grow by a gap
         Menu(menu.isOpen, onDismiss = menu::dismiss, content = content)
     }
 }
+
+/** Edge length of the logo in the bar: the height of a capital of the Minecraft font and a little over */
+private val IconSize = 9.dp
 
 /**
  * The search field of the bar. Results drop down under it as the query is typed, and one of

@@ -51,9 +51,14 @@ internal object Search {
             override fun choose() = Reveal.show(module)
         }
 
-        class OfSetting(val setting: Setting<*>, val config: Config) : Result {
+        /**
+         * A setting of [config], under the tabs and groups of [path] from the outermost in. Its
+         * origin spells all of that out: settings of one name are in many configs, every module
+         * that builds has an Air Place, and the origin is all that tells them apart in a list.
+         */
+        class OfSetting(val setting: Setting<*>, val config: Config, path: List<String>) : Result {
             override val name get() = setting.name
-            override val origin = (listOf(config.name) + setting.getConfigCommandPath()).dropLast(1).joinToString(" \u00bb ")
+            override val origin = (listOf(config.name) + path).joinToString(" \u00bb ")
             override fun choose() = Reveal.show(config, setting)
         }
 
@@ -101,9 +106,9 @@ internal object Search {
         ConfigLoader.configCategories.forEach { category ->
             category.configs.forEach { config ->
                 if (hidden(config)) return@forEach
-                config.settingLayers.forEachEntry { _, single ->
+                config.settingLayers.forEachEntry { path, single ->
                     val setting = single.entry
-                    if (setting.visibility()) consider({ Result.OfSetting(setting, config) }, 0, setting.name)
+                    if (setting.visibility()) consider({ Result.OfSetting(setting, config, path.map { it.name }) }, 0, setting.name)
                 }
             }
         }

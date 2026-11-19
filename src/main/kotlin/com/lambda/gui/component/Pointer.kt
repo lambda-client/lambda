@@ -200,9 +200,11 @@ fun Modifier.mouseDraggable(
 /**
  * For sliders and pickers: reports where the pointer is, relative to the element, from the moment
  * the left button goes down on it until it is released, wherever the pointer has wandered by then.
+ * [onEnd] is called once it has been.
  */
-fun Modifier.scrubbable(onScrub: (position: Offset, size: IntSize) -> Unit): Modifier = composed {
+fun Modifier.scrubbable(onEnd: () -> Unit = {}, onScrub: (position: Offset, size: IntSize) -> Unit): Modifier = composed {
     val currentOnScrub by rememberUpdatedState(onScrub)
+    val currentOnEnd by rememberUpdatedState(onEnd)
     pointerInput(Unit) {
         awaitEachGesture {
             // On a desktop only the left button counts as the first down of a gesture
@@ -213,6 +215,7 @@ fun Modifier.scrubbable(onScrub: (position: Offset, size: IntSize) -> Unit): Mod
                 change.consume()
                 currentOnScrub(change.position, size)
             }
+            currentOnEnd()
         }
     }
 }

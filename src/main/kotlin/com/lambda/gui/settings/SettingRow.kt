@@ -20,12 +20,9 @@ package com.lambda.gui.settings
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -35,7 +32,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
@@ -47,9 +43,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.lambda.config.entries.Setting
 import com.lambda.gui.clickgui.Reveal
+import com.lambda.gui.component.LabeledRow
 import com.lambda.gui.component.LocalClickOnRelease
 import com.lambda.gui.component.LocalKeyboardReachable
-import com.lambda.gui.component.RowHeight
 import com.lambda.gui.component.Tooltip
 import com.lambda.gui.component.hoverHighlight
 import com.lambda.gui.core.awaitFrames
@@ -57,7 +53,6 @@ import com.lambda.gui.core.observe
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Radius
-import com.lambda.gui.theme.Text
 
 /**
  * The row of one setting in a list, whatever its type: the description as its tooltip, the
@@ -137,16 +132,8 @@ private fun Modifier.enabled(enabled: Boolean): Modifier =
 
 /** The shape most settings share: the [name], and at the end of the row whatever edits the value */
 @Composable
-internal fun Labeled(name: String, modifier: Modifier = Modifier, editor: @Composable RowScope.() -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        modifier = modifier.fillMaxWidth().heightIn(min = RowHeight).padding(start = 3.dp)
-    ) {
-        Text(name, Modifier.weight(1f), maxLines = 1)
-        editor()
-    }
-}
+internal fun Labeled(name: String, modifier: Modifier = Modifier, editor: @Composable RowScope.() -> Unit) =
+    LabeledRow(name, modifier.padding(start = 3.dp), editor)
 
 /** Width of the field a line of text is typed into, beside its name */
 internal val TextFieldWidth = 90.dp
