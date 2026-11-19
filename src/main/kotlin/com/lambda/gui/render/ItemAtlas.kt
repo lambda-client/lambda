@@ -25,8 +25,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.skiaCanvas
 import com.lambda.Lambda.mc
-import com.lambda.gui.render.ItemAtlas.context
-import com.lambda.gui.render.ItemAtlas.image
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.gl.Framebuffer
 import net.minecraft.client.gl.GlBackend

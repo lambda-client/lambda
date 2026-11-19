@@ -42,8 +42,8 @@ import androidx.compose.ui.unit.dp
 import com.lambda.gui.theme.LocalContentColor
 import com.lambda.gui.theme.Motion
 import com.lambda.gui.theme.Type
-import kotlin.math.roundToInt
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 private val SLIDE_SPEED = 28.dp
 private const val REST_MILLIS = 350

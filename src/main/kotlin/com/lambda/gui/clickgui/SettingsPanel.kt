@@ -87,8 +87,8 @@ import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Motion
 import com.lambda.module.ModuleTag
-import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private val MIN_WIDTH = 130.dp
 private val MIN_HEIGHT = 120.dp
