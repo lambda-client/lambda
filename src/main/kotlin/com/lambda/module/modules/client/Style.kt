@@ -105,66 +105,71 @@ object Style : Module(
             this,
             // A shade lighter than the header and a shade less full, so it is plain to see without being loud: a panel is
             // read by its band of tabs, and what is set in it is not to be taken for a module that is on
-            primary = Color(194, 86, 114),
-            secondary = Color(255, 168, 158),
-            surface = Color(60, 48, 52, 165),
-            panel = Color(48, 38, 42, 200),
+            primary = Color(214, 77, 113),
+            secondary = Color(255, 141, 128),
+            surface = Color(69, 48, 55, 165),
+            panel = Color(55, 38, 45, 200),
             inset = Color(0, 0, 0, 190),
             onSurface = Color(246, 236, 239),
-            onSurfaceVariant = Color(172, 152, 159),
-            header = Color(190, 62, 98),
+            onSurfaceVariant = Color(184, 156, 166),
+            header = Color(222, 53, 101),
             onHeader = Color(255, 246, 248),
             // A shade of the header, as strong and a good step darker: greyed and left as light it turns to a dusty pink
-            moduleEnabled = Color(138, 46, 72),
+            moduleEnabled = Color(161, 42, 75),
             onModuleEnabled = Color(255, 240, 244),
             // Every control is the one rose: a chip, a button and a key cap are filled as a slider
             // and a ticked box are, so that whatever can be set looks like one kind of thing
-            control = Color(194, 86, 114),
-            controlMenu = Color(48, 38, 42),
-            controlSelected = Color(81, 65, 71),
+            control = Color(214, 77, 113),
+            controlMenu = Color(55, 38, 45),
+            controlSelected = Color(92, 64, 75),
             onControl = Color(246, 236, 239),
             // Wells cut into the panel, darker than any glass they sit on so they never blend into it
-            track = Color(34, 27, 30, 230),
-            input = Color(29, 23, 25, 230),
-            border = Color(114, 93, 100, 235),
+            track = Color(38, 28, 32, 230),
+            input = Color(32, 23, 26, 230),
+            border = Color(128, 92, 104, 235),
             textShadow = Color(0, 0, 0, 150),
             // From the rose of the headers to the salmon, the two ends of the theme's range
-            glowA = Color(190, 62, 98),
-            glowB = Color(255, 168, 158),
+            glowA = Color(222, 53, 101),
+            glowB = Color(255, 141, 128),
         )
     )
 
-    // Light glass has to be nearly solid: dark text over whatever the game shows through it
-    // cannot be read, and a shadow under dark text only smears it. Its tiers run the other way,
-    // darker for what is deeper, and its rose is the crimson of the logo, which holds on white.
+    // The dark theme turned over: the same rose, salmon and rose-tinted backing at the same hues,
+    // with the tiers running the other way, darker for what is deeper. Light glass has to be
+    // nearly solid, as dark text over whatever the game shows through it cannot be read, and it
+    // takes no text shadow, which only smears dark text.
     @Group(LIGHT_THEME_GROUP) private val lightTheme by configBlock(
         PaletteSettings(
             this,
-            primary = Color(214, 55, 88),
-            secondary = Color(196, 58, 52),
-            surface = Color(246, 240, 243, 200),
-            panel = Color(240, 233, 237, 225),
+            // The rose of the headers: it fills a slider thinned, under the dark text over it
+            primary = Color(222, 53, 101),
+            // The salmon, deepened until it reads as text on a light panel
+            secondary = Color(209, 74, 59),
+            surface = Color(250, 236, 241, 228),
+            panel = Color(244, 226, 232, 240),
             inset = Color(120, 0, 40, 68),
-            onSurface = Color(64, 44, 54),
-            onSurfaceVariant = Color(128, 108, 117),
-            header = Color(214, 55, 88, 242),
+            onSurface = Color(61, 40, 47),
+            onSurfaceVariant = Color(110, 86, 95),
+            // The same as on dark glass, so a window is known by the one colour in either theme
+            header = Color(222, 53, 101),
             onHeader = Color(255, 250, 251),
-            // Filled a step under the header with its text in white, as in the dark theme: a tint of
-            // pink under crimson text was too faint to pick the enabled out of a list at a glance
-            moduleEnabled = Color(226, 104, 130),
+            // A step under the header, which on light glass is a step lighter, with its text in white:
+            // a tint of pink under dark text was too faint to pick the enabled out of a list at a glance
+            moduleEnabled = Color(232, 84, 126),
             onModuleEnabled = Color(255, 250, 251),
-            // The rose of the fill of a slider, which is the accent thinned for the dark text over it
-            control = Color(214, 114, 136),
-            controlMenu = Color(240, 233, 237),
-            controlSelected = Color(228, 210, 218),
-            onControl = Color(64, 44, 54),
-            track = Color(214, 203, 208, 220),
-            input = Color(255, 255, 255, 200),
-            border = Color(190, 172, 180, 238),
+            // The same rose paler again, so what is set in a panel is not taken for a module that is on
+            control = Color(240, 139, 166),
+            controlMenu = Color(244, 226, 232),
+            controlSelected = Color(224, 197, 206),
+            onControl = Color(61, 40, 47),
+            // Wells cut into the panel: a track is darker than it, a text field is paper
+            track = Color(209, 192, 199, 220),
+            input = Color(255, 250, 252, 210),
+            border = Color(184, 154, 164, 238),
             textShadow = Color(0, 0, 0, 0),
-            // From the rose of the headers to a paler one: around light glass a glow has to stay light itself
-            glowA = Color(214, 55, 88),
-            glowB = Color(255, 150, 172),
+            // The two ends of the theme's range, as in the dark theme: both are light enough to glow around light glass
+            glowA = Color(222, 53, 101),
+            glowB = Color(255, 141, 128),
         )
     )
 
