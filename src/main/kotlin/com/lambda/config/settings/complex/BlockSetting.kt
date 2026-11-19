@@ -38,9 +38,8 @@ class BlockSetting(
 	visibility: () -> Boolean,
 	defaultValue: Block
 ) : Setting<Block>(name, description, defaultValue, layer, config, visibility) {
-	/** A chip with the block and its icon, which opens a window listing every block */
 	@Composable
-	override fun compose() = BlockPicker(this)
+	override fun Editor() = BlockPicker(this)
 
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(blockState(name, registry)) { argument ->

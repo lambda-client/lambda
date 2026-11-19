@@ -126,10 +126,6 @@ abstract class Module(
     modulePriority: Int = 0,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false,
-    /**
-     * For a module that does nothing by being enabled, only holding settings that always apply:
-     * it counts as enabled at all times, whatever was saved, and cannot be disabled or toggled.
-     */
     val alwaysEnabled: Boolean = false,
 ) : Nameable, Muteable, OwnerPriority, Config(name, ModuleCategory),
     IMutableAutomationConfig by MutableAutomationConfig()

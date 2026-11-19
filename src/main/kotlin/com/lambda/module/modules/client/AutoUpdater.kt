@@ -42,7 +42,6 @@ object AutoUpdater : Module(
 
     private var loaderPromptHandled by property(false)
 
-    /** A question the click GUI puts to the user before the jar is swapped, which restarts the game */
     enum class Prompt { FirstLaunch, Install, Uninstall }
 
     var prompt: Prompt? = null
@@ -61,13 +60,10 @@ object AutoUpdater : Module(
     }
 
     init {
-        // Toggling the module from the GUI asks first; the answer either goes ahead or toggles it back,
-        // which lands here again with the prompt still up and only takes it down
         onEnableUnsafe { prompt = Prompt.Install.takeIf { LambdaGui.screen != null && prompt != Prompt.Uninstall } }
         onDisableUnsafe { prompt = Prompt.Uninstall.takeIf { LambdaGui.screen != null && prompt != Prompt.Install } }
     }
 
-    /** Called when the click GUI opens, the first of which decides whether to offer the loader */
     fun onGuiOpened() {
         if (firstLaunchStateInitialized) return
         firstLaunchStateInitialized = true

@@ -17,14 +17,41 @@
 
 package com.lambda.gui.component
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import com.lambda.gui.render.ItemAtlas
+import com.lambda.gui.render.ItemAtlas.drawItem
 import com.lambda.util.stream
+import net.minecraft.item.ItemStack
 import org.jetbrains.skia.Image
+import kotlin.math.roundToInt
 
-/** One of Lambda's own images, by its path under `assets/lambda/` */
 @Composable
 fun rememberTexture(path: String): ImageBitmap =
     remember(path) { path.stream.use { Image.makeFromEncoded(it.readAllBytes()) }.toComposeImageBitmap() }
+
+@Composable
+fun ItemIcon(stack: ItemStack, size: Dp, modifier: Modifier = Modifier) {
+    val slot = remember { ItemAtlas.Slot() }
+    val density = LocalDensity.current
+    val pixels = with(density) { ItemAtlas.ITEM * (size.toPx() / ItemAtlas.ITEM).roundToInt().coerceAtLeast(1) }
+    SideEffect {
+        slot.stack = stack
+        slot.size = pixels
+    }
+    DisposableEffect(slot) {
+        ItemAtlas.add(slot)
+        onDispose { ItemAtlas.remove(slot) }
+    }
+    Spacer(modifier.size(with(density) { pixels.toDp() }).drawBehind { drawItem(slot) })
+}

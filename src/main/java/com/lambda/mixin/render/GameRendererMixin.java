@@ -102,8 +102,6 @@ public class GameRendererMixin {
             Cursor cursor = provider.getCursorOverride(mouseX, mouseY);
 
             if (cursor != null) {
-                // Through the window, which remembers the cursor it shows: applied behind its back,
-                // the override would outlive the screen, as the window would think it never changed
                 window.setCursor(cursor);
                 return;
             }

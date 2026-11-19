@@ -80,15 +80,7 @@ import org.lwjgl.opengl.GL33.GL_SAMPLER_BINDING
 import org.lwjgl.opengl.GL33.glBindSampler
 import org.lwjgl.system.MemoryStack
 
-/**
- * Lends the game's OpenGL context to Skia.
- *
- * Minecraft tracks the GL state it has set and skips calls it believes are redundant, so anything
- * Skia changes behind its back has to be put back exactly. [borrow] records the state Skia touches,
- * gives the block the defaults Skia expects, and restores the recording afterwards.
- */
 internal object GlState {
-    /** Texture units Minecraft tracks; Skia never binds a unit past these that the game also uses */
     private const val TEXTURE_UNITS = 12
 
     private val UNPACK_PARAMETERS = intArrayOf(
@@ -115,17 +107,12 @@ internal object GlState {
         }
     }
 
-    /**
-     * Skia uploads textures (its glyph atlas, most visibly) assuming default pixel-store state and
-     * no pixel buffer bound; Minecraft leaves both however its last upload needed them.
-     */
     fun prepare() {
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
         UNPACK_PARAMETERS.forEachIndexed { index, parameter -> glPixelStorei(parameter, UNPACK_DEFAULTS[index]) }
     }
 
-    /** Records the current state and returns the function that reinstates it */
     fun capture(): () -> Unit {
         val activeTexture = glGetInteger(GL_ACTIVE_TEXTURE)
         for (unit in 0 until TEXTURE_UNITS) {

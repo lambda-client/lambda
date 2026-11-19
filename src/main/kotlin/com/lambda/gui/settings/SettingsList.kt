@@ -52,29 +52,25 @@ import androidx.compose.ui.unit.dp
 import com.lambda.config.EntryLayer
 import com.lambda.config.MultipleLayerType
 import com.lambda.config.entries.Setting
-import com.lambda.gui.clickgui.Reveal
+import com.lambda.config.hasVisibleSettings
+import com.lambda.config.holds
+import com.lambda.gui.Reveal
 import com.lambda.gui.component.Chevron
+import com.lambda.gui.component.ContentColor
 import com.lambda.gui.component.Expandable
 import com.lambda.gui.component.Menu
 import com.lambda.gui.component.MenuItem
 import com.lambda.gui.component.MenuState
-import com.lambda.gui.component.RowHeight
 import com.lambda.gui.component.Section
+import com.lambda.gui.component.Text
 import com.lambda.gui.component.hoverHighlight
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.core.observe
-import com.lambda.gui.theme.ContentColor
 import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Motion
-import com.lambda.gui.theme.Radius
-import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
 
-/**
- * The settings of a config as they are organised in code: tabs become a band that picks the
- * page under it, groups become collapsible sections, and a setting appears only while it is
- * visible. A group is nested under its heading, a tab's page framed under its tab.
- */
 @Composable
 fun SettingsList(layer: EntryLayer<Setting<*>>) {
     when (layer) {
@@ -93,7 +89,6 @@ fun SettingsList(layer: EntryLayer<Setting<*>>) {
                 layer.multipleType == MultipleLayerType.Group ->
                     Section(layer.name, revealed = Reveal.setting?.let(layer::holds) == true) { Children(layer) }
                 else -> Column(Modifier.fillMaxWidth()) {
-                    // Whatever is not in a tab is shown above the tabs, whichever one is selected
                     layer.layers.filter { it !is EntryLayer.Tab }.forEach { SettingsList(it) }
                     if (tabs.isNotEmpty()) Tabs(tabs)
                 }
@@ -105,24 +100,12 @@ fun SettingsList(layer: EntryLayer<Setting<*>>) {
 @Composable
 private fun Children(layer: EntryLayer.Multiple<Setting<*>>) = layer.layers.forEach { SettingsList(it) }
 
-/**
- * The pages a config sorts its settings into, and over them a band that says which one is shown
- * and lists the others when clicked.
- *
- * What it picks decides everything under it, as a category does its modules, so the band is the
- * header of a category over again: as wide as the panel, filled in its colour and rounded at the
- * top alone, where the choice of a setting is a chip at the end of its row. It is one row however many pages there are, and no wider than its settings.
- * Changing pages slides the new one in from the side it is on in the list, while the panel
- * grows or shrinks to fit it.
- */
 @Composable
 private fun Tabs(tabs: List<EntryLayer.Tab<Setting<*>>>) {
     val shown by observe { tabs.filter { it.hasVisibleSettings() } }
     if (shown.isEmpty()) return
     var selectedName by remember { mutableStateOf(shown.first().name) }
-    // The selection can stop having anything visible in it
     val selected = shown.firstOrNull { it.name == selectedName } ?: shown.first()
-    // A setting the search points at is on one of the pages: that one is turned to
     val revealed = Reveal.setting
     LaunchedEffect(revealed) {
         if (revealed != null) shown.firstOrNull { it.holds(revealed) }?.let { selectedName = it.name }
@@ -140,13 +123,11 @@ private fun Tabs(tabs: List<EntryLayer.Tab<Setting<*>>>) {
     }
 }
 
-/** The band over a config's pages: the [selected] one of [names], and a menu of them all under it */
 @Composable
 private fun TabPicker(names: List<String>, selected: String, onSelect: (String) -> Unit) {
     val colors = LambdaTheme.colors
     val menu = remember { MenuState() }
     var band by remember { mutableStateOf(IntSize.Zero) }
-    // The only page left, the others having nothing to show, is a heading rather than a choice of one
     val choice = names.size > 1
 
     Box(Modifier.fillMaxWidth().onSizeChanged { band = it }) {
@@ -156,9 +137,8 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = RowHeight + 2.dp)
-                    // Square underneath, where its page hangs off it as the modules do off their category
-                    .clip(RoundedCornerShape(topStart = Radius.Window, topEnd = Radius.Window))
+                    .heightIn(min = Look.rowHeight + 2.dp)
+                    .clip(RoundedCornerShape(topStart = Look.windowRounding, topEnd = Look.windowRounding))
                     .background(colors.header)
                     .then(
                         if (!choice) Modifier
@@ -170,7 +150,6 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
                 if (choice) Chevron(90f)
             }
         }
-        // Drops out from under the band, as wide as it and square where the two meet
         Menu(menu.isOpen, onDismiss = menu::dismiss, unfoldFrom = IntSize(band.width, 0), attached = true) {
             names.forEach { name ->
                 MenuItem(name, selected = name == selected) {
@@ -181,12 +160,6 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
     }
 }
 
-
-/**
- * How one page gives way to another, under tabs or the strip of a settings panel: the new one
- * slides in from the side its tab is on, [towardsEnd] or from the start, while the room they
- * are in grows or shrinks to fit it.
- */
 internal fun AnimatedContentTransitionScope<*>.pageTurn(towardsEnd: Boolean): ContentTransform {
     val millis = Motion.pageMillis
     val slide = tween<IntOffset>(millis)
@@ -194,20 +167,3 @@ internal fun AnimatedContentTransitionScope<*>.pageTurn(towardsEnd: Boolean): Co
         .togetherWith(fadeOut(tween(millis / 2)) + slideOutHorizontally(slide) { if (towardsEnd) -it / 5 else it / 5 })
         .using(SizeTransform(clip = true) { _, _ -> tween(millis) })
 }
-
-/** Whether [setting] is somewhere in the layer, at any depth */
-internal fun EntryLayer<Setting<*>>.holds(setting: Setting<*>): Boolean = when (this) {
-    is EntryLayer.Single -> entry === setting
-    is EntryLayer.Multiple -> layers.any { it.holds(setting) }
-    else -> false
-}
-
-/** Whether the layer holds a setting that is visible right now, at any depth */
-internal fun EntryLayer.Multiple<Setting<*>>.hasVisibleSettings(): Boolean =
-    layers.any {
-        when (it) {
-            is EntryLayer.Single -> it.entry.visibility()
-            is EntryLayer.Multiple -> it.hasVisibleSettings()
-            else -> false
-        }
-    }

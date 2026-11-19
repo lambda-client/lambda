@@ -40,7 +40,6 @@ object Watermark : HudModule(
     override fun Content() {
         val logo = rememberTexture("textures/lambda.png")
         val scale by observe { scale }
-        // Sized in dp from the image's own pixels, so the watermark grows with the screen
         Image(logo, "Lambda", Modifier.size((logo.width * scale).dp, (logo.height * scale).dp))
     }
 }

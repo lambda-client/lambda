@@ -45,30 +45,15 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.lambda.gui.theme.LambdaTheme
 
-/**
- * How the interface is being driven. Everything that can be clicked can also be reached from
- * the keyboard: Tab and Shift with Tab step through it in order, the arrow keys move to what
- * lies in their direction, and Enter or Space is a click on whatever the focus is on, with
- * Shift a right click.
- *
- * The focus is only marked, and only acted on, while it is the keyboard that moves it. A mouse
- * press puts the mark away, and with it the chance of Enter toggling something that was left
- * focused out of sight; the next Tab or arrow key brings it back.
- */
+private val FOCUS_MARK = 1.dp
+
 internal object KeyboardFocus {
     var visible by mutableStateOf(false)
 
-    /** The focus of the interface and of every window open over it that takes the keyboard, the innermost last */
     private val layers = ArrayList<FocusManager>()
 
-    /** Moves the focus of whatever has the keyboard, and returns whether there was anywhere to move it */
     fun move(direction: FocusDirection) = layers.lastOrNull()?.moveFocus(direction) == true
 
-    /**
-     * Has the keys that move the focus move it here, among what this is called beside, for as
-     * long as it is on screen. For the interface itself and for what opens over it and takes
-     * the keyboard, a menu or a dialog: each of those has a focus of its own.
-     */
     @Composable
     fun Layer() {
         val manager = LocalFocusManager.current
@@ -79,10 +64,6 @@ internal object KeyboardFocus {
     }
 }
 
-/**
- * Makes the element a stop for the keyboard focus, outlined while it holds it. Every key that
- * goes down while it does is offered to [onKey], which returns whether the key was for it.
- */
 fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier = composed {
     if (!LocalKeyboardReachable.current) return@composed Modifier
     var focused by remember { mutableStateOf(false) }
@@ -90,24 +71,15 @@ fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier = compose
     val mark = LambdaTheme.colors.onSurface
     onFocusChanged { focused = it.isFocused }
         .onKeyEvent { it.type == KeyEventType.KeyDown && KeyboardFocus.visible && handle(it) }
-        // Brings what it is on into view as well, in a list that scrolls
         .focusable()
-        // In the colour of text, as what the search points at is lit: nothing else is outlined in it
         .drawWithContent {
             drawContent()
             if (!focused || !KeyboardFocus.visible) return@drawWithContent
-            val width = FocusMark.toPx()
+            val width = FOCUS_MARK.toPx()
             drawRect(mark, Offset(width / 2, width / 2), Size(size.width - width, size.height - width), style = Stroke(width))
         }
 }
 
-/**
- * Whether the keyboard focus stops on what is inside. Off for what the pointer cannot reach
- * either, a setting that is disabled: the focus passes it by, so no key can change it.
- */
 val LocalKeyboardReachable = compositionLocalOf { true }
 
-/** Whether the key is one that clicks what the focus is on */
-internal val KeyEvent.isActivation get() = key == Key.Enter || key == Key.NumPadEnter || key == Key.Spacebar
-
-private val FocusMark = 1.dp
+internal val KeyEvent.isActivation get() = key == Key.Enter || key == Key.Spacebar

@@ -48,9 +48,8 @@ class CharSetting(
 	defaultValue: Char,
 	visibility: () -> Boolean
 ) : Setting<Char>(name, description, defaultValue, layer, config, visibility) {
-	/** A field one character wide: whatever is typed last replaces what it holds */
 	@Composable
-	override fun compose() {
+	override fun Editor() {
 		val value by observe { value }
 		Labeled(name) {
 			TextInput(value.toString(), { text -> text.lastOrNull()?.let { this@CharSetting.value = it } }, Modifier.width(18.dp))

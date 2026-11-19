@@ -26,22 +26,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
 
-/**
- * Turns anything the client knows into Compose state: a setting, whether a module is enabled,
- * the player's position.
- *
- * None of that is observable, and most of it changes from code that has never heard of the GUI.
- * So [read] is simply evaluated once per frame, and the caller recomposes only when the result is
- * not equal to the last one. That keeps the model free of GUI concerns and makes the interface
- * redraw exactly when something it shows has changed.
- *
- * ```
- * val enabled by observe { module.isEnabled }
- * ```
- *
- * [read] runs on the client thread every frame for as long as the caller is composed, so keep it
- * to reading: return an immutable value, and copy a collection that is mutated in place.
- */
 @Composable
 fun <T> observe(read: () -> T): State<T> {
     val observations = LocalObservations.current
@@ -54,7 +38,6 @@ fun <T> observe(read: () -> T): State<T> {
     return observation.state
 }
 
-/** [observe] for values that need the player and world; null while there is neither */
 @Composable
 fun <T> observeSafe(read: SafeContext.() -> T): State<T?> = observe { runSafe(read) }
 
@@ -66,16 +49,10 @@ internal class Observation<T>(var read: () -> T) {
     }
 }
 
-/**
- * The values one part of the interface observes. A part that stays composed while it is not on
- * screen gets a group of its own, see [Retained], which is then simply not refreshed.
- */
 internal class Observations {
     val active = ArrayList<Observation<*>>()
 
-    /** Re-reads every observed value. Called once per frame, before composition. */
     fun refresh() = active.forEach { it.refresh() }
 }
 
-/** The group [observe] adds to */
 internal val LocalObservations = staticCompositionLocalOf<Observations> { error("observe was called outside the interface") }

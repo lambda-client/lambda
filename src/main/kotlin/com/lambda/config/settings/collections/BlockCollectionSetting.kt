@@ -44,6 +44,5 @@ class BlockCollectionSetting(
 	serialize = true,
 ) {
 	override fun label(item: Block) = BlockSerializer.stringify(item)
-	// Blocks without an item of their own, like fire or water, come out empty and show nothing
 	override fun icon(item: Block) = ItemStack(item.asItem())
 }

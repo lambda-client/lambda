@@ -37,11 +37,12 @@ import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.component.Text
 import com.lambda.gui.component.TextInput
 import com.lambda.gui.core.observe
 import com.lambda.gui.settings.Labeled
-import com.lambda.gui.settings.TextFieldWidth
-import com.lambda.gui.theme.Text
+import com.lambda.gui.settings.ROW_INSET
+import com.lambda.gui.settings.TEXT_FIELD_WIDTH
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -58,17 +59,15 @@ class StringSetting(
     var multiline: Boolean = false,
 ) : Setting<String>(name, description, defaultValue, layer, config, visibility) {
 
-    /** A field to type into beside the name, or under it for text of several lines */
     @Composable
-    override fun compose() {
+    override fun Editor() {
         val value by observe { value }
-        // Text that runs over several lines is the one editor that cannot keep to a row
         if (multiline) Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(name, Modifier.padding(start = 3.dp, top = 1.dp), maxLines = 1)
+            Text(name, Modifier.padding(start = ROW_INSET, top = 1.dp), maxLines = 1)
             TextInput(value, { this@StringSetting.value = it }, Modifier.fillMaxWidth(), singleLine = false)
         }
         else Labeled(name) {
-            TextInput(value, { this@StringSetting.value = it }, Modifier.width(TextFieldWidth))
+            TextInput(value, { this@StringSetting.value = it }, Modifier.width(TEXT_FIELD_WIDTH))
         }
     }
 

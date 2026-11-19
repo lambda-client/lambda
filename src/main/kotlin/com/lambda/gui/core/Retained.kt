@@ -24,21 +24,8 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
 
-/**
- * Whether the part of the interface this is read in is on screen. False inside a hidden
- * [Retained], where a popup has to hold back: it floats above everything, hidden or not.
- */
 val LocalShown = compositionLocalOf { true }
 
-/**
- * Keeps [content] composed whether or not it is [shown], so that showing it is a matter of
- * putting it on the screen rather than of building it, which for the click GUI's hundreds of
- * rows takes long enough to be felt as a stutter.
- *
- * While hidden, the content is neither drawn nor reachable by the pointer, and nothing it
- * observes is re-read: its observations join [observations], which the owner leaves alone
- * meanwhile. It costs nothing but the memory it is kept in.
- */
 @Composable
 internal fun Retained(shown: Boolean, observations: Observations, content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalShown provides shown, LocalObservations provides observations) {

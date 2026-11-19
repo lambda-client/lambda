@@ -17,6 +17,7 @@
 
 package com.lambda.util.math
 
+import androidx.compose.ui.graphics.toArgb
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
@@ -35,3 +36,7 @@ val Color.b get() = blue / 255.0
 val Color.a get() = alpha / 255.0
 
 val Color.vec3d get() = Vec3d(r, g, b)
+
+fun Color.toCompose() = androidx.compose.ui.graphics.Color(red, green, blue, alpha)
+
+fun androidx.compose.ui.graphics.Color.toAwt() = Color(toArgb(), true)

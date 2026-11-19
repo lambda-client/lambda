@@ -301,10 +301,6 @@ object LambdaRenderPipelines : Loadable {
 				.build()
 		)
 
-	/**
-	 * A fullscreen pass for the GUI: one triangle from the vanilla screen quad shader, drawn
-	 * without a vertex buffer, sampling [samplers] and optionally blending over the target.
-	 */
 	private fun guiPass(
 		name: String,
 		fragmentShader: Identifier,
@@ -329,7 +325,6 @@ object LambdaRenderPipelines : Loadable {
 				.build()
 		)
 
-	/** Draws the GUI texture, which has premultiplied alpha, over the game as it is */
 	val GUI_BLIT = guiPass(
 		"gui_blit",
 		Identifier.ofVanilla("core/blit_screen"),
@@ -337,7 +332,6 @@ object LambdaRenderPipelines : Loadable {
 		blend = BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA
 	)
 
-	/** [GUI_BLIT] with the frosted backdrop and the glow mixed in underneath */
 	val GUI_COMPOSITE = guiPass(
 		"gui_composite",
 		Identifier.of("lambda", "core/gui_composite"),

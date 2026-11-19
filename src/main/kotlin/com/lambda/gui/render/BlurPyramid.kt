@@ -31,17 +31,6 @@ import java.util.*
 import kotlin.math.ceil
 import kotlin.math.log2
 
-/**
- * A dual Kawase blur.
- *
- * Instead of sampling a wide kernel at full resolution, the image is halved a few times and then
- * doubled back up, each step a handful of bilinear taps. Every level costs a quarter of the one
- * before it, so the whole blur is cheaper than a single full resolution pass and its cost barely
- * grows with the radius: a larger radius just adds a smaller level.
- *
- * The result is left at half the source resolution. A blur has no detail a full resolution copy
- * would show, and skipping the last upsample avoids the one pass that touches every pixel.
- */
 internal class BlurPyramid(private val name: String) {
     private var levels = emptyList<Level>()
     private var width = 0
@@ -52,10 +41,8 @@ internal class BlurPyramid(private val name: String) {
     )
     private var spread = Float.NaN
 
-    /** Blurs [source], which is [width] by [height], by about [radius] pixels */
     fun blur(source: GpuTextureView, width: Int, height: Int, radius: Float): GpuTextureView {
         resize(width, height)
-        // Each level doubles the reach of the one above; the spread covers what is left over
         val depth = (ceil(log2(radius.coerceAtLeast(1f))).toInt() - 1).coerceIn(1, levels.size)
         writeSpread((radius / (1 shl depth)).coerceIn(MIN_SPREAD, MAX_SPREAD))
 
@@ -115,14 +102,11 @@ internal class BlurPyramid(private val name: String) {
     }
 
     private companion object {
-        /** Deep enough for a radius of over a hundred pixels */
         const val MAX_DEPTH = 6
 
-        /** Past two texels the taps stop overlapping and the blur breaks up into copies */
         const val MIN_SPREAD = 0.5f
         const val MAX_SPREAD = 2f
 
-        /** A lone float, padded to the 16 bytes a std140 block rounds up to */
         const val SPREAD_UNIFORM_SIZE = 16L
     }
 }

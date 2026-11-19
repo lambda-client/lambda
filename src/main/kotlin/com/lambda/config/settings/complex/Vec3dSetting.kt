@@ -31,7 +31,7 @@ import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.component.NumberInput
 import com.lambda.gui.core.observe
 import com.lambda.gui.settings.Labeled
-import com.lambda.gui.settings.NumberFieldWidth
+import com.lambda.gui.settings.NUMBER_FIELD_WIDTH
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
@@ -44,14 +44,14 @@ class Vec3dSetting(
     visibility: () -> Boolean,
     defaultValue: Vec3d
 ) : Setting<Vec3d>(name, description, defaultValue, layer, config, visibility) {
-    /** A field for each coordinate */
     @Composable
-    override fun compose() {
+    override fun Editor() {
         val vec by observe { value }
         Labeled(name) {
-            NumberInput(vec.x, { value = Vec3d(it, vec.y, vec.z) }, Modifier.weight(1f, fill = false).width(NumberFieldWidth))
-            NumberInput(vec.y, { value = Vec3d(vec.x, it, vec.z) }, Modifier.weight(1f, fill = false).width(NumberFieldWidth))
-            NumberInput(vec.z, { value = Vec3d(vec.x, vec.y, it) }, Modifier.weight(1f, fill = false).width(NumberFieldWidth))
+            val parse = { text: String -> text.toDoubleOrNull()?.takeIf(Double::isFinite) }
+            NumberInput(vec.x, parse, { value = Vec3d(it, vec.y, vec.z) }, Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH))
+            NumberInput(vec.y, parse, { value = Vec3d(vec.x, it, vec.z) }, Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH))
+            NumberInput(vec.z, parse, { value = Vec3d(vec.x, vec.y, it) }, Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH))
         }
     }
 

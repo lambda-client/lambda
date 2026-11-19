@@ -26,13 +26,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
-/**
- * Lets Lambda's interface run at the player's own frame rate outside a world.
- * <p>
- * Minecraft holds its menus to 60 frames a second while no world is loaded, which is fine for
- * a title screen and makes the click GUI and the HUD editor opened over one visibly less smooth
- * than they are in game. Minimised and idle windows keep their limits.
- */
 @Mixin(InactivityFpsLimiter.class)
 public class InactivityFpsLimiterMixin {
     @Shadow

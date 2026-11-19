@@ -41,20 +41,15 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.lambda.gui.theme.LocalContentColor
 import com.lambda.gui.theme.Motion
-import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
 import kotlin.math.roundToInt
 import kotlinx.coroutines.withContext
 
-/**
- * A single line of text. When it is too long for the room it is given it is cut off, and
- * resting the pointer on it has it slide along until its end has come into view, wait, and
- * slide back, for as long as the pointer stays. Taking the pointer away slides it home from
- * wherever it had got to.
- *
- * The way back is always the quick one: reading starts over at the beginning, and the sooner
- * the text is there the better.
- */
+private val SLIDE_SPEED = 28.dp
+private const val REST_MILLIS = 350
+private const val END_REST_MILLIS = 900
+private const val BACK_MILLIS = 250
+
 @Composable
 fun SlidingText(
     text: String,
@@ -62,13 +57,11 @@ fun SlidingText(
     color: Color = LocalContentColor.current,
     style: TextStyle = Type.body,
 ) {
-    // How many pixels of the text do not fit, found out when it is laid out
     var overflow by remember { mutableIntStateOf(0) }
     val interactions = remember { MutableInteractionSource() }
     val hovered by interactions.collectIsHoveredAsState()
-    val pixelsPerSecond = with(LocalDensity.current) { SlideSpeed.toPx() }
+    val pixelsPerSecond = with(LocalDensity.current) { SLIDE_SPEED.toPx() }
 
-    // How far along the text is, from 0 at home to 1 with its end in view
     val slide = remember { Animatable(0f) }
     LaunchedEffect(hovered, overflow) {
         if (!hovered || overflow == 0) {
@@ -76,8 +69,7 @@ fun SlidingText(
             return@LaunchedEffect
         }
         val outMillis = (overflow / pixelsPerSecond * 1000).roundToInt().coerceAtLeast(BACK_MILLIS)
-        // At the pace it is read at, whatever the style makes of the animations
-        withContext(Motion.Unscaled) {
+        withContext(Motion.UNSCALED) {
             slide.animateTo(
                 targetValue = 0f,
                 animationSpec = infiniteRepeatable(
@@ -104,21 +96,8 @@ fun SlidingText(
                 val placeable = measurable.measure(constraints.copy(maxWidth = Constraints.Infinity))
                 overflow = if (constraints.hasBoundedWidth) (placeable.width - constraints.maxWidth).coerceAtLeast(0) else 0
                 layout(placeable.width - overflow, placeable.height) {
-                    // Moved by whole pixels, which keeps a pixel font sharp on the way
                     placeable.place(-(slide.value * overflow).roundToInt(), 0)
                 }
             }
     )
 }
-
-/** How fast the text moves towards its end: slow enough to read along */
-private val SlideSpeed = 28.dp
-
-/** Time before the text sets off, so that passing over it does not set it moving */
-private const val REST_MILLIS = 350
-
-/** Time at rest with the end in view */
-private const val END_REST_MILLIS = 900
-
-/** Time to slide home, however far that is */
-private const val BACK_MILLIS = 250

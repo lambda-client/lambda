@@ -39,9 +39,8 @@ class ColorSetting(
     visibility: () -> Boolean,
     defaultValue: Color
 ) : Setting<Color>(name, description, defaultValue, layer, config, visibility) {
-    /** A swatch of the colour, which opens the picker beside the row */
     @Composable
-    override fun compose() = ColorPicker(this)
+    override fun Editor() = ColorPicker(this)
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer("Red", 0, 255)) { red ->

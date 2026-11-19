@@ -50,41 +50,19 @@ import org.jetbrains.skia.SurfaceColorFormat
 import org.jetbrains.skia.SurfaceOrigin
 import kotlin.math.ceil
 
-/**
- * Item stacks for the GUI, drawn by Minecraft exactly as it draws them in an inventory slot:
- * the model with its trims, dyes and glint, and over it the damage bar, the stack count and
- * the cooldown sweep.
- *
- * Nothing about an item is drawn by Lambda. Every icon on screen owns a [Slot] in one strip of
- * cells, the stacks are handed to a [DrawContext] the way a screen would, and a [GuiRenderer] of
- * our own renders what that recorded into the strip's framebuffer instead of the window (see
- * `GuiRendererMixin`). [import] then copies the strip into the Skia [image] the icons draw from.
- * Both only happen when something about a stack changed.
- */
 object ItemAtlas {
-    /** A cell in the atlas. Set [stack] and [size] to say what it should hold. */
     class Slot {
         var stack: ItemStack = ItemStack.EMPTY
 
-        /** Edge length the icon is drawn at, in pixels: a multiple of [ITEM] to come out pixel for pixel */
         var size = 0
 
-        /** The stack as it was last rendered, a copy because the live one mutates */
         internal var rendered: ItemStack = ItemStack.EMPTY
     }
 
-    /**
-     * The framebuffer the GUI renderer has to draw into in place of the window, set for as long
-     * as the atlas is being rendered. [scale] is the GUI scale it renders at meanwhile.
-     */
     @JvmStatic
     var target: Framebuffer? = null
         private set
 
-    /**
-     * The GUI scale the items are rendered at, a whole number as Minecraft's own always is:
-     * the first that covers the largest icon. Smaller icons are scaled down from it.
-     */
     @JvmStatic
     var scale = 1
         private set
@@ -105,11 +83,9 @@ object ItemAtlas {
         )
     }
 
-    /** What decides how each item's model looks, as of the last render: see [render] */
     private var renderedModels = emptyList<Any>()
     private var renderedAt = 0L
 
-    /** The strip. A new instance every time the items were rendered, so reading it redraws the reader. */
     private var image: Image? by mutableStateOf(null, neverEqualPolicy())
 
     fun add(slot: Slot) {
@@ -120,7 +96,6 @@ object ItemAtlas {
         slots -= slot
     }
 
-    /** Draws [slot]'s item over the scope, its count hanging over the corner as it does over a slot's */
     fun DrawScope.drawItem(slot: Slot) {
         val strip = image ?: return
         val index = slots.indexOf(slot)
@@ -138,7 +113,6 @@ object ItemAtlas {
         }
     }
 
-    /** Renders the items if any changed. Returns whether [import] has something new to pick up. */
     fun render(): Boolean {
         if (slots.isEmpty()) {
             if (strip == null) return false
@@ -150,8 +124,6 @@ object ItemAtlas {
         val scale = ceil(slots.maxOf { it.size } / ITEM.toFloat()).toInt()
         if (scale <= 0) return false
 
-        // Recorded every frame, as the game records its own slots. It costs next to nothing and
-        // is the only way to learn that a compass turned or a bow was drawn: only the model knows.
         slots.forEachIndexed { index, slot ->
             context.drawItem(slot.stack, index * CELL, 0)
             context.drawStackOverlay(mc.textRenderer, slot.stack, index * CELL, 0)
@@ -164,8 +136,6 @@ object ItemAtlas {
         }
         val changed = scale != this.scale || models != renderedModels ||
                 slots.any { !ItemStack.areEqual(it.stack, it.rendered) }
-        // What moves by itself, a glint or a cooldown, is redrawn at a steady rate instead of on
-        // every frame. It looks no different, and at a high frame rate costs a fraction.
         val now = System.nanoTime()
         if (!changed && !(moving && now - renderedAt >= ANIMATION_INTERVAL)) {
             state.clear()
@@ -187,17 +157,24 @@ object ItemAtlas {
         return true
     }
 
-    /** Copies what [render] drew into [image]. Runs while Skia holds the GL context. */
+    fun release() {
+        slots.clear()
+        image?.close()
+        image = null
+        strip?.close()
+        strip = null
+        pendingImport = false
+        renderedModels = emptyList()
+    }
+
     fun import(skia: DirectContext) {
         if (!pendingImport) return
         pendingImport = false
         val previous = image
         image = strip?.snapshot(skia)
-        // Safe at once: anything Skia recorded with the old strip holds its own reference to it
         previous?.close()
     }
 
-    /** Has the GUI renderer draw what [context] recorded into [framebuffer] */
     private fun draw(framebuffer: Framebuffer) {
         RenderSystem.getDevice().createCommandEncoder()
             .clearColorAndDepthTextures(framebuffer.colorAttachment, 0, framebuffer.depthAttachment, 1.0)
@@ -206,7 +183,6 @@ object ItemAtlas {
         val projectionType = RenderSystem.getProjectionType()
         target = framebuffer
         try {
-            // A frame of its own each time, or the renderer would keep showing the glint it cached
             renderer.incrementFrame()
             renderer.render(mc.gameRenderer.fogRenderer.getFogBuffer(FogRenderer.FogType.NONE))
         } finally {
@@ -215,11 +191,9 @@ object ItemAtlas {
         }
     }
 
-    /** The framebuffer the items are rendered into, and the Skia surface wrapped around it to copy them out */
     private class Strip(val width: Int, val height: Int) : AutoCloseable {
         val framebuffer = SimpleFramebuffer("Lambda GUI items", width, height, true)
 
-        // Resolved now, as game rendering, so no framebuffer object is created once Skia has the context
         private val glFramebuffer = (framebuffer.colorAttachment as GlTexture)
             .getOrCreateFramebuffer((RenderSystem.getDevice() as GlBackend).bufferManager, null)
         private var renderTarget: BackendRenderTarget? = null
@@ -233,8 +207,6 @@ object ItemAtlas {
                     skia, renderTarget, SurfaceOrigin.BOTTOM_LEFT, SurfaceColorFormat.RGBA_8888, ColorSpace.sRGB
                 ).also { surface = it }
             } ?: return null
-            // The game drew into the framebuffer behind Skia's back; without this the
-            // snapshot Skia cached the first time would be handed out forever
             surface.notifyContentWillChange(ContentChangeMode.DISCARD)
             return surface.makeImageSnapshot()
         }
@@ -246,12 +218,9 @@ object ItemAtlas {
         }
     }
 
-    /** Nanoseconds between two renders of items that animate: 75 a second, enough for any shimmer */
     private const val ANIMATION_INTERVAL = 1_000_000_000L / 75
 
-    /** Edge length of an item, in the units Minecraft lays its GUI out in */
     const val ITEM = 16
 
-    /** Edge length of a cell: an item, and the two units a stack count's shadow reaches past it */
     private const val CELL = 18
 }

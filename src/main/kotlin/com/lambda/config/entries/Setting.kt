@@ -143,15 +143,8 @@ abstract class Setting<T>(
 		core = originalCore
 	}
 
-	/**
-	* The setting's editor in the GUI: what its row in a list of settings holds, its name
-	* included. The row around it, which shows the description as a tooltip and is lit when
-	* the search points at it, is [com.lambda.gui.settings.SettingRow]'s.
-	*
-	* A setting that draws nothing here can only be changed with the config command.
-	*/
 	@Composable
-	open fun compose() {}
+	open fun Editor() {}
 
 	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(string("value as JSON")) { value ->

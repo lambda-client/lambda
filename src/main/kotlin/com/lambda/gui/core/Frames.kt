@@ -19,11 +19,6 @@ package com.lambda.gui.core
 
 import androidx.compose.runtime.withFrameNanos
 
-/**
- * Waits until [millis] of the interface's own time have passed. That time only runs while the
- * interface is being drawn, so nothing times out behind a closed screen, and the wait ends on
- * the thread the interface lives on, which a plain delay would not.
- */
 suspend fun awaitFrames(millis: Long) {
     val start = withFrameNanos { it }
     while (withFrameNanos { it } - start < millis * 1_000_000) Unit

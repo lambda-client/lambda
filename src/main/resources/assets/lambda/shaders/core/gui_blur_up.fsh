@@ -1,8 +1,5 @@
 #version 330
 
-// Upsampling half of a dual Kawase blur: the target is twice the size of InSampler. Eight taps
-// in a diamond, the near ones weighted double, spread the low resolution image back out smoothly.
-
 uniform sampler2D InSampler;
 
 layout(std140) uniform BlurSpread {

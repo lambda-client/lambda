@@ -62,7 +62,7 @@ object Coordinates : HudModule(
 
 	private fun SafeContext.coordinates(): String {
 		val position = player.pos.format(formatter)
-		val otherDimensionPos = // ToDo: The system has forced my hand, too bad!. We need to find a way to allow duplicate setting names.
+		val otherDimensionPos =
 			if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 			else player.netherCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 

@@ -44,10 +44,6 @@ import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.awt.datatransfer.Transferable
 
-/**
- * Stands in for the operating-system window Compose normally lives in: the scene asks it how big
- * the window is, where text input goes and which cursor to show, and the answers come from the game.
- */
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
 internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
     private val window = object : WindowInfo {
@@ -55,7 +51,6 @@ internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
         override var containerSize by mutableStateOf(IntSize.Zero)
         override var containerDpSize by mutableStateOf(DpSize.Zero)
     }
-    /** The cursor the element under the pointer asked for, or null for the default arrow */
     var cursor: Cursor? = null
 
     override val windowInfo: WindowInfo get() = window
@@ -75,7 +70,6 @@ internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
         }
     }
 
-    // Typed characters reach text fields as key events, so neither input path has an IME to drive
     override suspend fun startInputMethod(request: PlatformTextInputMethodRequest): Nothing = awaitCancellation()
 
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
@@ -95,13 +89,8 @@ internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
     }
 }
 
-/** The pointer over an edge that can be dragged up and down. Use it with `Modifier.pointerHoverIcon`. */
 object ResizeVerticalIcon : PointerIcon
 
-/**
- * Copy and paste through the game's clipboard. Compose's own goes through AWT, which Minecraft
- * runs headless and so has no clipboard at all.
- */
 @OptIn(ExperimentalComposeUiApi::class)
 internal object GameClipboard : Clipboard {
     override val nativeClipboard: Any get() = this
