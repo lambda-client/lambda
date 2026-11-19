@@ -17,6 +17,11 @@
 
 package com.lambda.gui.theme
 
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
@@ -28,9 +33,12 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -42,6 +50,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.platform.Font
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -92,8 +102,14 @@ data class Palette(
      */
     val onPrimary: Color = if (primary.luminance() > 0.2f) Color(0xFF1B1024) else Color.White
 
-    /** The filled part of a slider: the accent held back, as it covers far more than a tick does and has text over it */
-    val trackFilled: Color = primary.copy(alpha = 0.6f)
+    /** Text drawn on [secondary], by the same rule */
+    val onSecondary: Color = if (secondary.luminance() > 0.2f) Color(0xFF1B1024) else Color.White
+
+    /**
+     * The filled part of a slider: the accent of a ticked box as it is under the light text of a
+     * dark theme, and thinned under the dark text of a light one, which could not be read on it.
+     */
+    val trackFilled: Color = if (onControl.luminance() > 0.5f) primary else primary.copy(alpha = 0.6f)
 
     /** Laid over a surface to lift something off it: the heading of a group, the chosen tab */
     val raised: Color = onSurface.copy(alpha = 0.11f)
@@ -103,24 +119,119 @@ data class Palette(
 }
 
 /**
- * How thick outlines are: one pixel at 1080p, and never less than one anywhere. Outlines are
- * there to finish an edge, not to be looked at.
+ * What the [Style] module sets about the shape and the spacing of things, kept as state. A
+ * radius or a gap is asked for wherever a shape is built, a line drawn or a row padded, in a
+ * composable or out of one, and whatever asked follows the setting the moment it is changed.
+ *
+ * It is brought up to the settings once a frame with [refresh], before anything is composed.
+ * Setting a state to what it already is costs a comparison and wakes nothing.
  */
-val Hairline = 0.5.dp
+internal object Look {
+    var windowRounding by mutableStateOf(3.dp)
+        private set
+    var panelRounding by mutableStateOf(5.dp)
+        private set
+    var menuRounding by mutableStateOf(3.dp)
+        private set
+    var controlRounding by mutableStateOf(2.dp)
+        private set
+    var outline by mutableStateOf(0.5.dp)
+        private set
+    var shadows by mutableStateOf(true)
+        private set
+    var windowWidth by mutableStateOf(90.dp)
+        private set
+    var windowGap by mutableStateOf(2.dp)
+        private set
+    var windowTop by mutableStateOf(94.dp)
+        private set
+    var modulePadding by mutableStateOf(4.dp)
+        private set
+    var panelPadding by mutableStateOf(4.dp)
+        private set
+    var settingSpacing by mutableStateOf(1.dp)
+        private set
+    var groupIndent by mutableStateOf(5.dp)
+        private set
 
-/** Corner radii, by how much room the component has */
+    fun refresh() {
+        windowRounding = Style.windowRounding.dp
+        panelRounding = Style.panelRounding.dp
+        menuRounding = Style.menuRounding.dp
+        controlRounding = Style.controlRounding.dp
+        outline = Style.outlineWidth.dp
+        shadows = Style.shadows
+        windowWidth = Style.windowWidth.dp
+        windowGap = Style.windowGap.dp
+        windowTop = Style.windowTop.dp
+        modulePadding = Style.modulePadding.dp
+        panelPadding = Style.panelPadding.dp
+        settingSpacing = Style.settingSpacing.dp
+        groupIndent = Style.groupIndent.dp
+    }
+}
+
+/**
+ * How thick outlines are: one pixel at 1080p unless the style asks for more, and never less
+ * than one anywhere. Outlines are there to finish an edge, not to be looked at.
+ */
+val Hairline: Dp get() = Look.outline
+
+/** Corner radii, by what kind of thing has the corner. Each kind is rounded as the style asks for it. */
 object Radius {
-    /** Checkboxes, colour swatches, the small parts inside a control */
-    val ExtraSmall = 1.dp
-
-    /** Controls and the blocks settings are grouped in */
-    val Small = 2.dp
-
-    /** Windows, menus and tooltips */
-    val Medium = 3.dp
+    /** Category windows, and the band of tabs that is made like their headers */
+    val Window get() = Look.windowRounding
 
     /** The panels that pop out of a window, and dialogs */
-    val Large = 5.dp
+    val Panel get() = Look.panelRounding
+
+    /** Menus, dropdowns, search results and tooltips */
+    val Menu get() = Look.menuRounding
+
+    /** Controls and the blocks settings are grouped in */
+    val Control get() = Look.controlRounding
+
+    /** Checkboxes, colour swatches, the small parts inside a control */
+    val Box get() = Look.controlRounding / 2
+}
+
+/**
+ * How fast the interface animates, for every animation in it at once: Compose asks this of the
+ * scene before it starts one. The durations they are written with are divided by the speed the
+ * style asks for, and with animations off they are over the moment they begin.
+ *
+ * A kind of animation the style switches off by itself is not scaled but replaced where it is
+ * asked for, by [windows], [panels] or [pageMillis]: an unfolding that snaps, a page that turns
+ * in no time.
+ */
+internal object Motion : MotionDurationScale {
+    override val scaleFactor get() = if (Style.animations) 1f / Style.animationSpeed else 0f
+
+    /** How a category window unfolds out of its header */
+    val windows: FiniteAnimationSpec<IntSize> get() = if (Style.windowAnimations) spring() else snap()
+
+    /**
+     * How a panel, a menu or anything else that floats unfolds out of what opened it: on a
+     * spring quick enough to keep up with fast clicking. Nothing waits for it, a press is acted
+     * on at once.
+     */
+    val panels: FiniteAnimationSpec<IntSize>
+        get() = if (Style.panelAnimations) Unfolding else snap()
+
+    private val Unfolding = spring(stiffness = Spring.StiffnessMedium, visibilityThreshold = IntSize.VisibilityThreshold)
+
+    /** How long one page of settings takes to give way to another */
+    val pageMillis get() = if (Style.pageAnimations) 160 else 0
+
+    /** For the glide of a list after the wheel, which is the style's to have with or without the rest */
+    val Scroll = object : MotionDurationScale {
+        override val scaleFactor get() = if (Style.smoothScrolling) 1f else 0f
+    }
+
+    /** For what moves in order to be read rather than to look well, which keeps its own pace */
+    val Unscaled = object : MotionDurationScale {
+        override val scaleFactor get() = 1f
+    }
 }
 
 /**

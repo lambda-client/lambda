@@ -53,13 +53,14 @@ import com.lambda.gui.menu.ConfigDialog
 import com.lambda.gui.menu.LoaderPromptDialog
 import com.lambda.gui.menu.MenuBar
 import com.lambda.gui.menu.NewAutomationConfigDialog
+import com.lambda.gui.theme.Look
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.client.AutoUpdater
 
 /** How far from the top of the screen the category windows are lined up until they are moved: clear of the buttons, with room to drag them up */
-private val WindowRowTop = 94.dp
+private val WindowRowTop get() = Look.windowTop
 
 /**
  * The categories the click GUI has a window for. HUD elements are not among them: they are
@@ -136,7 +137,8 @@ internal fun ClickGui() {
         // turning developer mode on or off leaves every other window where it is
         val inRow = tags.count { it != ModuleTag.DEBUG }
         val rowWidth = CategoryWindowWidth * inRow + CategoryWindowGap * (inRow - 1)
-        val rowStart = (with(density) { screen.width.toDp() } - rowWidth) / 2
+        // A row too wide for the screen starts at its edge and runs off the far side, rather than off both
+        val rowStart = ((with(density) { screen.width.toDp() } - rowWidth) / 2).coerceAtLeast(0.dp)
 
         tags.forEachIndexed { index, tag ->
             key(tag) {
@@ -183,7 +185,8 @@ internal fun ClickGui() {
         )
         Button(
             label = "HUD Editor",
-            modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).zIndex(stacking.size + 1f)
+            modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).zIndex(stacking.size + 1f),
+            prominent = true,
         ) { LambdaGui.open(LambdaGui.Screen.HudEditor) }
     }
 

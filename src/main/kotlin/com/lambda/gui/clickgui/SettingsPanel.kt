@@ -100,11 +100,13 @@ import com.lambda.gui.settings.holds
 import com.lambda.gui.settings.pageTurn
 import com.lambda.gui.settings.settingCell
 import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.SoftTextShadow
 import com.lambda.gui.theme.Text
 import com.lambda.module.HudModule
 import com.lambda.module.Module
+import com.lambda.module.modules.client.Style
 import com.lambda.module.modules.client.AutoUpdater
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -113,16 +115,11 @@ import kotlin.math.roundToInt
 private val MinWidth = 130.dp
 
 /** Room between the edge of the panel and what it lists, the same on every side */
-private val Padding = 4.dp
+private val Padding get() = Look.panelPadding
 
 /** A panel is given at least this much height, even under a module at the bottom of the screen */
 private val MinHeight = 120.dp
 
-/**
- * ...nor wider than this, twice a category window. What is too long for it gives way rather
- * than widening the panel: a value slides along under the pointer, tabs wrap onto another line.
- */
-private val MaxWidth = 180.dp
 
 /** The settings of [module] as a panel on screen, and the [row] of the module list it hangs off */
 internal class SettingsPanelState(val module: Module) {
@@ -192,10 +189,10 @@ internal fun SettingsPanel(panel: SettingsPanelState, open: Boolean, onClosed: (
 
     // Square only on the corner that touches the row, which is no corner at all once lifted
     val shape = RoundedCornerShape(
-        topStart = if (flipped || lift > 0f) Radius.Large else 0.dp,
-        topEnd = if (!flipped || lift > 0f) Radius.Large else 0.dp,
-        bottomEnd = Radius.Large,
-        bottomStart = Radius.Large,
+        topStart = if (flipped || lift > 0f) Radius.Panel else 0.dp,
+        topEnd = if (!flipped || lift > 0f) Radius.Panel else 0.dp,
+        bottomEnd = Radius.Panel,
+        bottomStart = Radius.Panel,
     )
     val seam = if (flipped) Alignment.TopEnd else Alignment.TopStart
 
@@ -219,14 +216,17 @@ internal fun SettingsPanel(panel: SettingsPanelState, open: Boolean, onClosed: (
             modifier = Modifier
                 .onSizeChanged { unfolded = it.height }
                 .onGloballyPositioned { popups.place(it.boundsInWindow()) }
-                .dropShadow(RoundedCornerShape(Radius.Large)),
+                .dropShadow(RoundedCornerShape(Radius.Panel)),
             enter = expandIn(Unfold, seam),
             exit = shrinkOut(Unfold, seam),
         ) {
             val colors = LambdaTheme.colors
+            // ...nor wider than the style allows. What is too long for it gives way rather than
+            // widening the panel: a value slides along under the pointer.
+            val maxWidth by observe { Style.settingsWidth.dp }
             Box(
                 Modifier
-                    .widthIn(MinWidth, MaxWidth)
+                    .widthIn(MinWidth, maxWidth)
                     // Bounded before the intrinsic width is asked for: that query passes the
                     // height on, and the scrolling content cannot answer for an infinite one
                     .heightIn(max = maxHeight)

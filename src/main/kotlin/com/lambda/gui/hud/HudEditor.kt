@@ -310,7 +310,7 @@ private fun SettingsPanel(config: Config, open: Boolean, editor: HudEditorState)
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier
                 .onSizeChanged { size = it }
-                .window(colors.panel, colors.border, RoundedCornerShape(Radius.Large), floating = true)
+                .window(colors.panel, colors.border, RoundedCornerShape(Radius.Panel), floating = true)
                 // Dragged by any part of it that is not a control: those take their presses first
                 .pointerInput(Unit) {
                     awaitEachGesture {

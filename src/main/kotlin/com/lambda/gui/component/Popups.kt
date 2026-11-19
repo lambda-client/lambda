@@ -19,9 +19,6 @@ package com.lambda.gui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VisibilityThreshold
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
@@ -95,9 +92,11 @@ import com.lambda.gui.core.LocalShown
 import com.lambda.gui.core.awaitFrames
 import com.lambda.gui.theme.ContentColor
 import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Motion
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
+import com.lambda.module.modules.client.Style
 import kotlin.math.max
 
 /** Where a [Menu] opens relative to the element it is declared in */
@@ -206,7 +205,7 @@ private fun MenuPlacement.place(anchor: IntRect, window: IntSize, popup: IntSize
 @Composable
 fun Popout(open: Boolean, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     val position = remember { UnfoldingPosition(MenuPlacement.Beside::place) }
-    FloatingPanel(open, position, onDismiss, RoundedCornerShape(Radius.Large)) { panel ->
+    FloatingPanel(open, position, onDismiss, RoundedCornerShape(Radius.Panel)) { panel ->
         Column(panel.padding(3.dp), content = content)
     }
 }
@@ -251,9 +250,9 @@ private fun MenuPopup(
     val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     // One that is attached is of a piece with a square edge of its element: square there too, on whichever side it opened
     val shape = when {
-        !attached -> RoundedCornerShape(Radius.Medium)
-        position.upwards -> RoundedCornerShape(topStart = Radius.Medium, topEnd = Radius.Medium)
-        else -> RoundedCornerShape(bottomStart = Radius.Medium, bottomEnd = Radius.Medium)
+        !attached -> RoundedCornerShape(Radius.Menu)
+        position.upwards -> RoundedCornerShape(topStart = Radius.Menu, topEnd = Radius.Menu)
+        else -> RoundedCornerShape(bottomStart = Radius.Menu, bottomEnd = Radius.Menu)
     }
     FloatingPanel(open, position, onDismiss, shape, unfoldFrom) { panel ->
         CompositionLocalProvider(LocalMenuDismiss provides dismissAll, LocalMenuOpen provides open) {
@@ -277,7 +276,7 @@ private fun MenuPopup(
  * Every floating panel opens and folds away on the spring a module's settings panel does, quick
  * enough to keep up with fast clicking. Nothing waits for it: a press is acted on at once.
  */
-val Unfold = spring(stiffness = Spring.StiffnessMedium, visibilityThreshold = IntSize.VisibilityThreshold)
+val Unfold get() = Motion.panels
 
 /**
  * The part of the interface some floating panels are open on behalf of: the settings panel
@@ -467,7 +466,7 @@ fun Suggestions(open: Boolean, onDismiss: () -> Unit, content: @Composable Colum
     if (!open && visibility.isIdle && !visibility.currentState) return
 
     val colors = LambdaTheme.colors
-    val shape = RoundedCornerShape(Radius.Medium)
+    val shape = RoundedCornerShape(Radius.Menu)
     val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     Popup(
         popupPositionProvider = remember {
@@ -622,7 +621,7 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
             ContentColor(colors.onSurface) {
                 Box(
                     modifier = Modifier
-                        .window(colors.panel, colors.border, RoundedCornerShape(Radius.Large), floating = true)
+                        .window(colors.panel, colors.border, RoundedCornerShape(Radius.Panel), floating = true)
                         .padding(6.dp),
                     content = content
                 )
@@ -653,7 +652,7 @@ fun Tooltip(text: String, modifier: Modifier = Modifier, content: @Composable ()
     var bounds by remember { mutableStateOf(Rect.Zero) }
     LaunchedEffect(hovered) {
         if (!hovered) return@LaunchedEffect
-        awaitFrames(TOOLTIP_DELAY_MILLIS)
+        awaitFrames(Style.tooltipDelay.toLong())
         visible = true
     }
 
@@ -697,16 +696,13 @@ fun Tooltip(text: String, modifier: Modifier = Modifier, content: @Composable ()
                     style = Type.label,
                     modifier = Modifier
                         .widthIn(max = 220.dp)
-                        .window(colors.panel, colors.border, RoundedCornerShape(Radius.Medium))
+                        .window(colors.panel, colors.border, RoundedCornerShape(Radius.Menu))
                         .padding(horizontal = 4.dp, vertical = 2.dp)
                 )
             }
         }
     }
 }
-
-/** How long the pointer rests on something before its tooltip shows */
-private const val TOOLTIP_DELAY_MILLIS = 500L
 
 private fun KeyEvent.dismissOnEscape(onDismiss: () -> Unit): Boolean {
     if (key != Key.Escape) return false

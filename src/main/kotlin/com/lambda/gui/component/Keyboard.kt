@@ -20,6 +20,7 @@ package com.lambda.gui.component
 import androidx.compose.foundation.focusable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -83,6 +84,7 @@ internal object KeyboardFocus {
  * goes down while it does is offered to [onKey], which returns whether the key was for it.
  */
 fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier = composed {
+    if (!LocalKeyboardReachable.current) return@composed Modifier
     var focused by remember { mutableStateOf(false) }
     val handle by rememberUpdatedState(onKey)
     val mark = LambdaTheme.colors.onSurface
@@ -98,6 +100,12 @@ fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier = compose
             drawRect(mark, Offset(width / 2, width / 2), Size(size.width - width, size.height - width), style = Stroke(width))
         }
 }
+
+/**
+ * Whether the keyboard focus stops on what is inside. Off for what the pointer cannot reach
+ * either, a setting that is disabled: the focus passes it by, so no key can change it.
+ */
+val LocalKeyboardReachable = compositionLocalOf { true }
 
 /** Whether the key is one that clicks what the focus is on */
 internal val KeyEvent.isActivation get() = key == Key.Enter || key == Key.NumPadEnter || key == Key.Spacebar

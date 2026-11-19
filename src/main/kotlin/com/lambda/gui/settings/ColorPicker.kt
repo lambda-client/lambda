@@ -79,7 +79,7 @@ internal fun ColorPicker(setting: ColorSetting) {
             Spacer(
                 Modifier
                     .size(20.dp, 9.dp)
-                    .clip(RoundedCornerShape(Radius.ExtraSmall))
+                    .clip(RoundedCornerShape(Radius.Box))
                     .drawBehind {
                         drawCheckerboard()
                         drawRect(color.toCompose())
@@ -121,7 +121,7 @@ private fun Picker(color: AwtColor, onColorChange: (AwtColor) -> Unit) {
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(1.4f)
-                .clip(RoundedCornerShape(Radius.ExtraSmall))
+                .clip(RoundedCornerShape(Radius.Box))
                 .drawBehind {
                     drawRect(Color.hsv(hsb[0] * 360f, 1f, 1f))
                     drawRect(Brush.horizontalGradient(listOf(Color.White, Color.Transparent)))
@@ -165,7 +165,7 @@ private fun Bar(fraction: Float, onChange: (Float) -> Unit, background: DrawScop
         Modifier
             .fillMaxWidth()
             .height(10.dp)
-            .clip(RoundedCornerShape(Radius.ExtraSmall))
+            .clip(RoundedCornerShape(Radius.Box))
             .drawBehind {
                 background()
                 val thumb = Size(4.dp.toPx(), size.height)

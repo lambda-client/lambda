@@ -17,6 +17,8 @@
 
 package com.lambda
 
+import com.lambda.config.entries.Setting
+import com.lambda.context.Automated
 import com.lambda.gui.GuiConfig
 import com.lambda.gui.GuiScreen
 import com.lambda.gui.LambdaGui
@@ -105,7 +107,8 @@ object GuiTest : FabricClientGameTest {
         context.dragBy(2.0, 2.0)
         context.input.releaseKey(GLFW.GLFW_KEY_LEFT_SHIFT)
         val snapped = context.windowPlacement("Network")
-        check(abs(snapped.x - 573f) < 0.1f) { "A window dragged with the snap key held did not snap back between its neighbours: $snapped" }
+        // Back in its place in the row, it is kept as being in the row rather than at the spot
+        check(snapped.inRow) { "A window dragged with the snap key held did not snap back between its neighbours: $snapped" }
 
         // Resetting the layout forgets every placement, which puts the windows back in their row
         context.runOnClient<RuntimeException> { GuiConfig.resetWindows() }
@@ -626,6 +629,131 @@ object GuiTest : FabricClientGameTest {
         context.takeScreenshot("gui-15j-keyboard-menu-closed")
         context.closeGui()
 
+        // The shape, the spacing and the motion of it all are the style's, each kind of thing by
+        // itself: round windows over a square panel here, thicker in outline, wider and roomier,
+        // and a panel that is all there the moment it is opened while the rest still animates
+        context.runOnClient<RuntimeException> {
+            Style.windowRounding = 9f
+            Style.panelRounding = 0f
+            Style.outlineWidth = 1.5f
+            Style.windowWidth = 110f
+            Style.windowGap = 8f
+            Style.modulePadding = 10f
+            Style.panelPadding = 10f
+            Style.settingSpacing = 4f
+            Style.panelAnimations = false
+        }
+        context.openClickGui()
+        context.takeScreenshot("gui-16a-restyled")
+        context.input.pressKey(GLFW.GLFW_KEY_TAB)
+        context.input.pressKey(GLFW.GLFW_KEY_DOWN)
+        context.pressKey(GLFW.GLFW_KEY_ENTER, GLFW.GLFW_MOD_SHIFT)
+        context.waitTicks(1)
+        context.takeScreenshot("gui-16b-no-panel-animation")
+        context.closeGui()
+        context.runOnClient<RuntimeException> {
+            Style.windowRounding = 3f
+            Style.panelRounding = 5f
+            Style.outlineWidth = 0.5f
+            Style.windowWidth = 90f
+            Style.windowGap = 2f
+            Style.modulePadding = 4f
+            Style.panelPadding = 4f
+            Style.settingSpacing = 1f
+            Style.panelAnimations = true
+        }
+
+        // Each spacing setting changed while the interface is open, with a module's settings out
+        // and a group in them unfolded: every one of them has to show at once
+        // ...windows put back in their row by hand or folded away among them: left where the
+        // row has them, they are in the row, and go where it goes
+        context.runOnClient<RuntimeException> {
+            GuiConfig.windows = mapOf(
+                "Movement" to GuiConfig.WindowPlacement(204.6f, 94.3f, false),
+                "Render" to GuiConfig.WindowPlacement(297f, 94f, true),
+                "World" to GuiConfig.WindowPlacement(500f, 200f, false),
+            )
+        }
+        context.openClickGui()
+        context.pressKey(GLFW.GLFW_KEY_F, GLFW.GLFW_MOD_CONTROL)
+        context.waitTicks(5)
+        context.input.typeChars("window gap")
+        context.waitTicks(10)
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.waitTicks(60)
+        context.takeScreenshot("gui-17a-spacing-default")
+        context.runOnClient<RuntimeException> { Style.windowGap = 12f }
+        context.waitTicks(10)
+        context.takeScreenshot("gui-17b-window-gap")
+        context.runOnClient<RuntimeException> { Style.windowGap = 2f; Style.windowTop = 40f }
+        context.waitTicks(10)
+        context.takeScreenshot("gui-17c-window-top")
+        context.runOnClient<RuntimeException> { Style.windowTop = 94f; Style.modulePadding = 12f }
+        context.waitTicks(10)
+        context.takeScreenshot("gui-17d-module-padding")
+        context.runOnClient<RuntimeException> { Style.modulePadding = 4f; Style.panelPadding = 12f }
+        context.waitTicks(10)
+        context.takeScreenshot("gui-17e-panel-padding")
+        context.runOnClient<RuntimeException> { Style.panelPadding = 4f; Style.settingSpacing = 6f }
+        context.waitTicks(10)
+        context.takeScreenshot("gui-17f-setting-spacing")
+        context.runOnClient<RuntimeException> { Style.settingSpacing = 1f; Style.groupIndent = 12f }
+        context.waitTicks(10)
+        context.takeScreenshot("gui-17g-group-indent")
+        context.runOnClient<RuntimeException> { Style.groupIndent = 5f; Style.windowWidth = 120f }
+        context.waitTicks(10)
+        context.takeScreenshot("gui-17h-window-width")
+        context.runOnClient<RuntimeException> { Style.windowWidth = 90f }
+        context.waitTicks(10)
+        context.takeScreenshot("gui-17i-spacing-restored")
+        context.closeGui()
+
+        // A setting that shows or hides others does so the moment it changes, with the panel
+        // open: the rows under Glow come and go with it, with animations and without them
+        context.runOnClient<RuntimeException> { GuiConfig.resetWindows() }
+        context.openClickGui()
+        context.pressKey(GLFW.GLFW_KEY_F, GLFW.GLFW_MOD_CONTROL)
+        context.waitTicks(5)
+        context.input.typeChars("emboss")
+        context.waitTicks(10)
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.waitTicks(60)
+        context.takeScreenshot("gui-18a-dependent-hidden")
+        context.runOnClient<RuntimeException> { Style.glow = true }
+        context.waitTicks(15)
+        context.takeScreenshot("gui-18b-dependent-shown")
+        context.runOnClient<RuntimeException> { Style.glow = false }
+        context.waitTicks(15)
+        context.takeScreenshot("gui-18c-dependent-hidden-again")
+        context.runOnClient<RuntimeException> { Style.animations = false }
+        context.waitTicks(5)
+        context.runOnClient<RuntimeException> { Style.glow = true }
+        context.waitTicks(15)
+        context.takeScreenshot("gui-18d-dependent-shown-unanimated")
+        context.runOnClient<RuntimeException> { Style.glow = false }
+        context.waitTicks(15)
+        context.takeScreenshot("gui-18e-dependent-hidden-unanimated")
+        context.runOnClient<RuntimeException> { Style.animations = true }
+        context.closeGui()
+
+        // A setting that another one disables is dimmed the moment that one is switched off,
+        // wherever it is switched: here PacketMine's Rebreak Mode, by Rebreak in its automation
+        context.openClickGui()
+        context.pressKey(GLFW.GLFW_KEY_F, GLFW.GLFW_MOD_CONTROL)
+        context.waitTicks(5)
+        context.input.typeChars("rebreak mode")
+        context.waitTicks(10)
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.waitTicks(60)
+        context.takeScreenshot("gui-19a-dependent-enabled")
+        context.setRebreak(false)
+        context.waitTicks(15)
+        context.takeScreenshot("gui-19b-dependent-disabled")
+        context.setRebreak(true)
+        context.waitTicks(15)
+        context.takeScreenshot("gui-19c-dependent-enabled-again")
+        context.closeGui()
+
         singleplayer.close()
     }
 
@@ -642,6 +770,14 @@ object GuiTest : FabricClientGameTest {
             GuiScreen.keyReleased(KeyInput(key, 0, modifiers))
         }
         waitTicks(1)
+    }
+
+    /** Sets Rebreak in the automation config PacketMine is linked to, a setting the module only reads */
+    @Suppress("UNCHECKED_CAST")
+    private fun ClientGameTestContext.setRebreak(to: Boolean) = runOnClient<RuntimeException> {
+        val config = (ModuleRegistry.modules.first { it.name == "PacketMine" } as Automated).breakConfig
+        val delegate = config.javaClass.getDeclaredField("rebreak\$delegate").apply { isAccessible = true }
+        (delegate.get(config) as Setting<Boolean>).value = to
     }
 
     private fun ClientGameTestContext.closeGui() {

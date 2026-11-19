@@ -40,9 +40,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.lambda.gui.theme.LocalContentColor
+import com.lambda.gui.theme.Motion
 import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
 import kotlin.math.roundToInt
+import kotlinx.coroutines.withContext
 
 /**
  * A single line of text. When it is too long for the room it is given it is cut off, and
@@ -74,17 +76,20 @@ fun SlidingText(
             return@LaunchedEffect
         }
         val outMillis = (overflow / pixelsPerSecond * 1000).roundToInt().coerceAtLeast(BACK_MILLIS)
-        slide.animateTo(
-            targetValue = 0f,
-            animationSpec = infiniteRepeatable(
-                keyframes {
-                    durationMillis = REST_MILLIS + outMillis + END_REST_MILLIS + BACK_MILLIS
-                    0f at REST_MILLIS using LinearEasing
-                    1f at REST_MILLIS + outMillis
-                    1f at REST_MILLIS + outMillis + END_REST_MILLIS
-                }
+        // At the pace it is read at, whatever the style makes of the animations
+        withContext(Motion.Unscaled) {
+            slide.animateTo(
+                targetValue = 0f,
+                animationSpec = infiniteRepeatable(
+                    keyframes {
+                        durationMillis = REST_MILLIS + outMillis + END_REST_MILLIS + BACK_MILLIS
+                        0f at REST_MILLIS using LinearEasing
+                        1f at REST_MILLIS + outMillis
+                        1f at REST_MILLIS + outMillis + END_REST_MILLIS
+                    }
+                )
             )
-        )
+        }
     }
 
     Text(

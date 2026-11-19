@@ -92,6 +92,7 @@ import com.lambda.gui.theme.ContentColor
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.LocalContentColor
 import com.lambda.gui.theme.LocalRowHeight
+import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
@@ -105,25 +106,32 @@ val RowHeight: Dp
 
 private const val TOGGLE_MILLIS = 150
 
+/**
+ * A button. One that is [prominent] is filled like the header of a category rather than like a
+ * control: for the one that leads somewhere else, of which a screen has one at most.
+ */
 @Composable
 fun Button(
     label: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    prominent: Boolean = false,
     onClick: () -> Unit,
 ) {
     val colors = LambdaTheme.colors
+    val fill = if (prominent) colors.header else colors.control
+    val text = if (prominent) colors.onHeader else colors.onControl
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .heightIn(min = RowHeight + 2.dp)
-            .clip(RoundedCornerShape(Radius.Small))
-            .background(colors.control)
-            .hoverHighlight(colors.onControl.copy(alpha = if (enabled) 0.12f else 0f))
+            .clip(RoundedCornerShape(Radius.Control))
+            .background(fill)
+            .hoverHighlight(text.copy(alpha = if (enabled) 0.12f else 0f))
             .mouseClickable(enabled, onClick = onClick)
             .padding(horizontal = 5.dp, vertical = 1.dp)
     ) {
-        Text(label, color = if (enabled) colors.onControl else colors.onSurfaceVariant, maxLines = 1)
+        Text(label, color = if (enabled) text else colors.onSurfaceVariant, maxLines = 1)
     }
 }
 
@@ -134,7 +142,7 @@ fun Checkmark(checked: Boolean, modifier: Modifier = Modifier) {
     Canvas(
         modifier
             .size(9.dp)
-            .clip(RoundedCornerShape(Radius.ExtraSmall))
+            .clip(RoundedCornerShape(Radius.Box))
             // Empty, it is the grey of a slider's track, which stands out on a panel without an outline
             .background(if (checked) colors.primary else colors.track)
     ) {
@@ -256,7 +264,7 @@ fun TextInput(
         cursorBrush = SolidColor(colors.onControl),
         modifier = modifier
             .heightIn(min = RowHeight)
-            .clip(RoundedCornerShape(Radius.Small))
+            .clip(RoundedCornerShape(Radius.Control))
             .background(colors.input)
             .onGloballyPositioned { typing.bounds = it.boundsInWindow() }
             .focusRequester(focus)
@@ -407,7 +415,7 @@ fun Section(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = RowHeight)
-                    .clip(RoundedCornerShape(Radius.Small))
+                    .clip(RoundedCornerShape(Radius.Control))
                     .background(colors.raised)
                     .mouseClickable { expanded = !expanded }
                     .padding(horizontal = 4.dp)
@@ -426,7 +434,7 @@ fun Section(
 private val SectionBar = 1.dp
 
 /** How far what a section holds is set in, clear of the bar */
-private val SectionIndent = 5.dp
+private val SectionIndent get() = Look.groupIndent
 
 /**
  * A value shown at the end of a setting's row as something to click: the chosen option of a
@@ -441,7 +449,7 @@ fun Chip(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composabl
             horizontalArrangement = Arrangement.spacedBy(3.dp),
             modifier = modifier
                 .height(RowHeight)
-                .clip(RoundedCornerShape(Radius.Small))
+                .clip(RoundedCornerShape(Radius.Control))
                 .background(colors.control)
                 .hoverHighlight(colors.onControl.copy(alpha = 0.12f))
                 .mouseClickable(onClick = onClick)

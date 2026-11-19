@@ -38,6 +38,9 @@ object Style : Module(
 ) {
     private const val DARK_THEME_GROUP = "Dark Theme"
     private const val LIGHT_THEME_GROUP = "Light Theme"
+    private const val SHAPE_GROUP = "Shape"
+    private const val MOTION_GROUP = "Motion"
+    private const val SPACING_GROUP = "Spacing"
 
     private enum class ThemeMode(override val displayName: String) : NamedEnum {
         Auto("Auto"),
@@ -64,6 +67,31 @@ object Style : Module(
     val glowRadius by setting("Glow Radius", 17f, 1f..100f, 1f) { glow }
     val glowIntensity by setting("Glow Intensity", 0.3f, 0.1f..3f, 0.1f) { glow }
 
+    @Group(SHAPE_GROUP) var windowRounding by setting("Window Rounding", 3f, 0f..12f, 0.5f, "Corners of the category windows, and of the band of tabs that is made like their headers. Square at 0")
+    @Group(SHAPE_GROUP) var panelRounding by setting("Panel Rounding", 5f, 0f..16f, 0.5f, "Corners of a module's settings panel, of dialogs and of the colour picker")
+    @Group(SHAPE_GROUP) val menuRounding by setting("Menu Rounding", 3f, 0f..12f, 0.5f, "Corners of menus, dropdowns, search results and tooltips")
+    @Group(SHAPE_GROUP) val controlRounding by setting("Control Rounding", 2f, 0f..8f, 0.5f, "Corners of sliders, chips, buttons, fields and group headings. Tick boxes get half of it")
+    @Group(SHAPE_GROUP) var outlineWidth by setting("Outline Width", 0.5f, 0.5f..3f, 0.5f, "Thickness of the outlines. 0.5 is one pixel at 1080p") { outlines }
+    @Group(SHAPE_GROUP) val shadows by setting("Shadows", true, "Casts a soft shadow from panels, menus and dialogs onto the interface beneath them")
+    @Group(SHAPE_GROUP) var windowWidth by setting("Window Width", 90f, 60f..160f, 5f, "Width of the category windows. Names too long for it slide under the pointer")
+    @Group(SHAPE_GROUP) val settingsWidth by setting("Settings Width", 180f, 130f..320f, 10f, "The widest a module's settings may get. Values too long for it slide under the pointer")
+
+    @Group(SPACING_GROUP) var windowGap by setting("Window Gap", 2f, 0f..20f, 1f, "Room between the category windows in their row, and what one snaps to beside another")
+    @Group(SPACING_GROUP) var windowTop by setting("Window Top", 94f, 20f..300f, 2f, "How far down the screen the row of category windows starts, for those that have not been moved")
+    @Group(SPACING_GROUP) var modulePadding by setting("Module Padding", 4f, 0f..12f, 0.5f, "Room to either side of a module's name, and of its category's")
+    @Group(SPACING_GROUP) var panelPadding by setting("Panel Padding", 4f, 0f..12f, 0.5f, "Room around the settings in a module's settings panel")
+    @Group(SPACING_GROUP) var settingSpacing by setting("Setting Spacing", 1f, 0f..6f, 0.5f, "Room between one setting and the next")
+    @Group(SPACING_GROUP) var groupIndent by setting("Group Indent", 5f, 0f..12f, 0.5f, "How far the settings of a group are set in behind its bar")
+
+    @Group(MOTION_GROUP) var animations by setting("Animations", true, "Unfolds, slides and fades the interface. Off, everything but scrolling is where it is going at once")
+    @Group(MOTION_GROUP) val animationSpeed by setting("Animation Speed", 1f, 0.25f..4f, 0.25f, "How fast the interface animates, as a multiple of what it is made with") { animations }
+    @Group(MOTION_GROUP) val windowAnimations by setting("Window Animations", true, "Category windows unfold out of their headers") { animations }
+    @Group(MOTION_GROUP) var panelAnimations by setting("Panel Animations", true, "Settings panels, menus, dropdowns and search results unfold out of what opened them") { animations }
+    @Group(MOTION_GROUP) val pageAnimations by setting("Page Animations", true, "Changing the tab or the page of a settings panel slides the new one in") { animations }
+    @Group(MOTION_GROUP) val smoothScrolling by setting("Smooth Scrolling", true, "The mouse wheel sets a list off fast and lets it glide to rest. On its own: it works with Animations off, and at its own pace")
+    @Group(MOTION_GROUP) val scrollSpeed by setting("Scroll Speed", 1f, 0.25f..3f, 0.25f, "How far a notch of the mouse wheel takes a list, as a multiple of three rows")
+    @Group(MOTION_GROUP) val tooltipDelay by setting("Tooltip Delay", 500, 0..2000, 50, "How long the pointer rests on something before its description shows", " ms")
+
     /** The colours the glow runs between, which are the theme's: what suits dark glass is lost around light */
     val glowColorA: Color get() = theme.glowA
     val glowColorB: Color get() = theme.glowB
@@ -71,8 +99,9 @@ object Style : Module(
     @Group(DARK_THEME_GROUP) private val darkTheme by configBlock(
         PaletteSettings(
             this,
-            // A brighter rose than the header rather than a paler one: pale, it is a pastel pink
-            primary = Color(226, 88, 120),
+            // A shade lighter than the header and a shade less full, so it is plain to see without being loud: a panel is
+            // read by its band of tabs, and what is set in it is not to be taken for a module that is on
+            primary = Color(194, 86, 114),
             secondary = Color(255, 168, 158),
             surface = Color(60, 48, 52, 165),
             panel = Color(48, 38, 42, 200),
@@ -84,8 +113,9 @@ object Style : Module(
             // A shade of the header, as strong and a good step darker: greyed and left as light it turns to a dusty pink
             moduleEnabled = Color(138, 46, 72),
             onModuleEnabled = Color(255, 240, 244),
-            // Controls are a tier above anything they sit on, and say what they hold in plain text
-            control = Color(92, 75, 81),
+            // Every control is the one rose: a chip, a button and a key cap are filled as a slider
+            // and a ticked box are, so that whatever can be set looks like one kind of thing
+            control = Color(194, 86, 114),
             controlMenu = Color(48, 38, 42),
             controlSelected = Color(81, 65, 71),
             onControl = Color(246, 236, 239),
@@ -115,9 +145,12 @@ object Style : Module(
             onSurfaceVariant = Color(128, 108, 117),
             header = Color(214, 55, 88, 242),
             onHeader = Color(255, 250, 251),
-            moduleEnabled = Color(243, 217, 225),
-            onModuleEnabled = Color(176, 0, 70),
-            control = Color(216, 202, 209),
+            // Filled a step under the header with its text in white, as in the dark theme: a tint of
+            // pink under crimson text was too faint to pick the enabled out of a list at a glance
+            moduleEnabled = Color(226, 104, 130),
+            onModuleEnabled = Color(255, 250, 251),
+            // The rose of the fill of a slider, which is the accent thinned for the dark text over it
+            control = Color(214, 114, 136),
             controlMenu = Color(240, 233, 237),
             controlSelected = Color(228, 210, 218),
             onControl = Color(64, 44, 54),
