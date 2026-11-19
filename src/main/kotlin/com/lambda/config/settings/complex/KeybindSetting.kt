@@ -151,8 +151,9 @@ class KeybindSetting(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .height(RowHeight)
-                        .clip(RoundedCornerShape(Radius.Small))
-                        .background(if (recording) colors.primary else colors.track)
+                        .clip(RoundedCornerShape(Radius.Control))
+                        // Filled as every control is, and in the second accent while it waits for a key
+                        .background(if (recording) colors.secondary else colors.control)
                         .mouseClickable {
                             recording = true
                             GuiScreen.keybindRecorder = { recorded ->
@@ -164,7 +165,7 @@ class KeybindSetting(
                 ) {
                     Text(
                         text = if (recording) "Press a key" else bind.name,
-                        color = if (recording) colors.onPrimary else colors.onSurface,
+                        color = if (recording) colors.onSecondary else colors.onControl,
                         maxLines = 1,
                     )
                 }

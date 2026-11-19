@@ -29,6 +29,7 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
+import com.lambda.gui.theme.Motion
 import kotlinx.coroutines.Dispatchers
 import net.minecraft.client.texture.GlTexture
 import org.jetbrains.skia.BackendRenderTarget
@@ -66,7 +67,8 @@ import org.lwjgl.opengl.GL30.glRenderbufferStorage
 internal class SceneHost(content: @Composable () -> Unit) : AutoCloseable {
     val platform = ScenePlatform()
 
-    private val recomposer = FrameRecomposer(Dispatchers.Unconfined)
+    // With the pace of every animation in the scene, which the style sets
+    private val recomposer = FrameRecomposer(Dispatchers.Unconfined + Motion)
     private var invalidated = true
 
     private val scene: ComposeScene = CanvasLayersComposeScene(

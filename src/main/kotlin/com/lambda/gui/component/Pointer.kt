@@ -50,6 +50,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.lambda.gui.theme.Motion
+import com.lambda.module.modules.client.Style
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -234,7 +236,7 @@ fun Modifier.wheelScrollable(state: ScrollableState): Modifier = composed {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
                 if (event.type != PointerEventType.Scroll) continue
                 val change = event.changes.first()
-                val distance = change.scrollDelta.y * notch
+                val distance = change.scrollDelta.y * notch * Style.scrollSpeed
                 val canFollow = if (distance > 0) state.canScrollForward else state.canScrollBackward
                 if (distance == 0f || !canFollow || change.isConsumed) continue
                 change.consume()
@@ -242,7 +244,7 @@ fun Modifier.wheelScrollable(state: ScrollableState): Modifier = composed {
                 // What is left of the glide in progress is added to, unless the wheel turned round
                 val total = distance + if (glide.remaining * distance > 0) glide.remaining else 0f
                 glide.job?.cancel()
-                glide.job = scope.launch {
+                glide.job = scope.launch(Motion.Scroll) {
                     var travelled = 0f
                     glide.remaining = total
                     state.scroll(MutatePriority.UserInput) {
@@ -265,7 +267,7 @@ private class WheelGlide {
     var job: Job? = null
 }
 
-/** How far one line of the wheel takes a list; a notch is three lines, so three rows */
+/** How far one line of the wheel takes a list, before the scroll speed of the style: a notch is three lines, so three rows */
 private val WheelStep = 14.dp
 
 /** Off fast and a long time settling: most of the distance is covered in the first third */

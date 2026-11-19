@@ -65,6 +65,7 @@ import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.core.observe
 import com.lambda.gui.theme.ContentColor
 import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Motion
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
@@ -157,7 +158,7 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
                     .fillMaxWidth()
                     .heightIn(min = RowHeight + 2.dp)
                     // Square underneath, where its page hangs off it as the modules do off their category
-                    .clip(RoundedCornerShape(topStart = Radius.Medium, topEnd = Radius.Medium))
+                    .clip(RoundedCornerShape(topStart = Radius.Window, topEnd = Radius.Window))
                     .background(colors.header)
                     .then(
                         if (!choice) Modifier
@@ -180,7 +181,6 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
     }
 }
 
-private const val TAB_MILLIS = 160
 
 /**
  * How one page gives way to another, under tabs or the strip of a settings panel: the new one
@@ -188,10 +188,11 @@ private const val TAB_MILLIS = 160
  * are in grows or shrinks to fit it.
  */
 internal fun AnimatedContentTransitionScope<*>.pageTurn(towardsEnd: Boolean): ContentTransform {
-    val slide = tween<IntOffset>(TAB_MILLIS)
-    return (fadeIn(tween(TAB_MILLIS)) + slideInHorizontally(slide) { if (towardsEnd) it / 5 else -it / 5 })
-        .togetherWith(fadeOut(tween(TAB_MILLIS / 2)) + slideOutHorizontally(slide) { if (towardsEnd) -it / 5 else it / 5 })
-        .using(SizeTransform(clip = true) { _, _ -> tween(TAB_MILLIS) })
+    val millis = Motion.pageMillis
+    val slide = tween<IntOffset>(millis)
+    return (fadeIn(tween(millis)) + slideInHorizontally(slide) { if (towardsEnd) it / 5 else -it / 5 })
+        .togetherWith(fadeOut(tween(millis / 2)) + slideOutHorizontally(slide) { if (towardsEnd) -it / 5 else it / 5 })
+        .using(SizeTransform(clip = true) { _, _ -> tween(millis) })
 }
 
 /** Whether [setting] is somewhere in the layer, at any depth */

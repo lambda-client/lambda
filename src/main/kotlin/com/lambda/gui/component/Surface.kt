@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.lambda.gui.theme.Hairline
+import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.LocalBackdropBlur
 import com.lambda.gui.theme.LocalOutlines
 import com.lambda.gui.theme.LocalUnderlay
@@ -126,6 +127,7 @@ fun Modifier.dropShadow(shape: Shape, close: Boolean = false): Modifier = drawWi
         maskFilter = MaskFilter.makeBlur(FilterBlurMode.NORMAL, blur)
     }
     onDrawBehind {
+        if (!Look.shadows) return@onDrawBehind
         clipPath(body, ClipOp.Difference) {
             clipRect(-reach, drop - reach, size.width + reach, size.height + drop + reach) {
                 drawIntoCanvas { canvas ->

@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,12 +48,14 @@ import androidx.compose.ui.unit.dp
 import com.lambda.config.entries.Setting
 import com.lambda.gui.clickgui.Reveal
 import com.lambda.gui.component.LocalClickOnRelease
+import com.lambda.gui.component.LocalKeyboardReachable
 import com.lambda.gui.component.RowHeight
 import com.lambda.gui.component.Tooltip
 import com.lambda.gui.component.hoverHighlight
 import com.lambda.gui.core.awaitFrames
 import com.lambda.gui.core.observe
 import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
 
@@ -101,8 +102,9 @@ fun SettingRow(setting: Setting<*>) {
                 }
                 .enabled(!disabled)
         ) {
-            // A setting is changed when the button is let go, so a slip of the hand can be taken back
-            CompositionLocalProvider(LocalClickOnRelease provides true) {
+            // A setting is changed when the button is let go, so a slip of the hand can be taken back.
+            // One that is disabled is out of the keyboard's reach as it is out of the pointer's.
+            CompositionLocalProvider(LocalClickOnRelease provides true, LocalKeyboardReachable provides !disabled) {
                 setting.compose()
             }
         }
@@ -115,8 +117,9 @@ fun SettingRow(setting: Setting<*>) {
  */
 internal fun Modifier.settingCell(): Modifier = composed {
     fillMaxWidth()
-        .padding(vertical = 0.5.dp)
-        .clip(RoundedCornerShape(Radius.Small))
+        // Half above and half below, so the first and the last keep their distance from the edges too
+        .padding(vertical = Look.settingSpacing / 2)
+        .clip(RoundedCornerShape(Radius.Control))
         .hoverHighlight(LambdaTheme.colors.hover)
 }
 

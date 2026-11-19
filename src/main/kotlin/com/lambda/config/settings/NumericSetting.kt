@@ -131,7 +131,7 @@ abstract class NumericSetting<T>(
 			modifier = Modifier
 				.fillMaxWidth()
 				.heightIn(min = RowHeight)
-				.clip(RoundedCornerShape(Radius.Small))
+				.clip(RoundedCornerShape(Radius.Control))
 				.background(colors.track)
 				.drawBehind { drawRect(colors.trackFilled, size = Size(size.width * fraction, size.height)) }
 				.scrubbable { position, size ->

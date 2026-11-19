@@ -75,6 +75,8 @@ import com.lambda.gui.component.window
 import com.lambda.gui.core.LocalShown
 import com.lambda.gui.core.observe
 import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Look
+import com.lambda.gui.theme.Motion
 import com.lambda.gui.theme.Radius
 import com.lambda.gui.theme.Text
 import com.lambda.gui.theme.Type
@@ -83,12 +85,16 @@ import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.client.Style
+import kotlin.math.absoluteValue
 
-internal val CategoryWindowWidth = 90.dp
-internal val CategoryWindowGap = 2.dp
+internal val CategoryWindowWidth get() = Look.windowWidth
+internal val CategoryWindowGap get() = Look.windowGap
 
 /** Room between the edge of a window and the text of its rows */
-private val RowPadding = 4.dp
+private val RowPadding get() = Look.modulePadding
+
+/** How far from its place in the row, in dp either way, a window may be left and still count as in it */
+private const val InRow = 1.5f
 
 /**
  * What makes a module a tile rather than a flat stripe, when the style asks for it: a trace of light along the top that is gone
@@ -129,7 +135,7 @@ internal fun CategoryWindow(
     // Where the window was left and whether it is folded away live in the config alone,
     // so resetting the layout there is all it takes to put the window back
     val placement by observe { GuiConfig.windows[tag.name] }
-    val position = placement?.let { DpOffset(it.x.dp, it.y.dp) }
+    val position = placement?.takeUnless { it.inRow }?.let { DpOffset(it.x.dp, it.y.dp) }
     val collapsed = placement?.collapsed ?: false
 
     // Where the pointer has taken the window's corner while it is being dragged, in pixels.
@@ -147,8 +153,19 @@ internal fun CategoryWindow(
         onDispose { bounds -= tag }
     }
 
+    // A window left in its place in the row, or put back there, is kept as being in the row
+    // rather than at the spot: it then follows the row when the style spaces, sizes or moves it,
+    // where a spot would pin it under the windows that do
     fun place(at: DpOffset, collapsed: Boolean) {
-        GuiConfig.windows += tag.name to GuiConfig.WindowPlacement(at.x.value, at.y.value, collapsed)
+        val inRow = (at.x - defaultPosition.x).value.absoluteValue < InRow && (at.y - defaultPosition.y).value.absoluteValue < InRow
+        GuiConfig.windows += tag.name to
+            if (inRow) GuiConfig.WindowPlacement.inRow(collapsed)
+            else GuiConfig.WindowPlacement(at.x.value, at.y.value, collapsed)
+    }
+    // One that comes as a spot from elsewhere, a config saved before that distinction was made
+    // or loaded just now, is looked at the same way as it is found
+    LaunchedEffect(placement) {
+        position?.let { place(it, collapsed) }
     }
 
     Column(
@@ -164,7 +181,7 @@ internal fun CategoryWindow(
                     }
                 }
             }
-            .window(colors.surface, colors.border, RoundedCornerShape(Radius.Medium))
+            .window(colors.surface, colors.border, RoundedCornerShape(Radius.Window))
     ) {
         Text(
             text = tag.name,
@@ -199,8 +216,8 @@ internal fun CategoryWindow(
         SideEffect { panels.forEach { if (it.module in modules) it.settled = settled } }
         AnimatedVisibility(
             visibleState = unfolded,
-            enter = expandVertically(spring()),
-            exit = shrinkVertically(spring()),
+            enter = expandVertically(Motion.windows),
+            exit = shrinkVertically(Motion.windows),
         ) {
             // Never taller than the room left under the header, however far down the window sits
             ScrollColumn(Modifier.heightIn(max = (screenHeight - shownPosition.y - 24.dp).coerceAtLeast(48.dp))) {

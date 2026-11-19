@@ -80,15 +80,26 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     @Tab(COLORS_TAB) val border by setting("Border", Color(130, 12, 60, 240))
     @Tab(COLORS_TAB) val headerHovered by setting("Header Hovered", Color(255, 59, 136, 115))
 
-    /** A category window's position, in dp from the top left of the screen, and whether it is collapsed */
-    data class WindowPlacement(val x: Float, val y: Float, val collapsed: Boolean)
+    /**
+     * A category window's position, in dp from the top left of the screen, and whether it is
+     * collapsed. One that is [inRow] has no position of its own: it is wherever the row puts it,
+     * and moves with the row when the style spaces or sizes the windows differently.
+     */
+    data class WindowPlacement(val x: Float, val y: Float, val collapsed: Boolean) {
+        val inRow get() = x.isNaN() || y.isNaN()
+
+        companion object {
+            /** A window in its place in the row, folded away or not */
+            fun inRow(collapsed: Boolean) = WindowPlacement(Float.NaN, Float.NaN, collapsed)
+        }
+    }
 
     // Persisted as "Combat:120.0,80.0,false;Render:..." since it is state rather than a setting
     private var windowPlacements by property("")
     private var decodedFrom: String? = null
     private var decoded = emptyMap<String, WindowPlacement>()
 
-    /** Where the user left each category window, by tag name. Windows never moved are absent. */
+    /** Where the user left each category window, by tag name. Windows never moved or folded away are absent. */
     var windows: Map<String, WindowPlacement>
         get() {
             val saved = windowPlacements

@@ -51,6 +51,7 @@ import com.lambda.gui.render.GuiCompositor
 import com.lambda.gui.render.ItemAtlas
 import com.lambda.gui.settings.SettingsList
 import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Look
 import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Style
@@ -182,6 +183,7 @@ object LambdaGui : Loadable {
             settled = true
 
             observations.refresh()
+            Look.refresh()
             if (screen == Screen.ClickGui) clickGuiObservations.refresh()
             val sceneChanged = host.advance(size, density)
             val itemsChanged = ItemAtlas.render()

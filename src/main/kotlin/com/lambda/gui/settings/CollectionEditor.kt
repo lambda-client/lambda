@@ -165,7 +165,7 @@ private fun <R> Pane(title: String, entries: List<Entry<R>>, modifier: Modifier,
         Text(title, color = colors.onSurfaceVariant, style = Type.label)
         // Lazy, because a list of every block or item in the game runs to over a thousand rows
         val list = rememberLazyListState()
-        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(Radius.Small)).background(colors.input)) {
+        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(Radius.Control)).background(colors.input)) {
             LazyColumn(state = list, modifier = Modifier.fillMaxSize().wheelScrollable(list)) {
                 items(entries) { entry ->
                     Row(
