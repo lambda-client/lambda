@@ -25,10 +25,10 @@ import com.lambda.gui.LambdaGui
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.module.modules.client.Style
-import com.lambda.module.modules.render.Bobbing
 import com.lambda.module.modules.hud.Armor
 import com.lambda.module.modules.hud.Coordinates
 import com.lambda.module.modules.hud.Fps
+import com.lambda.module.modules.render.Bobbing
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.minecraft.client.gui.screen.world.WorldCreator
