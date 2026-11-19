@@ -27,9 +27,12 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.shrinkOut
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +43,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -56,9 +61,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layout
@@ -77,6 +85,7 @@ import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.config.entries.Setting
 import com.lambda.gui.component.Button
 import com.lambda.gui.component.Dropdown
+import com.lambda.gui.component.Expandable
 import com.lambda.gui.component.LocalClickOnRelease
 import com.lambda.gui.component.LocalPopupHost
 import com.lambda.gui.component.PopupHost
@@ -91,6 +100,7 @@ import com.lambda.gui.component.mouseDraggable
 import com.lambda.gui.component.window
 import com.lambda.gui.core.LocalShown
 import com.lambda.gui.core.ResizeVerticalIcon
+import com.lambda.gui.core.awaitFrames
 import com.lambda.gui.core.observe
 import com.lambda.gui.menu.MenuBarHeight
 import com.lambda.gui.settings.SettingRow
@@ -106,10 +116,10 @@ import com.lambda.gui.theme.SoftTextShadow
 import com.lambda.gui.theme.Text
 import com.lambda.module.HudModule
 import com.lambda.module.Module
-import com.lambda.module.modules.client.Style
 import com.lambda.module.modules.client.AutoUpdater
-import kotlinx.coroutines.launch
+import com.lambda.module.modules.client.Style
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 /** The panel never gets narrower than this, even when every setting has a short name */
 private val MinWidth = 130.dp
@@ -234,42 +244,8 @@ internal fun SettingsPanel(panel: SettingsPanelState, open: Boolean, onClosed: (
                     .onSizeChanged { size = it }
                     .window(colors.panel, colors.border, shape)
             ) {
-                val pages = remember(panel.module) { pagesOf(panel.module) }
-                val page = panel.page.takeIf { it in pages } ?: PanelPage.Settings
-                // A setting the search points at is on one of the pages: that one is turned to
-                val revealed = Reveal.setting.takeIf { Reveal.module === panel.module }
-                LaunchedEffect(revealed) {
-                    if (revealed != null) panel.page = pageOf(panel.module, revealed)
-                }
-                val scope = rememberCoroutineScope()
-
                 CompositionLocalProvider(LocalPopupHost provides popups) {
-                Column(Modifier.padding(Padding)) {
-                    SoftTextShadow {
-                        // Stays put over the page, which scrolls under it
-                        if (pages.size > 1) PageStrip(pages, page) {
-                            panel.page = it
-                            // A page turned to by hand starts at its top
-                            scope.launch { scroll.scrollTo(0) }
-                        }
-                        ScrollColumn(Modifier.weight(1f, fill = false), scroll) {
-                            // Turned like the tabs a module's settings bring
-                            AnimatedContent(
-                                targetState = page,
-                                modifier = Modifier.fillMaxWidth(),
-                                transitionSpec = { pageTurn(towardsEnd = targetState > initialState) },
-                            ) { shown ->
-                                Column(Modifier.fillMaxWidth()) {
-                                    when (shown) {
-                                        PanelPage.Settings -> SettingsPage(panel.module)
-                                        PanelPage.Module -> ModulePage(panel.module)
-                                        PanelPage.Automation -> AutomationPage(panel.module)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                    Column(Modifier.padding(Padding)) { Pages(panel, scroll) }
                 }
                 // Only there while there is something to gain from it, or to take back
                 if (scroll.maxValue > 0 || lift > 0f) {
@@ -287,6 +263,98 @@ internal fun SettingsPanel(panel: SettingsPanelState, open: Boolean, onClosed: (
                 }
             }
         }
+    }
+}
+
+/**
+ * A module's settings dropped down under its row, inside its window: what the style can have in
+ * place of the panel beside it. They are as wide as the window, whatever they hold, and push the
+ * modules under them down while [open]; a name or a value too long for the room slides along
+ * under the pointer, as it does anywhere. They scroll with the list they are in, and come into
+ * view when they open.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun InlineSettings(panel: SettingsPanelState, open: Boolean) {
+    val intoView = remember { BringIntoViewRequester() }
+    LaunchedEffect(open) {
+        if (open) {
+            awaitFrames(SETTLE_MILLIS)
+            intoView.bringIntoView()
+        }
+    }
+    Expandable(open) {
+        val colors = LambdaTheme.colors
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .bringIntoViewRequester(intoView)
+                // Filled as a panel beside the module would be and then shaded a little, a quarter
+                // as far as what is pressed in: inside a window the fill alone is too close to it
+                .background(colors.panel)
+                .background(colors.inset.copy(alpha = colors.inset.alpha / 4))
+                // And darker at its top and bottom edges, as what is set into a surface is where
+                // the surface overhangs it
+                .drawWithCache {
+                    val depth = InsetShadow.toPx().coerceAtMost(size.height / 2)
+                    val dark = colors.inset.copy(alpha = colors.inset.alpha / 2)
+                    val top = Brush.verticalGradient(listOf(dark, Color.Transparent), 0f, depth)
+                    val bottom = Brush.verticalGradient(listOf(Color.Transparent, dark), size.height - depth, size.height)
+                    onDrawBehind {
+                        drawRect(top, size = Size(size.width, depth))
+                        drawRect(bottom, Offset(0f, size.height - depth), Size(size.width, depth))
+                    }
+                }
+                .padding(Padding / 2)
+        ) { Pages(panel, scroll = null) }
+    }
+}
+
+/** How far the shade at the top and bottom of settings under their module reaches into them */
+private val InsetShadow = 5.dp
+
+/** How long settings take to drop down, before they are where they will stay */
+private const val SETTLE_MILLIS = 200L
+
+/**
+ * What a module's settings are made of, in a panel or dropped down under its row: the strip
+ * that turns their pages, and under it the page turned to. In a panel the page scrolls by
+ * itself, on [scroll], under a strip that stays put; without one it is as long as it is.
+ */
+@Composable
+private fun ColumnScope.Pages(panel: SettingsPanelState, scroll: ScrollState?) {
+    val pages = remember(panel.module) { pagesOf(panel.module) }
+    val page = panel.page.takeIf { it in pages } ?: PanelPage.Settings
+    // A setting the search points at is on one of the pages: that one is turned to
+    val revealed = Reveal.setting.takeIf { Reveal.module === panel.module }
+    LaunchedEffect(revealed) {
+        if (revealed != null) panel.page = pageOf(panel.module, revealed)
+    }
+    val scope = rememberCoroutineScope()
+
+    SoftTextShadow {
+        if (pages.size > 1) PageStrip(pages, page) {
+            panel.page = it
+            // A page turned to by hand starts at its top
+            if (scroll != null) scope.launch { scroll.scrollTo(0) }
+        }
+        // Turned like the tabs a module's settings bring
+        val turned = @Composable {
+            AnimatedContent(
+                targetState = page,
+                modifier = Modifier.fillMaxWidth(),
+                transitionSpec = { pageTurn(towardsEnd = targetState > initialState) },
+            ) { shown ->
+                Column(Modifier.fillMaxWidth()) {
+                    when (shown) {
+                        PanelPage.Settings -> SettingsPage(panel.module)
+                        PanelPage.Module -> ModulePage(panel.module)
+                        PanelPage.Automation -> AutomationPage(panel.module)
+                    }
+                }
+            }
+        }
+        if (scroll != null) ScrollColumn(Modifier.weight(1f, fill = false), scroll) { turned() } else turned()
     }
 }
 

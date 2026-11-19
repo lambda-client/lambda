@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
@@ -37,6 +38,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -58,6 +60,7 @@ import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.client.AutoUpdater
+import com.lambda.module.modules.client.Style
 
 /** How far from the top of the screen the category windows are lined up until they are moved: clear of the buttons, with room to drag them up */
 private val WindowRowTop get() = Look.windowTop
@@ -67,6 +70,9 @@ private val WindowRowTop get() = Look.windowTop
  * added, removed and set up where they are arranged, in the HUD editor.
  */
 internal val ClickGuiCategories = ModuleTag.defaults - ModuleTag.HUD
+
+/** What the row of windows was last laid out with, and whether the interface was open then */
+private class RowLayout(var row: Triple<Dp, Dp, Dp>, var shown: Boolean = false)
 
 /** A window the click GUI shows over everything else until it is dismissed */
 internal sealed interface ClickGuiDialog {
@@ -98,16 +104,30 @@ internal fun ClickGui() {
         ClickGuiCategories.filter(ModuleTag::isTagShown) + listOfNotNull(ModuleTag.DEBUG.takeIf { developerMode })
     }
 
-    // The module whose settings are open. Its panel stays in the list until it has folded away,
-    // so clicking from module to module leaves several on screen, each finishing its own animation
-    var edited by remember { mutableStateOf<Module?>(null) }
+    // The modules whose settings are open, the last opened last: one of them, unless the style
+    // lets several be open at once. A panel stays in the list until it has folded away, so
+    // clicking from module to module leaves several on screen, each finishing its own animation
+    val edited = remember { mutableStateListOf<Module>() }
     val panels = remember { mutableStateListOf<SettingsPanelState>() }
     // Every panel that has been open, so one that is opened again is as tall as it was left
     val panelStates = remember { HashMap<Module, SettingsPanelState>() }
+    fun stateOf(module: Module) = panelStates.getOrPut(module) { SettingsPanelState(module) }
+    // Beside the module as a panel, or where the style asks for it, dropped down under it
+    val inline by observe { Style.inlineSettings }
+    val several by observe { Style.multipleSettings }
     fun edit(module: Module) {
-        edited = module
-        val panel = panelStates.getOrPut(module) { SettingsPanelState(module) }
-        if (panel !in panels) panels += panel
+        if (!several) edited.clear()
+        if (module !in edited) edited += module
+        val panel = stateOf(module)
+        if (!inline && panel !in panels) panels += panel
+    }
+    // What a press beside the settings does: puts them away, all of them where several are open
+    fun dismiss() = edited.clear()
+    // The style changed with settings open: held to one at a time again, the last opened is the
+    // one that stays, and no longer under their modules, they are out beside them as panels
+    LaunchedEffect(inline, several) {
+        if (!several && edited.size > 1) edited.removeRange(0, edited.size - 1)
+        if (!inline) edited.forEach { module -> stateOf(module).let { if (it !in panels) panels += it } }
     }
 
     // A setting the search points at is shown in the settings of its module
@@ -121,9 +141,25 @@ internal fun ClickGui() {
     val shown = LocalShown.current
     LaunchedEffect(shown) {
         if (!shown && !GuiConfig.keepSettingsOpen) {
-            edited = null
+            edited.clear()
             panels.clear()
         }
+    }
+
+    // The row is laid out anew when the style changes what it is made of, the width of a window,
+    // the gap between two or how far down they start: every window goes back to its place in it.
+    // A row spaced or sized differently around windows left where they were would not be one, and
+    // which of those were meant to be elsewhere is not something their places can tell. Only while
+    // the interface is open, which is when the style is being set: what it was changed to in the
+    // meantime, by a config being loaded, moves nothing.
+    val row = Triple(CategoryWindowWidth, CategoryWindowGap, WindowRowTop)
+    val laidOut = remember { RowLayout(row) }
+    SideEffect {
+        if (row != laidOut.row && shown && laidOut.shown) {
+            GuiConfig.windows = GuiConfig.windows.mapValues { GuiConfig.WindowPlacement.inRow(it.value.collapsed) }
+        }
+        laidOut.row = row
+        laidOut.shown = shown
     }
 
     // Most recently clicked last, so it is drawn on top
@@ -132,24 +168,31 @@ internal fun ClickGui() {
     val bounds = remember { mutableStateMapOf<ModuleTag, Rect>() }
     val snapping by observe { Snap.isActive }
 
-    Box(Modifier.fillMaxSize().mouseClickable(keyboard = false) { edited = null }) {
+    Box(Modifier.fillMaxSize().mouseClickable(keyboard = false, onClick = ::dismiss)) {
         // The row is centred without the debug window, which takes the place after its end:
         // turning developer mode on or off leaves every other window where it is
         val inRow = tags.count { it != ModuleTag.DEBUG }
-        val rowWidth = CategoryWindowWidth * inRow + CategoryWindowGap * (inRow - 1)
-        // A row too wide for the screen starts at its edge and runs off the far side, rather than off both
-        val rowStart = ((with(density) { screen.width.toDp() } - rowWidth) / 2).coerceAtLeast(0.dp)
+        // On a screen too narrow for the row, which a large scale makes of any screen, the windows
+        // close up and overlap like a hand of cards rather than run off its edge: every one of
+        // them keeps a strip that can be pressed, which brings it to the front
+        val screenWidth = with(density) { screen.width.toDp() }
+        val pitch = (CategoryWindowWidth + CategoryWindowGap)
+            .coerceAtMost((screenWidth - CategoryWindowWidth) / (inRow - 1).coerceAtLeast(1))
+            .coerceAtLeast(0.dp)
+        val rowWidth = CategoryWindowWidth + pitch * (inRow - 1)
+        val rowStart = ((screenWidth - rowWidth) / 2).coerceAtLeast(0.dp)
 
         tags.forEachIndexed { index, tag ->
             key(tag) {
                 CategoryWindow(
                     tag = tag,
-                    defaultPosition = DpOffset(rowStart + (CategoryWindowWidth + CategoryWindowGap) * index, WindowRowTop),
+                    defaultPosition = DpOffset(rowStart + pitch * index, WindowRowTop),
                     bounds = bounds,
                     snapping = snapping,
                     edited = edited,
                     panels = panels,
-                    onEdit = { module -> if (module == edited) edited = null else edit(module) },
+                    inline = if (inline) ::stateOf else null,
+                    onEdit = { module -> if (module in edited) edited -= module else edit(module) },
                     onFocus = {
                         stacking.remove(tag)
                         stacking.add(tag)
@@ -163,7 +206,8 @@ internal fun ClickGui() {
             key(panel.module) {
                 SettingsPanel(
                     panel = panel,
-                    open = panel.module == edited,
+                    // One left open when the style is changed to have them inline folds away
+                    open = panel.module in edited && !inline,
                     onClosed = { panels -= panel },
                     modifier = Modifier.zIndex(stacking.size.toFloat())
                 )
@@ -178,7 +222,7 @@ internal fun ClickGui() {
                 .pointerInput(Unit) {
                     awaitPointerEventScope {
                         while (true) {
-                            if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) edited = null
+                            if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) dismiss()
                         }
                     }
                 }

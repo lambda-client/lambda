@@ -448,8 +448,8 @@ private class UnfoldingPosition(
 
 /**
  * A list that drops down under the element it is called inside while that element keeps the
- * keyboard: what a search field shows its results in. Its right edge lines up with the
- * element's. A press outside of it calls [onDismiss].
+ * keyboard: what a search field shows its results in. It is centred under the element, however
+ * much wider than it the results make it. A press outside of it calls [onDismiss].
  *
  * It unfolds downwards while [open] and folds back up once it is not, and in between it grows
  * and shrinks with what it lists rather than jumping from one length to the next.
@@ -470,7 +470,10 @@ fun Suggestions(open: Boolean, onDismiss: () -> Unit, content: @Composable Colum
     val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     Popup(
         popupPositionProvider = remember {
-            positionProvider { anchor, _, popup -> IntOffset((anchor.right - popup.width).coerceAtLeast(0), anchor.bottom) }
+            positionProvider { anchor, window, popup ->
+                val centred = anchor.left + (anchor.width - popup.width) / 2
+                IntOffset(centred.coerceIn(0, (window.width - popup.width).coerceAtLeast(0)), anchor.bottom)
+            }
         },
         onDismissRequest = { if (open) onDismiss() },
         properties = PopupProperties(focusable = false),

@@ -87,6 +87,12 @@ abstract class NumericSetting<T>(
 
 	private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
 
+	/**
+	* Whether dragging the bar only sets the value once the button is let go, see [appliedOnRelease].
+	* Until then the bar and its number show what the value is about to be.
+	*/
+	var appliedOnRelease = false
+
 	override fun toString() = "${formatter.format(value)}$unit"
 
 	/**
@@ -124,7 +130,10 @@ abstract class NumericSetting<T>(
 		fun at(steps: Long) = convert(range.start.decimal + step.decimal * BigDecimal.valueOf(steps))
 		fun stepsOf(value: Double) = ((value - min) / step.toDouble()).roundToLong()
 		// The value moves in steps; the bar glides from one to the next
-		val fraction by animateFloatAsState(((value.toDouble() - min) / (max - min)).toFloat().coerceIn(0f, 1f))
+		// What the bar has been dragged to but not let go at, for a setting that waits for that
+		var held by remember { mutableStateOf<T?>(null) }
+		val shown = held ?: value
+		val fraction by animateFloatAsState(((shown.toDouble() - min) / (max - min)).toFloat().coerceIn(0f, 1f))
 		Row(
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -134,8 +143,12 @@ abstract class NumericSetting<T>(
 				.clip(RoundedCornerShape(Radius.Control))
 				.background(colors.track)
 				.drawBehind { drawRect(colors.trackFilled, size = Size(size.width * fraction, size.height)) }
-				.scrubbable { position, size ->
-					this.value = at(stepsOf(min + (position.x / size.width).coerceIn(0f, 1f) * (max - min)))
+				.scrubbable(onEnd = {
+					held?.let { this.value = it }
+					held = null
+				}) { position, size ->
+					val dragged = at(stepsOf(min + (position.x / size.width).coerceIn(0f, 1f) * (max - min)))
+					if (appliedOnRelease) held = dragged.coerceIn(range) else this.value = dragged
 				}
 				.focusRequester(bar)
 				.keyboardFocusable { event ->
@@ -150,7 +163,12 @@ abstract class NumericSetting<T>(
 				.padding(horizontal = 3.dp)
 		) {
 			Text(name, Modifier.weight(1f), colors.onControl, maxLines = 1)
-			Text(label, Modifier.mouseClickable(keyboard = false) { typing = true }, colors.onControl, maxLines = 1)
+			Text(
+				text = held?.let { "${formatter.format(it)}$unit" } ?: label,
+				modifier = Modifier.mouseClickable(keyboard = false) { typing = true },
+				color = colors.onControl,
+				maxLines = 1,
+			)
 		}
 	}
 
@@ -194,6 +212,13 @@ abstract class NumericSetting<T>(
 
 /** How far from its default, as a share of its step, a number may be and still be the default: a rounding error, never a step */
 private const val SAME = 1e-4
+
+/**
+ * Has dragging the bar set the value only when the button is let go, where it otherwise follows
+ * the pointer. For a value that moves the bar it is set on, the scale of the interface: applied
+ * as it is dragged, the bar would shift and resize under the pointer that is setting it.
+ */
+fun <S : NumericSetting<*>> S.appliedOnRelease() = apply { appliedOnRelease = true }
 
 @Suppress("unchecked_cast")
 @ConfigEditorD5l

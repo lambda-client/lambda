@@ -525,6 +525,55 @@ object GuiTest : FabricClientGameTest {
         context.waitTicks(5)
         context.closeGui()
 
+        // Where the style has them inline, a module's settings drop down under it instead: as
+        // wide as its window, pushing the modules under it down, whatever they hold
+        context.runOnClient<RuntimeException> {
+            Style.inlineSettings = true
+            GuiConfig.resetWindows()
+        }
+        context.openClickGui()
+        context.input.pressKey(GLFW.GLFW_KEY_TAB)
+        context.input.pressKey(GLFW.GLFW_KEY_DOWN)
+        context.pressKey(GLFW.GLFW_KEY_ENTER, GLFW.GLFW_MOD_SHIFT)
+        context.waitTicks(3)
+        context.takeScreenshot("gui-11g-inline-settings-dropping")
+        context.waitTicks(15)
+        context.takeScreenshot("gui-11h-inline-settings")
+        context.pressKey(GLFW.GLFW_KEY_F, GLFW.GLFW_MOD_CONTROL)
+        context.waitTicks(5)
+        context.input.typeChars("targeting range")
+        context.waitTicks(10)
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.waitTicks(40)
+        context.takeScreenshot("gui-11i-inline-settings-with-tabs")
+        context.pressKey(GLFW.GLFW_KEY_F, GLFW.GLFW_MOD_CONTROL)
+        context.waitTicks(5)
+        context.input.typeChars("window gap")
+        context.waitTicks(10)
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.waitTicks(40)
+        context.takeScreenshot("gui-11j-inline-settings-with-groups")
+
+        // Several can be open at once where the style allows it: the one the search turns to
+        // next opens beside the last instead of in its place...
+        context.runOnClient<RuntimeException> { Style.multipleSettings = true }
+        context.pressKey(GLFW.GLFW_KEY_F, GLFW.GLFW_MOD_CONTROL)
+        context.waitTicks(5)
+        context.input.typeChars("targeting range")
+        context.waitTicks(10)
+        context.input.pressKey(GLFW.GLFW_KEY_ENTER)
+        context.waitTicks(40)
+        context.takeScreenshot("gui-11k-inline-settings-of-two")
+        // ...and with settings no longer inline, the ones that are open are out as panels
+        context.runOnClient<RuntimeException> { Style.inlineSettings = false }
+        context.waitTicks(20)
+        context.takeScreenshot("gui-11l-panels-of-two")
+        // Held to one at a time again, the last one opened is the one that stays
+        context.runOnClient<RuntimeException> { Style.multipleSettings = false }
+        context.waitTicks(20)
+        context.takeScreenshot("gui-11m-panel-of-one")
+        context.closeGui()
+
         // The glow is in the colours of the theme in use: the dark one's here, the light one's below
         context.runOnClient<RuntimeException> { Style.glow = true }
         context.openClickGui()
@@ -561,6 +610,30 @@ object GuiTest : FabricClientGameTest {
         context.openClickGui()
         context.click(dpX = 800.0, dpY = 180.0, button = GLFW.GLFW_MOUSE_BUTTON_RIGHT)
         context.waitTicks(10)
+        // The scale of the interface is the one bar that waits for the button to be let go: held,
+        // it shows what the scale is about to be and nothing moves, least of all the bar itself
+        context.input.setCursorPos(700.0 * DENSITY, 229.0 * DENSITY)
+        context.waitTicks(2)
+        context.input.holdMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
+        repeat(5) {
+            context.input.moveCursor(3.0 * DENSITY, 0.0)
+            context.waitTick()
+        }
+        context.waitTicks(5)
+        context.takeScreenshot("gui-14a-scale-held")
+        check(context.computeOnClient<Float, RuntimeException> { Style.scale } == 1f) { "The scale changed while its bar was still held" }
+        context.input.releaseMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT)
+        context.waitTicks(10)
+        context.takeScreenshot("gui-14b-scale-applied")
+        check(context.computeOnClient<Float, RuntimeException> { Style.scale } > 1f) { "The scale was not applied when its bar was let go" }
+        // At the largest scale there is, nothing is off the screen: the windows close up to fit,
+        // the search field clears the menus, and the settings that would undo it are in reach
+        context.runOnClient<RuntimeException> { Style.scale = 1.5f }
+        context.waitTicks(15)
+        context.takeScreenshot("gui-14c-scale-largest")
+        context.runOnClient<RuntimeException> { Style.scale = 1f }
+        context.waitTicks(10)
+
         context.input.setCursorPos(700.0 * DENSITY, 243.0 * DENSITY)
         context.waitTicks(2)
         context.dragBy(-30.0, 0.0)
@@ -752,6 +825,18 @@ object GuiTest : FabricClientGameTest {
         context.setRebreak(true)
         context.waitTicks(15)
         context.takeScreenshot("gui-19c-dependent-enabled-again")
+        context.closeGui()
+
+        // Settings of one name in many configs are told apart by where each is: its config, and
+        // the tab and group it is under
+        context.openClickGui()
+        context.pressKey(GLFW.GLFW_KEY_F, GLFW.GLFW_MOD_CONTROL)
+        context.waitTicks(5)
+        context.input.typeChars("airplace")
+        context.waitTicks(15)
+        context.takeScreenshot("gui-20-search-same-name")
+        context.input.pressKey(GLFW.GLFW_KEY_ESCAPE)
+        context.waitTicks(5)
         context.closeGui()
 
         singleplayer.close()

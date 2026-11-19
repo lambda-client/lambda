@@ -93,6 +93,9 @@ internal val CategoryWindowGap get() = Look.windowGap
 /** Room between the edge of a window and the text of its rows */
 private val RowPadding get() = Look.modulePadding
 
+/** How much of a window is always kept on the screen from its top: its header and a module or two */
+private val Reach = 40.dp
+
 /** How far from its place in the row, in dp either way, a window may be left and still count as in it */
 private const val InRow = 1.5f
 
@@ -105,7 +108,8 @@ private val Emboss = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.05
 
 /**
  * A draggable window listing the modules of [tag]. Left click on a module toggles it, right click
- * opens its settings; right click on the header folds the window away.
+ * opens its settings; right click on the header folds the window away. The settings are a panel
+ * beside the module, one of [panels], unless the style has them [inline], under the module.
  *
  * Until it has been dragged somewhere it sits at [defaultPosition]. It goes exactly where it is
  * dragged, unless [snapping], when it lines up with the screen, the grid and the other windows,
@@ -118,8 +122,9 @@ internal fun CategoryWindow(
     defaultPosition: DpOffset,
     bounds: MutableMap<ModuleTag, Rect>,
     snapping: Boolean,
-    edited: Module?,
+    edited: List<Module>,
     panels: List<SettingsPanelState>,
+    inline: ((Module) -> SettingsPanelState)?,
     onEdit: (Module) -> Unit,
     onFocus: () -> Unit,
     modifier: Modifier = Modifier,
@@ -147,7 +152,15 @@ internal fun CategoryWindow(
             if (snapping) Snap.snap(window, bounds.filterKeys { it != tag }.values, screen, density, with(density) { CategoryWindowGap.toPx() })
             else Snap.free(window, screen)
         with(density) { DpOffset(placed.position.x.toDp(), placed.position.y.toDp()) }
-    } ?: position ?: defaultPosition
+    } ?: (position ?: defaultPosition).let { at ->
+        // Never off the screen, wherever it was left: a screen made smaller since, by a larger
+        // scale or a smaller window, would otherwise put it out of reach
+        val screenWidth = with(density) { screen.width.toDp() }
+        DpOffset(
+            at.x.coerceIn(0.dp, (screenWidth - CategoryWindowWidth).coerceAtLeast(0.dp)),
+            at.y.coerceIn(0.dp, (screenHeight - Reach).coerceAtLeast(0.dp)),
+        )
+    }
     val currentPosition by rememberUpdatedState(shownPosition)
     DisposableEffect(tag) {
         onDispose { bounds -= tag }
@@ -200,7 +213,7 @@ internal fun CategoryWindow(
                 ) { delta -> dragged = dragged?.plus(delta) }
                 .mouseClickable(onRightClick = {
                     // Settings hang off a row of the list, and go with it
-                    if (!collapsed) edited?.takeIf { it in modules }?.let(onEdit)
+                    if (!collapsed) edited.filter { it in modules }.forEach(onEdit)
                     place(currentPosition, !collapsed)
                 })
                 .padding(horizontal = RowPadding, vertical = 2.dp)
@@ -213,7 +226,9 @@ internal fun CategoryWindow(
         unfolded.targetState = shown && !collapsed
         // Settings hanging off a row wait for the rows to be where they will stay
         val settled = unfolded.isIdle && unfolded.currentState
-        SideEffect { panels.forEach { if (it.module in modules) it.settled = settled } }
+        // Looked up here, where a panel being added to the list has this run again to tell it
+        val hanging = panels.filter { it.module in modules }
+        SideEffect { hanging.forEach { it.settled = settled } }
         AnimatedVisibility(
             visibleState = unfolded,
             enter = expandVertically(Motion.windows),
@@ -224,10 +239,15 @@ internal fun CategoryWindow(
                 modules.forEach { module ->
                     ModuleRow(
                         module = module,
-                        isEdited = module == edited,
+                        isEdited = module in edited,
+                        // Settings under the module are plainly its own: it is only pressed in
+                        // for ones that are out beside it, to show which row they hang off
+                        pressedIn = inline == null,
                         panel = panels.find { it.module == module },
                         onEdit = { onEdit(module) },
                     )
+                    // Where the style has settings drop down under their module instead
+                    if (inline != null) InlineSettings(inline(module), open = module in edited)
                 }
             }
         }
@@ -237,13 +257,13 @@ internal fun CategoryWindow(
 /** One module of the list. While its settings [panel] is on screen the row tells it where it is. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ModuleRow(module: Module, isEdited: Boolean, panel: SettingsPanelState?, onEdit: () -> Unit) {
+private fun ModuleRow(module: Module, isEdited: Boolean, pressedIn: Boolean, panel: SettingsPanelState?, onEdit: () -> Unit) {
     val colors = LambdaTheme.colors
     val enabled by observe { module.isEnabled }
     val embossed by observe { Style.emboss }
     val fill by animateColorAsState(if (enabled) colors.moduleEnabled else Color.Transparent, spring())
     // Pressed in like a button that is held down, for as long as its settings are out
-    val pressed by animateColorAsState(if (isEdited) colors.inset else Color.Transparent, spring())
+    val pressed by animateColorAsState(if (isEdited && pressedIn) colors.inset.copy(alpha = colors.inset.alpha / 2) else Color.Transparent, spring())
 
     // Lit and brought into view while it is what the search points at
     val revealed = Reveal.module === module && Reveal.setting == null

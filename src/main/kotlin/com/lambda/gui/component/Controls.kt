@@ -78,6 +78,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -85,6 +86,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -474,32 +476,65 @@ fun <T> Dropdown(
 ) {
     val menu = remember { MenuState() }
     var chip by remember { mutableStateOf(IntSize.Zero) }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = modifier.fillMaxWidth().heightIn(min = RowHeight)
-    ) {
-        Text(label, maxLines = 1)
-        // The chip has what the label leaves: a choice too long for it slides along under the
-        // pointer, as a module's name does, rather than running over the label
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            Box(Modifier.onSizeChanged { chip = it }) {
-                Chip(onClick = menu::toggle) {
-                    SlidingText(optionLabel(selected), Modifier.weight(1f, fill = false))
-                    Chevron(90f)
-                }
-                // Drops out from under the chip, as wide as it, and folds all the way back up into it
-                Menu(menu.isOpen, onDismiss = menu::dismiss, unfoldFrom = IntSize(chip.width, 0)) {
-                    options.forEach { option ->
-                        MenuItem(optionLabel(option), selected = option == selected) {
-                            if (option != selected) onSelect(option)
-                        }
+    LabeledRow(label, modifier) {
+        Box(Modifier.onSizeChanged { chip = it }) {
+            // A choice too long for the room the chip is given slides along under the pointer
+            Chip(onClick = menu::toggle) {
+                SlidingText(optionLabel(selected), Modifier.weight(1f, fill = false))
+                Chevron(90f)
+            }
+            // Drops out from under the chip, as wide as it, and folds all the way back up into it
+            Menu(menu.isOpen, onDismiss = menu::dismiss, unfoldFrom = IntSize(chip.width, 0)) {
+                options.forEach { option ->
+                    MenuItem(optionLabel(option), selected = option == selected) {
+                        if (option != selected) onSelect(option)
                     }
                 }
             }
         }
     }
 }
+
+/**
+ * A row with [label] at its start and, at its end, whatever edits the value it names.
+ *
+ * With room for both, each is as wide as it likes and the room left over lies between them.
+ * Without, as in the width of a window when settings drop down under their module, neither is
+ * let crowd the other out: the editor gives way first, down to three fifths of the row, and the
+ * label has what is left. What does not fit of either slides along under the pointer.
+ */
+@Composable
+fun LabeledRow(label: String, modifier: Modifier = Modifier, editor: @Composable RowScope.() -> Unit) {
+    Layout(
+        content = {
+            Text(label, maxLines = 1)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LabelGap), content = editor)
+        },
+        modifier = modifier.fillMaxWidth().heightIn(min = RowHeight),
+    ) { (name, edited), constraints ->
+        val gap = LabelGap.roundToPx()
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val room = constraints.maxWidth
+        val wanted = edited.maxIntrinsicWidth(constraints.maxHeight)
+        // Asked how wide it would like to be, which is what sizes a panel: as wide as both
+        val editorWidth =
+            if (!constraints.hasBoundedWidth) wanted
+            else wanted.coerceAtMost(maxOf(room - name.maxIntrinsicWidth(constraints.maxHeight) - gap, room * 3 / 5))
+        val editor = edited.measure(loose.copy(maxWidth = editorWidth.coerceAtLeast(0)))
+        val nameRoom = if (constraints.hasBoundedWidth) (room - editor.width - gap).coerceAtLeast(0) else Constraints.Infinity
+        val text = name.measure(loose.copy(maxWidth = nameRoom))
+
+        val width = if (constraints.hasBoundedWidth) room else text.width + gap + editor.width
+        val height = maxOf(text.height, editor.height, constraints.minHeight)
+        layout(width, height) {
+            text.place(0, (height - text.height) / 2)
+            editor.place(width - editor.width, (height - editor.height) / 2)
+        }
+    }
+}
+
+/** Room between a label and what edits its value, and between the parts of that */
+private val LabelGap = 3.dp
 
 /** Fills whatever space is left with nothing, centring [text] in it: what a list shows when empty */
 @Composable

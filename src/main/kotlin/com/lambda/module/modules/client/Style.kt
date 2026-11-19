@@ -20,6 +20,7 @@ package com.lambda.module.modules.client
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.config.Group
+import com.lambda.config.settings.appliedOnRelease
 import com.lambda.gui.theme.GuiFont
 import com.lambda.gui.theme.Palette
 import com.lambda.gui.theme.toCompose
@@ -50,7 +51,7 @@ object Style : Module(
 
     private val themeMode by setting("Theme", ThemeMode.Auto, "Auto follows the theme of your operating system")
     val font by setting("Font", GuiFont.Minecraft, "The Minecraft font is sharpest where the interface is a whole number of times its natural size: at 1080p and 2160p with a scale of 1")
-    val scale by setting("Scale", 1f, 0.5f..2f, 0.05f, "Size of the interface")
+    var scale by setting("Scale", 1f, 0.5f..1.5f, 0.05f, "Size of the interface. Dragged, it is applied when the button is let go. No larger than leaves room on the screen for every window and dialog").appliedOnRelease()
     var fontSize by setting("Font Size", 0.85f, 0.5f..1.2f, 0.05f, "Size of text, as a share of the size the font reads best at. Rows grow to fit larger text. The Minecraft font is only sharp at 1")
     var elementHeight by setting("Element Height", 11.5f, 10f..24f, 0.5f, "Height of a module in its category and of a row of settings, never less than its text needs")
     val dimBackground by setting("Dim Background", true, "Darkens what is behind the click GUI while it is open, whatever NoRender says about GUI shadows")
@@ -62,6 +63,9 @@ object Style : Module(
     val layerFade by setting("Layer Fade", 0.5f, 0f..1f, 0.05f, "How far the interface fades out underneath a panel, menu or window opened over it, letting the game show there instead so the two do not run together") { blur }
     val outlines by setting("Outlines", true, "Draws a thin border around windows, panels and menus. Off for the look of pure glass")
     val emboss by setting("Emboss", false, "Lights each module faintly from above, so the list feels less flat")
+
+    var inlineSettings by setting("Inline Settings", false, "A module's settings drop down under it inside its window, as wide as the window and pushing the modules below it down, instead of popping out beside it")
+    var multipleSettings by setting("Multiple Settings", false, "Lets the settings of several modules be open at once, where otherwise opening one closes the last. A click beside them closes them all either way")
 
     var glow by setting("Glow", false, "Surrounds the click GUI with a glow, in the two glow colours of the theme in use")
     val glowRadius by setting("Glow Radius", 17f, 1f..100f, 1f) { glow }
@@ -105,7 +109,7 @@ object Style : Module(
             secondary = Color(255, 168, 158),
             surface = Color(60, 48, 52, 165),
             panel = Color(48, 38, 42, 200),
-            inset = Color(0, 0, 0, 90),
+            inset = Color(0, 0, 0, 190),
             onSurface = Color(246, 236, 239),
             onSurfaceVariant = Color(172, 152, 159),
             header = Color(190, 62, 98),
@@ -140,7 +144,7 @@ object Style : Module(
             secondary = Color(196, 58, 52),
             surface = Color(246, 240, 243, 200),
             panel = Color(240, 233, 237, 225),
-            inset = Color(120, 0, 40, 34),
+            inset = Color(120, 0, 40, 68),
             onSurface = Color(64, 44, 54),
             onSurfaceVariant = Color(128, 108, 117),
             header = Color(214, 55, 88, 242),
@@ -220,7 +224,7 @@ class PaletteSettings(
     private val secondary by c.setting("Secondary", secondary, "Second accent: what is chosen among options, as in a menu or a row of pages")
     private val surface by c.setting("Surface", surface, "Fill of windows. Lower its opacity to see more of the blur")
     private val panel by c.setting("Panel", panel, "Fill of settings panels, menus and dialogs")
-    private val inset by c.setting("Inset", inset, "Shade over the module whose settings are open, which looks pressed in")
+    private val inset by c.setting("Inset", inset, "Shade behind settings that open under their module, and over the module whose settings are open beside it")
     private val onSurface by c.setting("On Surface", onSurface, "Text on windows")
     private val onSurfaceVariant by c.setting("On Surface Variant", onSurfaceVariant, "Subdued text on windows")
     private val header by c.setting("Header", header)

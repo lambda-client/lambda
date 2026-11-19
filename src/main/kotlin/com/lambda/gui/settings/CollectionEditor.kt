@@ -77,7 +77,7 @@ internal fun <R : Any> CollectionButton(setting: CollectionSetting<R>) {
 
     Labeled(setting.name) {
         Chip(onClick = { editing = true }) {
-            Text("$count selected", maxLines = 1)
+            Text("$count selected", Modifier.weight(1f, fill = false), maxLines = 1)
             Ellipsis()
         }
     }
@@ -123,19 +123,12 @@ internal fun BlockPicker(setting: BlockSetting) {
     val block by observe { setting.value }
     var picking by remember { mutableStateOf(false) }
 
-    // The chip has what the name leaves: a block with a long name slides along under the pointer
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(min = RowHeight).padding(start = 3.dp)
-    ) {
-        Text(setting.name, maxLines = 1)
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            Chip(onClick = { picking = true }) {
-                Box(Modifier.size(IconSize)) { ItemIcon(ItemStack(block.asItem()), IconSize) }
-                Text(BlockSerializer.stringify(block), Modifier.weight(1f, fill = false), maxLines = 1)
-                Ellipsis()
-            }
+    // A block with a long name slides along under the pointer in the room its chip is given
+    Labeled(setting.name) {
+        Chip(onClick = { picking = true }) {
+            Box(Modifier.size(IconSize)) { ItemIcon(ItemStack(block.asItem()), IconSize) }
+            Text(BlockSerializer.stringify(block), Modifier.weight(1f, fill = false), maxLines = 1)
+            Ellipsis()
         }
     }
     if (!picking) return
