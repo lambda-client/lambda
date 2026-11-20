@@ -49,7 +49,7 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     @Tab(GENERAL_TAB) val lambdaTitleAppendixName by setting("Append Username", true) { setLambdaWindowTitle }
         .onValueChange { _, _ -> mc.updateWindowTitle() }
     @Tab(GENERAL_TAB) val keepSettingsOpen by setting("Keep Settings Open", false, "Leaves a module's settings open when the click GUI closes, so they are still there when it opens again")
-    @Tab(GENERAL_TAB) val resetWindowLayout by setting("Reset Window Layout", ::resetWindows, "Puts every category window of the click GUI back in its place in the row, unfolded")
+    @Tab(GENERAL_TAB) private val resetWindowLayout by setting("Reset Window Layout", ::resetWindows, "Puts every category window of the click GUI back in its place in the row, unfolded")
 
     @Tab(SNAPPING_TAB) val snapEnabled by setting("Enable Snapping", true, "Master toggle for snapping HUD elements and click GUI windows into line when they are dragged")
     @Tab(SNAPPING_TAB) val snapKey by setting("Snap Key", KeyCode.LeftShift, "What is dragged only snaps while this is held. Unbind it to snap all the time.") { snapEnabled }
@@ -64,7 +64,7 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     @Tab(SNAPPING_TAB) val snapDistanceGrid by setting("Snap Distance (Grid)", 12f, 1f..48f, 1f) { snapEnabled }
     @Tab(SNAPPING_TAB) val snapLineColor by setting("Snap Line Color", Color(255, 160, 0, 220)) { snapEnabled && showSnapLines }
 
-    data class WindowPlacement(val x: Float, val y: Float, val collapsed: Boolean) {
+    internal data class WindowPlacement(val x: Float, val y: Float, val collapsed: Boolean) {
         val inRow get() = x.isNaN() || y.isNaN()
 
         companion object {
@@ -76,7 +76,7 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     private var decodedFrom: String? = null
     private var decoded = emptyMap<String, WindowPlacement>()
 
-    var windows: Map<String, WindowPlacement>
+    internal var windows: Map<String, WindowPlacement>
         get() {
             val saved = windowPlacements
             if (saved != decodedFrom) {
@@ -91,7 +91,7 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
             }
         }
 
-    fun resetWindows() {
+    internal fun resetWindows() {
         windows = emptyMap()
     }
 

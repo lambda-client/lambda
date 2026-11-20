@@ -42,9 +42,9 @@ object AutoUpdater : Module(
 
     private var loaderPromptHandled by property(false)
 
-    enum class Prompt { FirstLaunch, Install, Uninstall }
+    internal enum class Prompt { FirstLaunch, Install, Uninstall }
 
-    var prompt: Prompt? = null
+    internal var prompt: Prompt? = null
         private set
     private var firstLaunchStateInitialized = false
 
@@ -64,7 +64,7 @@ object AutoUpdater : Module(
         onDisableUnsafe { prompt = Prompt.Uninstall.takeIf { LambdaGui.screen != null && prompt != Prompt.Install } }
     }
 
-    fun onGuiOpened() {
+    internal fun onGuiOpened() {
         if (firstLaunchStateInitialized) return
         firstLaunchStateInitialized = true
 
@@ -76,7 +76,7 @@ object AutoUpdater : Module(
         if (!loaderPromptHandled) prompt = Prompt.FirstLaunch
     }
 
-    fun answerPrompt(accepted: Boolean) {
+    internal fun answerPrompt(accepted: Boolean) {
         when (prompt) {
             Prompt.FirstLaunch -> {
                 loaderPromptHandled = true
