@@ -19,13 +19,11 @@ package com.lambda.gui
 
 import androidx.compose.ui.geometry.Offset
 import com.lambda.Lambda.mc
-import com.lambda.config.settings.complex.Bind
-import com.lambda.event.events.ButtonEvent
+import com.lambda.config.settings.complex.KeybindSetting
 import com.lambda.gui.clickgui.ClickGuiState
 import com.lambda.gui.component.TextFocus
 import com.lambda.module.modules.client.Style
 import com.lambda.module.modules.combat.autodisconnect.AutoDisconnectScreen
-import com.lambda.util.KeyCode
 import com.lambda.util.render.CursorOverrideProvider
 import net.minecraft.client.gui.Click
 import net.minecraft.client.gui.DrawContext
@@ -41,13 +39,12 @@ import org.lwjgl.glfw.GLFW
 object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
     private var parent: Screen? = null
 
-    internal var keybindRecorder: ((Bind?) -> Unit)? = null
-
-    private val backgroundScreens = listOf(
-        TitleScreen::class.java,
-        MultiplayerScreen::class.java,
-        AutoDisconnectScreen::class.java,
-    )
+    private val backgroundScreens =
+        listOf(
+            TitleScreen::class.java,
+            MultiplayerScreen::class.java,
+            AutoDisconnectScreen::class.java,
+        )
 
     fun canOpenOver(screen: Screen?) = screen == null || backgroundScreens.any { it.isInstance(screen) }
 
@@ -64,8 +61,7 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
     }
 
     override fun removed() {
-        keybindRecorder?.invoke(null)
-        keybindRecorder = null
+        KeybindSetting.stopRecording()
         LambdaGui.onScreenRemoved()
     }
 
@@ -98,14 +94,6 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
     }
 
     override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
-        keybindRecorder?.let { record ->
-            keybindRecorder = null
-            if (click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-                record(Bind(0, click.modifiers(), click.button()))
-                return true
-            }
-            record(null)
-        }
         val position = scenePosition(click.x(), click.y())
         TextFocus.press(position)
         LambdaGui.input?.run {
@@ -129,7 +117,6 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
     }
 
     override fun keyPressed(input: KeyInput): Boolean {
-        if (recordKey(input, pressed = true)) return true
         if (LambdaGui.input?.key(input.key(), true, input.modifiers()) == true) return true
         if (input.key() == GLFW.GLFW_KEY_F && input.modifiers() and GLFW.GLFW_MOD_CONTROL != 0) {
             ClickGuiState.focusSearch = LambdaGui.screen == LambdaGui.Screen.ClickGui
@@ -140,32 +127,12 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
     }
 
     override fun keyReleased(input: KeyInput): Boolean {
-        if (recordKey(input, pressed = false)) return true
         LambdaGui.input?.key(input.key(), false, input.modifiers())
         return true
     }
 
     override fun charTyped(input: CharInput): Boolean {
         LambdaGui.input?.type(input.codepoint())
-        return true
-    }
-
-    private fun recordKey(input: KeyInput, pressed: Boolean): Boolean {
-        val record = keybindRecorder ?: return false
-        val key = ButtonEvent.Keyboard.Press(
-            input.key(), input.scancode(), if (pressed) GLFW.GLFW_PRESS else GLFW.GLFW_RELEASE, input.modifiers()
-        ).translated
-        val isModifier = input.key() in GLFW.GLFW_KEY_LEFT_SHIFT..GLFW.GLFW_KEY_RIGHT_SUPER
-        if (pressed == isModifier) return true
-
-        record(
-            when (key) {
-                KeyCode.Escape -> null
-                KeyCode.Backspace, KeyCode.Delete -> Bind.EMPTY
-                else -> Bind(key.code, if (isModifier) 0 else input.modifiers(), -1)
-            }
-        )
-        keybindRecorder = null
         return true
     }
 

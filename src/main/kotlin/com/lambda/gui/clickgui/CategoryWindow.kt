@@ -116,21 +116,23 @@ internal fun CategoryWindow(
     val collapsed = placement?.collapsed ?: false
 
     var dragged by remember { mutableStateOf<Offset?>(null) }
-    val drop = dragged?.let { corner ->
-        val window = Rect(corner, bounds[tag]?.size ?: Size.Zero)
-        if (snapping) Snap.snap(window, bounds.filterKeys { it != tag }.values, area, density, with(density) { Look.windowGap.toPx() })
-        else Snap.free(window, area)
-    }
+    val drop =
+        dragged?.let { corner ->
+            val window = Rect(corner, bounds[tag]?.size ?: Size.Zero)
+            if (snapping) Snap.snap(window, bounds.filterKeys { it != tag }.values, area, density, with(density) { Look.windowGap.toPx() })
+            else Snap.free(window, area)
+        }
     if (drop != null) SideEffect { onDrop(drop) }
-    val shownPosition = drop?.let {
-        with(density) { DpOffset(it.position.x.toDp(), it.position.y.toDp()) }
-    } ?: (position ?: defaultPosition).let { at ->
-        val screenWidth = with(density) { screen.width.toDp() }
-        DpOffset(
-            at.x.coerceIn(0.dp, (screenWidth - Look.windowWidth).coerceAtLeast(0.dp)),
-            at.y.coerceIn(MENU_BAR_HEIGHT, (screenHeight - REACH).coerceAtLeast(MENU_BAR_HEIGHT)),
-        )
-    }
+    val shownPosition =
+        drop?.let {
+            with(density) { DpOffset(it.position.x.toDp(), it.position.y.toDp()) }
+        } ?: (position ?: defaultPosition).let { at ->
+            val screenWidth = with(density) { screen.width.toDp() }
+            DpOffset(
+                at.x.coerceIn(0.dp, (screenWidth - Look.windowWidth).coerceAtLeast(0.dp)),
+                at.y.coerceIn(MENU_BAR_HEIGHT, (screenHeight - REACH).coerceAtLeast(MENU_BAR_HEIGHT)),
+            )
+        }
     val currentPosition by rememberUpdatedState(shownPosition)
     DisposableEffect(tag) {
         onDispose { bounds -= tag }

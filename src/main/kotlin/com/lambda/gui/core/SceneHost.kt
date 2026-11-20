@@ -62,11 +62,12 @@ internal class SceneHost(context: CoroutineContext, content: @Composable () -> U
     private val recomposer = FrameRecomposer(RenderThread + context)
     private var invalidated = true
 
-    private val scene: ComposeScene = CanvasLayersComposeScene(
-        frameRecomposer = recomposer,
-        platformContext = platform,
-        invalidateDraw = { invalidated = true },
-    ).also { it.setContent(content = content) }
+    private val scene: ComposeScene =
+        CanvasLayersComposeScene(
+            frameRecomposer = recomposer,
+            platformContext = platform,
+            invalidateDraw = { invalidated = true },
+        ).also { it.setContent(content = content) }
 
     val input = SceneInput(scene)
 
@@ -125,12 +126,13 @@ internal class SceneHost(context: CoroutineContext, content: @Composable () -> U
 }
 
 private class SkiaTarget(val size: IntSize) : AutoCloseable {
-    private val texture: GpuTexture = RenderSystem.getDevice().createTexture(
-        { "Lambda GUI" },
-        GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
-        TextureFormat.RGBA8,
-        size.width, size.height, 1, 1
-    )
+    private val texture: GpuTexture =
+        RenderSystem.getDevice().createTexture(
+            { "Lambda GUI" },
+            GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
+            TextureFormat.RGBA8,
+            size.width, size.height, 1, 1
+        )
     val view: GpuTextureView = RenderSystem.getDevice().createTextureView(texture)
 
     private var framebuffer = 0
@@ -138,21 +140,23 @@ private class SkiaTarget(val size: IntSize) : AutoCloseable {
     private var renderTarget: BackendRenderTarget? = null
     private var surface: Surface? = null
 
-    fun attach(skia: DirectContext): Surface = surface ?: run {
-        framebuffer = glGenFramebuffers()
-        stencil = glGenRenderbuffers()
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, (texture as GlTexture).glId, 0)
-        glBindRenderbuffer(GL_RENDERBUFFER, stencil)
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, size.width, size.height)
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, stencil)
+    fun attach(skia: DirectContext): Surface =
+        surface ?: run {
+            framebuffer = glGenFramebuffers()
+            stencil = glGenRenderbuffers()
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, (texture as GlTexture).glId, 0)
+            glBindRenderbuffer(GL_RENDERBUFFER, stencil)
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, size.width, size.height)
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, stencil)
 
-        val renderTarget = BackendRenderTarget.makeGL(size.width, size.height, 0, 8, framebuffer, FramebufferFormat.GR_GL_RGBA8)
-            .also { renderTarget = it }
-        Surface.makeFromBackendRenderTarget(
-            skia, renderTarget, SurfaceOrigin.BOTTOM_LEFT, SurfaceColorFormat.RGBA_8888, ColorSpace.sRGB
-        )?.also { surface = it } ?: error("Skia rejected the GUI render target")
-    }
+            val renderTarget =
+                BackendRenderTarget.makeGL(size.width, size.height, 0, 8, framebuffer, FramebufferFormat.GR_GL_RGBA8)
+                    .also { renderTarget = it }
+            Surface.makeFromBackendRenderTarget(
+                skia, renderTarget, SurfaceOrigin.BOTTOM_LEFT, SurfaceColorFormat.RGBA_8888, ColorSpace.sRGB
+            )?.also { surface = it } ?: error("Skia rejected the GUI render target")
+        }
 
     fun detach() {
         surface?.close()

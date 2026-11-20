@@ -119,8 +119,9 @@ fun TextInput(
             .focusRequester(focus)
             .onFocusChanged {
                 hasFocus = it.isFocused
-                if (it.isFocused) hadFocus = true
-                else if (hadFocus) onDone?.invoke()
+                if (it.isFocused) hadFocus =
+                    true
+                    else if (hadFocus) onDone?.invoke()
             }
             .onPreviewKeyEvent { event ->
                 if (onDone == null || (event.key != Key.Enter && event.key != Key.Escape)) false

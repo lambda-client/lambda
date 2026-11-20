@@ -86,9 +86,10 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
             return decoded
         }
         set(value) {
-            windowPlacements = value.entries.joinToString(";") { (tag, window) ->
-                "$tag:${window.x},${window.y},${window.collapsed}"
-            }
+            windowPlacements =
+                value.entries.joinToString(";") { (tag, window) ->
+                    "$tag:${window.x},${window.y},${window.collapsed}"
+                }
         }
 
     internal fun resetWindows() {

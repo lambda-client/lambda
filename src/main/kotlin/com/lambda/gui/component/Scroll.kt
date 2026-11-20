@@ -86,42 +86,44 @@ fun Scrollbar(adapter: ScrollbarAdapter, modifier: Modifier) {
     }
 }
 
-fun Modifier.wheelScrollable(state: ScrollableState): Modifier = composed {
-    val scope = rememberCoroutineScope()
-    val notch = with(LocalDensity.current) { WHEEL_STEP.toPx() }
-    val glide = remember { WheelGlide() }
-    pointerInput(state, notch) {
-        awaitPointerEventScope {
-            while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
-                if (event.type != PointerEventType.Scroll) continue
-                val change = event.changes.first()
-                val distance = change.scrollDelta.y * notch * Style.scrollSpeed
-                val canFollow = if (distance > 0) state.canScrollForward else state.canScrollBackward
-                if (distance == 0f || !canFollow || change.isConsumed) continue
-                change.consume()
+fun Modifier.wheelScrollable(state: ScrollableState): Modifier =
+    composed {
+        val scope = rememberCoroutineScope()
+        val notch = with(LocalDensity.current) { WHEEL_STEP.toPx() }
+        val glide = remember { WheelGlide() }
+        pointerInput(state, notch) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    if (event.type != PointerEventType.Scroll) continue
+                    val change = event.changes.first()
+                    val distance = change.scrollDelta.y * notch * Style.scrollSpeed
+                    val canFollow = if (distance > 0) state.canScrollForward else state.canScrollBackward
+                    if (distance == 0f || !canFollow || change.isConsumed) continue
+                    change.consume()
 
-                val total = distance + if (glide.remaining * distance > 0) glide.remaining else 0f
-                glide.job?.cancel()
-                glide.job = scope.launch(Motion.SCROLL) {
-                    var travelled = 0f
-                    glide.remaining = total
-                    try {
-                        state.scroll(MutatePriority.UserInput) {
-                            animate(0f, total, animationSpec = GLIDE) { value, _ ->
-                                scrollBy(value - travelled)
-                                travelled = value
-                                glide.remaining = total - value
+                    val total = distance + if (glide.remaining * distance > 0) glide.remaining else 0f
+                    glide.job?.cancel()
+                    glide.job =
+                        scope.launch(Motion.SCROLL) {
+                            var travelled = 0f
+                            glide.remaining = total
+                            try {
+                                state.scroll(MutatePriority.UserInput) {
+                                    animate(0f, total, animationSpec = GLIDE) { value, _ ->
+                                        scrollBy(value - travelled)
+                                        travelled = value
+                                        glide.remaining = total - value
+                                    }
+                                }
+                            } finally {
+                                if (glide.job === coroutineContext[Job]) glide.remaining = 0f
                             }
                         }
-                    } finally {
-                        if (glide.job === coroutineContext[Job]) glide.remaining = 0f
-                    }
                 }
             }
         }
     }
-}
 
 private class WheelGlide {
     var remaining = 0f

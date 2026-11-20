@@ -325,32 +325,36 @@ object LambdaRenderPipelines : Loadable {
 				.build()
 		)
 
-	val GUI_BLIT = guiPass(
-		"gui_blit",
-		Identifier.ofVanilla("core/blit_screen"),
-		samplers = listOf("InSampler"),
-		blend = BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA
-	)
+	val GUI_BLIT =
+		guiPass(
+			"gui_blit",
+			Identifier.ofVanilla("core/blit_screen"),
+			samplers = listOf("InSampler"),
+			blend = BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA
+		)
 
-	val GUI_COMPOSITE = guiPass(
-		"gui_composite",
-		Identifier.of("lambda", "core/gui_composite"),
-		samplers = listOf("GuiSampler", "BackdropSampler", "HaloSampler"),
-		uniform = "GuiEffects",
-		blend = BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA
-	)
+	val GUI_COMPOSITE =
+		guiPass(
+			"gui_composite",
+			Identifier.of("lambda", "core/gui_composite"),
+			samplers = listOf("GuiSampler", "BackdropSampler", "HaloSampler"),
+			uniform = "GuiEffects",
+			blend = BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA
+		)
 
-	val GUI_BLUR_DOWN = guiPass(
-		"gui_blur_down",
-		Identifier.of("lambda", "core/gui_blur_down"),
-		samplers = listOf("InSampler"),
-		uniform = "BlurSpread"
-	)
+	val GUI_BLUR_DOWN =
+		guiPass(
+			"gui_blur_down",
+			Identifier.of("lambda", "core/gui_blur_down"),
+			samplers = listOf("InSampler"),
+			uniform = "BlurSpread"
+		)
 
-	val GUI_BLUR_UP = guiPass(
-		"gui_blur_up",
-		Identifier.of("lambda", "core/gui_blur_up"),
-		samplers = listOf("InSampler"),
-		uniform = "BlurSpread"
-	)
+	val GUI_BLUR_UP =
+		guiPass(
+			"gui_blur_up",
+			Identifier.of("lambda", "core/gui_blur_up"),
+			samplers = listOf("InSampler"),
+			uniform = "BlurSpread"
+		)
 }

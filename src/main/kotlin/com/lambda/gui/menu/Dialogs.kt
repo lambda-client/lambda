@@ -91,31 +91,34 @@ internal fun NewAutomationConfigDialog(onDismiss: () -> Unit) {
 @Composable
 internal fun AboutDialog(onDismiss: () -> Unit) {
     val colors = LambdaTheme.colors
-    val facts = remember {
-        val settings = ConfigLoader.configCategories.sumOf { category ->
-            category.configs.sumOf { config ->
-                var count = 0
-                config.settingLayers.forEachEntry { _, _ -> count++ }
-                count
-            }
+    val facts =
+        remember {
+            val settings =
+                ConfigLoader.configCategories.sumOf { category ->
+                    category.configs.sumOf { config ->
+                        var count = 0
+                        config.settingLayers.forEachEntry { _, _ -> count++ }
+                        count
+                    }
+                }
+            listOfNotNull(
+                "Version: ${Lambda.VERSION}",
+                "Development Environment".takeIf { Lambda.isDebug },
+                "Runtime: ${Loader.runtime}",
+                "Modules: ${ModuleRegistry.modules.size}",
+                "Commands: ${CommandRegistry.commands.size}",
+                "Settings: $settings",
+                "Synchronous listeners: ${EventFlow.syncListeners.size}",
+                "Concurrent listeners: ${EventFlow.concurrentListeners.size}",
+            )
         }
-        listOfNotNull(
-            "Version: ${Lambda.VERSION}",
-            "Development Environment".takeIf { Lambda.isDebug },
-            "Runtime: ${Loader.runtime}",
-            "Modules: ${ModuleRegistry.modules.size}",
-            "Commands: ${CommandRegistry.commands.size}",
-            "Settings: $settings",
-            "Synchronous listeners: ${EventFlow.syncListeners.size}",
-            "Concurrent listeners: ${EventFlow.concurrentListeners.size}",
-        )
-    }
-    val authors = remember {
-        FabricLoader.getInstance().getModContainer("lambda").orElseThrow().metadata.authors
-            .flatMap { it.name.split(",") }
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-    }
+    val authors =
+        remember {
+            FabricLoader.getInstance().getModContainer("lambda").orElseThrow().metadata.authors
+                .flatMap { it.name.split(",") }
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+        }
 
     Dialog(onDismiss) {
         Column(Modifier.width(240.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {

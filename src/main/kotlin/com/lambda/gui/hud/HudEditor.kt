@@ -267,41 +267,42 @@ private fun ElementSettings(config: Config, open: Boolean, editor: HudEditorStat
     }
 }
 
-internal fun Modifier.hudEditable(hud: HudModule, editor: HudEditorState): Modifier = this
-    .onGloballyPositioned { editor.bounds[hud] = Rect(it.positionInRoot(), it.size.toSize()) }
-    .onMousePress(PointerButton.Secondary) { position ->
-        editor.bounds[hud]?.let { editor.openMenu(it.topLeft + position, hud) }
-    }
-    .pointerInput(hud) {
-        awaitEachGesture {
-            val down = awaitFirstDown()
-            val origin = editor.bounds[hud] ?: return@awaitEachGesture
-            down.consume()
+internal fun Modifier.hudEditable(hud: HudModule, editor: HudEditorState): Modifier =
+    this
+        .onGloballyPositioned { editor.bounds[hud] = Rect(it.positionInRoot(), it.size.toSize()) }
+        .onMousePress(PointerButton.Secondary) { position ->
+            editor.bounds[hud]?.let { editor.openMenu(it.topLeft + position, hud) }
+        }
+        .pointerInput(hud) {
+            awaitEachGesture {
+                val down = awaitFirstDown()
+                val origin = editor.bounds[hud] ?: return@awaitEachGesture
+                down.consume()
 
-            editor.draggedTo = origin.topLeft
-            editor.dragged = hud
-            try {
-                drag(down.id) { change ->
-                    editor.draggedTo += change.positionChange()
-                    change.consume()
+                editor.draggedTo = origin.topLeft
+                editor.dragged = hud
+                try {
+                    drag(down.id) { change ->
+                        editor.draggedTo += change.positionChange()
+                        change.consume()
+                    }
+                } finally {
+                    val dropped = editor.drop?.position ?: origin.topLeft
+                    val room = editor.screen - origin.size
+                    hud.anchorX = if (room.width > 0f) (dropped.x / room.width).coerceIn(0f, 1f) else 0f
+                    hud.anchorY = if (room.height > 0f) (dropped.y / room.height).coerceIn(0f, 1f) else 0f
+                    editor.dragged = null
                 }
-            } finally {
-                val dropped = editor.drop?.position ?: origin.topLeft
-                val room = editor.screen - origin.size
-                hud.anchorX = if (room.width > 0f) (dropped.x / room.width).coerceIn(0f, 1f) else 0f
-                hud.anchorY = if (room.height > 0f) (dropped.y / room.height).coerceIn(0f, 1f) else 0f
-                editor.dragged = null
             }
         }
-    }
-    .drawBehind {
-        val width = Look.outlineWidth.toPx()
-        drawRect(
-            color = Color.White.copy(alpha = if (editor.dragged == hud || Reveal.module === hud) 0.9f else 0.35f),
-            topLeft = Offset(width / 2, width / 2),
-            size = Size(size.width - width, size.height - width),
-            style = Stroke(width)
-        )
-    }
+        .drawBehind {
+            val width = Look.outlineWidth.toPx()
+            drawRect(
+                color = Color.White.copy(alpha = if (editor.dragged == hud || Reveal.module === hud) 0.9f else 0.35f),
+                topLeft = Offset(width / 2, width / 2),
+                size = Size(size.width - width, size.height - width),
+                style = Stroke(width)
+            )
+        }
 
 private operator fun Size.minus(other: Size) = Size(width - other.width, height - other.height)

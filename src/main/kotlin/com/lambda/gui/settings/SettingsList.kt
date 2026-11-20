@@ -88,10 +88,11 @@ fun SettingsList(layer: EntryLayer<Setting<*>>) {
             when {
                 layer.multipleType == MultipleLayerType.Group ->
                     Section(layer.name, revealed = Reveal.setting?.let(layer::holds) == true) { Children(layer) }
-                else -> Column(Modifier.fillMaxWidth()) {
-                    layer.layers.filter { it !is EntryLayer.Tab }.forEach { SettingsList(it) }
-                    if (tabs.isNotEmpty()) Tabs(tabs)
-                }
+                else ->
+                    Column(Modifier.fillMaxWidth()) {
+                        layer.layers.filter { it !is EntryLayer.Tab }.forEach { SettingsList(it) }
+                        if (tabs.isNotEmpty()) Tabs(tabs)
+                    }
             }
         }
     }

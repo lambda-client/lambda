@@ -147,11 +147,12 @@ object Style : Module(
     )
 
     private val theme: PaletteSettings
-        get() = when (themeMode) {
-            ThemeMode.Dark -> darkTheme
-            ThemeMode.Light -> lightTheme
-            ThemeMode.Auto -> if (SystemAppearance.isDark) darkTheme else lightTheme
-        }
+        get() =
+            when (themeMode) {
+                ThemeMode.Dark -> darkTheme
+                ThemeMode.Light -> lightTheme
+                ThemeMode.Auto -> if (SystemAppearance.isDark) darkTheme else lightTheme
+            }
 
     val palette: Palette get() = theme.toPalette()
     val glowColorA: Color get() = theme.glowA
@@ -219,24 +220,25 @@ class PaletteSettings(
     val glowA by c.setting("Glow Color 1", glowA, "Where the glow around the click GUI starts") { Style.glow }
     val glowB by c.setting("Glow Color 2", glowB, "Where the glow around the click GUI ends") { Style.glow }
 
-    fun toPalette() = Palette(
-        primary = primary.toCompose(),
-        secondary = secondary.toCompose(),
-        surface = surface.toCompose(),
-        panel = panel.toCompose(),
-        inset = inset.toCompose(),
-        onSurface = onSurface.toCompose(),
-        onSurfaceVariant = onSurfaceVariant.toCompose(),
-        header = header.toCompose(),
-        onHeader = onHeader.toCompose(),
-        moduleEnabled = moduleEnabled.toCompose(),
-        onModuleEnabled = onModuleEnabled.toCompose(),
-        control = control.toCompose(),
-        controlSelected = controlSelected.toCompose(),
-        onControl = onControl.toCompose(),
-        track = track.toCompose(),
-        input = input.toCompose(),
-        border = border.toCompose(),
-        textShadow = textShadow.toCompose(),
-    )
+    fun toPalette() =
+        Palette(
+            primary = primary.toCompose(),
+            secondary = secondary.toCompose(),
+            surface = surface.toCompose(),
+            panel = panel.toCompose(),
+            inset = inset.toCompose(),
+            onSurface = onSurface.toCompose(),
+            onSurfaceVariant = onSurfaceVariant.toCompose(),
+            header = header.toCompose(),
+            onHeader = onHeader.toCompose(),
+            moduleEnabled = moduleEnabled.toCompose(),
+            onModuleEnabled = onModuleEnabled.toCompose(),
+            control = control.toCompose(),
+            controlSelected = controlSelected.toCompose(),
+            onControl = onControl.toCompose(),
+            track = track.toCompose(),
+            input = input.toCompose(),
+            border = border.toCompose(),
+            textShadow = textShadow.toCompose(),
+        )
 }

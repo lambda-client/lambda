@@ -83,10 +83,11 @@ import org.lwjgl.system.MemoryStack
 internal object GlState {
     private const val TEXTURE_UNITS = 12
 
-    private val UNPACK_PARAMETERS = intArrayOf(
-        GL_UNPACK_SWAP_BYTES, GL_UNPACK_LSB_FIRST, GL_UNPACK_ROW_LENGTH, GL_UNPACK_IMAGE_HEIGHT,
-        GL_UNPACK_SKIP_ROWS, GL_UNPACK_SKIP_PIXELS, GL_UNPACK_SKIP_IMAGES, GL_UNPACK_ALIGNMENT
-    )
+    private val UNPACK_PARAMETERS =
+        intArrayOf(
+            GL_UNPACK_SWAP_BYTES, GL_UNPACK_LSB_FIRST, GL_UNPACK_ROW_LENGTH, GL_UNPACK_IMAGE_HEIGHT,
+            GL_UNPACK_SKIP_ROWS, GL_UNPACK_SKIP_PIXELS, GL_UNPACK_SKIP_IMAGES, GL_UNPACK_ALIGNMENT
+        )
     private val UNPACK_DEFAULTS = intArrayOf(0, 0, 0, 0, 0, 0, 0, 4)
     private val CAPABILITIES = intArrayOf(GL_BLEND, GL_CULL_FACE, GL_DEPTH_TEST, GL_STENCIL_TEST, GL_SCISSOR_TEST)
 
@@ -136,11 +137,12 @@ internal object GlState {
         val blendEquationRgb = glGetInteger(GL_BLEND_EQUATION_RGB)
         val blendEquationAlpha = glGetInteger(GL_BLEND_EQUATION_ALPHA)
         val depthMask = glGetBoolean(GL_DEPTH_WRITEMASK)
-        val colorMask = MemoryStack.stackPush().use { stack ->
-            val mask = stack.malloc(4)
-            glGetBooleanv(GL_COLOR_WRITEMASK, mask)
-            BooleanArray(4) { mask[it].toInt() != 0 }
-        }
+        val colorMask =
+            MemoryStack.stackPush().use { stack ->
+                val mask = stack.malloc(4)
+                glGetBooleanv(GL_COLOR_WRITEMASK, mask)
+                BooleanArray(4) { mask[it].toInt() != 0 }
+            }
         glGetIntegerv(GL_VIEWPORT, viewport)
         glGetIntegerv(GL_SCISSOR_BOX, scissor)
         CAPABILITIES.forEachIndexed { index, capability -> capabilities[index] = glIsEnabled(capability) }

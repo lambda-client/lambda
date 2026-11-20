@@ -64,9 +64,10 @@ fun ContentColor(color: Color, content: @Composable () -> Unit) =
 fun SoftTextShadow(content: @Composable () -> Unit) {
     val density = LocalDensity.current
     val color = LambdaTheme.colors.textShadow
-    val shadow = remember(density, color) {
-        with(density) { Shadow(color, Offset(0f, 0.5.dp.toPx()), blurRadius = 1.5.dp.toPx()) }
-    }
+    val shadow =
+        remember(density, color) {
+            with(density) { Shadow(color, Offset(0f, 0.5.dp.toPx()), blurRadius = 1.5.dp.toPx()) }
+        }
     CompositionLocalProvider(LocalTextShadow provides shadow, content = content)
 }
 

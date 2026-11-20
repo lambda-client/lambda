@@ -83,43 +83,47 @@ internal fun ColumnScope.ModuleSettings(module: Module, selected: PanelPage, onS
             onSelect(it)
             if (scroll != null) scope.launch { scroll.scrollTo(0) }
         }
-        val turned = @Composable {
-            AnimatedContent(
-                targetState = page,
-                modifier = Modifier.fillMaxWidth(),
-                transitionSpec = { pageTurn(towardsEnd = targetState > initialState) },
-            ) { shown ->
-                Column(Modifier.fillMaxWidth()) {
-                    when (shown) {
-                        PanelPage.Settings -> SettingsPage(module)
-                        PanelPage.Module -> ModulePage(module)
-                        PanelPage.Automation -> AutomationPage(module)
+        val turned =
+            @Composable {
+                AnimatedContent(
+                    targetState = page,
+                    modifier = Modifier.fillMaxWidth(),
+                    transitionSpec = { pageTurn(towardsEnd = targetState > initialState) },
+                ) { shown ->
+                    Column(Modifier.fillMaxWidth()) {
+                        when (shown) {
+                            PanelPage.Settings -> SettingsPage(module)
+                            PanelPage.Module -> ModulePage(module)
+                            PanelPage.Automation -> AutomationPage(module)
+                        }
                     }
                 }
             }
-        }
         if (scroll != null) ScrollColumn(Modifier.weight(1f, fill = false), scroll) { turned() } else turned()
     }
 }
 
-private fun pagesOf(module: Module): List<PanelPage> = when {
-    module == AutoUpdater -> listOf(PanelPage.Settings)
-    module.automationConfig === AutomationConfig.DEFAULT -> listOf(PanelPage.Settings, PanelPage.Module)
-    else -> PanelPage.entries
-}
+private fun pagesOf(module: Module): List<PanelPage> =
+    when {
+        module == AutoUpdater -> listOf(PanelPage.Settings)
+        module.automationConfig === AutomationConfig.DEFAULT -> listOf(PanelPage.Settings, PanelPage.Module)
+        else -> PanelPage.entries
+    }
 
-private fun pageOf(module: Module, setting: Setting<*>): PanelPage = when {
-    module.automationConfig !== AutomationConfig.DEFAULT && module.automationConfig.settingLayers.holds(setting) -> PanelPage.Automation
-    setting in moduleSettings(module) -> PanelPage.Module
-    else -> PanelPage.Settings
-}
+private fun pageOf(module: Module, setting: Setting<*>): PanelPage =
+    when {
+        module.automationConfig !== AutomationConfig.DEFAULT && module.automationConfig.settingLayers.holds(setting) -> PanelPage.Automation
+        setting in moduleSettings(module) -> PanelPage.Module
+        else -> PanelPage.Settings
+    }
 
-private fun moduleSettings(module: Module): List<Setting<*>> = listOfNotNull(
-    module.keybindSetting.takeUnless { module.alwaysEnabled },
-    module.prioritySetting,
-    module.disableOnReleaseSetting.takeUnless { module.alwaysEnabled },
-    module.drawSetting.takeUnless { module.alwaysEnabled },
-)
+private fun moduleSettings(module: Module): List<Setting<*>> =
+    listOfNotNull(
+        module.keybindSetting.takeUnless { module.alwaysEnabled },
+        module.prioritySetting,
+        module.disableOnReleaseSetting.takeUnless { module.alwaysEnabled },
+        module.drawSetting.takeUnless { module.alwaysEnabled },
+    )
 
 @Composable
 private fun PageStrip(pages: List<PanelPage>, selected: PanelPage, onSelect: (PanelPage) -> Unit) {
