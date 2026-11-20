@@ -155,7 +155,7 @@ enum class GuiFont(override val displayName: String, val size: TextUnit, val sma
 }
 
 @Immutable
-class Typography(font: GuiFont, scale: Float = 1f) {
+private class Typography(font: GuiFont, scale: Float = 1f) {
     val title = compact(font, font.size * scale, font.titleWeight)
     val body = compact(font, font.size * scale)
     val label = compact(font, font.smallSize * scale)

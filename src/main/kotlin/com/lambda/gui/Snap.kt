@@ -51,7 +51,7 @@ internal object Snap {
     val isActive: Boolean
         get() = GuiConfig.snapEnabled && (GuiConfig.snapKey == Bind.EMPTY || GuiConfig.snapKey.isSatisfied())
 
-    fun gridStep(density: Density) = with(density) { max(MIN_GRID_STEP, GuiConfig.gridSize.dp.toPx()) }
+    private fun gridStep(density: Density) = with(density) { max(MIN_GRID_STEP, GuiConfig.gridSize.dp.toPx()) }
 
     fun free(element: Rect, area: Rect) = Result(element.topLeft.keptIn(area, element.size), Guides.NONE)
 
