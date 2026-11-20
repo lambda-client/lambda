@@ -56,42 +56,45 @@ private val CLOSE_SHADOW_COLOR = Color.Black.copy(alpha = 0.85f)
 private val CLOSE_SHADOW_BLUR = 3.dp
 private val CLOSE_SHADOW_DROP = 2.dp
 
-private val DRAWN = ImageFilter.makeColorFilter(
-    ColorFilter.makeMatrix(
-        ColorMatrix(
-            0f, 0f, 0f, 0f, 0f,
-            0f, 0f, 0f, 0f, 0f,
-            0f, 0f, 0f, 0f, 0f,
-            0f, 0f, 0f, 64f, 0f,
-        )
-    ),
-    null,
-    null
-)
+private val DRAWN =
+    ImageFilter.makeColorFilter(
+        ColorFilter.makeMatrix(
+            ColorMatrix(
+                0f, 0f, 0f, 0f, 0f,
+                0f, 0f, 0f, 0f, 0f,
+                0f, 0f, 0f, 0f, 0f,
+                0f, 0f, 0f, 64f, 0f,
+            )
+        ),
+        null,
+        null
+    )
 
 private val REPLACE = Paint().apply { blendMode = org.jetbrains.skia.BlendMode.SRC }
 private val WITHIN = Paint().apply { blendMode = org.jetbrains.skia.BlendMode.SRC_IN }
 
-fun Modifier.glass(color: Color, shape: Shape): Modifier = clip(shape).composed {
-    val sigma = with(LocalDensity.current) { Look.backdropBlur.toPx() }
-    val underlay = Look.underlay
-    val blur = remember(sigma, underlay) {
-        if (sigma <= 0f) return@remember null
-        val blurred = ImageFilter.makeBlur(sigma, sigma, FilterTileMode.CLAMP)
-        if (underlay >= 1f) blurred else ImageFilter.makeColorFilter(faded(underlay), blurred, null)
-    }
-    drawBehind {
-        if (blur == null) {
-            drawRect(color, blendMode = BlendMode.Src)
-            return@drawBehind
+fun Modifier.glass(color: Color, shape: Shape): Modifier =
+    clip(shape).composed {
+        val sigma = with(LocalDensity.current) { Look.backdropBlur.toPx() }
+        val underlay = Look.underlay
+        val blur =
+            remember(sigma, underlay) {
+                if (sigma <= 0f) return@remember null
+                val blurred = ImageFilter.makeBlur(sigma, sigma, FilterTileMode.CLAMP)
+                if (underlay >= 1f) blurred else ImageFilter.makeColorFilter(faded(underlay), blurred, null)
+            }
+        drawBehind {
+            if (blur == null) {
+                drawRect(color, blendMode = BlendMode.Src)
+                return@drawBehind
+            }
+            drawIntoCanvas { canvas ->
+                canvas.skiaCanvas.saveLayer(Canvas.SaveLayerRec(Rect.makeWH(size.width, size.height), REPLACE, blur))
+                canvas.skiaCanvas.restore()
+            }
+            drawRect(color)
         }
-        drawIntoCanvas { canvas ->
-            canvas.skiaCanvas.saveLayer(Canvas.SaveLayerRec(Rect.makeWH(size.width, size.height), REPLACE, blur))
-            canvas.skiaCanvas.restore()
-        }
-        drawRect(color)
     }
-}
 
 fun Modifier.window(color: Color, border: Color, shape: Shape, floating: Boolean = false): Modifier =
     (if (floating) dropShadow(shape) else this)
@@ -99,38 +102,41 @@ fun Modifier.window(color: Color, border: Color, shape: Shape, floating: Boolean
         .then(if (Look.outlines) Modifier.border(Look.outlineWidth, border, shape) else Modifier)
         .consumeClicks()
 
-fun Modifier.dropShadow(shape: Shape, close: Boolean = false): Modifier = drawWithCache {
-    val body = Path().apply { addOutline(shape.createOutline(size, layoutDirection, this@drawWithCache)) }
-    val drop = (if (close) CLOSE_SHADOW_DROP else SHADOW_DROP).toPx()
-    val blur = (if (close) CLOSE_SHADOW_BLUR else SHADOW_BLUR).toPx()
-    val reach = blur * 3
-    val shadow = Paint().apply {
-        color = (if (close) CLOSE_SHADOW_COLOR else SHADOW_COLOR).toArgb()
-        maskFilter = MaskFilter.makeBlur(FilterBlurMode.NORMAL, blur)
-    }
-    onDrawBehind {
-        if (!Look.shadows) return@onDrawBehind
-        clipPath(body, ClipOp.Difference) {
-            clipRect(-reach, drop - reach, size.width + reach, size.height + drop + reach) {
-                drawIntoCanvas { canvas ->
-                    val skia = canvas.skiaCanvas
-                    skia.saveLayer(Canvas.SaveLayerRec(null, null, DRAWN))
-                    skia.saveLayer(null, WITHIN)
-                    skia.translate(0f, drop)
-                    skia.drawPath(body.asSkiaPath(), shadow)
-                    skia.restore()
-                    skia.restore()
+fun Modifier.dropShadow(shape: Shape, close: Boolean = false): Modifier =
+    drawWithCache {
+        val body = Path().apply { addOutline(shape.createOutline(size, layoutDirection, this@drawWithCache)) }
+        val drop = (if (close) CLOSE_SHADOW_DROP else SHADOW_DROP).toPx()
+        val blur = (if (close) CLOSE_SHADOW_BLUR else SHADOW_BLUR).toPx()
+        val reach = blur * 3
+        val shadow =
+            Paint().apply {
+                color = (if (close) CLOSE_SHADOW_COLOR else SHADOW_COLOR).toArgb()
+                maskFilter = MaskFilter.makeBlur(FilterBlurMode.NORMAL, blur)
+            }
+        onDrawBehind {
+            if (!Look.shadows) return@onDrawBehind
+            clipPath(body, ClipOp.Difference) {
+                clipRect(-reach, drop - reach, size.width + reach, size.height + drop + reach) {
+                    drawIntoCanvas { canvas ->
+                        val skia = canvas.skiaCanvas
+                        skia.saveLayer(Canvas.SaveLayerRec(null, null, DRAWN))
+                        skia.saveLayer(null, WITHIN)
+                        skia.translate(0f, drop)
+                        skia.drawPath(body.asSkiaPath(), shadow)
+                        skia.restore()
+                        skia.restore()
+                    }
                 }
             }
         }
     }
-}
 
-private fun faded(fraction: Float) = ColorFilter.makeMatrix(
-    ColorMatrix(
-        1f, 0f, 0f, 0f, 0f,
-        0f, 1f, 0f, 0f, 0f,
-        0f, 0f, 1f, 0f, 0f,
-        0f, 0f, 0f, fraction, 0f,
+private fun faded(fraction: Float) =
+    ColorFilter.makeMatrix(
+        ColorMatrix(
+            1f, 0f, 0f, 0f, 0f,
+            0f, 1f, 0f, 0f, 0f,
+            0f, 0f, 1f, 0f, 0f,
+            0f, 0f, 0f, fraction, 0f,
+        )
     )
-)

@@ -36,9 +36,10 @@ internal class BlurPyramid(private val name: String) {
     private var width = 0
     private var height = 0
 
-    private val spreadUniform: GpuBuffer = RenderSystem.getDevice().createBuffer(
-        { "$name spread" }, GpuBuffer.USAGE_UNIFORM or GpuBuffer.USAGE_COPY_DST, SPREAD_UNIFORM_SIZE
-    )
+    private val spreadUniform: GpuBuffer =
+        RenderSystem.getDevice().createBuffer(
+            { "$name spread" }, GpuBuffer.USAGE_UNIFORM or GpuBuffer.USAGE_COPY_DST, SPREAD_UNIFORM_SIZE
+        )
     private var spread = Float.NaN
 
     fun blur(source: GpuTextureView, width: Int, height: Int, radius: Float): GpuTextureView {
@@ -87,12 +88,13 @@ internal class BlurPyramid(private val name: String) {
     }
 
     private class Level(label: String, width: Int, height: Int) : AutoCloseable {
-        private val texture: GpuTexture = RenderSystem.getDevice().createTexture(
-            { label },
-            GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
-            TextureFormat.RGBA8,
-            width, height, 1, 1
-        )
+        private val texture: GpuTexture =
+            RenderSystem.getDevice().createTexture(
+                { label },
+                GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
+                TextureFormat.RGBA8,
+                width, height, 1, 1
+            )
         val view: GpuTextureView = RenderSystem.getDevice().createTextureView(texture)
 
         override fun close() {

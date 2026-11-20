@@ -72,11 +72,12 @@ internal object GuiCompositor {
         }
 
         val backdropView = if (effects.frost > 0f) backdrop.blur(screen, width, height, effects.frost) else gui
-        if (effects.glow <= 0f) haloView = null
-        else if (guiChanged || haloView == null || haloRadius != effects.glow) {
-            haloView = halo.blur(gui, width, height, effects.glow)
-            haloRadius = effects.glow
-        }
+        if (effects.glow <= 0f) haloView =
+            null
+            else if (guiChanged || haloView == null || haloRadius != effects.glow) {
+                haloView = halo.blur(gui, width, height, effects.glow)
+                haloRadius = effects.glow
+            }
 
         writeUniforms(effects)
         RenderSystem.getDevice().createCommandEncoder()
@@ -93,13 +94,14 @@ internal object GuiCompositor {
 
     private fun writeUniforms(effects: Effects) {
         MemoryStack.stackPush().use { stack ->
-            val data = Std140Builder.onStack(stack, uniformSize)
-                .putColor(effects.glowColorA)
-                .putColor(effects.glowColorB)
-                .putFloat(if (effects.glow > 0f) effects.glowIntensity else 0f)
-                .putFloat(if (effects.frost > 0f) 1f else 0f)
-                .putFloat((System.currentTimeMillis() % GLOW_CYCLE_MILLIS) / 1000f)
-                .get()
+            val data =
+                Std140Builder.onStack(stack, uniformSize)
+                    .putColor(effects.glowColorA)
+                    .putColor(effects.glowColorB)
+                    .putFloat(if (effects.glow > 0f) effects.glowIntensity else 0f)
+                    .putFloat(if (effects.frost > 0f) 1f else 0f)
+                    .putFloat((System.currentTimeMillis() % GLOW_CYCLE_MILLIS) / 1000f)
+                    .get()
             RenderSystem.getDevice().createCommandEncoder().writeToBuffer(uniforms.slice(), data)
         }
     }

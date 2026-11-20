@@ -34,7 +34,7 @@ import org.spongepowered.asm.mixin.Mixin;
 public class KeyboardMixin {
     @WrapMethod(method = "onKey")
     private void onKey(long window, int action, KeyInput input, Operation<Void> original) {
-        EventFlow.post(new ButtonEvent.Keyboard.Press(input.key(), input.scancode(), action, input.modifiers()));
+        if (EventFlow.post(new ButtonEvent.Keyboard.Press(input.key(), input.scancode(), action, input.modifiers())).isCanceled()) return;
         original.call(window, action, input);
         int key = input.key();
         if (!InventoryMove.isKeyMovementRelated(key)) return;

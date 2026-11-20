@@ -120,9 +120,10 @@ internal fun ClickGui() {
     Box(Modifier.fillMaxSize().mouseClickable(keyboard = false, onClick = settings::closeAll).snapLines { drop }) {
         val inRow = tags.count { it != ModuleTag.DEBUG }
         val screenWidth = with(density) { screen.width.toDp() }
-        val pitch = (Look.windowWidth + Look.windowGap)
-            .coerceAtMost((screenWidth - Look.windowWidth) / (inRow - 1).coerceAtLeast(1))
-            .coerceAtLeast(0.dp)
+        val pitch =
+            (Look.windowWidth + Look.windowGap)
+                .coerceAtMost((screenWidth - Look.windowWidth) / (inRow - 1).coerceAtLeast(1))
+                .coerceAtLeast(0.dp)
         val rowWidth = Look.windowWidth + pitch * (inRow - 1)
         val rowStart = ((screenWidth - rowWidth) / 2).coerceAtLeast(0.dp)
 

@@ -101,15 +101,16 @@ import com.lambda.module.modules.client.Style
 import kotlin.math.max
 
 @OptIn(ExperimentalComposeUiApi::class)
-private val FLOATING = PopupProperties(
-    focusable = true,
-    dismissOnBackPress = true,
-    dismissOnClickOutside = true,
-    clippingEnabled = true,
-    usePlatformDefaultWidth = false,
-    usePlatformInsets = true,
-    consumePointerInputOutside = false,
-)
+private val FLOATING =
+    PopupProperties(
+        focusable = true,
+        dismissOnBackPress = true,
+        dismissOnClickOutside = true,
+        clippingEnabled = true,
+        usePlatformDefaultWidth = false,
+        usePlatformInsets = true,
+        consumePointerInputOutside = false,
+    )
 
 private val SLACK = 4.dp
 
@@ -120,9 +121,10 @@ private fun ScenePopup(
     properties: PopupProperties = PopupProperties(),
     onKeyEvent: ((KeyEvent) -> Boolean)? = null,
     content: @Composable () -> Unit,
-) = Popup(popupPositionProvider, onDismissRequest, properties, onKeyEvent = onKeyEvent) {
-    CompositionLocalProvider(LocalClipboard provides GameClipboard, content = content)
-}
+) =
+    Popup(popupPositionProvider, onDismissRequest, properties, onKeyEvent = onKeyEvent) {
+        CompositionLocalProvider(LocalClipboard provides GameClipboard, content = content)
+    }
 
 enum class MenuPlacement {
     Below,
@@ -158,16 +160,19 @@ fun Menu(
     MenuPopup(open, remember(placement) { UnfoldingPosition(placement::place) }, onDismiss, unfoldFrom, attached, content)
 }
 
-private fun MenuPlacement.place(anchor: IntRect, window: IntSize, popup: IntSize) = when (this) {
-    MenuPlacement.Below -> IntOffset(
-        anchor.left,
-        if (anchor.bottom + popup.height <= window.height || anchor.top - popup.height < 0) anchor.bottom else anchor.top - popup.height
-    )
-    MenuPlacement.Beside -> IntOffset(
-        if (anchor.right + popup.width <= window.width) anchor.right else anchor.left - popup.width,
-        anchor.top
-    )
-}
+private fun MenuPlacement.place(anchor: IntRect, window: IntSize, popup: IntSize) =
+    when (this) {
+        MenuPlacement.Below ->
+            IntOffset(
+                anchor.left,
+                if (anchor.bottom + popup.height <= window.height || anchor.top - popup.height < 0) anchor.bottom else anchor.top - popup.height
+            )
+        MenuPlacement.Beside ->
+            IntOffset(
+                if (anchor.right + popup.width <= window.width) anchor.right else anchor.left - popup.width,
+                anchor.top
+            )
+    }
 
 @Composable
 fun Popout(open: Boolean, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
@@ -208,11 +213,12 @@ private fun MenuPopup(
     val open = open && LocalMenuOpen.current
     val dismissAll = LocalMenuDismiss.current ?: onDismiss
     val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    val shape = when {
-        !attached -> RoundedCornerShape(Look.menuRounding)
-        position.upwards -> RoundedCornerShape(topStart = Look.menuRounding, topEnd = Look.menuRounding)
-        else -> RoundedCornerShape(bottomStart = Look.menuRounding, bottomEnd = Look.menuRounding)
-    }
+    val shape =
+        when {
+            !attached -> RoundedCornerShape(Look.menuRounding)
+            position.upwards -> RoundedCornerShape(topStart = Look.menuRounding, topEnd = Look.menuRounding)
+            else -> RoundedCornerShape(bottomStart = Look.menuRounding, bottomEnd = Look.menuRounding)
+        }
     FloatingPanel(open, position, onDismiss, shape, unfoldFrom) { panel ->
         CompositionLocalProvider(LocalMenuDismiss provides dismissAll, LocalMenuOpen provides open) {
             ScrollColumn(
@@ -245,34 +251,37 @@ class PopupHost {
 
 val LocalPopupHost = compositionLocalOf<PopupHost?> { null }
 
-private fun Modifier.swallowedBy(host: PopupHost?): Modifier = if (host == null) this else composed {
-    var origin by remember { mutableStateOf(Offset.Zero) }
-    onGloballyPositioned { origin = it.positionInWindow() }.drawWithContent {
-        if (!host.closing) return@drawWithContent drawContent()
-        val full = host.full
-        val left = host.bounds
-        val slack = SLACK.toPx()
-        val dx = when {
-            origin.x >= full.right - slack -> left.right - full.right
-            origin.x + size.width <= full.left + slack -> left.left - full.left
-            else -> null
-        }
-        val dy = when {
-            origin.y >= full.bottom - slack -> left.bottom - full.bottom
-            origin.y + size.height <= full.top + slack -> left.top - full.top
-            else -> null
-        }
-        val far = 10_000f
-        clipRect(
-            if (dx == null) left.left - origin.x else -far,
-            if (dy == null) left.top - origin.y else -far,
-            if (dx == null) left.right - origin.x else far,
-            if (dy == null) left.bottom - origin.y else far,
-        ) {
-            translate(dx ?: 0f, dy ?: 0f) { this@drawWithContent.drawContent() }
+private fun Modifier.swallowedBy(host: PopupHost?): Modifier =
+    if (host == null) this else composed {
+        var origin by remember { mutableStateOf(Offset.Zero) }
+        onGloballyPositioned { origin = it.positionInWindow() }.drawWithContent {
+            if (!host.closing) return@drawWithContent drawContent()
+            val full = host.full
+            val left = host.bounds
+            val slack = SLACK.toPx()
+            val dx =
+                when {
+                    origin.x >= full.right - slack -> left.right - full.right
+                    origin.x + size.width <= full.left + slack -> left.left - full.left
+                    else -> null
+                }
+            val dy =
+                when {
+                    origin.y >= full.bottom - slack -> left.bottom - full.bottom
+                    origin.y + size.height <= full.top + slack -> left.top - full.top
+                    else -> null
+                }
+            val far = 10_000f
+            clipRect(
+                if (dx == null) left.left - origin.x else -far,
+                if (dy == null) left.top - origin.y else -far,
+                if (dx == null) left.right - origin.x else far,
+                if (dy == null) left.bottom - origin.y else far,
+            ) {
+                translate(dx ?: 0f, dy ?: 0f) { this@drawWithContent.drawContent() }
+            }
         }
     }
-}
 
 @Composable
 private fun FloatingPanel(
@@ -333,10 +342,11 @@ private class UnfoldingPosition(
         private set
 
     val corner
-        get() = when {
-            upwards -> if (leftwards) Alignment.BottomEnd else Alignment.BottomStart
-            else -> if (leftwards) Alignment.TopEnd else Alignment.TopStart
-        }
+        get() =
+            when {
+                upwards -> if (leftwards) Alignment.BottomEnd else Alignment.BottomStart
+                else -> if (leftwards) Alignment.TopEnd else Alignment.TopStart
+            }
 
     override fun calculatePosition(
         anchorBounds: IntRect,
@@ -427,11 +437,12 @@ fun MenuItem(
             .padding(horizontal = 5.dp, vertical = 1.dp)
     ) {
         if (checked != null) Checkmark(checked, Modifier.padding(end = 3.dp))
-        val color = when {
-            !enabled -> colors.onSurfaceVariant
-            selected -> colors.secondary
-            else -> colors.onSurface
-        }
+        val color =
+            when {
+                !enabled -> colors.onSurfaceVariant
+                selected -> colors.secondary
+                else -> colors.onSurface
+            }
         Text(label, Modifier.weight(1f), color, maxLines = 1)
         if (hint != null) Text(hint, Modifier.padding(start = 12.dp), colors.onSurfaceVariant, Type.label, maxLines = 1)
     }
@@ -478,13 +489,14 @@ fun MenuHelp(text: String, label: String = "Help") {
 }
 
 @Composable
-fun MenuDivider() = Spacer(
-    Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 3.dp, vertical = 1.dp)
-        .height(1.dp)
-        .background(LambdaTheme.colors.border)
-)
+fun MenuDivider() =
+    Spacer(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 3.dp, vertical = 1.dp)
+            .height(1.dp)
+            .background(LambdaTheme.colors.border)
+    )
 
 @Composable
 fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
@@ -591,13 +603,14 @@ private fun KeyEvent.dismissOnEscape(onDismiss: () -> Unit): Boolean {
 
 private fun positionProvider(
     position: (anchor: IntRect, window: IntSize, popup: IntSize) -> IntOffset
-) = object : PopupPositionProvider {
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize,
-    ) = position(anchorBounds, windowSize, popupContentSize)
-}
+) =
+    object : PopupPositionProvider {
+        override fun calculatePosition(
+            anchorBounds: IntRect,
+            windowSize: IntSize,
+            layoutDirection: LayoutDirection,
+            popupContentSize: IntSize,
+        ) = position(anchorBounds, windowSize, popupContentSize)
+    }
 
 private fun IntSize.coerceAtMost(other: IntSize) = IntSize(minOf(width, other.width), minOf(height, other.height))

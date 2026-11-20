@@ -25,10 +25,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +50,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.gui.GuiScreen
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.Tooltip
 import com.lambda.gui.component.mouseClickable
@@ -66,12 +63,15 @@ import com.lambda.util.Mouse
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SUPER
 import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
 import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
 import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
+import org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT
 
 class KeybindSetting(
     name: String,
@@ -107,8 +107,12 @@ class KeybindSetting(
         get() = muteable?.isMuted == true && !alwaysListening
 
     init {
-        listenUnsafe<ButtonEvent.Keyboard.Press> { event -> onButtonEvent(event) }
-        listenUnsafe<ButtonEvent.Mouse.Click> { event -> onButtonEvent(event) }
+        listenUnsafe<ButtonEvent.Keyboard.Press>(alwaysListen = true) { event ->
+            if (recorder === this) record(event) else if (!isMuted) onButtonEvent(event)
+        }
+        listenUnsafe<ButtonEvent.Mouse.Click>(alwaysListen = true) { event ->
+            if (recorder === this) record(event) else if (!isMuted) onButtonEvent(event)
+        }
     }
 
     private fun onButtonEvent(event: ButtonEvent) {
@@ -134,10 +138,7 @@ class KeybindSetting(
     override fun Editor() {
         val colors = LambdaTheme.colors
         val bind by observe { value }
-        var recording by remember { mutableStateOf(false) }
-        DisposableEffect(Unit) {
-            onDispose { if (recording) GuiScreen.keybindRecorder = null }
-        }
+        val recording = recorder === this
 
         Labeled(name) {
             Tooltip("Click, then press a key or mouse button. Backspace unbinds, Escape cancels.") {
@@ -147,13 +148,7 @@ class KeybindSetting(
                         .height(Look.rowHeight)
                         .clip(RoundedCornerShape(Look.controlRounding))
                         .background(if (recording) colors.secondary else colors.control)
-                        .mouseClickable {
-                            recording = true
-                            GuiScreen.keybindRecorder = { recorded ->
-                                recorded?.let { value = it }
-                                recording = false
-                            }
-                        }
+                        .mouseClickable { recorder = this@KeybindSetting }
                         .padding(horizontal = 4.dp)
                 ) {
                     Text(
@@ -163,6 +158,37 @@ class KeybindSetting(
                     )
                 }
             }
+        }
+    }
+
+    private fun record(event: ButtonEvent.Keyboard.Press) {
+        event.cancel()
+        val isModifier = event.keyCode in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER
+        if (event.isRepeated || event.isPressed == isModifier) return
+        when (val key = event.translated) {
+            KeyCode.Unbound -> return
+            KeyCode.Escape -> Unit
+            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
+            else -> value = Bind(key.code, if (isModifier) 0 else event.modifiers, -1)
+        }
+        recorder = null
+    }
+
+    private fun record(event: ButtonEvent.Mouse.Click) {
+        if (!event.isPressed) return
+        recorder = null
+        if (event.button == GLFW_MOUSE_BUTTON_LEFT) return
+        event.cancel()
+        value = Bind(0, event.modifiers, event.button)
+    }
+
+    companion object {
+        private var recorder: KeybindSetting? by mutableStateOf(null)
+
+        internal val isRecording get() = recorder != null
+
+        internal fun stopRecording() {
+            recorder = null
         }
     }
 

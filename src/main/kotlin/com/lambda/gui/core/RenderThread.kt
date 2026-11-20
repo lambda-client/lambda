@@ -34,8 +34,9 @@ object RenderThread : CoroutineDispatcher() {
     override fun dispatch(context: CoroutineContext, block: Runnable) = mc.send(block)
 
     @JvmStatic
-    fun after(millis: Long, block: () -> Unit): Job = scope.launch {
-        delay(millis)
-        block()
-    }
+    fun after(millis: Long, block: () -> Unit): Job =
+        scope.launch {
+            delay(millis)
+            block()
+        }
 }

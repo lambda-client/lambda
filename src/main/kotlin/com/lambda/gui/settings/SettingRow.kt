@@ -92,12 +92,13 @@ fun SettingRow(setting: Setting<*>) {
     }
 }
 
-internal fun Modifier.settingCell(): Modifier = composed {
-    fillMaxWidth()
-        .padding(vertical = Look.settingSpacing / 2)
-        .clip(RoundedCornerShape(Look.controlRounding))
-        .hoverHighlight(LambdaTheme.colors.hover)
-}
+internal fun Modifier.settingCell(): Modifier =
+    composed {
+        fillMaxWidth()
+            .padding(vertical = Look.settingSpacing / 2)
+            .clip(RoundedCornerShape(Look.controlRounding))
+            .hoverHighlight(LambdaTheme.colors.hover)
+    }
 
 private fun Modifier.enabled(enabled: Boolean): Modifier =
     if (enabled) this

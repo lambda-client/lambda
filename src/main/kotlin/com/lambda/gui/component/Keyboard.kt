@@ -64,21 +64,22 @@ internal object KeyboardFocus {
     }
 }
 
-fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier = composed {
-    if (!LocalKeyboardReachable.current) return@composed Modifier
-    var focused by remember { mutableStateOf(false) }
-    val handle by rememberUpdatedState(onKey)
-    val mark = LambdaTheme.colors.onSurface
-    onFocusChanged { focused = it.isFocused }
-        .onKeyEvent { it.type == KeyEventType.KeyDown && KeyboardFocus.visible && handle(it) }
-        .focusable()
-        .drawWithContent {
-            drawContent()
-            if (!focused || !KeyboardFocus.visible) return@drawWithContent
-            val width = FOCUS_MARK.toPx()
-            drawRect(mark, Offset(width / 2, width / 2), Size(size.width - width, size.height - width), style = Stroke(width))
-        }
-}
+fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier =
+    composed {
+        if (!LocalKeyboardReachable.current) return@composed Modifier
+        var focused by remember { mutableStateOf(false) }
+        val handle by rememberUpdatedState(onKey)
+        val mark = LambdaTheme.colors.onSurface
+        onFocusChanged { focused = it.isFocused }
+            .onKeyEvent { it.type == KeyEventType.KeyDown && KeyboardFocus.visible && handle(it) }
+            .focusable()
+            .drawWithContent {
+                drawContent()
+                if (!focused || !KeyboardFocus.visible) return@drawWithContent
+                val width = FOCUS_MARK.toPx()
+                drawRect(mark, Offset(width / 2, width / 2), Size(size.width - width, size.height - width), style = Stroke(width))
+            }
+    }
 
 val LocalKeyboardReachable = compositionLocalOf { true }
 

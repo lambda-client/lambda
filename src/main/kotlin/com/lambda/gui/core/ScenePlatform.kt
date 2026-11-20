@@ -46,11 +46,12 @@ import java.awt.datatransfer.Transferable
 
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
 internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
-    private val window = object : WindowInfo {
-        override val isWindowFocused get() = true
-        override var containerSize by mutableStateOf(IntSize.Zero)
-        override var containerDpSize by mutableStateOf(DpSize.Zero)
-    }
+    private val window =
+        object : WindowInfo {
+            override val isWindowFocused get() = true
+            override var containerSize by mutableStateOf(IntSize.Zero)
+            override var containerDpSize by mutableStateOf(DpSize.Zero)
+        }
     var cursor: Cursor? = null
 
     override val windowInfo: WindowInfo get() = window
@@ -61,32 +62,34 @@ internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
     }
 
     override fun setPointerIcon(pointerIcon: PointerIcon) {
-        cursor = when (pointerIcon) {
-            PointerIcon.Text -> StandardCursors.IBEAM
-            PointerIcon.Hand -> StandardCursors.POINTING_HAND
-            PointerIcon.Crosshair -> StandardCursors.CROSSHAIR
-            ResizeVerticalIcon -> StandardCursors.RESIZE_NS
-            else -> null
-        }
+        cursor =
+            when (pointerIcon) {
+                PointerIcon.Text -> StandardCursors.IBEAM
+                PointerIcon.Hand -> StandardCursors.POINTING_HAND
+                PointerIcon.Crosshair -> StandardCursors.CROSSHAIR
+                ResizeVerticalIcon -> StandardCursors.RESIZE_NS
+                else -> null
+            }
     }
 
     override suspend fun startInputMethod(request: PlatformTextInputMethodRequest): Nothing = awaitCancellation()
 
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
-    override val textInputService = object : PlatformTextInputService {
-        override fun startInput(
-            value: TextFieldValue,
-            imeOptions: ImeOptions,
-            onEditCommand: (List<EditCommand>) -> Unit,
-            onImeActionPerformed: (ImeAction) -> Unit,
-        ) = Unit
+    override val textInputService =
+        object : PlatformTextInputService {
+            override fun startInput(
+                value: TextFieldValue,
+                imeOptions: ImeOptions,
+                onEditCommand: (List<EditCommand>) -> Unit,
+                onImeActionPerformed: (ImeAction) -> Unit,
+            ) = Unit
 
-        override fun stopInput() = Unit
+            override fun stopInput() = Unit
 
-        override fun showSoftwareKeyboard() = Unit
-        override fun hideSoftwareKeyboard() = Unit
-        override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) = Unit
-    }
+            override fun showSoftwareKeyboard() = Unit
+            override fun hideSoftwareKeyboard() = Unit
+            override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) = Unit
+        }
 }
 
 object ResizeVerticalIcon : PointerIcon
@@ -100,9 +103,10 @@ internal object GameClipboard : Clipboard {
 
     override suspend fun setClipEntry(clipEntry: ClipEntry?) {
         val transferable = clipEntry?.nativeClipEntry as? Transferable
-        mc.keyboard.clipboard = transferable
-            ?.takeIf { it.isDataFlavorSupported(DataFlavor.stringFlavor) }
-            ?.getTransferData(DataFlavor.stringFlavor) as? String
-            ?: ""
+        mc.keyboard.clipboard =
+            transferable
+                ?.takeIf { it.isDataFlavorSupported(DataFlavor.stringFlavor) }
+                ?.getTransferData(DataFlavor.stringFlavor) as? String
+                ?: ""
     }
 }

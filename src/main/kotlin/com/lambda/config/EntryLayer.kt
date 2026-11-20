@@ -105,11 +105,12 @@ sealed class ConfigBlockLayer {
 	}
 }
 
-fun EntryLayer<Setting<*>>.holds(setting: Setting<*>): Boolean = when (this) {
-	is EntryLayer.Single -> entry === setting
-	is EntryLayer.Multiple -> layers.any { it.holds(setting) }
-	else -> false
-}
+fun EntryLayer<Setting<*>>.holds(setting: Setting<*>): Boolean =
+	when (this) {
+		is EntryLayer.Single -> entry === setting
+		is EntryLayer.Multiple -> layers.any { it.holds(setting) }
+		else -> false
+	}
 
 fun EntryLayer.Multiple<Setting<*>>.hasVisibleSettings(): Boolean =
 	layers.any {

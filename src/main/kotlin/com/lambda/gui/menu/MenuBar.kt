@@ -400,11 +400,12 @@ private fun MinecraftMenu() {
         MenuDivider()
         MenuItem("Copy Location (as command)", hint = "F3+C") {
             runSafe {
-                mc.keyboard.clipboard = String.format(
-                    Locale.ROOT,
-                    "/execute in %s run tp @s %.2f %.2f %.2f %.2f %.2f",
-                    world.registryKey.value, player.x, player.y, player.z, player.yaw, player.pitch
-                )
+                mc.keyboard.clipboard =
+                    String.format(
+                        Locale.ROOT,
+                        "/execute in %s run tp @s %.2f %.2f %.2f %.2f %.2f",
+                        world.registryKey.value, player.x, player.y, player.z, player.yaw, player.pitch
+                    )
                 GuiConfig.info("Copied location command to clipboard.")
             }
         }

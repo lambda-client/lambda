@@ -110,11 +110,12 @@ abstract class NumericSetting<T>(
 		return if (span > 0 && !fraction.isNaN()) fraction.coerceIn(0f, 1f) else 0f
 	}
 
-	private fun at(fraction: Float): T = when {
-		fraction <= 0f -> range.start
-		fraction >= 1f -> range.endInclusive
-		else -> onGrid(lowest + (highest - lowest) * fraction.toBigDecimal(), RoundingMode.HALF_UP)
-	}
+	private fun at(fraction: Float): T =
+		when {
+			fraction <= 0f -> range.start
+			fraction >= 1f -> range.endInclusive
+			else -> onGrid(lowest + (highest - lowest) * fraction.toBigDecimal(), RoundingMode.HALF_UP)
+		}
 
 	private fun stepped(by: Int): T =
 		onGrid(value.decimal, if (by < 0) RoundingMode.CEILING else RoundingMode.FLOOR, by)

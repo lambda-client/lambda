@@ -123,13 +123,15 @@ internal object Motion : MotionDurationScale {
     private const val PAGE_MILLIS = 160
     private val UNFOLDING = spring(stiffness = Spring.StiffnessMedium, visibilityThreshold = IntSize.VisibilityThreshold)
 
-    val SCROLL = object : MotionDurationScale {
-        override val scaleFactor get() = if (Style.smoothScrolling) 1f else 0f
-    }
+    val SCROLL =
+        object : MotionDurationScale {
+            override val scaleFactor get() = if (Style.smoothScrolling) 1f else 0f
+        }
 
-    val UNSCALED = object : MotionDurationScale {
-        override val scaleFactor get() = 1f
-    }
+    val UNSCALED =
+        object : MotionDurationScale {
+            override val scaleFactor get() = 1f
+        }
 
     override val scaleFactor get() = if (Style.animations) 1f / Style.animationSpeed else 0f
 
@@ -160,13 +162,14 @@ private class Typography(font: GuiFont, scale: Float = 1f) {
     val body = compact(font, font.size * scale)
     val label = compact(font, font.smallSize * scale)
 
-    private fun compact(font: GuiFont, size: TextUnit, weight: FontWeight = FontWeight.Normal) = TextStyle(
-        fontFamily = font.family,
-        fontWeight = weight,
-        fontSize = size,
-        lineHeight = if (font == GuiFont.Minecraft) size else size * 1.25f,
-        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
-    )
+    private fun compact(font: GuiFont, size: TextUnit, weight: FontWeight = FontWeight.Normal) =
+        TextStyle(
+            fontFamily = font.family,
+            fontWeight = weight,
+            fontSize = size,
+            lineHeight = if (font == GuiFont.Minecraft) size else size * 1.25f,
+            lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
+        )
 }
 
 object Type {
@@ -191,11 +194,12 @@ fun LambdaTheme(content: @Composable () -> Unit) {
     val font by observe { Style.font }
     val fontSize by observe { Style.fontSize }
     val measurer = rememberTextMeasurer()
-    val typography = remember(font, fontSize) {
-        if (font == GuiFont.Minecraft) return@remember Typography(font, fontSize)
-        val line = measurer.measure("Ag", Typography(font).body, density = Density(1f)).size.height
-        Typography(font, (LINE_HEIGHT / line).coerceAtMost(1f) * fontSize)
-    }
+    val typography =
+        remember(font, fontSize) {
+            if (font == GuiFont.Minecraft) return@remember Typography(font, fontSize)
+            val line = measurer.measure("Ag", Typography(font).body, density = Density(1f)).size.height
+            Typography(font, (LINE_HEIGHT / line).coerceAtMost(1f) * fontSize)
+        }
     CompositionLocalProvider(
         LocalPalette provides palette,
         LocalTypography provides typography,

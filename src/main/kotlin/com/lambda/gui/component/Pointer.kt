@@ -59,11 +59,12 @@ fun Modifier.mouseClickable(
                 else -> null
             }
         }
-        val keys = if (!keyboard) Modifier else Modifier.keyboardFocusable { event ->
-            val action = if (event.isShiftPressed) onRightClick else onClick ?: onRightClick
-            if (event.isActivation) action?.invoke()
-            event.isActivation && action != null
-        }
+        val keys =
+            if (!keyboard) Modifier else Modifier.keyboardFocusable { event ->
+                val action = if (event.isShiftPressed) onRightClick else onClick ?: onRightClick
+                if (event.isActivation) action?.invoke()
+                event.isActivation && action != null
+            }
         keys.pointerInput(onRelease) {
             awaitPointerEventScope {
                 while (true) {
@@ -101,61 +102,66 @@ fun Modifier.onMousePress(button: PointerButton, onPress: (position: Offset) -> 
     }
 
 @OptIn(ExperimentalComposeUiApi::class)
-private fun Modifier.onPress(handle: (button: PointerButton?, position: Offset) -> Boolean): Modifier = composed {
-    val currentHandle by rememberUpdatedState(handle)
+private fun Modifier.onPress(handle: (button: PointerButton?, position: Offset) -> Boolean): Modifier =
+    composed {
+        val currentHandle by rememberUpdatedState(handle)
+        pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.first()
+                    if (event.type != PointerEventType.Press || change.isConsumed) continue
+                    if (currentHandle(event.button, change.position)) change.consume()
+                }
+            }
+        }
+    }
+
+fun Modifier.consumeClicks(): Modifier =
     pointerInput(Unit) {
         awaitPointerEventScope {
             while (true) {
                 val event = awaitPointerEvent()
-                val change = event.changes.first()
-                if (event.type != PointerEventType.Press || change.isConsumed) continue
-                if (currentHandle(event.button, change.position)) change.consume()
+                if (event.type == PointerEventType.Press) event.changes.forEach { it.consume() }
             }
         }
     }
-}
-
-fun Modifier.consumeClicks(): Modifier = pointerInput(Unit) {
-    awaitPointerEventScope {
-        while (true) {
-            val event = awaitPointerEvent()
-            if (event.type == PointerEventType.Press) event.changes.forEach { it.consume() }
-        }
-    }
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 fun Modifier.mouseDraggable(
     onDragStart: () -> Unit = {},
     onDragEnd: () -> Unit = {},
     onDrag: (Offset) -> Unit,
-): Modifier = onDrag(
-    matcher = PointerMatcher.mouse(PointerButton.Primary),
-    onDragStart = { onDragStart() },
-    onDragCancel = onDragEnd,
-    onDragEnd = onDragEnd,
-    onDrag = onDrag,
-)
+): Modifier =
+    onDrag(
+        matcher = PointerMatcher.mouse(PointerButton.Primary),
+        onDragStart = { onDragStart() },
+        onDragCancel = onDragEnd,
+        onDragEnd = onDragEnd,
+        onDrag = onDrag,
+    )
 
-fun Modifier.scrubbable(onEnd: () -> Unit = {}, onScrub: (position: Offset, size: IntSize) -> Unit): Modifier = composed {
-    val currentOnScrub by rememberUpdatedState(onScrub)
-    val currentOnEnd by rememberUpdatedState(onEnd)
-    pointerInput(Unit) {
-        awaitEachGesture {
-            val down = awaitFirstDown()
-            down.consume()
-            currentOnScrub(down.position, size)
-            drag(down.id) { change ->
-                change.consume()
-                currentOnScrub(change.position, size)
+fun Modifier.scrubbable(onEnd: () -> Unit = {}, onScrub: (position: Offset, size: IntSize) -> Unit): Modifier =
+    composed {
+        val currentOnScrub by rememberUpdatedState(onScrub)
+        val currentOnEnd by rememberUpdatedState(onEnd)
+        pointerInput(Unit) {
+            awaitEachGesture {
+                val down = awaitFirstDown()
+                down.consume()
+                currentOnScrub(down.position, size)
+                drag(down.id) { change ->
+                    change.consume()
+                    currentOnScrub(change.position, size)
+                }
+                currentOnEnd()
             }
-            currentOnEnd()
         }
     }
-}
 
-fun Modifier.hoverHighlight(color: Color): Modifier = composed {
-    val interactions = remember { MutableInteractionSource() }
-    val hovered by interactions.collectIsHoveredAsState()
-    hoverable(interactions).background(if (hovered) color else Color.Transparent)
-}
+fun Modifier.hoverHighlight(color: Color): Modifier =
+    composed {
+        val interactions = remember { MutableInteractionSource() }
+        val hovered by interactions.collectIsHoveredAsState()
+        hoverable(interactions).background(if (hovered) color else Color.Transparent)
+    }

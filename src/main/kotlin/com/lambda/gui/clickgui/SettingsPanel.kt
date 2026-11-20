@@ -126,8 +126,9 @@ internal fun SettingsPanel(
     val screenHeight = with(density) { screen.height.toDp() }
     val barBottom = with(density) { MENU_BAR_HEIGHT.toPx() }
     val window = windows[panel.module.tag]
-    val top = (if (window == null) row.top else row.top.coerceIn(window.top, (window.bottom - row.height).coerceAtLeast(window.top)))
-        .coerceAtLeast(barBottom)
+    val top =
+        (if (window == null) row.top else row.top.coerceIn(window.top, (window.bottom - row.height).coerceAtLeast(window.top)))
+            .coerceAtLeast(barBottom)
     val below = with(density) { (screen.height - top).toDp() }.coerceAtLeast(MIN_HEIGHT)
     val highest = screenHeight - MENU_BAR_HEIGHT
     val maxHeight = (below + panel.extension).coerceAtMost(highest)
@@ -138,12 +139,13 @@ internal fun SettingsPanel(
     val flipped = !fitsRight && (fitsLeft || row.left > screen.width - row.right)
     val lift = (top + unfolded - screen.height).coerceIn(0f, top - barBottom)
 
-    val shape = RoundedCornerShape(
-        topStart = if (flipped || lift > 0f) Look.panelRounding else 0.dp,
-        topEnd = if (!flipped || lift > 0f) Look.panelRounding else 0.dp,
-        bottomEnd = Look.panelRounding,
-        bottomStart = Look.panelRounding,
-    )
+    val shape =
+        RoundedCornerShape(
+            topStart = if (flipped || lift > 0f) Look.panelRounding else 0.dp,
+            topEnd = if (!flipped || lift > 0f) Look.panelRounding else 0.dp,
+            bottomEnd = Look.panelRounding,
+            bottomStart = Look.panelRounding,
+        )
     val seam = if (flipped) Alignment.TopEnd else Alignment.TopStart
 
     Box(
@@ -230,19 +232,21 @@ internal fun InlineSettings(panel: SettingsPanelState, open: Boolean) {
     }
 }
 
-private fun Modifier.widthOfContent(): Modifier = composed {
-    val scope = rememberCoroutineScope()
-    var width by remember { mutableStateOf<Animatable<Float, AnimationVector1D>?>(null) }
-    layout { measurable, constraints ->
-        val wanted = measurable.maxIntrinsicWidth(constraints.maxHeight)
-            .coerceIn(constraints.minWidth, constraints.maxWidth).toFloat()
-        val current = width ?: Animatable(wanted).also { width = it }
-        if (current.targetValue != wanted) scope.launch { current.animateTo(wanted, WIDTH_CHANGE) }
+private fun Modifier.widthOfContent(): Modifier =
+    composed {
+        val scope = rememberCoroutineScope()
+        var width by remember { mutableStateOf<Animatable<Float, AnimationVector1D>?>(null) }
+        layout { measurable, constraints ->
+            val wanted =
+                measurable.maxIntrinsicWidth(constraints.maxHeight)
+                    .coerceIn(constraints.minWidth, constraints.maxWidth).toFloat()
+            val current = width ?: Animatable(wanted).also { width = it }
+            if (current.targetValue != wanted) scope.launch { current.animateTo(wanted, WIDTH_CHANGE) }
 
-        val placeable = measurable.measure(Constraints.fixedWidth(current.value.roundToInt()).copy(maxHeight = constraints.maxHeight))
-        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+            val placeable = measurable.measure(Constraints.fixedWidth(current.value.roundToInt()).copy(maxHeight = constraints.maxHeight))
+            layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+        }
     }
-}
 
 @Composable
 private fun Grip(onDragStart: () -> Unit, onDrag: (up: Dp) -> Unit, modifier: Modifier = Modifier) {

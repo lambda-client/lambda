@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.IntSize
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.complex.KeybindSetting
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
@@ -87,7 +88,7 @@ object LambdaGui : Loadable {
     internal val cursor: Cursor? get() = host?.platform?.cursor
     internal var onEscape: (() -> Boolean)? = null
 
-    val isCapturingKeys get() = TextFocus.isTyping || GuiScreen.keybindRecorder != null
+    val isCapturingKeys get() = TextFocus.isTyping || KeybindSetting.isRecording
 
     init {
         listenUnsafe<ClientEvent.Shutdown> { close() }
@@ -106,7 +107,8 @@ object LambdaGui : Loadable {
 
     fun toggle() {
         if (isCapturingKeys) return
-        if (screen == null) open(Screen.ClickGui) else GuiScreen.close()
+        if (screen == null) open(Screen.ClickGui)
+        else GuiScreen.close()
     }
 
     fun open(screen: Screen) {
@@ -235,16 +237,18 @@ object LambdaGui : Loadable {
         SettingsList(Style.settingLayers)
     }
 
-    private fun effects(density: Float) = when (screen) {
-        null -> GuiCompositor.Effects.NONE
-        else -> GuiCompositor.Effects(
-            frost = if (Style.blur) Style.blurRadius * density else 0f,
-            glow = if (Style.glow && screen == Screen.ClickGui) Style.glowRadius * density else 0f,
-            glowIntensity = Style.glowIntensity,
-            glowColorA = Style.glowColorA,
-            glowColorB = Style.glowColorB,
-        )
-    }
+    private fun effects(density: Float) =
+        when (screen) {
+            null -> GuiCompositor.Effects.NONE
+            else ->
+                GuiCompositor.Effects(
+                    frost = if (Style.blur) Style.blurRadius * density else 0f,
+                    glow = if (Style.glow && screen == Screen.ClickGui) Style.glowRadius * density else 0f,
+                    glowIntensity = Style.glowIntensity,
+                    glowColorA = Style.glowColorA,
+                    glowColorB = Style.glowColorB,
+                )
+        }
 
     private fun close() {
         host?.close()

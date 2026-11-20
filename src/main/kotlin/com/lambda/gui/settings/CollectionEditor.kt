@@ -84,9 +84,10 @@ internal fun <R : Any> CollectionButton(setting: CollectionSetting<R>) {
 @Composable
 private fun <R : Any> CollectionWindow(setting: CollectionSetting<R>, onDismiss: () -> Unit) {
     val selected by observe { setting.value.toSet() }
-    val entries = remember(setting.immutableCollection) {
-        setting.immutableCollection.map { Entry(it, setting.label(it), setting.icon(it)) }
-    }
+    val entries =
+        remember(setting.immutableCollection) {
+            setting.immutableCollection.map { Entry(it, setting.label(it), setting.icon(it)) }
+        }
     var query by remember { mutableStateOf("") }
     val matching = remember(entries, query) { entries.filter { it.label.contains(query.trim(), ignoreCase = true) } }
     val (chosen, available) = remember(matching, selected) { matching.partition { it.item in selected } }

@@ -132,8 +132,9 @@ object ItemAtlas {
             models += it.state().modelKey
             moving = moving || it.state().isAnimated
         }
-        val changed = scale != this.scale || models != renderedModels ||
-                slots.any { !ItemStack.areEqual(it.stack, it.rendered) }
+        val changed =
+            scale != this.scale || models != renderedModels ||
+                    slots.any { !ItemStack.areEqual(it.stack, it.rendered) }
         val now = System.nanoTime()
         if (!changed && !(moving && now - renderedAt >= ANIMATION_INTERVAL)) {
             state.clear()
@@ -143,10 +144,11 @@ object ItemAtlas {
 
         val width = slots.size * CELL * scale
         val height = CELL * scale
-        val strip = strip?.takeIf { it.width == width && it.height == height } ?: run {
-            strip?.close()
-            Strip(width, height).also { strip = it }
-        }
+        val strip =
+            strip?.takeIf { it.width == width && it.height == height } ?: run {
+                strip?.close()
+                Strip(width, height).also { strip = it }
+            }
         this.scale = scale
         renderedModels = models
         slots.forEach { it.rendered = it.stack.copy() }
@@ -192,19 +194,22 @@ object ItemAtlas {
     private class Strip(val width: Int, val height: Int) : AutoCloseable {
         val framebuffer = SimpleFramebuffer("Lambda GUI items", width, height, true)
 
-        private val glFramebuffer = (framebuffer.colorAttachment as GlTexture)
-            .getOrCreateFramebuffer((RenderSystem.getDevice() as GlBackend).bufferManager, null)
+        private val glFramebuffer =
+            (framebuffer.colorAttachment as GlTexture)
+                .getOrCreateFramebuffer((RenderSystem.getDevice() as GlBackend).bufferManager, null)
         private var renderTarget: BackendRenderTarget? = null
         private var surface: Surface? = null
 
         fun snapshot(skia: DirectContext): Image? {
-            val surface = surface ?: run {
-                val renderTarget = BackendRenderTarget.makeGL(width, height, 0, 0, glFramebuffer, FramebufferFormat.GR_GL_RGBA8)
-                    .also { renderTarget = it }
-                Surface.makeFromBackendRenderTarget(
-                    skia, renderTarget, SurfaceOrigin.BOTTOM_LEFT, SurfaceColorFormat.RGBA_8888, ColorSpace.sRGB
-                ).also { surface = it }
-            } ?: return null
+            val surface =
+                surface ?: run {
+                    val renderTarget =
+                        BackendRenderTarget.makeGL(width, height, 0, 0, glFramebuffer, FramebufferFormat.GR_GL_RGBA8)
+                            .also { renderTarget = it }
+                    Surface.makeFromBackendRenderTarget(
+                        skia, renderTarget, SurfaceOrigin.BOTTOM_LEFT, SurfaceColorFormat.RGBA_8888, ColorSpace.sRGB
+                    ).also { surface = it }
+                } ?: return null
             surface.notifyContentWillChange(ContentChangeMode.DISCARD)
             return surface.makeImageSnapshot()
         }

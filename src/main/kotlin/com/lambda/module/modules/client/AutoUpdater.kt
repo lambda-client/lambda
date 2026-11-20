@@ -83,14 +83,16 @@ object AutoUpdater : Module(
                 prompt = null
                 if (accepted) installLoader()
             }
-            Prompt.Install -> if (accepted) {
-                prompt = null
-                installLoader()
-            } else disable()
-            Prompt.Uninstall -> if (accepted) {
-                prompt = null
-                installClient()
-            } else enable()
+            Prompt.Install ->
+                if (accepted) {
+                    prompt = null
+                    installLoader()
+                } else disable()
+            Prompt.Uninstall ->
+                if (accepted) {
+                    prompt = null
+                    installClient()
+                } else enable()
             null -> Unit
         }
     }
