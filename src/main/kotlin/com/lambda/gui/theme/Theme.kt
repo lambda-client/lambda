@@ -22,6 +22,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.runtime.Composable
@@ -53,6 +54,7 @@ import com.lambda.gui.core.observe
 import com.lambda.module.modules.client.Style
 import com.lambda.util.NamedEnum
 import com.lambda.util.stream
+import kotlin.math.roundToInt
 
 private const val LINE_HEIGHT = 10.95f
 
@@ -126,6 +128,7 @@ internal object Look {
 
 internal object Motion : MotionDurationScale {
     private const val PAGE_MILLIS = 160
+    private const val GUI_MILLIS = 180
     private val UNFOLDING =
         spring(
             stiffness = Spring.StiffnessMedium,
@@ -154,6 +157,22 @@ internal object Motion : MotionDurationScale {
         get() = if (Style.panelAnimations) UNFOLDING else snap()
     val pageMillis
         get() = if (Style.pageAnimations) PAGE_MILLIS else 0
+    fun gui(distance: Float): FiniteAnimationSpec<Float> =
+        tween((GUI_MILLIS * distance).roundToInt())
+    val guiFold: FiniteAnimationSpec<IntSize>
+        get() = tween(GUI_MILLIS)
+}
+
+enum class GuiTransition(override val displayName: String) : NamedEnum {
+    Unfold("Unfold"),
+    Fade("Fade"),
+    Slide("Slide"),
+    Zoom("Zoom"),
+}
+
+enum class GuiInterrupt(override val displayName: String) : NamedEnum {
+    Reverse("Reverse"),
+    Finish("Skip To End"),
 }
 
 enum class GuiFont(

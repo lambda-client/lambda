@@ -18,6 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.gui.GuiScreen;
+import com.lambda.gui.LambdaGui;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.InactivityFpsLimiter;
@@ -34,7 +35,8 @@ public class InactivityFpsLimiterMixin {
 
     @ModifyReturnValue(method = "getLimitReason", at = @At("RETURN"))
     private InactivityFpsLimiter.LimitReason liftMenuLimit(InactivityFpsLimiter.LimitReason reason) {
-        if (reason == InactivityFpsLimiter.LimitReason.OUT_OF_LEVEL_MENU && client.currentScreen == GuiScreen.INSTANCE) {
+        boolean shown = client.currentScreen == GuiScreen.INSTANCE || LambdaGui.INSTANCE.getLeaving();
+        if (reason == InactivityFpsLimiter.LimitReason.OUT_OF_LEVEL_MENU && shown) {
             return InactivityFpsLimiter.LimitReason.NONE;
         }
         return reason;

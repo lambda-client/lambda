@@ -22,7 +22,6 @@ import com.lambda.Lambda.mc
 import com.lambda.config.settings.complex.KeybindSetting
 import com.lambda.gui.clickgui.ClickGuiState
 import com.lambda.gui.component.TextFocus
-import com.lambda.module.modules.client.Style
 import com.lambda.module.modules.combat.autodisconnect.AutoDisconnectScreen
 import com.lambda.util.render.CursorOverrideProvider
 import net.minecraft.client.gui.Click
@@ -86,10 +85,6 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
             parent.renderBackground(context, -1, -1, delta)
             parent.render(context, -1, -1, delta)
             context.drawDeferredElements()
-        }
-        if (Style.dimBackground && LambdaGui.screen == LambdaGui.Screen.ClickGui) {
-            val alpha = (Style.dimStrength * 255).toInt().coerceIn(0, 255)
-            context.fill(0, 0, width, height, (alpha shl 24) or DIM_COLOR)
         }
     }
 
@@ -157,5 +152,4 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
         return Offset((x * scale).toFloat(), (y * scale).toFloat())
     }
 
-    private const val DIM_COLOR = 0x101010
 }

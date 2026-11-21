@@ -22,6 +22,8 @@ import com.lambda.config.ConfigBlock
 import com.lambda.config.Group
 import com.lambda.config.settings.appliedOnRelease
 import com.lambda.gui.theme.GuiFont
+import com.lambda.gui.theme.GuiInterrupt
+import com.lambda.gui.theme.GuiTransition
 import com.lambda.gui.theme.Palette
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -87,6 +89,11 @@ object Style : Module(
 
     @Group(MOTION_GROUP) val animations by setting("Animations", true, "Unfolds, slides and fades the interface. Off, everything but scrolling is where it is going at once")
     @Group(MOTION_GROUP) val animationSpeed by setting("Animation Speed", 1f, 0.25f..4f, 0.25f, "How fast the interface animates, as a multiple of what it is made with") { animations }
+    @Group(MOTION_GROUP) val openAnimation by setting("Open Animation", true, "Animates the click GUI in when it opens") { animations }
+    @Group(MOTION_GROUP) val openStyle by setting("Open Style", setOf(GuiTransition.Unfold), GuiTransition.entries.toSet(), "What the click GUI does as it comes in, any of them together: its windows unfold out of their headers, and all of it fades, slides down or zooms in") { animations && openAnimation }
+    @Group(MOTION_GROUP) val closeAnimation by setting("Close Animation", true, "Animates the click GUI out when it closes. The game has the mouse and keyboard back at once: the animation only plays over it") { animations }
+    @Group(MOTION_GROUP) val closeStyle by setting("Close Style", setOf(GuiTransition.Unfold, GuiTransition.Fade), GuiTransition.entries.toSet(), "What the click GUI does as it goes out, any of them together: its windows fold into their headers, and all of it fades, slides up or zooms out") { animations && closeAnimation }
+    @Group(MOTION_GROUP) val interruptedAnimation by setting("Interrupted Animation", GuiInterrupt.Reverse, "What happens when the click GUI is opened or closed again before its animation is done: it turns around from where it is, or skips to the end and plays the other one in full") { animations && (openAnimation || closeAnimation) }
     @Group(MOTION_GROUP) val windowAnimations by setting("Window Animations", true, "Category windows unfold out of their headers") { animations }
     @Group(MOTION_GROUP) val panelAnimations by setting("Panel Animations", true, "Settings panels, menus, dropdowns and search results unfold out of what opened them") { animations }
     @Group(MOTION_GROUP) val pageAnimations by setting("Page Animations", true, "Changing the tab or the page of a settings panel slides the new one in") { animations }

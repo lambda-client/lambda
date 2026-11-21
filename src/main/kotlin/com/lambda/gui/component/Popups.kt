@@ -354,12 +354,13 @@ private fun FloatingPanel(
                 modifier = Modifier
                     .swallowedBy(host)
                     .onGloballyPositioned { own.place(it.boundsInWindow()) }
-                    .dropShadow(shape, close = true),
+                    .dropShadow(shape, close = true)
+                    .window(colors.panel, colors.border, shape),
                 enter = expandIn(Motion.panels, position.corner) { it.coerceAtMost(unfoldFrom) },
                 exit = shrinkOut(Motion.panels, position.corner) { it.coerceAtMost(unfoldFrom) },
             ) {
                 CompositionLocalProvider(LocalPopupHost provides own) {
-                    content(Modifier.onSizeChanged { position.unfolded = it }.window(colors.panel, colors.border, shape))
+                    content(Modifier.onSizeChanged { position.unfolded = it })
                 }
             }
         }
@@ -444,7 +445,9 @@ fun Suggestions(
         ContentColor(colors.onSurface) {
             AnimatedVisibility(
                 visibleState = visibility,
-                modifier = Modifier.dropShadow(shape),
+                modifier = Modifier
+                    .dropShadow(shape)
+                    .window(colors.panel, colors.border, shape),
                 enter = expandVertically(Motion.panels, Alignment.Top),
                 exit = shrinkVertically(Motion.panels, Alignment.Top),
             ) {
@@ -452,9 +455,7 @@ fun Suggestions(
                     modifier = Modifier
                         .heightIn(max = screenHeight * 0.6f)
                         .width(IntrinsicSize.Max)
-                        .window(colors.panel, colors.border, shape)
-                        .animateContentSize(Motion.panels)
-                        .clip(shape),
+                        .animateContentSize(Motion.panels),
                     content = content
                 )
             }
