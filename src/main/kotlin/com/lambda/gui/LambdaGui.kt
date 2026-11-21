@@ -17,9 +17,13 @@
 
 package com.lambda.gui
 
+import androidx.compose.animation.core.animate
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalClipboard
@@ -45,6 +49,8 @@ import com.lambda.gui.hud.HudLayer
 import com.lambda.gui.render.GuiCompositor
 import com.lambda.gui.render.ItemAtlas
 import com.lambda.gui.settings.SettingsList
+import com.lambda.gui.theme.GuiInterrupt
+import com.lambda.gui.theme.GuiTransition
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Motion
@@ -54,10 +60,12 @@ import com.lambda.module.modules.client.Style
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 import com.lambda.util.CommunicationUtils.warn
+import kotlinx.coroutines.Job
 import net.minecraft.client.gui.cursor.Cursor
 import org.jetbrains.skia.FontMgr
 import org.jetbrains.skia.impl.Library
 import kotlin.concurrent.thread
+import kotlin.math.abs
 
 object LambdaGui : Loadable {
     private const val REFERENCE_HEIGHT = 540f
@@ -81,6 +89,30 @@ object LambdaGui : Loadable {
     private var warmingUp by mutableStateOf(false)
     private var warmedUp = false
 
+    private var shownPresence by mutableFloatStateOf(0f)
+    private var animation: Job? = null
+    var leaving by mutableStateOf(false)
+        private set
+    internal var restarts by mutableIntStateOf(0)
+        private set
+    internal val presence
+        get() =
+            if (warmingUp) 1f
+            else shownPresence
+    internal val transitions: Collection<GuiTransition>
+        get() =
+            if (leaving) Style.closeStyle
+            else Style.openStyle
+    internal val unfoldsOpen
+        get() =
+            Style.animations &&
+                    Style.openAnimation &&
+                    GuiTransition.Unfold in Style.openStyle
+    private val showsClickGui
+        get() = screen == Screen.ClickGui || leaving
+    internal val foldsClosed
+        get() = leaving && GuiTransition.Unfold in Style.closeStyle
+
     private val observations = Observations()
     private val clickGuiObservations = Observations()
 
@@ -91,7 +123,7 @@ object LambdaGui : Loadable {
     val isCapturingKeys get() = TextFocus.isTyping || KeybindSetting.isRecording
 
     init {
-        listenUnsafe<ClientEvent.Shutdown> { close() }
+        listenUnsafe<ClientEvent.Shutdown> { shutDown() }
     }
 
     override fun load(): String {
@@ -108,7 +140,28 @@ object LambdaGui : Loadable {
     fun toggle() {
         if (isCapturingKeys) return
         if (screen == null) open(Screen.ClickGui)
-        else GuiScreen.close()
+        else close()
+    }
+
+    fun close() {
+        val animated =
+            Style.animations && Style.closeAnimation && Style.closeStyle.isNotEmpty()
+        if (screen == Screen.ClickGui && animated) {
+            if (shownPresence < 1f) skipTo(1f)
+            leaving = true
+        }
+        GuiScreen.close()
+    }
+
+    private fun skipTo(end: Float) {
+        if (Style.interruptedAnimation != GuiInterrupt.Finish) return
+        jumpTo(end)
+        restarts++
+    }
+
+    private fun jumpTo(value: Float) {
+        animation?.cancel()
+        shownPresence = value
     }
 
     fun open(screen: Screen) {
@@ -118,21 +171,26 @@ object LambdaGui : Loadable {
         }
         if (this.screen == null) {
             if (!GuiScreen.canOpenOver(mc.currentScreen)) return
+            if (leaving) skipTo(0f)
+            else jumpTo(0f)
             if (Client.clientSounds) LambdaSound.ModuleOn.play()
             GuiScreen.show()
             AutoUpdater.onGuiOpened()
         }
+        leaving = false
         this.screen = screen
     }
 
     fun back() {
-        if (screen == Screen.HudEditor) screen = Screen.ClickGui else GuiScreen.close()
+        if (screen == Screen.HudEditor) screen = Screen.ClickGui
+        else close()
     }
 
     internal fun onScreenRemoved() {
         if (screen == null) return
         if (Client.clientSounds) LambdaSound.ModuleOff.play()
         screen = null
+        if (!leaving) jumpTo(0f)
         settled = false
         input?.release()
         host?.platform?.cursor = null
@@ -148,7 +206,7 @@ object LambdaGui : Loadable {
             warmedUp = true
             warmUp(size, density)
         }
-        if (screen == null && Hud.shown.isEmpty() && settled) return
+        if (screen == null && !leaving && Hud.shown.isEmpty() && settled) return
 
         try {
             val host = host ?: createHost()
@@ -189,7 +247,9 @@ object LambdaGui : Loadable {
         val failed = host
         host = null
         ItemAtlas.release()
-        runCatching { failed?.closeAndFree() }.onFailure { LOG.warn("Could not free the failed interface", it) }
+        runCatching { failed?.closeAndFree() }.onFailure {
+            LOG.warn("Could not free the failed interface", it)
+        }
         observations.active.clear()
         clickGuiObservations.active.clear()
         if (screen != null) GuiScreen.close()
@@ -233,6 +293,7 @@ object LambdaGui : Loadable {
             LambdaTheme {
                 KeyboardFocus.Layer()
                 Reveal.Expiry()
+                Presence()
 
                 when (screen) {
                     Screen.HudEditor -> HudEditor()
@@ -240,7 +301,7 @@ object LambdaGui : Loadable {
                     null -> HudLayer()
                 }
                 Retained(
-                    shown = screen == Screen.ClickGui || warmingUp,
+                    shown = showsClickGui || warmingUp,
                     clickGuiObservations
                 ) {
                     ClickGui()
@@ -251,26 +312,54 @@ object LambdaGui : Loadable {
     }
 
     @Composable
+    private fun Presence() {
+        val present = screen == Screen.ClickGui
+        LaunchedEffect(present) {
+            animation = coroutineContext[Job]
+            val target =
+                if (present) 1f
+                else 0f
+            val animated =
+                if (present) Style.openAnimation && Style.openStyle.isNotEmpty()
+                else leaving
+            if (animated) {
+                val spec = Motion.gui(abs(target - shownPresence))
+                animate(shownPresence, target, animationSpec = spec) { value, _ ->
+                    shownPresence = value
+                }
+            }
+            else shownPresence = target
+            if (!present) leaving = false
+        }
+    }
+
+    @Composable
     private fun WarmUp() {
         SettingsList(Style.settingLayers)
     }
 
-    private fun effects(density: Float) =
-        when (screen) {
-            null -> GuiCompositor.Effects.NONE
-            else ->
-                GuiCompositor.Effects(
-                    frost = if (Style.blur) Style.blurRadius * density else 0f,
-                    glow =
-                        if (Style.glow && screen == Screen.ClickGui) Style.glowRadius * density
-                        else 0f,
-                    glowIntensity = Style.glowIntensity,
-                    glowColorA = Style.glowColorA,
-                    glowColorB = Style.glowColorB,
-                )
-        }
+    private fun effects(density: Float): GuiCompositor.Effects {
+        if (screen == null && !leaving) return GuiCompositor.Effects.NONE
+        val strength =
+            if (showsClickGui) presence
+            else 1f
+        return GuiCompositor.Effects(
+            frost =
+                if (Style.blur) Style.blurRadius * density * strength
+                else 0f,
+            glow =
+                if (Style.glow && showsClickGui) Style.glowRadius * density
+                else 0f,
+            glowIntensity = Style.glowIntensity * strength,
+            glowColorA = Style.glowColorA,
+            glowColorB = Style.glowColorB,
+            dim =
+                if (Style.dimBackground && showsClickGui) Style.dimStrength * presence
+                else 0f,
+        )
+    }
 
-    private fun close() {
+    private fun shutDown() {
         host?.close()
         host = null
     }

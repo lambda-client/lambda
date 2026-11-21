@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.lambda.gui.GuiConfig
+import com.lambda.gui.LambdaGui
 import com.lambda.gui.Reveal
 import com.lambda.gui.Snap
 import com.lambda.gui.component.ScrollColumn
@@ -211,15 +212,25 @@ internal fun CategoryWindow(
         )
 
         val shown = LocalShown.current
-        val unfolded = remember(shown) { MutableTransitionState(false) }
-        unfolded.targetState = shown && !collapsed
+        val folding = LambdaGui.foldsClosed
+        val unfolded =
+            remember(shown, LambdaGui.restarts) {
+                MutableTransitionState(
+                    (folding || !LambdaGui.unfoldsOpen) && shown && !collapsed
+                )
+            }
+        unfolded.targetState = shown && !folding && !collapsed
         val settled = unfolded.isIdle && unfolded.currentState
         val hanging = modules.mapNotNull(settings::panelOf)
         SideEffect { hanging.forEach { it.settled = settled } }
         AnimatedVisibility(
             visibleState = unfolded,
             enter = expandVertically(Motion.windows),
-            exit = shrinkVertically(Motion.windows),
+            exit =
+                shrinkVertically(
+                    if (folding) Motion.guiFold
+                    else Motion.windows
+                ),
         ) {
             ScrollColumn(
                 Modifier.heightIn(

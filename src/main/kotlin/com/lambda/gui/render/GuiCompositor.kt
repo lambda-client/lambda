@@ -36,6 +36,7 @@ internal object GuiCompositor {
         val glowIntensity: Float = 0f,
         val glowColorA: Color = Color.WHITE,
         val glowColorB: Color = Color.WHITE,
+        val dim: Float = 0f,
     ) {
         companion object {
             val NONE = Effects()
@@ -51,6 +52,7 @@ internal object GuiCompositor {
         Std140SizeCalculator()
             .putVec4()
             .putVec4()
+            .putFloat()
             .putFloat()
             .putFloat()
             .putFloat()
@@ -75,7 +77,7 @@ internal object GuiCompositor {
         val linear = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
         val nearest = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
 
-        if (effects.frost <= 0f && effects.glow <= 0f) {
+        if (effects.frost <= 0f && effects.glow <= 0f && effects.dim <= 0f) {
             haloView = null
             RenderSystem.getDevice().createCommandEncoder()
                 .createRenderPass({ "Lambda GUI" }, screen, OptionalInt.empty())
@@ -118,6 +120,7 @@ internal object GuiCompositor {
                     .putFloat(if (effects.glow > 0f) effects.glowIntensity else 0f)
                     .putFloat(if (effects.frost > 0f) 1f else 0f)
                     .putFloat((System.currentTimeMillis() % GLOW_CYCLE_MILLIS) / 1000f)
+                    .putFloat(effects.dim)
                     .get()
             RenderSystem.getDevice().createCommandEncoder().writeToBuffer(
                 uniforms.slice(),

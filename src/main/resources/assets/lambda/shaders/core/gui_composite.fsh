@@ -10,7 +10,10 @@ layout(std140) uniform GuiEffects {
     float GlowIntensity;
     float Frost;
     float Time;
+    float Dim;
 };
+
+const vec3 DIM_COLOR = vec3(16.0 / 255.0);
 
 in vec2 texCoord;
 
@@ -22,7 +25,8 @@ void main() {
     float covered = clamp(gui.a * 64.0, 0.0, 1.0);
 
     float frost = Frost * covered;
-    vec4 under = vec4(texture(BackdropSampler, texCoord).rgb, 1.0) * frost;
+    vec3 backdrop = mix(texture(BackdropSampler, texCoord).rgb, DIM_COLOR, Dim);
+    vec4 under = vec4(backdrop, 1.0) * frost;
 
     if (GlowIntensity > 0.0) {
         float halo = clamp(texture(HaloSampler, texCoord).a * 2.0, 0.0, 1.0);
@@ -31,5 +35,6 @@ void main() {
         under += vec4(mix(GlowColorA.rgb, GlowColorB.rgb, wave), 1.0) * glow * (1.0 - frost);
     }
 
-    fragColor = gui + under * (1.0 - gui.a);
+    vec4 over = gui + under * (1.0 - gui.a);
+    fragColor = over + vec4(DIM_COLOR, 1.0) * Dim * (1.0 - over.a);
 }

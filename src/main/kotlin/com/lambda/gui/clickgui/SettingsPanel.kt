@@ -174,18 +174,17 @@ internal fun SettingsPanel(
             modifier = Modifier
                 .onSizeChanged { unfolded = it.height }
                 .onGloballyPositioned { popups.place(it.boundsInWindow()) }
-                .dropShadow(RoundedCornerShape(Look.panelRounding)),
+                .dropShadow(RoundedCornerShape(Look.panelRounding))
+                .window(LambdaTheme.colors.panel, LambdaTheme.colors.border, shape),
             enter = expandIn(Motion.panels, seam),
             exit = shrinkOut(Motion.panels, seam),
         ) {
-            val colors = LambdaTheme.colors
             Box(
                 Modifier
                     .widthIn(MIN_WIDTH, Look.settingsWidth)
                     .heightIn(max = maxHeight)
                     .widthOfContent()
                     .onSizeChanged { size = it }
-                    .window(colors.panel, colors.border, shape)
             ) {
                 CompositionLocalProvider(LocalPopupHost provides popups) {
                     Column(Modifier.padding(Look.panelPadding)) {
@@ -200,14 +199,10 @@ internal fun SettingsPanel(
                 if (scroll.maxValue > 0 || lift > 0f) {
                     Grip(
                         onDragStart = {
-                            panel.extension =
-                                panel.extension.coerceAtMost(
-                                    with(density) { lift.toDp() }
-                                )
+                            panel.extension = panel.extension.coerceAtMost(with(density) { lift.toDp() })
                         },
                         onDrag = { up ->
-                            val needed =
-                                panel.extension + with(density) { scroll.maxValue.toDp() }
+                            val needed = panel.extension + with(density) { scroll.maxValue.toDp() }
                             panel.extension =
                                 (panel.extension + up).coerceIn(
                                     0.dp,
