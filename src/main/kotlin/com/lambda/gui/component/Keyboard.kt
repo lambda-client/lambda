@@ -77,7 +77,12 @@ fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier =
                 drawContent()
                 if (!focused || !KeyboardFocus.visible) return@drawWithContent
                 val width = FOCUS_MARK.toPx()
-                drawRect(mark, Offset(width / 2, width / 2), Size(size.width - width, size.height - width), style = Stroke(width))
+                drawRect(
+                    mark,
+                    Offset(width / 2, width / 2),
+                    Size(size.width - width, size.height - width),
+                    style = Stroke(width)
+                )
             }
     }
 

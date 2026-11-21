@@ -46,7 +46,13 @@ object Armor : HudModule(
     private val layout by setting("Layout", Layout.Horizontal)
     private val iconSize by setting("Icon Size", 16f, 8f..64f, 1f, "Items are drawn at the nearest whole multiple of their 16 pixels, as Minecraft draws them")
 
-    private val slots = listOf(EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET)
+    private val slots =
+        listOf(
+            EquipmentSlot.HEAD,
+            EquipmentSlot.CHEST,
+            EquipmentSlot.LEGS,
+            EquipmentSlot.FEET
+        )
 
     @Composable
     override fun Content() {
@@ -61,8 +67,14 @@ object Armor : HudModule(
         }
         val spacing = Arrangement.spacedBy(size / 8)
         when (layout) {
-            Layout.Horizontal -> Row(horizontalArrangement = spacing) { pieces.forEach { ItemIcon(it, size) } }
-            Layout.Vertical -> Column(verticalArrangement = spacing) { pieces.forEach { ItemIcon(it, size) } }
+            Layout.Horizontal ->
+                Row(horizontalArrangement = spacing) {
+                    pieces.forEach { ItemIcon(it, size) }
+                }
+            Layout.Vertical ->
+                Column(verticalArrangement = spacing) {
+                    pieces.forEach { ItemIcon(it, size) }
+                }
         }
     }
 }

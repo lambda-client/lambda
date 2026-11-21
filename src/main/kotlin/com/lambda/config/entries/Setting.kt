@@ -144,7 +144,7 @@ abstract class Setting<T>(
 	}
 
 	@Composable
-	open fun Editor() {}
+	open fun Gui() {}
 
 	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(string("value as JSON")) { value ->

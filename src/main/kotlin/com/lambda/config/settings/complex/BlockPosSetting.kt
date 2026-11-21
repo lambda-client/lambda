@@ -52,12 +52,27 @@ class BlockPosSetting(
 	defaultValue: BlockPos
 ) : Setting<BlockPos>(name, description, defaultValue, layer, config, visibility) {
 	@Composable
-	override fun Editor() {
+	override fun Gui() {
 		val pos by observe { value.toImmutable() }
 		Labeled(name) {
-			NumberInput(pos.x, String::toIntOrNull, { value = BlockPos(it, pos.y, pos.z) }, Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH))
-			NumberInput(pos.y, String::toIntOrNull, { value = BlockPos(pos.x, it, pos.z) }, Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH))
-			NumberInput(pos.z, String::toIntOrNull, { value = BlockPos(pos.x, pos.y, it) }, Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH))
+			NumberInput(
+				pos.x,
+				String::toIntOrNull,
+				{ value = BlockPos(it, pos.y, pos.z) },
+				Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH)
+			)
+			NumberInput(
+				pos.y,
+				String::toIntOrNull,
+				{ value = BlockPos(pos.x, it, pos.z) },
+				Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH)
+			)
+			NumberInput(
+				pos.z,
+				String::toIntOrNull,
+				{ value = BlockPos(pos.x, pos.y, it) },
+				Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH)
+			)
 			Tooltip("Use the block you are looking at") {
 				Button("Target", Modifier.height(Look.rowHeight)) {
 					mc.crosshairTarget?.blockResult?.blockPos?.let { value = it }

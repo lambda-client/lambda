@@ -56,7 +56,10 @@ import org.lwjgl.opengl.GL30.glRenderbufferStorage
 import kotlin.coroutines.CoroutineContext
 
 @OptIn(InternalComposeUiApi::class)
-internal class SceneHost(context: CoroutineContext, content: @Composable () -> Unit) : AutoCloseable {
+internal class SceneHost(
+    context: CoroutineContext,
+    content: @Composable () -> Unit
+) : AutoCloseable {
     val platform = ScenePlatform()
 
     private val recomposer = FrameRecomposer(RenderThread + context)
@@ -140,21 +143,47 @@ private class SkiaTarget(val size: IntSize) : AutoCloseable {
     private var renderTarget: BackendRenderTarget? = null
     private var surface: Surface? = null
 
-    fun attach(skia: DirectContext): Surface =
-        surface ?: run {
+    fun attach(skia: DirectContext): Surface = surface
+        ?: run {
             framebuffer = glGenFramebuffers()
             stencil = glGenRenderbuffers()
             glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, (texture as GlTexture).glId, 0)
+            glFramebufferTexture2D(
+                GL_FRAMEBUFFER,
+                GL_COLOR_ATTACHMENT0,
+                GL_TEXTURE_2D,
+                (texture as GlTexture).glId,
+                0
+            )
             glBindRenderbuffer(GL_RENDERBUFFER, stencil)
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, size.width, size.height)
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, stencil)
+            glRenderbufferStorage(
+                GL_RENDERBUFFER,
+                GL_DEPTH24_STENCIL8,
+                size.width,
+                size.height
+            )
+            glFramebufferRenderbuffer(
+                GL_FRAMEBUFFER,
+                GL_DEPTH_STENCIL_ATTACHMENT,
+                GL_RENDERBUFFER,
+                stencil
+            )
 
             val renderTarget =
-                BackendRenderTarget.makeGL(size.width, size.height, 0, 8, framebuffer, FramebufferFormat.GR_GL_RGBA8)
-                    .also { renderTarget = it }
+                BackendRenderTarget.makeGL(
+                    size.width,
+                    size.height,
+                    0,
+                    8,
+                    framebuffer,
+                    FramebufferFormat.GR_GL_RGBA8
+                ).also { renderTarget = it }
             Surface.makeFromBackendRenderTarget(
-                skia, renderTarget, SurfaceOrigin.BOTTOM_LEFT, SurfaceColorFormat.RGBA_8888, ColorSpace.sRGB
+                skia,
+                renderTarget,
+                SurfaceOrigin.BOTTOM_LEFT,
+                SurfaceColorFormat.RGBA_8888,
+                ColorSpace.sRGB
             )?.also { surface = it } ?: error("Skia rejected the GUI render target")
         }
 

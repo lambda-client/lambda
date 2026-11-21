@@ -70,7 +70,7 @@ open class CollectionSetting<R : Any>(
 		}
 
 	@Composable
-	override fun Editor() = CollectionButton(this)
+	override fun Gui() = CollectionButton(this)
 
 	open fun label(item: R): String = item.toString()
 

@@ -25,7 +25,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.shrinkOut
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -127,8 +126,15 @@ internal fun SettingsPanel(
     val barBottom = with(density) { MENU_BAR_HEIGHT.toPx() }
     val window = windows[panel.module.tag]
     val top =
-        (if (window == null) row.top else row.top.coerceIn(window.top, (window.bottom - row.height).coerceAtLeast(window.top)))
-            .coerceAtLeast(barBottom)
+        (
+            if (window == null) row.top
+            else {
+                row.top.coerceIn(
+                    window.top,
+                    (window.bottom - row.height).coerceAtLeast(window.top)
+                )
+            }
+        ).coerceAtLeast(barBottom)
     val below = with(density) { (screen.height - top).toDp() }.coerceAtLeast(MIN_HEIGHT)
     val highest = screenHeight - MENU_BAR_HEIGHT
     val maxHeight = (below + panel.extension).coerceAtMost(highest)
@@ -146,7 +152,9 @@ internal fun SettingsPanel(
             bottomEnd = Look.panelRounding,
             bottomStart = Look.panelRounding,
         )
-    val seam = if (flipped) Alignment.TopEnd else Alignment.TopStart
+    val seam =
+        if (flipped) Alignment.TopEnd
+        else Alignment.TopStart
 
     Box(
         modifier
@@ -180,16 +188,33 @@ internal fun SettingsPanel(
                     .window(colors.panel, colors.border, shape)
             ) {
                 CompositionLocalProvider(LocalPopupHost provides popups) {
-                    Column(Modifier.padding(Look.panelPadding)) { ModuleSettings(panel.module, panel.page, { panel.page = it }, scroll) }
+                    Column(Modifier.padding(Look.panelPadding)) {
+                        ModuleSettings(
+                            panel.module,
+                            panel.page,
+                            { panel.page = it },
+                            scroll
+                        )
+                    }
                 }
                 if (scroll.maxValue > 0 || lift > 0f) {
                     Grip(
                         onDragStart = {
-                            panel.extension = panel.extension.coerceAtMost(with(density) { lift.toDp() })
+                            panel.extension =
+                                panel.extension.coerceAtMost(
+                                    with(density) { lift.toDp() }
+                                )
                         },
                         onDrag = { up ->
-                            val needed = panel.extension + with(density) { scroll.maxValue.toDp() }
-                            panel.extension = (panel.extension + up).coerceIn(0.dp, needed.coerceAtMost(highest - below).coerceAtLeast(0.dp))
+                            val needed =
+                                panel.extension + with(density) { scroll.maxValue.toDp() }
+                            panel.extension =
+                                (panel.extension + up).coerceIn(
+                                    0.dp,
+                                    needed
+                                        .coerceAtMost(highest - below)
+                                        .coerceAtLeast(0.dp)
+                                )
                         },
                         modifier = Modifier.align(Alignment.TopCenter)
                     )
@@ -199,7 +224,6 @@ internal fun SettingsPanel(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun InlineSettings(panel: SettingsPanelState, open: Boolean) {
     val intoView = remember { BringIntoViewRequester() }
@@ -221,10 +245,19 @@ internal fun InlineSettings(panel: SettingsPanelState, open: Boolean) {
                     val depth = INSET_SHADOW.toPx().coerceAtMost(size.height / 2)
                     val dark = colors.inset.copy(alpha = colors.inset.alpha / 2)
                     val top = Brush.verticalGradient(listOf(dark, Color.Transparent), 0f, depth)
-                    val bottom = Brush.verticalGradient(listOf(Color.Transparent, dark), size.height - depth, size.height)
+                    val bottom =
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, dark),
+                            size.height - depth,
+                            size.height
+                        )
                     onDrawBehind {
                         drawRect(top, size = Size(size.width, depth))
-                        drawRect(bottom, Offset(0f, size.height - depth), Size(size.width, depth))
+                        drawRect(
+                            bottom,
+                            Offset(0f, size.height - depth),
+                            Size(size.width, depth)
+                        )
                     }
                 }
                 .padding(Look.panelPadding / 2)
@@ -241,15 +274,26 @@ private fun Modifier.widthOfContent(): Modifier =
                 measurable.maxIntrinsicWidth(constraints.maxHeight)
                     .coerceIn(constraints.minWidth, constraints.maxWidth).toFloat()
             val current = width ?: Animatable(wanted).also { width = it }
-            if (current.targetValue != wanted) scope.launch { current.animateTo(wanted, WIDTH_CHANGE) }
+            if (current.targetValue != wanted) {
+                scope.launch { current.animateTo(wanted, WIDTH_CHANGE) }
+            }
 
-            val placeable = measurable.measure(Constraints.fixedWidth(current.value.roundToInt()).copy(maxHeight = constraints.maxHeight))
+            val placeable =
+                measurable.measure(
+                    Constraints.fixedWidth(current.value.roundToInt()).copy(
+                        maxHeight = constraints.maxHeight
+                    )
+                )
             layout(placeable.width, placeable.height) { placeable.place(0, 0) }
         }
     }
 
 @Composable
-private fun Grip(onDragStart: () -> Unit, onDrag: (up: Dp) -> Unit, modifier: Modifier = Modifier) {
+private fun Grip(
+    onDragStart: () -> Unit,
+    onDrag: (up: Dp) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val density = LocalDensity.current
     val color = LambdaTheme.colors.onSurfaceVariant
     Box(
@@ -258,7 +302,9 @@ private fun Grip(onDragStart: () -> Unit, onDrag: (up: Dp) -> Unit, modifier: Mo
             .fillMaxWidth()
             .height(Look.panelPadding.coerceAtLeast(MIN_GRIP_HEIGHT))
             .pointerHoverIcon(ResizeVerticalIcon)
-            .mouseDraggable(onDragStart = onDragStart) { delta -> onDrag(with(density) { -delta.y.toDp() }) }
+            .mouseDraggable(onDragStart = onDragStart) { delta ->
+                onDrag(with(density) { -delta.y.toDp() })
+            }
     ) {
         Spacer(Modifier.size(16.dp, 1.dp).background(color, RoundedCornerShape(50)))
     }

@@ -87,7 +87,12 @@ fun SettingsList(layer: EntryLayer<Setting<*>>) {
             val tabs = layer.layers.filterIsInstance<EntryLayer.Tab<Setting<*>>>()
             when {
                 layer.multipleType == MultipleLayerType.Group ->
-                    Section(layer.name, revealed = Reveal.setting?.let(layer::holds) == true) { Children(layer) }
+                    Section(
+                        layer.name,
+                        revealed = Reveal.setting?.let(layer::holds) == true
+                    ) {
+                        Children(layer)
+                    }
                 else ->
                     Column(Modifier.fillMaxWidth()) {
                         layer.layers.filter { it !is EntryLayer.Tab }.forEach { SettingsList(it) }
@@ -99,7 +104,8 @@ fun SettingsList(layer: EntryLayer<Setting<*>>) {
 }
 
 @Composable
-private fun Children(layer: EntryLayer.Multiple<Setting<*>>) = layer.layers.forEach { SettingsList(it) }
+private fun Children(layer: EntryLayer.Multiple<Setting<*>>) =
+    layer.layers.forEach { SettingsList(it) }
 
 @Composable
 private fun Tabs(tabs: List<EntryLayer.Tab<Setting<*>>>) {
@@ -109,7 +115,9 @@ private fun Tabs(tabs: List<EntryLayer.Tab<Setting<*>>>) {
     val selected = shown.firstOrNull { it.name == selectedName } ?: shown.first()
     val revealed = Reveal.setting
     LaunchedEffect(revealed) {
-        if (revealed != null) shown.firstOrNull { it.holds(revealed) }?.let { selectedName = it.name }
+        if (revealed != null) {
+            shown.firstOrNull { it.holds(revealed) }?.let { selectedName = it.name }
+        }
     }
 
     Column(Modifier.fillMaxWidth().padding(top = 1.dp)) {
@@ -143,7 +151,11 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
                     .background(colors.header)
                     .then(
                         if (!choice) Modifier
-                        else Modifier.hoverHighlight(colors.onHeader.copy(alpha = 0.12f)).mouseClickable(onClick = menu::toggle)
+                        else {
+                            Modifier
+                                .hoverHighlight(colors.onHeader.copy(alpha = 0.12f))
+                                .mouseClickable(onClick = menu::toggle)
+                        }
                     )
                     .padding(horizontal = 6.dp)
             ) {
@@ -151,7 +163,12 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
                 if (choice) Chevron(90f)
             }
         }
-        Menu(menu.isOpen, onDismiss = menu::dismiss, unfoldFrom = IntSize(band.width, 0), attached = true) {
+        Menu(
+            menu.isOpen,
+            onDismiss = menu::dismiss,
+            unfoldFrom = IntSize(band.width, 0),
+            attached = true
+        ) {
             names.forEach { name ->
                 MenuItem(name, selected = name == selected) {
                     if (name != selected) onSelect(name)

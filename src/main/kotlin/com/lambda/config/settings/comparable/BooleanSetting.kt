@@ -52,7 +52,7 @@ class BooleanSetting(
 	defaultValue: Boolean
 ) : Setting<Boolean>(name, description, defaultValue, layer, config, visibility) {
 	@Composable
-	override fun Editor() {
+	override fun Gui() {
 		val checked by observe { value }
 		Row(
 			verticalAlignment = Alignment.CenterVertically,

@@ -60,14 +60,26 @@ class StringSetting(
 ) : Setting<String>(name, description, defaultValue, layer, config, visibility) {
 
     @Composable
-    override fun Editor() {
+    override fun Gui() {
         val value by observe { value }
-        if (multiline) Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        if (multiline) Column(
+            Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(1.dp)
+        ) {
             Text(name, Modifier.padding(start = ROW_INSET, top = 1.dp), maxLines = 1)
-            TextInput(value, { this@StringSetting.value = it }, Modifier.fillMaxWidth(), singleLine = false)
+            TextInput(
+                value,
+                { this@StringSetting.value = it },
+                Modifier.fillMaxWidth(),
+                singleLine = false
+            )
         }
         else Labeled(name) {
-            TextInput(value, { this@StringSetting.value = it }, Modifier.width(TEXT_FIELD_WIDTH))
+            TextInput(
+                value,
+                { this@StringSetting.value = it },
+                Modifier.width(TEXT_FIELD_WIDTH)
+            )
         }
     }
 

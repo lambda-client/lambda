@@ -38,33 +38,49 @@ internal class BlurPyramid(private val name: String) {
 
     private val spreadUniform: GpuBuffer =
         RenderSystem.getDevice().createBuffer(
-            { "$name spread" }, GpuBuffer.USAGE_UNIFORM or GpuBuffer.USAGE_COPY_DST, SPREAD_UNIFORM_SIZE
+            { "$name spread" },
+            GpuBuffer.USAGE_UNIFORM or GpuBuffer.USAGE_COPY_DST,
+            SPREAD_UNIFORM_SIZE
         )
     private var spread = Float.NaN
 
-    fun blur(source: GpuTextureView, width: Int, height: Int, radius: Float): GpuTextureView {
+    fun blur(
+        source: GpuTextureView,
+        width: Int,
+        height: Int,
+        radius: Float
+    ): GpuTextureView {
         resize(width, height)
-        val depth = (ceil(log2(radius.coerceAtLeast(1f))).toInt() - 1).coerceIn(1, levels.size)
+        val depth =
+            (ceil(log2(radius.coerceAtLeast(1f))).toInt() - 1).coerceIn(1, levels.size)
         writeSpread((radius / (1 shl depth)).coerceIn(MIN_SPREAD, MAX_SPREAD))
 
         var input = source
-        for (index in 0 until depth) {
+        repeat(depth) { index ->
             pass(LambdaRenderPipelines.GUI_BLUR_DOWN, input, levels[index].view)
             input = levels[index].view
         }
-        for (index in depth - 2 downTo 0) {
+        (depth - 2 downTo 0).forEach { index ->
             pass(LambdaRenderPipelines.GUI_BLUR_UP, input, levels[index].view)
             input = levels[index].view
         }
         return input
     }
 
-    private fun pass(pipeline: RenderPipeline, input: GpuTextureView, output: GpuTextureView) {
+    private fun pass(
+        pipeline: RenderPipeline,
+        input: GpuTextureView,
+        output: GpuTextureView
+    ) {
         RenderSystem.getDevice().createCommandEncoder()
             .createRenderPass({ name }, output, OptionalInt.empty())
             .use { pass ->
                 pass.setPipeline(pipeline)
-                pass.bindTexture("InSampler", input, RenderSystem.getSamplerCache().get(FilterMode.LINEAR))
+                pass.bindTexture(
+                    "InSampler",
+                    input,
+                    RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
+                )
                 pass.setUniform("BlurSpread", spreadUniform)
                 pass.draw(0, 3)
             }
@@ -74,15 +90,29 @@ internal class BlurPyramid(private val name: String) {
         if (value == spread) return
         spread = value
         MemoryStack.stackPush().use { stack ->
-            val data = Std140Builder.onStack(stack, SPREAD_UNIFORM_SIZE.toInt()).putFloat(value).get()
-            RenderSystem.getDevice().createCommandEncoder().writeToBuffer(spreadUniform.slice(), data)
+            val data =
+                Std140Builder.onStack(
+                    stack,
+                    SPREAD_UNIFORM_SIZE.toInt()
+                ).putFloat(value).get()
+            RenderSystem.getDevice().createCommandEncoder().writeToBuffer(
+                spreadUniform.slice(),
+                data
+            )
         }
     }
 
     private fun resize(width: Int, height: Int) {
         if (width == this.width && height == this.height) return
         levels.forEach { it.close() }
-        levels = (1..MAX_DEPTH).map { Level("$name level $it", (width shr it).coerceAtLeast(1), (height shr it).coerceAtLeast(1)) }
+        levels =
+            (1..MAX_DEPTH).map {
+                Level(
+                    "$name level $it",
+                    (width shr it).coerceAtLeast(1),
+                    (height shr it).coerceAtLeast(1)
+                )
+            }
         this.width = width
         this.height = height
     }

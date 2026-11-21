@@ -54,16 +54,25 @@ internal class SceneInput(private val scene: ComposeScene) {
 
     fun button(button: Int, pressed: Boolean, modifiers: Int) {
         val mask = 1 shl button
-        pressedButtons = if (pressed) pressedButtons or mask else pressedButtons and mask.inv()
+        pressedButtons =
+            if (pressed) pressedButtons or mask
+            else pressedButtons and mask.inv()
         if (pressed) {
             Press.begin()
             KeyboardFocus.visible = false
         }
-        pointer(if (pressed) PointerEventType.Press else PointerEventType.Release, button.toPointerButton(), modifiers)
+        pointer(
+            if (pressed) PointerEventType.Press else PointerEventType.Release,
+            button.toPointerButton(),
+            modifiers
+        )
     }
 
     fun scroll(horizontal: Double, vertical: Double) {
-        pointer(PointerEventType.Scroll, scroll = Offset(horizontal.toFloat(), -vertical.toFloat()) * LINES_PER_NOTCH)
+        pointer(
+            PointerEventType.Scroll,
+            scroll = Offset(horizontal.toFloat(), -vertical.toFloat()) * LINES_PER_NOTCH
+        )
     }
 
     fun key(key: Int, pressed: Boolean, modifiers: Int): Boolean {
@@ -71,7 +80,9 @@ internal class SceneInput(private val scene: ComposeScene) {
         val shift = modifiers and GLFW.GLFW_MOD_SHIFT != 0
         val direction =
             when (key.takeIf { pressed }) {
-                GLFW.GLFW_KEY_TAB -> if (shift) FocusDirection.Previous else FocusDirection.Next
+                GLFW.GLFW_KEY_TAB ->
+                    if (shift) FocusDirection.Previous
+                    else FocusDirection.Next
                 GLFW.GLFW_KEY_UP -> FocusDirection.Up
                 GLFW.GLFW_KEY_DOWN -> FocusDirection.Down
                 GLFW.GLFW_KEY_LEFT -> FocusDirection.Left
@@ -104,10 +115,20 @@ internal class SceneInput(private val scene: ComposeScene) {
         Character.toChars(codePoint).fold(false) { handled, char ->
             val typed =
                 AwtKeyEvent(
-                    awtSource, AwtKeyEvent.KEY_TYPED, System.currentTimeMillis(), 0, AwtKeyEvent.VK_UNDEFINED, char
+                    awtSource,
+                    AwtKeyEvent.KEY_TYPED,
+                    System.currentTimeMillis(),
+                    0,
+                    AwtKeyEvent.VK_UNDEFINED,
+                    char
                 )
             scene.sendKeyEvent(
-                KeyEvent(key = Key.Unknown, type = KeyEventType.Unknown, codePoint = char.code, nativeEvent = typed)
+                KeyEvent(
+                    key = Key.Unknown,
+                    type = KeyEventType.Unknown,
+                    codePoint = char.code,
+                    nativeEvent = typed
+                )
             ) || handled
         }
 
@@ -181,12 +202,16 @@ internal class SceneInput(private val scene: ComposeScene) {
                 GLFW.GLFW_KEY_PAGE_DOWN -> AwtKeyEvent.VK_PAGE_DOWN
                 GLFW.GLFW_KEY_HOME -> AwtKeyEvent.VK_HOME
                 GLFW.GLFW_KEY_END -> AwtKeyEvent.VK_END
-                GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT -> AwtKeyEvent.VK_SHIFT
-                GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL -> AwtKeyEvent.VK_CONTROL
+                GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT ->
+                    AwtKeyEvent.VK_SHIFT
+                GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL ->
+                    AwtKeyEvent.VK_CONTROL
                 GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT -> AwtKeyEvent.VK_ALT
                 GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER -> AwtKeyEvent.VK_META
-                in GLFW.GLFW_KEY_A..GLFW.GLFW_KEY_Z, in GLFW.GLFW_KEY_0..GLFW.GLFW_KEY_9 -> this
-                in GLFW.GLFW_KEY_F1..GLFW.GLFW_KEY_F12 -> AwtKeyEvent.VK_F1 + (this - GLFW.GLFW_KEY_F1)
+                in GLFW.GLFW_KEY_A..GLFW.GLFW_KEY_Z,
+                in GLFW.GLFW_KEY_0..GLFW.GLFW_KEY_9 -> this
+                in GLFW.GLFW_KEY_F1..GLFW.GLFW_KEY_F12 ->
+                    AwtKeyEvent.VK_F1 + (this - GLFW.GLFW_KEY_F1)
                 else -> AwtKeyEvent.VK_UNDEFINED
             }
     }

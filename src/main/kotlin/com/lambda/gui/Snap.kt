@@ -49,13 +49,23 @@ internal object Snap {
     private class Target(val shift: Float, val guide: Float?)
 
     val isActive: Boolean
-        get() = GuiConfig.snapEnabled && (GuiConfig.snapKey == Bind.EMPTY || GuiConfig.snapKey.isSatisfied())
+        get() =
+            GuiConfig.snapEnabled &&
+                    (GuiConfig.snapKey == Bind.EMPTY || GuiConfig.snapKey.isSatisfied())
 
-    private fun gridStep(density: Density) = with(density) { max(MIN_GRID_STEP, GuiConfig.gridSize.dp.toPx()) }
+    private fun gridStep(density: Density) =
+        with(density) { max(MIN_GRID_STEP, GuiConfig.gridSize.dp.toPx()) }
 
-    fun free(element: Rect, area: Rect) = Result(element.topLeft.keptIn(area, element.size), Guides.NONE)
+    fun free(element: Rect, area: Rect) =
+        Result(element.topLeft.keptIn(area, element.size), Guides.NONE)
 
-    fun snap(element: Rect, others: Collection<Rect>, area: Rect, density: Density, spacing: Float = 0f): Result =
+    fun snap(
+        element: Rect,
+        others: Collection<Rect>,
+        area: Rect,
+        density: Density,
+        spacing: Float = 0f
+    ): Result =
         with(density) {
             fun axis(start: (Rect) -> Float, end: (Rect) -> Float): Target {
                 fun center(rect: Rect) = (start(rect) + end(rect)) / 2
@@ -80,7 +90,12 @@ internal object Snap {
                         if (GuiConfig.snapToCenters) others.forEach { add(centerAt(center(it))) }
                     }
                 val middle = center(area)
-                val screenCenter = listOf(startAt(middle), centerAt(middle), endAt(middle)).takeIf { GuiConfig.snapToScreenCenter }.orEmpty()
+                val screenCenter =
+                    listOf(
+                        startAt(middle),
+                        centerAt(middle),
+                        endAt(middle)
+                    ).takeIf { GuiConfig.snapToScreenCenter }.orEmpty()
                 val step = gridStep(density)
                 fun onGrid(line: Float) = (line / step).roundToInt() * step
                 val grid =

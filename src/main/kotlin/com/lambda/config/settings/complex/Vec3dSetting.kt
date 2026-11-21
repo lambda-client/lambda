@@ -45,13 +45,29 @@ class Vec3dSetting(
     defaultValue: Vec3d
 ) : Setting<Vec3d>(name, description, defaultValue, layer, config, visibility) {
     @Composable
-    override fun Editor() {
+    override fun Gui() {
         val vec by observe { value }
         Labeled(name) {
-            val parse = { text: String -> text.toDoubleOrNull()?.takeIf(Double::isFinite) }
-            NumberInput(vec.x, parse, { value = Vec3d(it, vec.y, vec.z) }, Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH))
-            NumberInput(vec.y, parse, { value = Vec3d(vec.x, it, vec.z) }, Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH))
-            NumberInput(vec.z, parse, { value = Vec3d(vec.x, vec.y, it) }, Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH))
+            val parse =
+                { text: String -> text.toDoubleOrNull()?.takeIf(Double::isFinite) }
+            NumberInput(
+                vec.x,
+                parse,
+                { value = Vec3d(it, vec.y, vec.z) },
+                Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH)
+            )
+            NumberInput(
+                vec.y,
+                parse,
+                { value = Vec3d(vec.x, it, vec.z) },
+                Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH)
+            )
+            NumberInput(
+                vec.z,
+                parse,
+                { value = Vec3d(vec.x, vec.y, it) },
+                Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH)
+            )
         }
     }
 

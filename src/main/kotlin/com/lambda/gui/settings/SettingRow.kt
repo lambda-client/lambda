@@ -19,7 +19,6 @@ package com.lambda.gui.settings
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -59,13 +58,17 @@ internal val TEXT_FIELD_WIDTH = 90.dp
 internal val NUMBER_FIELD_WIDTH = 34.dp
 internal val ROW_INSET = 3.dp
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SettingRow(setting: Setting<*>) {
     val disabled by observe { setting.disabled() }
 
     val revealed = Reveal.setting === setting
-    val lit by animateColorAsState(if (revealed) LambdaTheme.colors.onSurface.copy(alpha = 0.35f) else Color.Transparent, tween(250))
+    val lit by
+        animateColorAsState(
+            if (revealed) LambdaTheme.colors.onSurface.copy(alpha = 0.35f)
+            else Color.Transparent,
+            tween(250)
+        )
     val intoView = remember { BringIntoViewRequester() }
     LaunchedEffect(revealed) {
         if (revealed) {
@@ -85,8 +88,11 @@ fun SettingRow(setting: Setting<*>) {
                 }
                 .enabled(!disabled)
         ) {
-            CompositionLocalProvider(LocalClickOnRelease provides true, LocalKeyboardReachable provides !disabled) {
-                key(setting) { setting.Editor() }
+            CompositionLocalProvider(
+                LocalClickOnRelease provides true,
+                LocalKeyboardReachable provides !disabled
+            ) {
+                key(setting) { setting.Gui() }
             }
         }
     }
@@ -104,10 +110,15 @@ private fun Modifier.enabled(enabled: Boolean): Modifier =
     if (enabled) this
     else alpha(0.5f).pointerInput(Unit) {
         awaitPointerEventScope {
-            while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+            while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach {
+                it.consume()
+            }
         }
     }
 
 @Composable
-internal fun Labeled(name: String, modifier: Modifier = Modifier, editor: @Composable RowScope.() -> Unit) =
-    LabeledRow(name, modifier.padding(start = ROW_INSET), editor)
+internal fun Labeled(
+    name: String,
+    modifier: Modifier = Modifier,
+    editor: @Composable RowScope.() -> Unit
+) = LabeledRow(name, modifier.padding(start = ROW_INSET), editor)

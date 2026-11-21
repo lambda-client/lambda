@@ -119,12 +119,16 @@ fun TextInput(
             .focusRequester(focus)
             .onFocusChanged {
                 hasFocus = it.isFocused
-                if (it.isFocused) hadFocus =
-                    true
-                    else if (hadFocus) onDone?.invoke()
+                if (it.isFocused) hadFocus = true
+                else if (hadFocus) onDone?.invoke()
             }
             .onPreviewKeyEvent { event ->
-                if (onDone == null || (event.key != Key.Enter && event.key != Key.Escape)) false
+                if (
+                    onDone == null ||
+                    (event.key != Key.Enter && event.key != Key.Escape)
+                ) {
+                    false
+                }
                 else {
                     if (event.type == KeyEventType.KeyDown) onDone()
                     true
@@ -133,7 +137,14 @@ fun TextInput(
             .padding(horizontal = 3.dp, vertical = 1.dp),
         decorationBox = { innerTextField ->
             Box(contentAlignment = Alignment.CenterStart) {
-                if (field.text.isEmpty()) Text(placeholder, color = colors.onSurfaceVariant, style = style, maxLines = 1)
+                if (field.text.isEmpty()) {
+                    Text(
+                        placeholder,
+                        color = colors.onSurfaceVariant,
+                        style = style,
+                        maxLines = 1
+                    )
+                }
                 innerTextField()
             }
         }
@@ -153,7 +164,9 @@ fun <T : Any> NumberInput(
     fun finish(commit: Boolean) {
         val typed = draft
         draft = null
-        if (commit && typed != null) parse(typed.trim())?.takeIf { it != value }?.let(onCommit)
+        if (commit && typed != null) {
+            parse(typed.trim())?.takeIf { it != value }?.let(onCommit)
+        }
         onDone()
     }
     TextInput(

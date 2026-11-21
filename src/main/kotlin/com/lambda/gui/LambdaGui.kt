@@ -113,7 +113,7 @@ object LambdaGui : Loadable {
 
     fun open(screen: Screen) {
         if (broken) {
-            warn("Lambda's interface stopped after repeated errors. Check the log, and restart the game to bring it back.")
+            warn("Lambda's GUI stopped after repeated errors. Restart the game to bring it back.")
             return
         }
         if (this.screen == null) {
@@ -162,7 +162,13 @@ object LambdaGui : Loadable {
             val redraw = sceneChanged || itemsChanged
             if (redraw) host.draw(beforeScene = ItemAtlas::import)
 
-            GuiCompositor.composite(host.texture ?: return, size.width, size.height, redraw, effects(density))
+            GuiCompositor.composite(
+                host.texture ?: return,
+                size.width,
+                size.height,
+                redraw,
+                effects(density)
+            )
         } catch (e: Throwable) {
             if (e is OutOfMemoryError) throw e
             fail(e)
@@ -174,7 +180,11 @@ object LambdaGui : Loadable {
         if (now - failedAt > FAILURE_WINDOW_NANOS) failures = 0
         failedAt = now
         broken = ++failures >= MAX_FAILURES
-        LOG.error(if (broken) "Lambda's interface failed again and was switched off" else "Lambda's interface failed and is being rebuilt", error)
+        LOG.error(
+            if (broken) "Lambda's interface failed again and was switched off"
+            else "Lambda's interface failed and is being rebuilt",
+            error
+        )
 
         val failed = host
         host = null
@@ -216,7 +226,10 @@ object LambdaGui : Loadable {
 
     @Composable
     private fun Content() {
-        CompositionLocalProvider(LocalObservations provides observations, LocalClipboard provides GameClipboard) {
+        CompositionLocalProvider(
+            LocalObservations provides observations,
+            LocalClipboard provides GameClipboard
+        ) {
             LambdaTheme {
                 KeyboardFocus.Layer()
                 Reveal.Expiry()
@@ -226,7 +239,12 @@ object LambdaGui : Loadable {
                     Screen.ClickGui -> Unit
                     null -> HudLayer()
                 }
-                Retained(shown = screen == Screen.ClickGui || warmingUp, clickGuiObservations) { ClickGui() }
+                Retained(
+                    shown = screen == Screen.ClickGui || warmingUp,
+                    clickGuiObservations
+                ) {
+                    ClickGui()
+                }
                 if (warmingUp) WarmUp()
             }
         }
@@ -243,7 +261,9 @@ object LambdaGui : Loadable {
             else ->
                 GuiCompositor.Effects(
                     frost = if (Style.blur) Style.blurRadius * density else 0f,
-                    glow = if (Style.glow && screen == Screen.ClickGui) Style.glowRadius * density else 0f,
+                    glow =
+                        if (Style.glow && screen == Screen.ClickGui) Style.glowRadius * density
+                        else 0f,
                     glowIntensity = Style.glowIntensity,
                     glowColorA = Style.glowColorA,
                     glowColorB = Style.glowColorB,

@@ -127,7 +127,10 @@ object ItemAtlas {
             context.drawStackOverlay(mc.textRenderer, slot.stack, index * CELL, 0)
         }
         val models = ArrayList<Any>()
-        var moving = slots.any { it.stack.hasGlint() || mc.player?.itemCooldownManager?.isCoolingDown(it.stack) == true }
+        var moving =
+            slots.any {
+                it.stack.hasGlint() || mc.player?.itemCooldownManager?.isCoolingDown(it.stack) == true
+            }
         state.forEachItemElement {
             models += it.state().modelKey
             moving = moving || it.state().isAnimated
@@ -144,8 +147,8 @@ object ItemAtlas {
 
         val width = slots.size * CELL * scale
         val height = CELL * scale
-        val strip =
-            strip?.takeIf { it.width == width && it.height == height } ?: run {
+        val strip = strip?.takeIf { it.width == width && it.height == height }
+            ?: run {
                 strip?.close()
                 Strip(width, height).also { strip = it }
             }
@@ -177,7 +180,12 @@ object ItemAtlas {
 
     private fun draw(framebuffer: Framebuffer) {
         RenderSystem.getDevice().createCommandEncoder()
-            .clearColorAndDepthTextures(framebuffer.colorAttachment, 0, framebuffer.depthAttachment, 1.0)
+            .clearColorAndDepthTextures(
+                framebuffer.colorAttachment,
+                0,
+                framebuffer.depthAttachment,
+                1.0
+            )
 
         val projection = RenderSystem.getProjectionMatrixBuffer()
         val projectionType = RenderSystem.getProjectionType()
@@ -201,13 +209,23 @@ object ItemAtlas {
         private var surface: Surface? = null
 
         fun snapshot(skia: DirectContext): Image? {
-            val surface =
-                surface ?: run {
+            val surface = surface
+                ?: run {
                     val renderTarget =
-                        BackendRenderTarget.makeGL(width, height, 0, 0, glFramebuffer, FramebufferFormat.GR_GL_RGBA8)
-                            .also { renderTarget = it }
+                        BackendRenderTarget.makeGL(
+                            width,
+                            height,
+                            0,
+                            0,
+                            glFramebuffer,
+                            FramebufferFormat.GR_GL_RGBA8
+                        ).also { renderTarget = it }
                     Surface.makeFromBackendRenderTarget(
-                        skia, renderTarget, SurfaceOrigin.BOTTOM_LEFT, SurfaceColorFormat.RGBA_8888, ColorSpace.sRGB
+                        skia,
+                        renderTarget,
+                        SurfaceOrigin.BOTTOM_LEFT,
+                        SurfaceColorFormat.RGBA_8888,
+                        ColorSpace.sRGB
                     ).also { surface = it }
                 } ?: return null
             surface.notifyContentWillChange(ContentChangeMode.DISCARD)

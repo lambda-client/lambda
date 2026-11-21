@@ -60,8 +60,13 @@ import net.minecraft.util.Util
 
 @Composable
 internal fun ConfigDialog(config: Config, onDismiss: () -> Unit) {
-    val maxHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() } * 0.7f
-    Dialog(onDismiss) { ConfigSettings(config, maxHeight, onDismiss, Modifier.width(240.dp)) }
+    val maxHeight =
+        with(LocalDensity.current) {
+            LocalWindowInfo.current.containerSize.height.toDp()
+        } * 0.7f
+    Dialog(onDismiss) {
+        ConfigSettings(config, maxHeight, onDismiss, Modifier.width(240.dp))
+    }
 }
 
 @Composable
@@ -78,7 +83,13 @@ internal fun NewAutomationConfigDialog(onDismiss: () -> Unit) {
     Dialog(onDismiss) {
         Column(Modifier.width(180.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("New Automation Config", style = Type.title)
-            TextInput(name, { name = it }, Modifier.fillMaxWidth(), placeholder = "Name", focused = true)
+            TextInput(
+                name,
+                { name = it },
+                Modifier.fillMaxWidth(),
+                placeholder = "Name",
+                focused = true
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Spacer(Modifier.weight(1f))
                 Button("Cancel", onClick = onDismiss)
@@ -114,7 +125,9 @@ internal fun AboutDialog(onDismiss: () -> Unit) {
         }
     val authors =
         remember {
-            FabricLoader.getInstance().getModContainer("lambda").orElseThrow().metadata.authors
+            FabricLoader.getInstance()
+                .getModContainer("lambda")
+                .orElseThrow().metadata.authors
                 .flatMap { it.name.split(",") }
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
@@ -130,10 +143,19 @@ internal fun AboutDialog(onDismiss: () -> Unit) {
             facts.forEach { Text(it) }
             Text("Authors", Modifier.padding(top = 6.dp), style = Type.title)
             authors.forEach { Text("•  $it") }
-            Text("Thanks to all community members", Modifier.padding(top = 2.dp), colors.onSurfaceVariant)
-            Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "Thanks to all community members",
+                Modifier.padding(top = 2.dp),
+                colors.onSurfaceVariant
+            )
+            Row(
+                Modifier.fillMaxWidth().padding(top = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Button("Copy Diagnostics") { mc.keyboard.clipboard = gatherDiagnostics() }
-                Button("View License") { Util.getOperatingSystem().open("$REPO_URL/blob/master/LICENSE.md") }
+                Button("View License") {
+                    Util.getOperatingSystem().open("$REPO_URL/blob/master/LICENSE.md")
+                }
                 Spacer(Modifier.weight(1f))
                 Button("Close", onClick = onDismiss)
             }
@@ -156,7 +178,10 @@ internal fun LoaderPromptDialog(prompt: AutoUpdater.Prompt) {
                     Text("Lambda Loader replaces this version-specific Lambda jar with a lightweight bootstrap that keeps Lambda up to date.")
                     Text("•  Automatic updates on launch\n•  No manual jar replacement")
                     Text("If you choose to switch, Lambda will install the loader and close the game so changes apply on next start.")
-                    Text("You can change this later from the AutoUpdater module.", color = colors.onSurfaceVariant)
+                    Text(
+                        "You can change this later from the AutoUpdater module.",
+                        color = colors.onSurfaceVariant
+                    )
                 }
             }
             Row(
@@ -172,7 +197,9 @@ internal fun LoaderPromptDialog(prompt: AutoUpdater.Prompt) {
                     modifier = Modifier.weight(1f)
                 ) { AutoUpdater.answerPrompt(accepted = false) }
                 Button(
-                    label = if (prompt == AutoUpdater.Prompt.Uninstall) "Uninstall" else "Switch To Loader",
+                    label =
+                        if (prompt == AutoUpdater.Prompt.Uninstall) "Uninstall"
+                        else "Switch To Loader",
                     modifier = Modifier.weight(1f)
                 ) { AutoUpdater.answerPrompt(accepted = true) }
             }

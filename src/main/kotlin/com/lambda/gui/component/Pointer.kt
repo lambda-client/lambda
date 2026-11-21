@@ -60,8 +60,11 @@ fun Modifier.mouseClickable(
             }
         }
         val keys =
-            if (!keyboard) Modifier else Modifier.keyboardFocusable { event ->
-                val action = if (event.isShiftPressed) onRightClick else onClick ?: onRightClick
+            if (!keyboard) Modifier
+            else Modifier.keyboardFocusable { event ->
+                val action =
+                    if (event.isShiftPressed) onRightClick
+                    else onClick ?: onRightClick
                 if (event.isActivation) action?.invoke()
                 event.isActivation && action != null
             }
@@ -84,7 +87,8 @@ fun Modifier.mouseClickable(
                         if (event.type == PointerEventType.Press) break
                         if (event.type != PointerEventType.Release || event.button != button) continue
                         change.consume()
-                        val inside = change.position.x in 0f..size.width.toFloat() && change.position.y in 0f..size.height.toFloat()
+                        val inside = change.position.x in 0f..size.width.toFloat() &&
+                                change.position.y in 0f..size.height.toFloat()
                         if (inside) actionFor(button)?.invoke()
                         break
                     }
@@ -95,14 +99,19 @@ fun Modifier.mouseClickable(
 
 val LocalClickOnRelease = compositionLocalOf { false }
 
-fun Modifier.onMousePress(button: PointerButton, onPress: (position: Offset) -> Unit): Modifier =
+fun Modifier.onMousePress(
+    button: PointerButton,
+    onPress: (position: Offset) -> Unit
+): Modifier =
     onPress { pressed, position ->
         if (pressed == button) onPress(position)
         pressed == button
     }
 
 @OptIn(ExperimentalComposeUiApi::class)
-private fun Modifier.onPress(handle: (button: PointerButton?, position: Offset) -> Boolean): Modifier =
+private fun Modifier.onPress(
+    handle: (button: PointerButton?, position: Offset) -> Boolean
+): Modifier =
     composed {
         val currentHandle by rememberUpdatedState(handle)
         pointerInput(Unit) {
@@ -141,7 +150,10 @@ fun Modifier.mouseDraggable(
         onDrag = onDrag,
     )
 
-fun Modifier.scrubbable(onEnd: () -> Unit = {}, onScrub: (position: Offset, size: IntSize) -> Unit): Modifier =
+fun Modifier.scrubbable(
+    onEnd: () -> Unit = {},
+    onScrub: (position: Offset, size: IntSize) -> Unit
+): Modifier =
     composed {
         val currentOnScrub by rememberUpdatedState(onScrub)
         val currentOnEnd by rememberUpdatedState(onEnd)

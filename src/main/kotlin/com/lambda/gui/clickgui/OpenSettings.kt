@@ -45,7 +45,9 @@ internal class OpenSettings {
 
     fun stateOf(module: Module) = states.getOrPut(module) { SettingsPanelState(module) }
 
-    fun panelOf(module: Module) = if (module in open || module in closing) stateOf(module) else null
+    fun panelOf(module: Module) =
+        if (module in open || module in closing) stateOf(module)
+        else null
 
     fun isOpen(module: Module) = module in open
 
@@ -55,13 +57,16 @@ internal class OpenSettings {
         if (module !in open) open += module
     }
 
-    fun toggle(module: Module) = if (isOpen(module)) close(module) else open(module)
+    fun toggle(module: Module) =
+        if (isOpen(module)) close(module)
+        else open(module)
 
     fun close(module: Module) {
         if (open.remove(module)) closing += module
     }
 
-    fun close(modules: Collection<Module>) = open.filter { it in modules }.forEach(::close)
+    fun close(modules: Collection<Module>) =
+        open.filter { it in modules }.forEach(::close)
 
     fun closeAll() = open.toList().forEach(::close)
 

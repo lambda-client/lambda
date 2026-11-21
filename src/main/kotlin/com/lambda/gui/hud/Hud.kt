@@ -61,7 +61,8 @@ internal object Hud {
         get() {
             val screen = mc.currentScreen
             val covered = screen != null && screen !is GuiScreen && !HudConfig.showInScreens
-            return if (mc.world == null || mc.options.hudHidden || covered) emptyList() else modules.filter { it.isEnabled }
+            return if (mc.world == null || mc.options.hudHidden || covered) emptyList()
+            else modules.filter { it.isEnabled }
         }
 }
 
@@ -86,14 +87,19 @@ private fun HudElement(hud: HudModule, editor: HudEditorState?) {
     Box(
         Modifier
             .layout { measurable, constraints ->
-                val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
+                val placeable =
+                    measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                 val roomX = (constraints.maxWidth - placeable.width).coerceAtLeast(0)
                 val roomY = (constraints.maxHeight - placeable.height).coerceAtLeast(0)
                 val dragged = editor?.shownPosition(hud)
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeable.place(
-                        (dragged?.x ?: (roomX * anchor.x)).roundToInt().coerceIn(0, roomX),
-                        (dragged?.y ?: (roomY * anchor.y)).roundToInt().coerceIn(0, roomY)
+                        (dragged?.x ?: (roomX * anchor.x))
+                            .roundToInt()
+                            .coerceIn(0, roomX),
+                        (dragged?.y ?: (roomY * anchor.y))
+                            .roundToInt()
+                            .coerceIn(0, roomY)
                     )
                 }
             }
@@ -111,5 +117,13 @@ fun HudText(text: String, modifier: Modifier = Modifier, color: Color? = null) {
     val hudColor by observe { HudConfig.textColor.toCompose() }
     val scale by observe { HudConfig.scale }
     val size = Type.body.fontSize * scale
-    Text(text, modifier, color ?: hudColor, Type.body.copy(fontSize = size, lineHeight = size * 1.25f).shadowed(HUD_TEXT_SHADOW))
+    Text(
+        text,
+        modifier,
+        color ?: hudColor,
+        Type.body.copy(
+            fontSize = size,
+            lineHeight = size * 1.25f
+        ).shadowed(HUD_TEXT_SHADOW)
+    )
 }

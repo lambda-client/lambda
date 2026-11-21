@@ -46,7 +46,8 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
             AutoDisconnectScreen::class.java,
         )
 
-    fun canOpenOver(screen: Screen?) = screen == null || backgroundScreens.any { it.isInstance(screen) }
+    fun canOpenOver(screen: Screen?) =
+        screen == null || backgroundScreens.any { it.isInstance(screen) }
 
     internal fun show() {
         parent = mc.currentScreen
@@ -67,9 +68,19 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
 
     override fun shouldPause() = false
 
-    override fun render(context: DrawContext, mouseX: Int, mouseY: Int, deltaTicks: Float) = Unit
+    override fun render(
+        context: DrawContext,
+        mouseX: Int,
+        mouseY: Int,
+        deltaTicks: Float
+    ) = Unit
 
-    override fun renderBackground(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun renderBackground(
+        context: DrawContext,
+        mouseX: Int,
+        mouseY: Int,
+        delta: Float
+    ) {
         val parent = parent
         if (parent != null) {
             parent.renderBackground(context, -1, -1, delta)
@@ -111,7 +122,12 @@ object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
         return true
     }
 
-    override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {
+    override fun mouseScrolled(
+        mouseX: Double,
+        mouseY: Double,
+        horizontalAmount: Double,
+        verticalAmount: Double
+    ): Boolean {
         LambdaGui.input?.scroll(horizontalAmount, verticalAmount)
         return true
     }

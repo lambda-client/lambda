@@ -64,13 +64,18 @@ internal object Reveal {
         }
     }
 
-    private fun owner(config: Config): Module? =
-        config as? Module ?: config.takeIf { it !== AutomationConfig.DEFAULT }
-            ?.let { ModuleRegistry.modules.firstOrNull { module -> module.automationConfig === config } }
+    private fun owner(config: Config): Module? = config as? Module
+        ?: config.takeIf { it !== AutomationConfig.DEFAULT }
+            ?.let {
+                ModuleRegistry.modules.firstOrNull { module ->
+                    module.automationConfig === config
+                }
+            }
 
     private fun uncover(module: Module) {
         val tag = module.tag
-        if (tag == ModuleTag.DEBUG) ClickGuiState.developerMode = true else ModuleTag.shownTags += tag
+        if (tag == ModuleTag.DEBUG) ClickGuiState.developerMode =
+            true else ModuleTag.shownTags += tag
         module.showInClickGui.value = true
         GuiConfig.windows[tag.name]?.takeIf { it.collapsed }?.let {
             GuiConfig.windows += tag.name to it.copy(collapsed = false)

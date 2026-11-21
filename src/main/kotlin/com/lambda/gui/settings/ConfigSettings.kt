@@ -43,12 +43,23 @@ import com.lambda.gui.theme.Type
 import com.lambda.module.Module
 
 @Composable
-internal fun ConfigSettings(config: Config, maxHeight: Dp, onDone: () -> Unit, modifier: Modifier = Modifier) {
+internal fun ConfigSettings(
+    config: Config,
+    maxHeight: Dp,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("${config.name} Settings", Modifier.fillMaxWidth().padding(horizontal = 4.dp), style = Type.title)
+        Text(
+            "${config.name} Settings",
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            style = Type.title
+        )
         if (config is Module) {
             var page by remember(config) { mutableStateOf(PanelPage.Settings) }
-            Column(Modifier.heightIn(max = maxHeight)) { ModuleSettings(config, page, { page = it }, rememberScrollState()) }
+            Column(Modifier.heightIn(max = maxHeight)) {
+                ModuleSettings(config, page, { page = it }, rememberScrollState())
+            }
         } else {
             ScrollColumn(Modifier.heightIn(max = maxHeight)) {
                 SoftTextShadow {
@@ -57,7 +68,10 @@ internal fun ConfigSettings(config: Config, maxHeight: Dp, onDone: () -> Unit, m
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             if (config is UserAutomationConfig) {
                 Button("Delete") {
                     config.delete()

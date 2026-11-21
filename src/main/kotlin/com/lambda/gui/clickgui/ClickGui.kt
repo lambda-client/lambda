@@ -85,7 +85,9 @@ internal fun ClickGui() {
     val screen = LocalWindowInfo.current.containerSize
     val developerMode = ClickGuiState.developerMode
     val tags by observe {
-        CLICK_GUI_CATEGORIES.filter(ModuleTag::isTagShown) + listOfNotNull(ModuleTag.DEBUG.takeIf { developerMode })
+        CLICK_GUI_CATEGORIES.filter(ModuleTag::isTagShown) + listOfNotNull(
+            ModuleTag.DEBUG.takeIf { developerMode }
+        )
     }
 
     val settings = remember { OpenSettings() }
@@ -94,7 +96,13 @@ internal fun ClickGui() {
     val revealedModule = Reveal.module
     val revealedSetting = Reveal.setting
     LaunchedEffect(revealedModule, revealedSetting) {
-        if (revealedModule != null && revealedModule !is HudModule && revealedSetting != null) settings.open(revealedModule)
+        if (
+            revealedModule != null &&
+            revealedModule !is HudModule &&
+            revealedSetting != null
+        ) {
+            settings.open(revealedModule)
+        }
     }
 
     val shown = LocalShown.current
@@ -106,7 +114,10 @@ internal fun ClickGui() {
     val laidOut = remember { RowLayout(row) }
     SideEffect {
         if (row != laidOut.row && shown && laidOut.shown) {
-            GuiConfig.windows = GuiConfig.windows.mapValues { GuiConfig.WindowPlacement.inRow(it.value.collapsed) }
+            GuiConfig.windows =
+                GuiConfig.windows.mapValues {
+                    GuiConfig.WindowPlacement.inRow(it.value.collapsed)
+                }
         }
         laidOut.row = row
         laidOut.shown = shown
@@ -117,12 +128,21 @@ internal fun ClickGui() {
     val snapping by observe { Snap.isActive }
     var drop by remember { mutableStateOf<Snap.Result?>(null) }
 
-    Box(Modifier.fillMaxSize().mouseClickable(keyboard = false, onClick = settings::closeAll).snapLines { drop }) {
+    Box(
+        Modifier.fillMaxSize().mouseClickable(
+            keyboard = false,
+            onClick = settings::closeAll
+        ).snapLines {
+            drop
+        }
+    ) {
         val inRow = tags.count { it != ModuleTag.DEBUG }
         val screenWidth = with(density) { screen.width.toDp() }
         val pitch =
             (Look.windowWidth + Look.windowGap)
-                .coerceAtMost((screenWidth - Look.windowWidth) / (inRow - 1).coerceAtLeast(1))
+                .coerceAtMost(
+                    (screenWidth - Look.windowWidth) / (inRow - 1).coerceAtLeast(1)
+                )
                 .coerceAtLeast(0.dp)
         val rowWidth = Look.windowWidth + pitch * (inRow - 1)
         val rowStart = ((screenWidth - rowWidth) / 2).coerceAtLeast(0.dp)
@@ -165,14 +185,18 @@ internal fun ClickGui() {
                 .pointerInput(Unit) {
                     awaitPointerEventScope {
                         while (true) {
-                            if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) settings.closeAll()
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            if (event.type == PointerEventType.Press) settings.closeAll()
                         }
                     }
                 }
         )
         Button(
             label = "HUD Editor",
-            modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).zIndex(stacking.size + 1f),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(4.dp)
+                .zIndex(stacking.size + 1f),
             prominent = true,
         ) { LambdaGui.open(LambdaGui.Screen.HudEditor) }
     }
@@ -183,7 +207,8 @@ internal fun ClickGui() {
     when {
         prompt != null -> LoaderPromptDialog(prompt)
         dialog is ClickGuiDialog.About -> AboutDialog(closeDialog)
-        dialog is ClickGuiDialog.NewAutomationConfig -> NewAutomationConfigDialog(closeDialog)
+        dialog is ClickGuiDialog.NewAutomationConfig ->
+            NewAutomationConfigDialog(closeDialog)
         dialog is ClickGuiDialog.Settings -> ConfigDialog(dialog.config, closeDialog)
     }
 }

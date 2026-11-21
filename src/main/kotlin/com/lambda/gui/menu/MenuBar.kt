@@ -19,7 +19,6 @@ package com.lambda.gui.menu
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -131,7 +130,13 @@ internal fun MenuBar(modifier: Modifier = Modifier) {
             .glass(colors.surface, RectangleShape)
             .consumeClicks()
     ) {
-        Row(Modifier.align(Alignment.CenterStart).fillMaxHeight().onSizeChanged { menus = it }, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxHeight()
+                .onSizeChanged { menus = it },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             BarMenu("Lambda", icon = "textures/lambda.png") { LambdaMenu() }
             BarMenu("Modules") { ModulesMenu() }
             BarMenu("Automation") { AutomationMenu() }
@@ -141,13 +146,22 @@ internal fun MenuBar(modifier: Modifier = Modifier) {
         SearchField(
             Modifier
                 .onSizeChanged { search = it }
-                .offset { IntOffset((menus.width - (bar.width - search.width) / 2).coerceAtLeast(0), 0) }
+                .offset {
+                    IntOffset(
+                        (menus.width - (bar.width - search.width) / 2).coerceAtLeast(0),
+                        0
+                    )
+                }
         )
     }
 }
 
 @Composable
-private fun BarMenu(label: String, icon: String? = null, content: @Composable ColumnScope.() -> Unit) {
+private fun BarMenu(
+    label: String,
+    icon: String? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
     val menu = remember { MenuState() }
     Box(
         contentAlignment = Alignment.Center,
@@ -157,8 +171,18 @@ private fun BarMenu(label: String, icon: String? = null, content: @Composable Co
             .mouseClickable(onClick = menu::toggle)
             .padding(horizontal = 6.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            if (icon != null) Image(rememberTexture(icon), contentDescription = null, Modifier.size(ICON_SIZE), filterQuality = FilterQuality.High)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            if (icon != null) {
+                Image(
+                    rememberTexture(icon),
+                    contentDescription = null,
+                    Modifier.size(ICON_SIZE),
+                    filterQuality = FilterQuality.High
+                )
+            }
             Text(label, maxLines = 1)
         }
         Menu(menu.isOpen, onDismiss = menu::dismiss, content = content)
@@ -202,7 +226,8 @@ private fun SearchField(modifier: Modifier = Modifier) {
                     true
                 }
                 !open || results.isEmpty() -> false
-                event.key == Key.DirectionDown || event.key == Key.Tab && !event.isShiftPressed -> {
+                event.key == Key.DirectionDown ||
+                        event.key == Key.Tab && !event.isShiftPressed -> {
                     marked = (marked + 1).mod(results.size)
                     true
                 }
@@ -226,17 +251,31 @@ private fun SearchField(modifier: Modifier = Modifier) {
         Suggestions(open, onDismiss = { listed = false }) {
             if (shown.isEmpty()) MenuLabel("Nothing found")
             shown.forEachIndexed { index, result ->
-                ResultRow(result, marked = index == marked, onPoint = { marked = index }) { choose(result) }
+                ResultRow(
+                    result,
+                    marked = index == marked,
+                    onPoint = { marked = index }
+                ) {
+                    choose(result)
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ResultRow(result: Search.Result, marked: Boolean, onPoint: () -> Unit, onClick: () -> Unit) {
+private fun ResultRow(
+    result: Search.Result,
+    marked: Boolean,
+    onPoint: () -> Unit,
+    onClick: () -> Unit
+) {
     val colors = LambdaTheme.colors
-    val lit by animateColorAsState(if (marked) colors.controlSelected else Color.Transparent, tween(90))
+    val lit by
+        animateColorAsState(
+            if (marked) colors.controlSelected else Color.Transparent,
+            tween(90)
+        )
     val intoView = remember { BringIntoViewRequester() }
     LaunchedEffect(marked) {
         if (marked) intoView.bringIntoView()
@@ -261,7 +300,12 @@ private fun ResultRow(result: Search.Result, marked: Boolean, onPoint: () -> Uni
     ) {
         Text(result.name, maxLines = 1)
         Spacer(Modifier.weight(1f).widthIn(min = 10.dp))
-        Text(result.origin, color = colors.onSurfaceVariant, style = Type.label, maxLines = 1)
+        Text(
+            result.origin,
+            color = colors.onSurfaceVariant,
+            style = Type.label,
+            maxLines = 1
+        )
     }
 }
 
@@ -270,7 +314,9 @@ private fun LambdaMenu() {
     Submenu("Save Config") {
         MenuItem("Save All Configs") {
             ConfigLoader.configCategories.forEach { it.trySaveToFile(true) }
-            GuiConfig.info("Saved ${ConfigLoader.configCategories.size} configuration files.")
+            GuiConfig.info(
+                "Saved ${ConfigLoader.configCategories.size} configuration files."
+            )
         }
         ConfigLoader.configCategories.forEach { category ->
             MenuItem("Save ${category.name}") {
@@ -282,7 +328,9 @@ private fun LambdaMenu() {
     Submenu("Load Config") {
         MenuItem("Load All Configs") {
             ConfigLoader.configCategories.forEach { it.tryLoadFromFile() }
-            GuiConfig.info("Loaded ${ConfigLoader.configCategories.size} configuration files.")
+            GuiConfig.info(
+                "Loaded ${ConfigLoader.configCategories.size} configuration files."
+            )
         }
         ConfigLoader.configCategories.forEach { category ->
             MenuItem("Load ${category.name}") {
@@ -293,10 +341,18 @@ private fun LambdaMenu() {
     }
     MenuDivider()
     Submenu("Settings") {
-        MenuItem("GUI Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(GuiConfig) }
-        MenuItem("HUD Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(HudConfig) }
-        MenuItem("Lambda API Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(LambdaAPI) }
-        MenuItem("Baritone Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(BaritoneHandler) }
+        MenuItem("GUI Settings...") {
+            ClickGuiState.dialog = ClickGuiDialog.Settings(GuiConfig)
+        }
+        MenuItem("HUD Settings...") {
+            ClickGuiState.dialog = ClickGuiDialog.Settings(HudConfig)
+        }
+        MenuItem("Lambda API Settings...") {
+            ClickGuiState.dialog = ClickGuiDialog.Settings(LambdaAPI)
+        }
+        MenuItem("Baritone Settings...") {
+            ClickGuiState.dialog = ClickGuiDialog.Settings(BaritoneHandler)
+        }
         MenuDivider()
         MenuItem("Reset Window Layout") { GuiConfig.resetWindows() }
     }
@@ -333,7 +389,9 @@ private fun ModulesMenu() {
         Submenu(tag.name) {
             ModuleRegistry.modules.filter { it.tag == tag }.forEach { module ->
                 val shown by observe { module.showInClickGui.value }
-                MenuItem(module.name, checked = shown) { module.showInClickGui.value = !shown }
+                MenuItem(module.name, checked = shown) {
+                    module.showInClickGui.value = !shown
+                }
             }
         }
     }
@@ -341,13 +399,22 @@ private fun ModulesMenu() {
 
 @Composable
 private fun AutomationMenu() {
-    val configs by observe { UserAutomationCategory.configs.filterIsInstance<UserAutomationConfig>() }
-    MenuItem("New Config...") { ClickGuiState.dialog = ClickGuiDialog.NewAutomationConfig }
+    val configs by
+        observe {
+            UserAutomationCategory.configs.filterIsInstance<UserAutomationConfig>()
+        }
+    MenuItem("New Config...") {
+        ClickGuiState.dialog = ClickGuiDialog.NewAutomationConfig
+    }
     MenuDivider()
     configs.forEach { config ->
-        MenuItem("${config.name}...") { ClickGuiState.dialog = ClickGuiDialog.Settings(config) }
+        MenuItem("${config.name}...") {
+            ClickGuiState.dialog = ClickGuiDialog.Settings(config)
+        }
     }
-    MenuItem("${AutomationConfig.DEFAULT.name}...") { ClickGuiState.dialog = ClickGuiDialog.Settings(AutomationConfig.DEFAULT) }
+    MenuItem("${AutomationConfig.DEFAULT.name}...") {
+        ClickGuiState.dialog = ClickGuiDialog.Settings(AutomationConfig.DEFAULT)
+    }
 }
 
 @Composable
@@ -363,38 +430,66 @@ private fun MinecraftMenu() {
     MenuDivider()
 
     val gameMode by observeSafe { interaction.gameMode }
-    val mayChangeGameMode by observeSafe { GameModeCommand.PERMISSION_CHECK.allows(player.permissions) }
+    val mayChangeGameMode by
+        observeSafe { GameModeCommand.PERMISSION_CHECK.allows(player.permissions) }
     if (gameMode == null) {
         MenuItem("Debug (only available in game)", enabled = false) {}
         return
     }
     Submenu("Gamemode", enabled = mayChangeGameMode == true) {
         GameMode.entries.forEach { mode ->
-            MenuItem(mode.name.lowercase().replaceFirstChar { it.uppercase() }, checked = gameMode == mode) {
+            MenuItem(
+                mode.name.lowercase().replaceFirstChar { it.uppercase() },
+                checked = gameMode == mode
+            ) {
                 runSafe { connection.sendPacket(ChangeGameModeC2SPacket(mode)) }
             }
         }
     }
     Submenu("Debug") {
         val options = mc.options
-        MenuItem("Show Advanced Tooltips", hint = "F3+H", checked = observe { options.advancedItemTooltips }.value) {
+        MenuItem(
+            "Show Advanced Tooltips",
+            hint = "F3+H",
+            checked = observe { options.advancedItemTooltips }.value
+        ) {
             options.advancedItemTooltips = !options.advancedItemTooltips
             options.write()
         }
-        MenuItem("Pause On Lost Focus", hint = "F3+Esc", checked = observe { options.pauseOnLostFocus }.value) {
+        MenuItem(
+            "Pause On Lost Focus",
+            hint = "F3+Esc",
+            checked = observe { options.pauseOnLostFocus }.value
+        ) {
             options.pauseOnLostFocus = !options.pauseOnLostFocus
             options.write()
         }
-        MenuItem("Show Debug Menu", hint = "F3", checked = observe { mc.debugHudEntryList.isF3Enabled }.value) {
+        MenuItem(
+            "Show Debug Menu",
+            hint = "F3",
+            checked = observe { mc.debugHudEntryList.isF3Enabled }.value
+        ) {
             mc.debugHudEntryList.toggleF3Enabled()
         }
-        MenuItem("Rendering Chart", hint = "F3+1", checked = observe { mc.debugHud.renderingChartVisible }.value) {
+        MenuItem(
+            "Rendering Chart",
+            hint = "F3+1",
+            checked = observe { mc.debugHud.renderingChartVisible }.value
+        ) {
             mc.debugHud.toggleRenderingChart()
         }
-        MenuItem("Rendering & Tick Charts", hint = "F3+2", checked = observe { mc.debugHud.renderingAndTickChartsVisible }.value) {
+        MenuItem(
+            "Rendering & Tick Charts",
+            hint = "F3+2",
+            checked = observe { mc.debugHud.renderingAndTickChartsVisible }.value
+        ) {
             mc.debugHud.toggleRenderingAndTickCharts()
         }
-        MenuItem("Packet Size & Ping Charts", hint = "F3+3", checked = observe { mc.debugHud.packetSizeAndPingChartsVisible }.value) {
+        MenuItem(
+            "Packet Size & Ping Charts",
+            hint = "F3+3",
+            checked = observe { mc.debugHud.packetSizeAndPingChartsVisible }.value
+        ) {
             mc.debugHud.togglePacketSizeAndPingCharts()
         }
         MenuDivider()
@@ -404,7 +499,12 @@ private fun MinecraftMenu() {
                     String.format(
                         Locale.ROOT,
                         "/execute in %s run tp @s %.2f %.2f %.2f %.2f %.2f",
-                        world.registryKey.value, player.x, player.y, player.z, player.yaw, player.pitch
+                        world.registryKey.value,
+                        player.x,
+                        player.y,
+                        player.z,
+                        player.yaw,
+                        player.pitch
                     )
                 GuiConfig.info("Copied location command to clipboard.")
             }
@@ -417,11 +517,15 @@ private fun MinecraftMenu() {
             mc.reloadResources()
         }
         MenuItem("Reload Chunks", hint = "F3+A") { mc.worldRenderer.reload() }
-        MenuItem("Start/Stop Profiler", hint = "F3+L") { mc.toggleDebugProfiler { GuiConfig.info(it) } }
+        MenuItem("Start/Stop Profiler", hint = "F3+L") {
+            mc.toggleDebugProfiler { GuiConfig.info(it) }
+        }
         MenuItem("Dump Dynamic Textures", hint = "F3+S") {
             val output = TextureUtil.getDebugTexturePath(gameDirectory)
             mc.textureManager.dumpDynamicTextures(output)
-            GuiConfig.info("Dumped dynamic textures to: ${gameDirectory.relativize(output)}")
+            GuiConfig.info(
+                "Dumped dynamic textures to: ${gameDirectory.relativize(output)}"
+            )
         }
     }
 }
@@ -439,4 +543,5 @@ private fun HelpMenu() {
 }
 
 @Composable
-private fun FolderItem(label: String, folder: Path) = MenuItem("Open $label") { Util.getOperatingSystem().open(folder) }
+private fun FolderItem(label: String, folder: Path) =
+    MenuItem("Open $label") { Util.getOperatingSystem().open(folder) }

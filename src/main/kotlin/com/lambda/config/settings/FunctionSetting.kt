@@ -36,5 +36,5 @@ class FunctionSetting<T : () -> R, R>(
 	visibility: () -> Boolean
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
 	@Composable
-	override fun Editor() = Button(name, Modifier.fillMaxWidth().height(Look.rowHeight)) { value() }
+	override fun Gui() = Button(name, Modifier.fillMaxWidth().height(Look.rowHeight)) { value() }
 }
