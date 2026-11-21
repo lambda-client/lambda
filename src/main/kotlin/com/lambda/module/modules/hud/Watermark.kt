@@ -40,6 +40,10 @@ object Watermark : HudModule(
     override fun Content() {
         val logo = rememberTexture("textures/lambda.png")
         val scale by observe { scale }
-        Image(logo, "Lambda", Modifier.size((logo.width * scale).dp, (logo.height * scale).dp))
+        Image(
+            logo,
+            "Lambda",
+            Modifier.size((logo.width * scale).dp, (logo.height * scale).dp)
+        )
     }
 }

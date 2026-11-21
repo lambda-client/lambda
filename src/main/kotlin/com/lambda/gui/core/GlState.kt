@@ -85,11 +85,24 @@ internal object GlState {
 
     private val UNPACK_PARAMETERS =
         intArrayOf(
-            GL_UNPACK_SWAP_BYTES, GL_UNPACK_LSB_FIRST, GL_UNPACK_ROW_LENGTH, GL_UNPACK_IMAGE_HEIGHT,
-            GL_UNPACK_SKIP_ROWS, GL_UNPACK_SKIP_PIXELS, GL_UNPACK_SKIP_IMAGES, GL_UNPACK_ALIGNMENT
+            GL_UNPACK_SWAP_BYTES,
+            GL_UNPACK_LSB_FIRST,
+            GL_UNPACK_ROW_LENGTH,
+            GL_UNPACK_IMAGE_HEIGHT,
+            GL_UNPACK_SKIP_ROWS,
+            GL_UNPACK_SKIP_PIXELS,
+            GL_UNPACK_SKIP_IMAGES,
+            GL_UNPACK_ALIGNMENT
         )
     private val UNPACK_DEFAULTS = intArrayOf(0, 0, 0, 0, 0, 0, 0, 4)
-    private val CAPABILITIES = intArrayOf(GL_BLEND, GL_CULL_FACE, GL_DEPTH_TEST, GL_STENCIL_TEST, GL_SCISSOR_TEST)
+    private val CAPABILITIES =
+        intArrayOf(
+            GL_BLEND,
+            GL_CULL_FACE,
+            GL_DEPTH_TEST,
+            GL_STENCIL_TEST,
+            GL_SCISSOR_TEST
+        )
 
     private val textures = IntArray(TEXTURE_UNITS)
     private val samplers = IntArray(TEXTURE_UNITS)
@@ -111,12 +124,14 @@ internal object GlState {
     fun prepare() {
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
-        UNPACK_PARAMETERS.forEachIndexed { index, parameter -> glPixelStorei(parameter, UNPACK_DEFAULTS[index]) }
+        UNPACK_PARAMETERS.forEachIndexed { index, parameter ->
+            glPixelStorei(parameter, UNPACK_DEFAULTS[index])
+        }
     }
 
     fun capture(): () -> Unit {
         val activeTexture = glGetInteger(GL_ACTIVE_TEXTURE)
-        for (unit in 0 until TEXTURE_UNITS) {
+        repeat(TEXTURE_UNITS) { unit ->
             glActiveTexture(GL_TEXTURE0 + unit)
             textures[unit] = glGetInteger(GL_TEXTURE_BINDING_2D)
             samplers[unit] = glGetInteger(GL_SAMPLER_BINDING)
@@ -145,12 +160,16 @@ internal object GlState {
             }
         glGetIntegerv(GL_VIEWPORT, viewport)
         glGetIntegerv(GL_SCISSOR_BOX, scissor)
-        CAPABILITIES.forEachIndexed { index, capability -> capabilities[index] = glIsEnabled(capability) }
-        UNPACK_PARAMETERS.forEachIndexed { index, parameter -> unpack[index] = glGetInteger(parameter) }
+        CAPABILITIES.forEachIndexed { index, capability ->
+            capabilities[index] = glIsEnabled(capability)
+        }
+        UNPACK_PARAMETERS.forEachIndexed { index, parameter ->
+            unpack[index] = glGetInteger(parameter)
+        }
 
         return {
             glUseProgram(program)
-            for (unit in 0 until TEXTURE_UNITS) {
+            repeat(TEXTURE_UNITS) { unit ->
                 glActiveTexture(GL_TEXTURE0 + unit)
                 glBindTexture(GL_TEXTURE_2D, textures[unit])
                 glBindSampler(unit, samplers[unit])
@@ -171,7 +190,9 @@ internal object GlState {
             CAPABILITIES.forEachIndexed { index, capability ->
                 if (capabilities[index]) glEnable(capability) else glDisable(capability)
             }
-            UNPACK_PARAMETERS.forEachIndexed { index, parameter -> glPixelStorei(parameter, unpack[index]) }
+            UNPACK_PARAMETERS.forEachIndexed { index, parameter ->
+                glPixelStorei(parameter, unpack[index])
+            }
         }
     }
 }

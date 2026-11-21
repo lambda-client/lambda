@@ -39,7 +39,7 @@ class BlockSetting(
 	defaultValue: Block
 ) : Setting<Block>(name, description, defaultValue, layer, config, visibility) {
 	@Composable
-	override fun Editor() = BlockPicker(this)
+	override fun Gui() = BlockPicker(this)
 
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(blockState(name, registry)) { argument ->

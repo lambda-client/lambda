@@ -39,7 +39,9 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
         .onValueChange { _, to ->
             if (to) setLambdaWindowIcon()
             else {
-                val icon = if (SharedConstants.getGameVersion().stable()) Icons.RELEASE else Icons.SNAPSHOT
+                val icon =
+                    if (SharedConstants.getGameVersion().stable()) Icons.RELEASE
+                    else Icons.SNAPSHOT
                 mc.window.setIcon(mc.defaultResourcePack, icon)
             }
         }
@@ -64,7 +66,11 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     @Tab(SNAPPING_TAB) val snapDistanceGrid by setting("Snap Distance (Grid)", 12f, 1f..48f, 1f) { snapEnabled }
     @Tab(SNAPPING_TAB) val snapLineColor by setting("Snap Line Color", Color(255, 160, 0, 220)) { snapEnabled && showSnapLines }
 
-    internal data class WindowPlacement(val x: Float, val y: Float, val collapsed: Boolean) {
+    internal data class WindowPlacement(
+        val x: Float,
+        val y: Float,
+        val collapsed: Boolean
+    ) {
         val inRow get() = x.isNaN() || y.isNaN()
 
         companion object {
@@ -99,6 +105,10 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     private fun decodeWindow(entry: String): Pair<String, WindowPlacement>? {
         val (tag, fields) = entry.split(':').takeIf { it.size == 2 } ?: return null
         val (x, y, collapsed) = fields.split(',').takeIf { it.size == 3 } ?: return null
-        return tag to WindowPlacement(x.toFloatOrNull() ?: return null, y.toFloatOrNull() ?: return null, collapsed.toBoolean())
+        return tag to WindowPlacement(
+            x.toFloatOrNull() ?: return null,
+            y.toFloatOrNull() ?: return null,
+            collapsed.toBoolean()
+        )
     }
 }

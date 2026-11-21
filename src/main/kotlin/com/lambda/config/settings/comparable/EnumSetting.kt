@@ -47,7 +47,7 @@ class EnumSetting<T : Enum<T>>(
     defaultValue: T
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
     @Composable
-    override fun Editor() {
+    override fun Gui() {
         val selected by observe { value }
         Dropdown(
             label = name,

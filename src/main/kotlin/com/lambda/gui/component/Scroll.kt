@@ -98,11 +98,16 @@ fun Modifier.wheelScrollable(state: ScrollableState): Modifier =
                     if (event.type != PointerEventType.Scroll) continue
                     val change = event.changes.first()
                     val distance = change.scrollDelta.y * notch * Style.scrollSpeed
-                    val canFollow = if (distance > 0) state.canScrollForward else state.canScrollBackward
+                    val canFollow =
+                        if (distance > 0) state.canScrollForward
+                        else state.canScrollBackward
                     if (distance == 0f || !canFollow || change.isConsumed) continue
                     change.consume()
 
-                    val total = distance + if (glide.remaining * distance > 0) glide.remaining else 0f
+                    val total =
+                        distance +
+                                if (glide.remaining * distance > 0) glide.remaining
+                                else 0f
                     glide.job?.cancel()
                     glide.job =
                         scope.launch(Motion.SCROLL) {
@@ -110,14 +115,20 @@ fun Modifier.wheelScrollable(state: ScrollableState): Modifier =
                             glide.remaining = total
                             try {
                                 state.scroll(MutatePriority.UserInput) {
-                                    animate(0f, total, animationSpec = GLIDE) { value, _ ->
+                                    animate(
+                                        0f,
+                                        total,
+                                        animationSpec = GLIDE
+                                    ) { value, _ ->
                                         scrollBy(value - travelled)
                                         travelled = value
                                         glide.remaining = total - value
                                     }
                                 }
                             } finally {
-                                if (glide.job === coroutineContext[Job]) glide.remaining = 0f
+                                if (glide.job === coroutineContext[Job]) {
+                                    glide.remaining = 0f
+                                }
                             }
                         }
                 }

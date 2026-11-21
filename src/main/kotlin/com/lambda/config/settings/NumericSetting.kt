@@ -107,7 +107,8 @@ abstract class NumericSetting<T>(
 	private fun fractionOf(value: T): Float {
 		val span = range.endInclusive.toDouble() - range.start.toDouble()
 		val fraction = ((value.toDouble() - range.start.toDouble()) / span).toFloat()
-		return if (span > 0 && !fraction.isNaN()) fraction.coerceIn(0f, 1f) else 0f
+		return if (span > 0 && !fraction.isNaN()) fraction.coerceIn(0f, 1f)
+		else 0f
 	}
 
 	private fun at(fraction: Float): T =
@@ -128,7 +129,7 @@ abstract class NumericSetting<T>(
 	}
 
 	@Composable
-	override fun Editor() {
+	override fun Gui() {
 		val colors = LambdaTheme.colors
 		val current by observe { value }
 		var typing by remember { mutableStateOf(false) }
@@ -136,7 +137,13 @@ abstract class NumericSetting<T>(
 		var refocus by remember { mutableStateOf(false) }
 
 		if (typing) {
-			NumberInput(current, ::parse, { value = it }, Modifier.fillMaxWidth(), focused = true) {
+			NumberInput(
+				current,
+				::parse,
+				{ value = it },
+				Modifier.fillMaxWidth(),
+				focused = true
+			) {
 				typing = false
 				refocus = KeyboardFocus.visible
 			}
@@ -159,7 +166,12 @@ abstract class NumericSetting<T>(
 				.heightIn(min = Look.rowHeight)
 				.clip(RoundedCornerShape(Look.controlRounding))
 				.background(colors.track)
-				.drawBehind { drawRect(colors.trackFilled, size = Size(size.width * fraction, size.height)) }
+				.drawBehind {
+					drawRect(
+						colors.trackFilled,
+						size = Size(size.width * fraction, size.height)
+					)
+				}
 				.scrubbable(onEnd = {
 					held?.let { value = it }
 					held = null

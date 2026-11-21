@@ -28,7 +28,14 @@ abstract class HudModule(
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
-) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind = defaultKeybind) {
+) : Module(
+    name,
+    description,
+    tag,
+    alwaysListening,
+    enabledByDefault,
+    defaultKeybind = defaultKeybind
+) {
     val backgroundColor = setting("Background Color", Color(0, 0, 0, 0))
 
     var anchorX by setting("HUD X", DEFAULT_ANCHOR, 0f..1f, 0.001f) { false }

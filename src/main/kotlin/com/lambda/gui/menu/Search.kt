@@ -42,11 +42,17 @@ internal object Search {
 
         class OfModule(val module: Module) : Result {
             override val name get() = module.name
-            override val origin = if (module is HudModule) "HUD element" else "${module.tag.name} module"
+            override val origin =
+                if (module is HudModule) "HUD element"
+                else "${module.tag.name} module"
             override fun choose() = Reveal.show(module)
         }
 
-        class OfSetting(val setting: Setting<*>, val config: Config, path: List<String>) : Result {
+        class OfSetting(
+            val setting: Setting<*>,
+            val config: Config,
+            path: List<String>
+        ) : Result {
             override val name get() = setting.name
             override val origin = (listOf(config.name) + path).joinToString(" \u00bb ")
             override fun choose() = Reveal.show(config, setting)
@@ -81,21 +87,46 @@ internal object Search {
                 if (score > 0) add(result() to score + bonus)
             }
 
-            fun hidden(config: Any) = config is Module && config.tag == ModuleTag.DEBUG && !ClickGuiState.developerMode
+            fun hidden(config: Any) =
+                config is Module &&
+                        config.tag == ModuleTag.DEBUG &&
+                        !ClickGuiState.developerMode
 
             ModuleRegistry.modules.forEach { module ->
                 if (hidden(module)) return@forEach
-                consider({ Result.OfModule(module) }, if (module is HudModule) HUD_MODULE_BONUS else MODULE_BONUS, module.name, module.tag.name)
+                consider(
+                    { Result.OfModule(module) },
+                    if (module is HudModule) HUD_MODULE_BONUS else MODULE_BONUS,
+                    module.name,
+                    module.tag.name
+                )
             }
             CommandRegistry.commands.forEach { command ->
-                consider({ Result.OfCommand(command) }, COMMAND_BONUS, command.name, *command.aliases.toTypedArray())
+                consider(
+                    { Result.OfCommand(command) },
+                    COMMAND_BONUS,
+                    command.name,
+                    *command.aliases.toTypedArray()
+                )
             }
             ConfigLoader.configCategories.forEach { category ->
                 category.configs.forEach { config ->
                     if (hidden(config)) return@forEach
                     config.settingLayers.forEachEntry { path, single ->
                         val setting = single.entry
-                        if (setting.visibility()) consider({ Result.OfSetting(setting, config, path.map { it.name }) }, 0, setting.name)
+                        if (setting.visibility()) {
+                            consider(
+                                {
+                                    Result.OfSetting(
+                                        setting,
+                                        config,
+                                        path.map { it.name }
+                                    )
+                                },
+                                0,
+                                setting.name
+                            )
+                        }
                     }
                 }
             }
@@ -108,7 +139,10 @@ internal object Search {
         if (target.contains(query)) return 50 + query.length * 40 / target.length
 
         val distance = query.levenshteinDistance(target)
-        val allowed = if (lenient) (query.length / 2).coerceIn(2, 6) else (query.length / 3).coerceIn(1, 4)
-        return if (distance <= allowed) (50 - distance * 10).coerceAtLeast(1) else 0
+        val allowed =
+            if (lenient) (query.length / 2).coerceIn(2, 6)
+            else (query.length / 3).coerceIn(1, 4)
+        return if (distance <= allowed) (50 - distance * 10).coerceAtLeast(1)
+        else 0
     }
 }

@@ -26,25 +26,18 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.WindowInfo
-import androidx.compose.ui.text.input.EditCommand
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.ImeOptions
-import androidx.compose.ui.text.input.PlatformTextInputService
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.lambda.Lambda.mc
-import kotlinx.coroutines.awaitCancellation
 import net.minecraft.client.gui.cursor.Cursor
 import net.minecraft.client.gui.cursor.StandardCursors
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.awt.datatransfer.Transferable
 
-@OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
+@OptIn(InternalComposeUiApi::class)
 internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
     private val window =
         object : WindowInfo {
@@ -71,35 +64,19 @@ internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
                 else -> null
             }
     }
-
-    override suspend fun startInputMethod(request: PlatformTextInputMethodRequest): Nothing = awaitCancellation()
-
-    @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
-    override val textInputService =
-        object : PlatformTextInputService {
-            override fun startInput(
-                value: TextFieldValue,
-                imeOptions: ImeOptions,
-                onEditCommand: (List<EditCommand>) -> Unit,
-                onImeActionPerformed: (ImeAction) -> Unit,
-            ) = Unit
-
-            override fun stopInput() = Unit
-
-            override fun showSoftwareKeyboard() = Unit
-            override fun hideSoftwareKeyboard() = Unit
-            override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) = Unit
-        }
 }
 
 object ResizeVerticalIcon : PointerIcon
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal object GameClipboard : Clipboard {
+    @Suppress("OVERRIDE_DEPRECATION")
     override val nativeClipboard: Any get() = this
 
     override suspend fun getClipEntry(): ClipEntry? =
-        mc.keyboard.clipboard.takeIf { it.isNotEmpty() }?.let { ClipEntry(StringSelection(it)) }
+        mc.keyboard.clipboard.takeIf { it.isNotEmpty() }?.let {
+            ClipEntry(StringSelection(it))
+        }
 
     override suspend fun setClipEntry(clipEntry: ClipEntry?) {
         val transferable = clipEntry?.nativeClipEntry as? Transferable

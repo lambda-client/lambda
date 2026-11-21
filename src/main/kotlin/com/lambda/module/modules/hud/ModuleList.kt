@@ -54,7 +54,14 @@ object ModuleList : HudModule(
             entries.forEach { (name, bind) ->
                 Row {
                     HudText(name)
-                    if (showKeybind) HudText(" [${(bind ?: Bind.EMPTY).name}]", color = if (bind != null) Color.Green else Color.Red)
+                    if (showKeybind) {
+                        HudText(
+                            " [${(bind ?: Bind.EMPTY).name}]",
+                            color =
+                                if (bind != null) Color.Green
+                                else Color.Red
+                        )
+                    }
                 }
             }
         }

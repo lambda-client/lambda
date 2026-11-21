@@ -27,12 +27,21 @@ import androidx.compose.ui.layout.layout
 val LocalShown = compositionLocalOf { true }
 
 @Composable
-internal fun Retained(shown: Boolean, observations: Observations, content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalShown provides shown, LocalObservations provides observations) {
+internal fun Retained(
+    shown: Boolean,
+    observations: Observations,
+    content: @Composable () -> Unit
+) {
+    CompositionLocalProvider(
+        LocalShown provides shown,
+        LocalObservations provides observations
+    ) {
         Box(
             Modifier.layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints)
-                layout(placeable.width, placeable.height) { if (shown) placeable.place(0, 0) }
+                layout(placeable.width, placeable.height) {
+                    if (shown) placeable.place(0, 0)
+                }
             }
         ) { content() }
     }

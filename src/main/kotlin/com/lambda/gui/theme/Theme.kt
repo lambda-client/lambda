@@ -81,11 +81,15 @@ data class Palette(
 ) {
     val onPrimary = primary.contrast()
     val onSecondary = secondary.contrast()
-    val trackFilled = if (onControl.luminance() > 0.5f) primary else primary.copy(alpha = 0.6f)
+    val trackFilled =
+        if (onControl.luminance() > 0.5f) primary
+        else primary.copy(alpha = 0.6f)
     val raised = onSurface.copy(alpha = 0.11f)
     val hover = onSurface.copy(alpha = 0.06f)
 
-    private fun Color.contrast() = if (luminance() > 0.2f) ON_LIGHT_ACCENT else Color.White
+    private fun Color.contrast() =
+        if (luminance() > 0.2f) ON_LIGHT_ACCENT
+        else Color.White
 }
 
 internal object Look {
@@ -116,16 +120,23 @@ internal object Look {
 
     fun refresh() = observations.refresh()
 
-    private fun <T> style(read: () -> T): State<T> = Observation(read).also { observations.active += it }.state
+    private fun <T> style(read: () -> T): State<T> =
+        Observation(read).also { observations.active += it }.state
 }
 
 internal object Motion : MotionDurationScale {
     private const val PAGE_MILLIS = 160
-    private val UNFOLDING = spring(stiffness = Spring.StiffnessMedium, visibilityThreshold = IntSize.VisibilityThreshold)
+    private val UNFOLDING =
+        spring(
+            stiffness = Spring.StiffnessMedium,
+            visibilityThreshold = IntSize.VisibilityThreshold
+        )
 
     val SCROLL =
         object : MotionDurationScale {
-            override val scaleFactor get() = if (Style.smoothScrolling) 1f else 0f
+            override val scaleFactor get() =
+                if (Style.smoothScrolling) 1f
+                else 0f
         }
 
     val UNSCALED =
@@ -133,14 +144,24 @@ internal object Motion : MotionDurationScale {
             override val scaleFactor get() = 1f
         }
 
-    override val scaleFactor get() = if (Style.animations) 1f / Style.animationSpeed else 0f
+    override val scaleFactor get() =
+        if (Style.animations) 1f / Style.animationSpeed
+        else 0f
 
-    val windows: FiniteAnimationSpec<IntSize> get() = if (Style.windowAnimations) spring() else snap()
-    val panels: FiniteAnimationSpec<IntSize> get() = if (Style.panelAnimations) UNFOLDING else snap()
-    val pageMillis get() = if (Style.pageAnimations) PAGE_MILLIS else 0
+    val windows: FiniteAnimationSpec<IntSize>
+        get() = if (Style.windowAnimations) spring() else snap()
+    val panels: FiniteAnimationSpec<IntSize>
+        get() = if (Style.panelAnimations) UNFOLDING else snap()
+    val pageMillis
+        get() = if (Style.pageAnimations) PAGE_MILLIS else 0
 }
 
-enum class GuiFont(override val displayName: String, val size: TextUnit, val smallSize: TextUnit, val titleWeight: FontWeight) : NamedEnum {
+enum class GuiFont(
+    override val displayName: String,
+    val size: TextUnit,
+    val smallSize: TextUnit,
+    val titleWeight: FontWeight
+) : NamedEnum {
     Minecraft("Minecraft", 12.sp, 12.sp, FontWeight.Normal),
     FiraSans("Fira Sans", 10.sp, 9.sp, FontWeight.Bold),
     System("System", 10.sp, 9.sp, FontWeight.Bold);
@@ -149,8 +170,13 @@ enum class GuiFont(override val displayName: String, val size: TextUnit, val sma
         fun font(file: String, weight: FontWeight) =
             Font(file, "fonts/$file".stream.use { it.readAllBytes() }, weight)
         when (this) {
-            Minecraft -> FontFamily(font("MinecraftDefault-Regular.ttf", FontWeight.Normal))
-            FiraSans -> FontFamily(font("FiraSans-Regular.ttf", FontWeight.Normal), font("FiraSans-Bold.ttf", FontWeight.Bold))
+            Minecraft ->
+                FontFamily(font("MinecraftDefault-Regular.ttf", FontWeight.Normal))
+            FiraSans ->
+                FontFamily(
+                    font("FiraSans-Regular.ttf", FontWeight.Normal),
+                    font("FiraSans-Bold.ttf", FontWeight.Bold)
+                )
             System -> FontFamily.SansSerif
         }
     }
@@ -162,13 +188,20 @@ private class Typography(font: GuiFont, scale: Float = 1f) {
     val body = compact(font, font.size * scale)
     val label = compact(font, font.smallSize * scale)
 
-    private fun compact(font: GuiFont, size: TextUnit, weight: FontWeight = FontWeight.Normal) =
+    private fun compact(
+        font: GuiFont,
+        size: TextUnit,
+        weight: FontWeight = FontWeight.Normal
+    ) =
         TextStyle(
             fontFamily = font.family,
             fontWeight = weight,
             fontSize = size,
             lineHeight = if (font == GuiFont.Minecraft) size else size * 1.25f,
-            lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
+            lineHeightStyle = LineHeightStyle(
+                LineHeightStyle.Alignment.Center,
+                LineHeightStyle.Trim.Both
+            ),
         )
 }
 
@@ -183,8 +216,10 @@ object LambdaTheme {
         @Composable @ReadOnlyComposable get() = LocalPalette.current
 }
 
-private val LocalPalette = staticCompositionLocalOf<Palette> { error("No LambdaTheme in this composition") }
-private val LocalTypography = staticCompositionLocalOf<Typography> { error("No LambdaTheme in this composition") }
+private val LocalPalette =
+    staticCompositionLocalOf<Palette> { error("No LambdaTheme in this composition") }
+private val LocalTypography =
+    staticCompositionLocalOf<Typography> { error("No LambdaTheme in this composition") }
 
 val LocalContentColor = compositionLocalOf { Color.White }
 
@@ -197,13 +232,22 @@ fun LambdaTheme(content: @Composable () -> Unit) {
     val typography =
         remember(font, fontSize) {
             if (font == GuiFont.Minecraft) return@remember Typography(font, fontSize)
-            val line = measurer.measure("Ag", Typography(font).body, density = Density(1f)).size.height
+            val line =
+                measurer.measure(
+                    "Ag",
+                    Typography(font).body,
+                    density = Density(1f)
+                ).size.height
             Typography(font, (LINE_HEIGHT / line).coerceAtMost(1f) * fontSize)
         }
     CompositionLocalProvider(
         LocalPalette provides palette,
         LocalTypography provides typography,
-        LocalTextSelectionColors provides TextSelectionColors(palette.primary, palette.primary.copy(alpha = 0.4f)),
+        LocalTextSelectionColors provides
+                TextSelectionColors(
+                    palette.primary,
+                    palette.primary.copy(alpha = 0.4f)
+                ),
         LocalContentColor provides palette.onSurface,
         content = content
     )

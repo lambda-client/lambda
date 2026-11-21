@@ -49,10 +49,14 @@ class CharSetting(
 	visibility: () -> Boolean
 ) : Setting<Char>(name, description, defaultValue, layer, config, visibility) {
 	@Composable
-	override fun Editor() {
+	override fun Gui() {
 		val value by observe { value }
 		Labeled(name) {
-			TextInput(value.toString(), { text -> text.lastOrNull()?.let { this@CharSetting.value = it } }, Modifier.width(18.dp))
+			TextInput(
+				value.toString(),
+				{ text -> text.lastOrNull()?.let { this@CharSetting.value = it } },
+				Modifier.width(18.dp)
+			)
 		}
 	}
 

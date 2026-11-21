@@ -47,14 +47,30 @@ internal object GuiCompositor {
     private var haloView: GpuTextureView? = null
     private var haloRadius = 0f
 
-    private val uniformSize = Std140SizeCalculator().putVec4().putVec4().putFloat().putFloat().putFloat().align(16).get()
+    private val uniformSize =
+        Std140SizeCalculator()
+            .putVec4()
+            .putVec4()
+            .putFloat()
+            .putFloat()
+            .putFloat()
+            .align(16)
+            .get()
     private val uniforms: GpuBuffer by lazy {
         RenderSystem.getDevice().createBuffer(
-            { "Lambda GUI effects" }, GpuBuffer.USAGE_UNIFORM or GpuBuffer.USAGE_COPY_DST, uniformSize.toLong()
+            { "Lambda GUI effects" },
+            GpuBuffer.USAGE_UNIFORM or GpuBuffer.USAGE_COPY_DST,
+            uniformSize.toLong()
         )
     }
 
-    fun composite(gui: GpuTextureView, width: Int, height: Int, guiChanged: Boolean, effects: Effects) {
+    fun composite(
+        gui: GpuTextureView,
+        width: Int,
+        height: Int,
+        guiChanged: Boolean,
+        effects: Effects
+    ) {
         val screen = mc.framebuffer.colorAttachmentView ?: return
         val linear = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
         val nearest = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
@@ -71,13 +87,14 @@ internal object GuiCompositor {
             return
         }
 
-        val backdropView = if (effects.frost > 0f) backdrop.blur(screen, width, height, effects.frost) else gui
-        if (effects.glow <= 0f) haloView =
-            null
-            else if (guiChanged || haloView == null || haloRadius != effects.glow) {
-                haloView = halo.blur(gui, width, height, effects.glow)
-                haloRadius = effects.glow
-            }
+        val backdropView =
+            if (effects.frost > 0f) backdrop.blur(screen, width, height, effects.frost)
+            else gui
+        if (effects.glow <= 0f) haloView = null
+        else if (guiChanged || haloView == null || haloRadius != effects.glow) {
+            haloView = halo.blur(gui, width, height, effects.glow)
+            haloRadius = effects.glow
+        }
 
         writeUniforms(effects)
         RenderSystem.getDevice().createCommandEncoder()
@@ -102,12 +119,20 @@ internal object GuiCompositor {
                     .putFloat(if (effects.frost > 0f) 1f else 0f)
                     .putFloat((System.currentTimeMillis() % GLOW_CYCLE_MILLIS) / 1000f)
                     .get()
-            RenderSystem.getDevice().createCommandEncoder().writeToBuffer(uniforms.slice(), data)
+            RenderSystem.getDevice().createCommandEncoder().writeToBuffer(
+                uniforms.slice(),
+                data
+            )
         }
     }
 
     private fun Std140Builder.putColor(color: Color) =
-        putVec4(color.red / 255f, color.green / 255f, color.blue / 255f, color.alpha / 255f)
+        putVec4(
+            color.red / 255f,
+            color.green / 255f,
+            color.blue / 255f,
+            color.alpha / 255f
+        )
 
     private const val GLOW_CYCLE_MILLIS = 3_141_592L
 }

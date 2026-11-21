@@ -157,7 +157,14 @@ fun Menu(
     attached: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    MenuPopup(open, remember(placement) { UnfoldingPosition(placement::place) }, onDismiss, unfoldFrom, attached, content)
+    MenuPopup(
+        open,
+        remember(placement) { UnfoldingPosition(placement::place) },
+        onDismiss,
+        unfoldFrom,
+        attached,
+        content
+    )
 }
 
 private fun MenuPlacement.place(anchor: IntRect, window: IntSize, popup: IntSize) =
@@ -165,26 +172,53 @@ private fun MenuPlacement.place(anchor: IntRect, window: IntSize, popup: IntSize
         MenuPlacement.Below ->
             IntOffset(
                 anchor.left,
-                if (anchor.bottom + popup.height <= window.height || anchor.top - popup.height < 0) anchor.bottom else anchor.top - popup.height
+                if (anchor.bottom + popup.height <= window.height ||
+                    anchor.top - popup.height < 0
+                ) {
+                    anchor.bottom
+                }
+                else anchor.top - popup.height
             )
         MenuPlacement.Beside ->
             IntOffset(
-                if (anchor.right + popup.width <= window.width) anchor.right else anchor.left - popup.width,
+                if (anchor.right + popup.width <= window.width) anchor.right
+                else anchor.left - popup.width,
                 anchor.top
             )
     }
 
 @Composable
-fun Popout(open: Boolean, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun Popout(
+    open: Boolean,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
     val position = remember { UnfoldingPosition(MenuPlacement.Beside::place) }
-    FloatingPanel(open, position, onDismiss, RoundedCornerShape(Look.panelRounding)) { panel ->
+    FloatingPanel(
+        open,
+        position,
+        onDismiss,
+        RoundedCornerShape(Look.panelRounding)
+    ) { panel ->
         Column(panel.padding(3.dp), content = content)
     }
 }
 
 @Composable
-fun ContextMenu(open: Boolean, position: IntOffset, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) =
-    MenuPopup(open, remember(position) { UnfoldingPosition { _, _, _ -> position } }, onDismiss, IntSize.Zero, false, content)
+fun ContextMenu(
+    open: Boolean,
+    position: IntOffset,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) =
+    MenuPopup(
+        open,
+        remember(position) { UnfoldingPosition { _, _, _ -> position } },
+        onDismiss,
+        IntSize.Zero,
+        false,
+        content
+    )
 
 @Composable
 fun <T : Any> rememberLast(value: T?): T? {
@@ -252,7 +286,8 @@ class PopupHost {
 val LocalPopupHost = compositionLocalOf<PopupHost?> { null }
 
 private fun Modifier.swallowedBy(host: PopupHost?): Modifier =
-    if (host == null) this else composed {
+    if (host == null) this
+    else composed {
         var origin by remember { mutableStateOf(Offset.Zero) }
         onGloballyPositioned { origin = it.positionInWindow() }.drawWithContent {
             if (!host.closing) return@drawWithContent drawContent()
@@ -344,8 +379,12 @@ private class UnfoldingPosition(
     val corner
         get() =
             when {
-                upwards -> if (leftwards) Alignment.BottomEnd else Alignment.BottomStart
-                else -> if (leftwards) Alignment.TopEnd else Alignment.TopStart
+                upwards ->
+                    if (leftwards) Alignment.BottomEnd
+                    else Alignment.BottomStart
+                else ->
+                    if (leftwards) Alignment.TopEnd
+                    else Alignment.TopStart
             }
 
     override fun calculatePosition(
@@ -354,7 +393,11 @@ private class UnfoldingPosition(
         layoutDirection: LayoutDirection,
         popupContentSize: IntSize,
     ): IntOffset {
-        val full = IntSize(max(unfolded.width, popupContentSize.width), max(unfolded.height, popupContentSize.height))
+        val full =
+            IntSize(
+                max(unfolded.width, popupContentSize.width),
+                max(unfolded.height, popupContentSize.height)
+            )
         val wanted = position(anchorBounds, windowSize, full)
         leftwards = wanted.x + full.width <= anchorBounds.left
         upwards = wanted.y + full.height <= anchorBounds.top
@@ -368,7 +411,11 @@ private class UnfoldingPosition(
 }
 
 @Composable
-fun Suggestions(open: Boolean, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun Suggestions(
+    open: Boolean,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
     if (!LocalShown.current) {
         if (open) SideEffect(onDismiss)
         return
@@ -379,12 +426,16 @@ fun Suggestions(open: Boolean, onDismiss: () -> Unit, content: @Composable Colum
 
     val colors = LambdaTheme.colors
     val shape = RoundedCornerShape(Look.menuRounding)
-    val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val screenHeight =
+        with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     ScenePopup(
         popupPositionProvider = remember {
             positionProvider { anchor, window, popup ->
                 val centred = anchor.left + (anchor.width - popup.width) / 2
-                IntOffset(centred.coerceIn(0, (window.width - popup.width).coerceAtLeast(0)), anchor.bottom)
+                IntOffset(
+                    centred.coerceIn(0, (window.width - popup.width).coerceAtLeast(0)),
+                    anchor.bottom
+                )
             }
         },
         onDismissRequest = { if (open) onDismiss() },
@@ -444,12 +495,24 @@ fun MenuItem(
                 else -> colors.onSurface
             }
         Text(label, Modifier.weight(1f), color, maxLines = 1)
-        if (hint != null) Text(hint, Modifier.padding(start = 12.dp), colors.onSurfaceVariant, Type.label, maxLines = 1)
+        if (hint != null) {
+            Text(
+                hint,
+                Modifier.padding(start = 12.dp),
+                colors.onSurfaceVariant,
+                Type.label,
+                maxLines = 1
+            )
+        }
     }
 }
 
 @Composable
-fun Submenu(label: String, enabled: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
+fun Submenu(
+    label: String,
+    enabled: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit
+) {
     val colors = LambdaTheme.colors
     val menu = remember { MenuState() }
     Box {
@@ -457,19 +520,41 @@ fun Submenu(label: String, enabled: Boolean = true, content: @Composable ColumnS
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (enabled) Modifier.hoverHighlight(colors.controlSelected).mouseClickable(onClick = menu::toggle) else Modifier)
+                .then(
+                    if (enabled) {
+                        Modifier
+                            .hoverHighlight(colors.controlSelected)
+                            .mouseClickable(onClick = menu::toggle)
+                    }
+                    else Modifier
+                )
                 .padding(horizontal = 5.dp, vertical = 1.dp)
         ) {
-            Text(label, Modifier.weight(1f), if (enabled) colors.onSurface else colors.onSurfaceVariant, maxLines = 1)
+            Text(
+                label,
+                Modifier.weight(1f),
+                if (enabled) colors.onSurface else colors.onSurfaceVariant,
+                maxLines = 1
+            )
             Chevron(0f, Modifier.padding(start = 12.dp), colors.onSurfaceVariant)
         }
-        Menu(menu.isOpen, onDismiss = menu::dismiss, MenuPlacement.Beside, content = content)
+        Menu(
+            menu.isOpen,
+            onDismiss = menu::dismiss,
+            MenuPlacement.Beside,
+            content = content
+        )
     }
 }
 
 @Composable
 fun MenuLabel(label: String) =
-    Text(label, Modifier.padding(horizontal = 5.dp, vertical = 1.dp), LambdaTheme.colors.onSurfaceVariant, maxLines = 1)
+    Text(
+        label,
+        Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+        LambdaTheme.colors.onSurfaceVariant,
+        maxLines = 1
+    )
 
 @Composable
 fun MenuHelp(text: String, label: String = "Help") {
@@ -483,7 +568,13 @@ fun MenuHelp(text: String, label: String = "Help") {
                 .padding(horizontal = 5.dp, vertical = 1.dp)
         ) {
             Text(label, Modifier.weight(1f), colors.onSurfaceVariant, maxLines = 1)
-            Text("?", Modifier.padding(start = 12.dp), colors.onSurfaceVariant, Type.label, maxLines = 1)
+            Text(
+                "?",
+                Modifier.padding(start = 12.dp),
+                colors.onSurfaceVariant,
+                Type.label,
+                maxLines = 1
+            )
         }
     }
 }
@@ -506,7 +597,9 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
     }
     val colors = LambdaTheme.colors
     ScenePopup(
-        popupPositionProvider = remember { positionProvider { _, _, _ -> IntOffset.Zero } },
+        popupPositionProvider = remember {
+            positionProvider { _, _, _ -> IntOffset.Zero }
+        },
         properties = PopupProperties(focusable = true),
         onKeyEvent = { onDismiss != null && it.dismissOnEscape(onDismiss) },
     ) {
@@ -521,7 +614,12 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
             ContentColor(colors.onSurface) {
                 Box(
                     modifier = Modifier
-                        .window(colors.panel, colors.border, RoundedCornerShape(Look.panelRounding), floating = true)
+                        .window(
+                            colors.panel,
+                            colors.border,
+                            RoundedCornerShape(Look.panelRounding),
+                            floating = true
+                        )
                         .padding(6.dp),
                     content = content
                 )
@@ -531,7 +629,11 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
 }
 
 @Composable
-fun Tooltip(text: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun Tooltip(
+    text: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
     if (text.isBlank()) {
         Box(modifier) { content() }
         return

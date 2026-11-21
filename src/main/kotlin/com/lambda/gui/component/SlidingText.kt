@@ -94,7 +94,9 @@ fun SlidingText(
             .clipToBounds()
             .layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints.copy(maxWidth = Constraints.Infinity))
-                overflow = if (constraints.hasBoundedWidth) (placeable.width - constraints.maxWidth).coerceAtLeast(0) else 0
+                overflow =
+                    if (constraints.hasBoundedWidth) (placeable.width - constraints.maxWidth).coerceAtLeast(0)
+                    else 0
                 layout(placeable.width - overflow, placeable.height) {
                     placeable.place(-(slide.value * overflow).roundToInt(), 0)
                 }

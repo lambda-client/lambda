@@ -81,7 +81,8 @@ fun Modifier.glass(color: Color, shape: Shape): Modifier =
             remember(sigma, underlay) {
                 if (sigma <= 0f) return@remember null
                 val blurred = ImageFilter.makeBlur(sigma, sigma, FilterTileMode.CLAMP)
-                if (underlay >= 1f) blurred else ImageFilter.makeColorFilter(faded(underlay), blurred, null)
+                if (underlay >= 1f) blurred
+                else ImageFilter.makeColorFilter(faded(underlay), blurred, null)
             }
         drawBehind {
             if (blur == null) {
@@ -96,7 +97,12 @@ fun Modifier.glass(color: Color, shape: Shape): Modifier =
         }
     }
 
-fun Modifier.window(color: Color, border: Color, shape: Shape, floating: Boolean = false): Modifier =
+fun Modifier.window(
+    color: Color,
+    border: Color,
+    shape: Shape,
+    floating: Boolean = false
+): Modifier =
     (if (floating) dropShadow(shape) else this)
         .glass(color, shape)
         .then(if (Look.outlines) Modifier.border(Look.outlineWidth, border, shape) else Modifier)
@@ -116,7 +122,12 @@ fun Modifier.dropShadow(shape: Shape, close: Boolean = false): Modifier =
         onDrawBehind {
             if (!Look.shadows) return@onDrawBehind
             clipPath(body, ClipOp.Difference) {
-                clipRect(-reach, drop - reach, size.width + reach, size.height + drop + reach) {
+                clipRect(
+                    -reach,
+                    drop - reach,
+                    size.width + reach,
+                    size.height + drop + reach
+                ) {
                     drawIntoCanvas { canvas ->
                         val skia = canvas.skiaCanvas
                         skia.saveLayer(Canvas.SaveLayerRec(null, null, DRAWN))

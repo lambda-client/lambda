@@ -50,7 +50,7 @@ object Style : Module(
         Light("Light"),
     }
 
-    private val themeMode by setting("Theme", ThemeMode.Auto, "Auto follows the theme of your operating system")
+    private val themeMode by setting("Theme", ThemeMode.Dark, "Auto follows the theme of your operating system")
     val font by setting("Font", GuiFont.Minecraft, "The Minecraft font is sharpest where the interface is a whole number of times its natural size: at 1080p and 2160p with a scale of 1")
     val fontSize by setting("Font Size", 0.85f, 0.5f..1.2f, 0.05f, "Size of text, as a share of the size the font reads best at. Rows grow to fit larger text. The Minecraft font is only sharp at 1")
     val scale by setting("Scale", 1f, 0.5f..1.5f, 0.05f, "Size of the interface. Dragged, it is applied when the button is let go. No larger than leaves room on the screen for every window and dialog").appliedOnRelease()
@@ -151,7 +151,9 @@ object Style : Module(
             when (themeMode) {
                 ThemeMode.Dark -> darkTheme
                 ThemeMode.Light -> lightTheme
-                ThemeMode.Auto -> if (SystemAppearance.isDark) darkTheme else lightTheme
+                ThemeMode.Auto ->
+                    if (SystemAppearance.isDark) darkTheme
+                    else lightTheme
             }
 
     val palette: Palette get() = theme.toPalette()

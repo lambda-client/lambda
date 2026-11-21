@@ -70,7 +70,10 @@ object Tps : HudModule(
 		val size by observe { DpSize(graphWidth.dp, graphHeight.dp) }
 		val stride by observe { graphStride }
 		val lineColor by observe { HudConfig.textColor.toCompose() }
-		Box(Modifier.size(size).drawBehind { drawGraph(data, stride, lineColor) }, Alignment.TopCenter) {
+		Box(
+			Modifier.size(size).drawBehind { drawGraph(data, stride, lineColor) },
+			Alignment.TopCenter
+		) {
 			HudText("cur ${data.last().format()}${format.unit} | avg ${average.format()}${format.unit}")
 		}
 	}

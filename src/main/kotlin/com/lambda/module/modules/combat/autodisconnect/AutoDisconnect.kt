@@ -655,7 +655,9 @@ object AutoDisconnect : Module(
                         buildText {
                             text(effect.effectType.value().name)
                             if (effect.amplifier > 0) literal(" ${effect.amplifier + 1}")
-                            color(Style.palette.onSurfaceVariant.toAwt()) { literal(" (${effectDuration(effect)})") }
+                            color(Style.palette.onSurfaceVariant.toAwt()) {
+                                literal(" (${effectDuration(effect)})")
+                            }
                         }
                     )
                 }
@@ -752,7 +754,9 @@ object AutoDisconnect : Module(
         }
 
         if (stack.isDamageable) {
-            color(Style.palette.onSurfaceVariant.toAwt()) { literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})") }
+            color(Style.palette.onSurfaceVariant.toAwt()) {
+                literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})")
+            }
         }
 
         if (stack.maxCount > 1) {

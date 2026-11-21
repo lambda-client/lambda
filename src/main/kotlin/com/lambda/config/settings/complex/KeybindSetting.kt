@@ -135,7 +135,7 @@ class KeybindSetting(
     }
 
     @Composable
-    override fun Editor() {
+    override fun Gui() {
         val colors = LambdaTheme.colors
         val bind by observe { value }
         val recording = recorder === this
@@ -201,22 +201,23 @@ class KeybindSetting(
             }
             optional(boolean("mouse button")) { isMouseButton ->
                 executeWithResult {
-                    val isMouse = if (isMouseButton != null) isMouseButton().value() else false
-                    var bind = Bind.EMPTY
-                    if (isMouse) {
-                        val num = try {
-                            nameArg().value().toInt()
-                        } catch (_: NumberFormatException) {
-                            return@executeWithResult failure("${nameArg().value()} doesn't match with a mouse button")
+                    val isMouse = isMouseButton != null && isMouseButton().value()
+                    val bind =
+                        if (isMouse) {
+                            val num =
+                                try {
+                                    nameArg().value().toInt()
+                                } catch (_: NumberFormatException) {
+                                    return@executeWithResult failure("${nameArg().value()} doesn't match with a mouse button")
+                                }
+                            Bind(0, 0, mouse = num)
+                        } else {
+                            try {
+                                Bind(KeyCode.valueOf(nameArg().value()).code, 0)
+                            } catch (_: IllegalArgumentException) {
+                                return@executeWithResult failure("${nameArg().value()} doesn't match with a bind")
+                            }
                         }
-                        bind = Bind(0, 0, mouse = num)
-                    } else {
-                        bind = try {
-                            Bind(KeyCode.valueOf(nameArg().value()).code, 0)
-                        } catch (_: IllegalArgumentException) {
-                            return@executeWithResult failure("${nameArg().value()} doesn't match with a bind")
-                        }
-                    }
 
                     trySetValue(bind)
                     return@executeWithResult success()
@@ -244,7 +245,6 @@ class KeybindSetting(
     fun onReleaseUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafeReleaseListeners.add(block) }
 }
 
-@Suppress("unused")
 @JsonIncludeProperties("key", "modifiers", "mouse")
 data class Bind(
     val key: Int,

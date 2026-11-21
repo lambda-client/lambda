@@ -78,8 +78,12 @@ fun Button(
     onClick: () -> Unit,
 ) {
     val colors = LambdaTheme.colors
-    val fill = if (prominent) colors.header else colors.control
-    val text = if (prominent) colors.onHeader else colors.onControl
+    val fill =
+        if (prominent) colors.header
+        else colors.control
+    val text =
+        if (prominent) colors.onHeader
+        else colors.onControl
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -122,12 +126,18 @@ fun Ellipsis(modifier: Modifier = Modifier, color: Color = LocalContentColor.cur
     Canvas(modifier.size(7.dp, 5.dp)) {
         val dot = 1.dp.toPx()
         val top = (size.height - dot) / 2
-        repeat(3) { drawRect(color, Offset(it * (size.width - dot) / 2, top), Size(dot, dot)) }
+        repeat(3) {
+            drawRect(color, Offset(it * (size.width - dot) / 2, top), Size(dot, dot))
+        }
     }
 }
 
 @Composable
-fun Chevron(degrees: Float, modifier: Modifier = Modifier, color: Color = LocalContentColor.current) {
+fun Chevron(
+    degrees: Float,
+    modifier: Modifier = Modifier,
+    color: Color = LocalContentColor.current
+) {
     Canvas(modifier.size(5.dp).rotate(degrees)) {
         drawPath(
             path = Path().apply {
@@ -142,7 +152,11 @@ fun Chevron(degrees: Float, modifier: Modifier = Modifier, color: Color = LocalC
 }
 
 @Composable
-fun Expandable(visible: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun Expandable(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
@@ -191,13 +205,20 @@ fun Section(
             Text(title, color = colors.onSurface, maxLines = 1)
         }
         Expandable(expanded) {
-            Column(Modifier.fillMaxWidth().padding(start = Look.groupIndent, top = 1.dp), content = content)
+            Column(
+                Modifier.fillMaxWidth().padding(start = Look.groupIndent, top = 1.dp),
+                content = content
+            )
         }
     }
 }
 
 @Composable
-fun Chip(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+fun Chip(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit
+) {
     val colors = LambdaTheme.colors
     ContentColor(colors.onControl) {
         Row(
@@ -232,7 +253,11 @@ fun <T> Dropdown(
                 SlidingText(optionLabel(selected), Modifier.weight(1f, fill = false))
                 Chevron(90f)
             }
-            Menu(menu.isOpen, onDismiss = menu::dismiss, unfoldFrom = IntSize(chip.width, 0)) {
+            Menu(
+                menu.isOpen,
+                onDismiss = menu::dismiss,
+                unfoldFrom = IntSize(chip.width, 0)
+            ) {
                 options.forEach { option ->
                     MenuItem(optionLabel(option), selected = option == selected) {
                         if (option != selected) onSelect(option)
@@ -244,11 +269,19 @@ fun <T> Dropdown(
 }
 
 @Composable
-fun LabeledRow(label: String, modifier: Modifier = Modifier, editor: @Composable RowScope.() -> Unit) {
+fun LabeledRow(
+    label: String,
+    modifier: Modifier = Modifier,
+    editor: @Composable RowScope.() -> Unit
+) {
     Layout(
         content = {
             Text(label, maxLines = 1)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LABEL_GAP), content = editor)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LABEL_GAP),
+                content = editor
+            )
         },
         modifier = modifier.fillMaxWidth().heightIn(min = Look.rowHeight),
     ) { (name, edited), constraints ->
@@ -258,12 +291,23 @@ fun LabeledRow(label: String, modifier: Modifier = Modifier, editor: @Composable
         val wanted = edited.maxIntrinsicWidth(constraints.maxHeight)
         val editorWidth =
             if (!constraints.hasBoundedWidth) wanted
-            else wanted.coerceAtMost(maxOf(room - name.maxIntrinsicWidth(constraints.maxHeight) - gap, room * 3 / 5))
+            else {
+                wanted.coerceAtMost(
+                    maxOf(
+                        room - name.maxIntrinsicWidth(constraints.maxHeight) - gap,
+                        room * 3 / 5
+                    )
+                )
+            }
         val editor = edited.measure(loose.copy(maxWidth = editorWidth.coerceAtLeast(0)))
-        val nameRoom = if (constraints.hasBoundedWidth) (room - editor.width - gap).coerceAtLeast(0) else Constraints.Infinity
+        val nameRoom =
+            if (constraints.hasBoundedWidth) (room - editor.width - gap).coerceAtLeast(0)
+            else Constraints.Infinity
         val text = name.measure(loose.copy(maxWidth = nameRoom))
 
-        val width = if (constraints.hasBoundedWidth) room else text.width + gap + editor.width
+        val width =
+            if (constraints.hasBoundedWidth) room
+            else text.width + gap + editor.width
         val height = maxOf(text.height, editor.height, constraints.minHeight)
         layout(width, height) {
             text.place(0, (height - text.height) / 2)

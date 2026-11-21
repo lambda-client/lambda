@@ -121,7 +121,11 @@ internal class HudEditorState(snapping: State<Boolean>) {
 
     fun configure(config: Config?, position: Offset? = null) {
         configuring = config
-        if (config != null) panelPosition = position ?: Offset(screen.width / 2 - 120 * density.density, screen.height * 0.15f)
+        if (config != null) panelPosition = position
+            ?: Offset(
+                screen.width / 2 - 120 * density.density,
+                screen.height * 0.15f
+            )
     }
 
     var screen = Size.Zero
@@ -130,7 +134,14 @@ internal class HudEditorState(snapping: State<Boolean>) {
     val drop: Snap.Result? by derivedStateOf {
         val hud = dragged ?: return@derivedStateOf null
         val element = Rect(draggedTo, bounds[hud]?.size ?: return@derivedStateOf null)
-        if (this.snapping) Snap.snap(element, bounds.filterKeys { it != hud }.values, Rect(Offset.Zero, screen), density)
+        if (this.snapping) {
+            Snap.snap(
+                element,
+                bounds.filterKeys { it != hud }.values,
+                Rect(Offset.Zero, screen),
+                density
+            )
+        }
         else Snap.free(element, Rect(Offset.Zero, screen))
     }
 
@@ -166,13 +177,20 @@ internal fun HudEditor() {
             .snapLines { editor.drop }
     ) {
         HudLayer(editor)
-        rememberLast(editor.configuring)?.let { config -> key(config) { ElementSettings(config, editor.configuring === config, editor) } }
+        rememberLast(editor.configuring)?.let { config ->
+            key(config) { ElementSettings(config, editor.configuring === config, editor) }
+        }
     }
 
     rememberLast(editor.menu)?.let { (position, hud) ->
         key(editor.menusOpened) {
-            ContextMenu(editor.menu != null, position.round(), onDismiss = editor::closeMenu) {
-                if (hud != null) ElementMenu(hud, editor) else ScreenMenu(position, editor)
+            ContextMenu(
+                editor.menu != null,
+                position.round(),
+                onDismiss = editor::closeMenu
+            ) {
+                if (hud != null) ElementMenu(hud, editor)
+                else ScreenMenu(position, editor)
             }
         }
     }
@@ -226,8 +244,16 @@ private fun ElementSettings(config: Config, open: Boolean, editor: HudEditorStat
     val density = LocalDensity.current
     val maxHeight = with(density) { editor.screen.height.toDp() } * 0.6f
     var size by remember { mutableStateOf(IntSize.Zero) }
-    val room = Offset((editor.screen.width - size.width).coerceAtLeast(0f), (editor.screen.height - size.height).coerceAtLeast(0f))
-    val position = Offset(editor.panelPosition.x.coerceIn(0f, room.x), editor.panelPosition.y.coerceIn(0f, room.y))
+    val room =
+        Offset(
+            (editor.screen.width - size.width).coerceAtLeast(0f),
+            (editor.screen.height - size.height).coerceAtLeast(0f)
+        )
+    val position =
+        Offset(
+            editor.panelPosition.x.coerceIn(0f, room.x),
+            editor.panelPosition.y.coerceIn(0f, room.y)
+        )
     val shownAt by rememberUpdatedState(position)
     if (open) editor.panelBounds = Rect(position, size.toSize())
     DisposableEffect(Unit) {
@@ -289,16 +315,23 @@ internal fun Modifier.hudEditable(hud: HudModule, editor: HudEditorState): Modif
                 } finally {
                     val dropped = editor.drop?.position ?: origin.topLeft
                     val room = editor.screen - origin.size
-                    hud.anchorX = if (room.width > 0f) (dropped.x / room.width).coerceIn(0f, 1f) else 0f
-                    hud.anchorY = if (room.height > 0f) (dropped.y / room.height).coerceIn(0f, 1f) else 0f
+                    hud.anchorX =
+                        if (room.width > 0f) (dropped.x / room.width).coerceIn(0f, 1f)
+                        else 0f
+                    hud.anchorY =
+                        if (room.height > 0f) (dropped.y / room.height).coerceIn(0f, 1f)
+                        else 0f
                     editor.dragged = null
                 }
             }
         }
         .drawBehind {
             val width = Look.outlineWidth.toPx()
+            val alpha =
+                if (editor.dragged == hud || Reveal.module === hud) 0.9f
+                else 0.35f
             drawRect(
-                color = Color.White.copy(alpha = if (editor.dragged == hud || Reveal.module === hud) 0.9f else 0.35f),
+                color = Color.White.copy(alpha = alpha),
                 topLeft = Offset(width / 2, width / 2),
                 size = Size(size.width - width, size.height - width),
                 style = Stroke(width)

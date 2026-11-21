@@ -24,7 +24,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,7 +87,8 @@ import kotlin.math.absoluteValue
 
 private val REACH = 40.dp
 private const val IN_ROW = 1.5f
-private val EMBOSS = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.05f), Color.Transparent))
+private val EMBOSS =
+    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.05f), Color.Transparent))
 
 @Composable
 internal fun CategoryWindow(
@@ -102,14 +102,23 @@ internal fun CategoryWindow(
     onFocus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val modules by observe { ModuleRegistry.modules.filter { it.tag == tag && it.showInClickGui.value } }
+    val modules by
+        observe {
+            ModuleRegistry.modules.filter { it.tag == tag && it.showInClickGui.value }
+        }
     if (modules.isEmpty()) return
 
     val colors = LambdaTheme.colors
     val density = LocalDensity.current
     val screen = LocalWindowInfo.current.containerSize.toSize()
     val screenHeight = with(density) { screen.height.toDp() }
-    val area = Rect(0f, with(density) { MENU_BAR_HEIGHT.toPx() }, screen.width, screen.height)
+    val area =
+        Rect(
+            0f,
+            with(density) { MENU_BAR_HEIGHT.toPx() },
+            screen.width,
+            screen.height
+        )
 
     val placement by observe { GuiConfig.windows[tag.name] }
     val position = placement?.takeUnless { it.inRow }?.let { DpOffset(it.x.dp, it.y.dp) }
@@ -119,7 +128,15 @@ internal fun CategoryWindow(
     val drop =
         dragged?.let { corner ->
             val window = Rect(corner, bounds[tag]?.size ?: Size.Zero)
-            if (snapping) Snap.snap(window, bounds.filterKeys { it != tag }.values, area, density, with(density) { Look.windowGap.toPx() })
+            if (snapping) {
+                Snap.snap(
+                    window,
+                    bounds.filterKeys { it != tag }.values,
+                    area,
+                    density,
+                    with(density) { Look.windowGap.toPx() }
+                )
+            }
             else Snap.free(window, area)
         }
     if (drop != null) SideEffect { onDrop(drop) }
@@ -129,8 +146,14 @@ internal fun CategoryWindow(
         } ?: (position ?: defaultPosition).let { at ->
             val screenWidth = with(density) { screen.width.toDp() }
             DpOffset(
-                at.x.coerceIn(0.dp, (screenWidth - Look.windowWidth).coerceAtLeast(0.dp)),
-                at.y.coerceIn(MENU_BAR_HEIGHT, (screenHeight - REACH).coerceAtLeast(MENU_BAR_HEIGHT)),
+                at.x.coerceIn(
+                    0.dp,
+                    (screenWidth - Look.windowWidth).coerceAtLeast(0.dp)
+                ),
+                at.y.coerceIn(
+                    MENU_BAR_HEIGHT,
+                    (screenHeight - REACH).coerceAtLeast(MENU_BAR_HEIGHT)
+                ),
             )
         }
     val currentPosition by rememberUpdatedState(shownPosition)
@@ -139,7 +162,8 @@ internal fun CategoryWindow(
     }
 
     fun place(at: DpOffset, collapsed: Boolean) {
-        val inRow = (at.x - defaultPosition.x).value.absoluteValue < IN_ROW && (at.y - defaultPosition.y).value.absoluteValue < IN_ROW
+        val inRow = (at.x - defaultPosition.x).value.absoluteValue < IN_ROW &&
+                (at.y - defaultPosition.y).value.absoluteValue < IN_ROW
         GuiConfig.windows += tag.name to
             if (inRow) GuiConfig.WindowPlacement.inRow(collapsed)
             else GuiConfig.WindowPlacement(at.x.value, at.y.value, collapsed)
@@ -156,7 +180,8 @@ internal fun CategoryWindow(
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
-                        if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) onFocus()
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.type == PointerEventType.Press) onFocus()
                     }
                 }
             }
@@ -196,7 +221,11 @@ internal fun CategoryWindow(
             enter = expandVertically(Motion.windows),
             exit = shrinkVertically(Motion.windows),
         ) {
-            ScrollColumn(Modifier.heightIn(max = (screenHeight - shownPosition.y - 24.dp).coerceAtLeast(48.dp))) {
+            ScrollColumn(
+                Modifier.heightIn(
+                    max = (screenHeight - shownPosition.y - 24.dp).coerceAtLeast(48.dp)
+                )
+            ) {
                 modules.forEach { module ->
                     ModuleRow(
                         module = module,
@@ -205,23 +234,46 @@ internal fun CategoryWindow(
                         panel = settings.panelOf(module).takeUnless { inline },
                         onEdit = { settings.toggle(module) },
                     )
-                    if (inline) InlineSettings(settings.stateOf(module), open = settings.isOpen(module))
+                    if (inline) {
+                        InlineSettings(
+                            settings.stateOf(module),
+                            open = settings.isOpen(module)
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ModuleRow(module: Module, isEdited: Boolean, pressedIn: Boolean, panel: SettingsPanelState?, onEdit: () -> Unit) {
+private fun ModuleRow(
+    module: Module,
+    isEdited: Boolean,
+    pressedIn: Boolean,
+    panel: SettingsPanelState?,
+    onEdit: () -> Unit
+) {
     val colors = LambdaTheme.colors
     val enabled by observe { module.isEnabled }
-    val fill by animateColorAsState(if (enabled) colors.moduleEnabled else Color.Transparent, spring())
-    val pressed by animateColorAsState(if (isEdited && pressedIn) colors.inset.copy(alpha = colors.inset.alpha / 2) else Color.Transparent, spring())
+    val fill by
+        animateColorAsState(
+            if (enabled) colors.moduleEnabled else Color.Transparent,
+            spring()
+        )
+    val pressed by
+        animateColorAsState(
+            if (isEdited && pressedIn) colors.inset.copy(alpha = colors.inset.alpha / 2)
+            else Color.Transparent,
+            spring()
+        )
 
     val revealed = Reveal.module === module && Reveal.setting == null
-    val lit by animateColorAsState(if (revealed) colors.onSurface.copy(alpha = 0.4f) else Color.Transparent, tween(250))
+    val lit by
+        animateColorAsState(
+            if (revealed) colors.onSurface.copy(alpha = 0.4f) else Color.Transparent,
+            tween(250)
+        )
     val intoView = remember { BringIntoViewRequester() }
     LaunchedEffect(revealed) {
         if (revealed) intoView.bringIntoView()
@@ -234,10 +286,14 @@ private fun ModuleRow(module: Module, isEdited: Boolean, pressedIn: Boolean, pan
                 .fillMaxWidth()
                 .then(
                     if (panel == null) Modifier
-                    else Modifier.onGloballyPositioned { panel.row = Rect(it.positionInRoot(), it.size.toSize()) }
+                    else Modifier.onGloballyPositioned {
+                        panel.row = Rect(it.positionInRoot(), it.size.toSize())
+                    }
                 )
                 .bringIntoViewRequester(intoView)
-                .mouseClickable(onRightClick = onEdit) { if (module.alwaysEnabled) onEdit() else module.toggle() }
+                .mouseClickable(onRightClick = onEdit) {
+                    if (module.alwaysEnabled) onEdit() else module.toggle()
+                }
                 .background(fill)
                 .background(pressed)
                 .background(lit)

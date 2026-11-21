@@ -25,6 +25,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration.Companion.milliseconds
 
 object RenderThread : CoroutineDispatcher() {
     private val scope = CoroutineScope(this + SupervisorJob())
@@ -36,7 +37,7 @@ object RenderThread : CoroutineDispatcher() {
     @JvmStatic
     fun after(millis: Long, block: () -> Unit): Job =
         scope.launch {
-            delay(millis)
+            delay(millis.milliseconds)
             block()
         }
 }

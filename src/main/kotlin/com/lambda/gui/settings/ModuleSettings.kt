@@ -69,7 +69,12 @@ internal enum class PanelPage(val title: String) {
 }
 
 @Composable
-internal fun ColumnScope.ModuleSettings(module: Module, selected: PanelPage, onSelect: (PanelPage) -> Unit, scroll: ScrollState?) {
+internal fun ColumnScope.ModuleSettings(
+    module: Module,
+    selected: PanelPage,
+    onSelect: (PanelPage) -> Unit,
+    scroll: ScrollState?
+) {
     val pages = pagesOf(module)
     val page = selected.takeIf { it in pages } ?: PanelPage.Settings
     val revealed = Reveal.setting.takeIf { Reveal.module === module }
@@ -88,7 +93,7 @@ internal fun ColumnScope.ModuleSettings(module: Module, selected: PanelPage, onS
                 AnimatedContent(
                     targetState = page,
                     modifier = Modifier.fillMaxWidth(),
-                    transitionSpec = { pageTurn(towardsEnd = targetState > initialState) },
+                    transitionSpec = { pageTurn(towardsEnd = targetState > initialState) }
                 ) { shown ->
                     Column(Modifier.fillMaxWidth()) {
                         when (shown) {
@@ -99,20 +104,23 @@ internal fun ColumnScope.ModuleSettings(module: Module, selected: PanelPage, onS
                     }
                 }
             }
-        if (scroll != null) ScrollColumn(Modifier.weight(1f, fill = false), scroll) { turned() } else turned()
+        if (scroll != null) ScrollColumn(Modifier.weight(1f, fill = false), scroll) { turned() }
+        else turned()
     }
 }
 
 private fun pagesOf(module: Module): List<PanelPage> =
     when {
         module == AutoUpdater -> listOf(PanelPage.Settings)
-        module.automationConfig === AutomationConfig.DEFAULT -> listOf(PanelPage.Settings, PanelPage.Module)
+        module.automationConfig === AutomationConfig.DEFAULT ->
+            listOf(PanelPage.Settings, PanelPage.Module)
         else -> PanelPage.entries
     }
 
 private fun pageOf(module: Module, setting: Setting<*>): PanelPage =
     when {
-        module.automationConfig !== AutomationConfig.DEFAULT && module.automationConfig.settingLayers.holds(setting) -> PanelPage.Automation
+        module.automationConfig !== AutomationConfig.DEFAULT &&
+                module.automationConfig.settingLayers.holds(setting) -> PanelPage.Automation
         setting in moduleSettings(module) -> PanelPage.Module
         else -> PanelPage.Settings
     }
@@ -126,7 +134,11 @@ private fun moduleSettings(module: Module): List<Setting<*>> =
     )
 
 @Composable
-private fun PageStrip(pages: List<PanelPage>, selected: PanelPage, onSelect: (PanelPage) -> Unit) {
+private fun PageStrip(
+    pages: List<PanelPage>,
+    selected: PanelPage,
+    onSelect: (PanelPage) -> Unit
+) {
     val colors = LambdaTheme.colors
     Row(Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
         pages.forEach { page ->
@@ -141,11 +153,20 @@ private fun PageStrip(pages: List<PanelPage>, selected: PanelPage, onSelect: (Pa
                     .mouseClickable { onSelect(page) }
                     .drawBehind {
                         val thickness = 1.dp.toPx()
-                        drawRect(line, Offset(0f, size.height - thickness), Size(size.width, thickness))
+                        drawRect(
+                            line,
+                            Offset(0f, size.height - thickness),
+                            Size(size.width, thickness)
+                        )
                     }
                     .padding(horizontal = 4.dp)
             ) {
-                Text(page.title, color = if (isSelected) colors.onSurface else colors.onSurfaceVariant, maxLines = 1, softWrap = false)
+                Text(
+                    page.title,
+                    color = if (isSelected) colors.onSurface else colors.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false
+                )
             }
         }
     }
@@ -155,24 +176,36 @@ private fun PageStrip(pages: List<PanelPage>, selected: PanelPage, onSelect: (Pa
 private fun SettingsPage(module: Module) {
     val any by observe { module.settingLayers.hasVisibleSettings() }
     if (any) SettingsList(module.settingLayers)
-    else Box(Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
-        Text("No settings", color = LambdaTheme.colors.onSurfaceVariant)
+    else {
+        Box(
+            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("No settings", color = LambdaTheme.colors.onSurfaceVariant)
+        }
     }
 }
 
 @Composable
 private fun AutomationPage(module: Module) {
     val linked by observe { module.backingAutomationConfig }
-    CompositionLocalProvider(LocalClickOnRelease provides true) { AutomationConfigSelector(module, linked) }
+    CompositionLocalProvider(LocalClickOnRelease provides true) {
+        AutomationConfigSelector(module, linked)
+    }
     key(linked) { SettingsList(module.automationConfig.settingLayers) }
 }
 
 @Composable
 private fun ModulePage(module: Module) {
     moduleSettings(module).forEach { SettingRow(it) }
-    Tooltip("Resets all settings for this module to their default values", Modifier.fillMaxWidth()) {
+    Tooltip(
+        "Resets all settings for this module to their default values",
+        Modifier.fillMaxWidth()
+    ) {
         CompositionLocalProvider(LocalClickOnRelease provides true) {
-            Button("Reset", Modifier.settingCell().height(Look.rowHeight)) { module.resetSettings() }
+            Button("Reset", Modifier.settingCell().height(Look.rowHeight)) {
+                module.resetSettings()
+            }
         }
     }
 }
@@ -180,7 +213,8 @@ private fun ModulePage(module: Module) {
 @Composable
 private fun AutomationConfigSelector(module: Module, linked: AutomationConfig) {
     val options by observe {
-        listOf(module.defaultAutomationConfig) + UserAutomationCategory.configs.filterIsInstance<AutomationConfig>()
+        listOf(module.defaultAutomationConfig) +
+                UserAutomationCategory.configs.filterIsInstance<AutomationConfig>()
     }
     Dropdown(
         label = "Linked Config",
