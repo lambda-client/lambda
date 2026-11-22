@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.hud
 
+import com.lambda.Lambda
 import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
@@ -30,11 +31,22 @@ object Watermark : HudModule(
     enabledByDefault = true,
 ) {
     private val texture = upload("textures/lambda.png")
-    private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
+    private val showModName by setting("Show name of the mod", true)
+    private val showVersion by setting("Show version of the client", false)
 
     override fun ImGuiBuilder.buildLayout() {
-        val width = texture.width * scale
-        val height = texture.height * scale
-        ImGui.image(texture.id.toLong(), width, height)
+        val height = ImGui.getTextLineHeight()1
+
+        val imageSizeX = texture.width * (height/texture.height)
+        ImGui.image(texture.id.toLong(), imageSizeX, height)
+
+        if (showModName){
+            sameLine()
+            text(Lambda.MOD_NAME)
+        }
+        if (showVersion){
+            sameLine()
+            text(Lambda.VERSION)
+        }
     }
 }
