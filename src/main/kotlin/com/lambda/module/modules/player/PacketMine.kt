@@ -37,6 +37,7 @@ import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -136,7 +137,10 @@ object PacketMine : Module(
 			attackedThisTick = false
 		}
 
-		listen<PlayerEvent.Attack.Block> { it.cancel() }
+		listen<PlayerEvent.Attack.Block> { event ->
+			event.cancel()
+			if (BaritoneHandler.isBreaking) interaction.updateBlockBreakingProgress(event.pos, event.side)
+		}
 		listen<PlayerEvent.Breaking.Update> { event ->
 			event.cancel()
 			if (player.mainHandStack.item in ignoreWhenHolding) return@listen
