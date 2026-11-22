@@ -20,6 +20,7 @@ package com.lambda.interaction.manager.managers.inventory
 import com.lambda.Lambda.LOG
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
+import com.lambda.event.EventFlow.post
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
@@ -265,6 +266,8 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 				player.playerScreenHandler.setReceivedStack(packet.slot, itemStack)
 				player.playerScreenHandler.sendContentUpdates()
 			}
+			// The mixin posts this at the original's tail, which this path skips
+			InventoryEvent.SlotUpdate(packet.syncId, packet.revision, packet.slot, packet.stack).post()
 			return
 		}
 		original.call(packet)

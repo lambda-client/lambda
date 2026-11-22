@@ -7,8 +7,6 @@
   "client": [
     "CrashReportMixin",
     "MinecraftClientMixin",
-    "baritone.BaritonePlayerControllerMixin",
-    "baritone.ComeCommandMixin",
     "client.sound.SoundSystemMixin",
     "entity.ClientPlayerEntityMixin",
     "entity.ClientPlayInteractionManagerMixin",
