@@ -79,14 +79,7 @@ internal object GuiCompositor {
 
         if (effects.frost <= 0f && effects.glow <= 0f && effects.dim <= 0f) {
             haloView = null
-            RenderSystem.getDevice().createCommandEncoder()
-                .createRenderPass({ "Lambda GUI" }, screen, OptionalInt.empty())
-                .use { pass ->
-                    pass.setPipeline(LambdaRenderPipelines.GUI_BLIT)
-                    pass.bindTexture("InSampler", gui, nearest)
-                    pass.draw(0, 3)
-                }
-            return
+            return blit(gui)
         }
 
         val backdropView =
@@ -107,6 +100,18 @@ internal object GuiCompositor {
                 pass.bindTexture("BackdropSampler", backdropView, linear)
                 pass.bindTexture("HaloSampler", haloView ?: gui, linear)
                 pass.setUniform("GuiEffects", uniforms)
+                pass.draw(0, 3)
+            }
+    }
+
+    fun blit(layer: GpuTextureView) {
+        val screen = mc.framebuffer.colorAttachmentView ?: return
+        val nearest = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
+        RenderSystem.getDevice().createCommandEncoder()
+            .createRenderPass({ "Lambda GUI" }, screen, OptionalInt.empty())
+            .use { pass ->
+                pass.setPipeline(LambdaRenderPipelines.GUI_BLIT)
+                pass.bindTexture("InSampler", layer, nearest)
                 pass.draw(0, 3)
             }
     }

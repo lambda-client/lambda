@@ -49,6 +49,7 @@ import com.lambda.gui.component.Dialog
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.TextInput
 import com.lambda.gui.component.rememberTexture
+import com.lambda.gui.core.LocalShown
 import com.lambda.gui.settings.ConfigSettings
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Type
@@ -165,6 +166,7 @@ internal fun AboutDialog(onDismiss: () -> Unit) {
 
 @Composable
 internal fun LoaderPromptDialog(prompt: AutoUpdater.Prompt) {
+    if (!LocalShown.current && prompt == AutoUpdater.Prompt.FirstLaunch) return
     val colors = LambdaTheme.colors
     Dialog(onDismiss = { AutoUpdater.answerPrompt(accepted = false) }) {
         Column(Modifier.width(260.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

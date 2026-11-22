@@ -113,6 +113,8 @@ internal object Look {
     val rowHeight by style { Style.elementHeight.dp }
     val windowWidth by style { Style.windowWidth.dp }
     val settingsWidth by style { Style.settingsWidth.dp }
+    val notificationScale by style { Style.notificationScale }
+    val notificationWidth by style { Style.notificationWidth.dp }
     val windowGap by style { Style.windowGap.dp }
     val windowTop by style { Style.windowTop.dp }
     val modulePadding by style { Style.modulePadding.dp }
@@ -129,6 +131,7 @@ internal object Look {
 internal object Motion : MotionDurationScale {
     private const val PAGE_MILLIS = 160
     private const val GUI_MILLIS = 180
+    private const val NOTIFICATION_MILLIS = 260
     private val UNFOLDING =
         spring(
             stiffness = Spring.StiffnessMedium,
@@ -141,6 +144,8 @@ internal object Motion : MotionDurationScale {
                 if (Style.smoothScrolling) 1f
                 else 0f
         }
+
+    val NOTIFICATIONS: FiniteAnimationSpec<Float> = tween(NOTIFICATION_MILLIS)
 
     val UNSCALED =
         object : MotionDurationScale {

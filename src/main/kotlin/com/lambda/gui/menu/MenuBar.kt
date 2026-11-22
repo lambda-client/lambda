@@ -17,8 +17,6 @@
 
 package com.lambda.gui.menu
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -271,11 +269,6 @@ private fun ResultRow(
     onClick: () -> Unit
 ) {
     val colors = LambdaTheme.colors
-    val lit by
-        animateColorAsState(
-            if (marked) colors.controlSelected else Color.Transparent,
-            tween(90)
-        )
     val intoView = remember { BringIntoViewRequester() }
     LaunchedEffect(marked) {
         if (marked) intoView.bringIntoView()
@@ -287,7 +280,7 @@ private fun ResultRow(
             .fillMaxWidth()
             .widthIn(min = SEARCH_WIDTH)
             .bringIntoViewRequester(intoView)
-            .background(lit)
+            .background(if (marked) colors.controlSelected else Color.Transparent)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {

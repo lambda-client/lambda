@@ -19,6 +19,7 @@ package com.lambda.module.modules.client
 
 import com.lambda.event.events.ModuleEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.handler.handlers.NotificationHandler
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.util.CommunicationUtils.log
@@ -38,16 +39,17 @@ object ModuleNotifier : Module(
 	tag = ModuleTag.CLIENT,
 	enabledByDefault = true
 ) {
-	var notifyTarget by setting("Notify Target", setOf<NotifyTarget>(NotifyTarget.ActionBar), NotifyTarget.entries.toSet(), description = "Where to send notifications when modules are toggled")
+	var notifyTarget by setting("Notify Target", setOf(NotifyTarget.Notification), NotifyTarget.entries.toSet(), description = "Where to send notifications when modules are toggled")
 
 	enum class NotifyTarget(override val displayName: String, override val description: String) : Describable, NamedEnum {
 		Chat("Chat", "Sends a message to chat when a module is toggled"),
-		ActionBar("Action Bar", "Sends a message to the action bar when a module is toggled"), ;
+		ActionBar("Action Bar", "Sends a message to the action bar when a module is toggled"),
+		Notification("Notification", "Slides a notification in at the lower right of the screen when a module is toggled"), ;
 	}
 
 	init {
 		listen<ModuleEvent.Enabled> { event ->
-			logToTargets(event.module) {
+			logToTargets(event.module, "Enabled", Color(Colors.GREEN)) {
 				color(Color(Colors.GREEN)) {
 					literal("on")
 				}
@@ -55,7 +57,7 @@ object ModuleNotifier : Module(
 		}
 
 		listen<ModuleEvent.Disabled> { event ->
-			logToTargets(event.module) {
+			logToTargets(event.module, "Disabled", Color(Colors.RED)) {
 				color(Color(Colors.RED)) {
 					literal("off")
 				}
@@ -63,7 +65,10 @@ object ModuleNotifier : Module(
 		}
 	}
 
-	private fun logToTargets(module: Module, action: TextBuilder.() -> Unit) {
+	private fun logToTargets(module: Module, state: String, color: Color, action: TextBuilder.() -> Unit) {
+		if (NotifyTarget.Notification in notifyTarget) {
+			NotificationHandler.notify(module.name, state, color)
+		}
 		if (NotifyTarget.Chat in notifyTarget) {
 			module.log(buildText(action))
 		}

@@ -24,10 +24,14 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.asSkiaPath
@@ -37,6 +41,9 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.lambda.gui.theme.Look
 import org.jetbrains.skia.Canvas
@@ -104,9 +111,28 @@ fun Modifier.window(
     floating: Boolean = false
 ): Modifier =
     (if (floating) dropShadow(shape) else this)
+        .border(Look.outlineWidth, if (Look.outlines) border else Color.Transparent, shape)
         .glass(color, shape)
-        .then(if (Look.outlines) Modifier.border(Look.outlineWidth, border, shape) else Modifier)
+        .clip(if (Look.outlines) Inset(shape, Look.outlineWidth / 2) else RectangleShape)
         .consumeClicks()
+
+private data class Inset(private val shape: Shape, private val inset: Dp) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val edge = with(density) { inset.toPx() }
+        val inner =
+            Size(
+                (size.width - edge * 2).coerceAtLeast(0f),
+                (size.height - edge * 2).coerceAtLeast(0f)
+            )
+        val path = Path().apply { addOutline(shape.createOutline(inner, layoutDirection, density)) }
+        path.translate(Offset(edge, edge))
+        return Outline.Generic(path)
+    }
+}
 
 fun Modifier.dropShadow(shape: Shape, close: Boolean = false): Modifier =
     drawWithCache {

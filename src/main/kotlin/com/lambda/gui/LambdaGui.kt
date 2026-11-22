@@ -18,14 +18,21 @@
 package com.lambda.gui
 
 import androidx.compose.animation.core.animate
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.IntSize
 import com.lambda.Lambda.LOG
@@ -33,10 +40,12 @@ import com.lambda.Lambda.mc
 import com.lambda.config.settings.complex.KeybindSetting
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
+import com.lambda.event.events.ComposeEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.clickgui.ClickGui
 import com.lambda.gui.component.KeyboardFocus
 import com.lambda.gui.component.TextFocus
+import com.lambda.gui.core.ComposeSlot
 import com.lambda.gui.core.GameClipboard
 import com.lambda.gui.core.LocalObservations
 import com.lambda.gui.core.Observations
@@ -84,6 +93,13 @@ object LambdaGui : Loadable {
     private var failures = 0
     private var failedAt = 0L
     private var broken = false
+
+    private val beneathHud = ComposeSlot { ComposeEvent.Hud.Pre() }
+    private val aboveHud = ComposeSlot { ComposeEvent.Hud.Post() }
+    private val beneathGui = ComposeSlot { ComposeEvent.Gui.Pre() }
+    private val aboveGui = ComposeSlot { ComposeEvent.Gui.Post() }
+    private var underlay: GraphicsLayer? = null
+    private var layered by mutableStateOf(false)
 
     private var settled = true
     private var warmingUp by mutableStateOf(false)
@@ -206,7 +222,14 @@ object LambdaGui : Loadable {
             warmedUp = true
             warmUp(size, density)
         }
-        if (screen == null && !leaving && Hud.shown.isEmpty() && settled) return
+        val showsGui = screen != null || leaving
+        beneathHud.collect()
+        aboveHud.collect()
+        beneathGui.collect(showsGui)
+        aboveGui.collect(showsGui)
+        val showsHud = !beneathHud.isEmpty || !aboveHud.isEmpty || screen == null && Hud.shown.isNotEmpty()
+        if (!showsGui && !showsHud && settled) return
+        layered = showsGui && showsHud
 
         try {
             val host = host ?: createHost()
@@ -218,8 +241,9 @@ object LambdaGui : Loadable {
             val sceneChanged = host.advance(size, density)
             val itemsChanged = ItemAtlas.render()
             val redraw = sceneChanged || itemsChanged
-            if (redraw) host.draw(beforeScene = ItemAtlas::import)
+            if (redraw) host.draw(underlay.takeIf { layered }, ItemAtlas::import)
 
+            if (layered) host.underlayTexture?.let(GuiCompositor::blit)
             GuiCompositor.composite(
                 host.texture ?: return,
                 size.width,
@@ -246,6 +270,7 @@ object LambdaGui : Loadable {
 
         val failed = host
         host = null
+        underlay = null
         ItemAtlas.release()
         runCatching { failed?.closeAndFree() }.onFailure {
             LOG.warn("Could not free the failed interface", it)
@@ -295,20 +320,37 @@ object LambdaGui : Loadable {
                 Reveal.Expiry()
                 Presence()
 
-                when (screen) {
-                    Screen.HudEditor -> HudEditor()
-                    Screen.ClickGui -> Unit
-                    null -> HudLayer()
+                Underlay {
+                    beneathHud.Content()
+                    if (screen == null) HudLayer()
+                    aboveHud.Content()
                 }
+                beneathGui.Content()
+                if (screen == Screen.HudEditor) HudEditor()
                 Retained(
                     shown = showsClickGui || warmingUp,
                     clickGuiObservations
                 ) {
                     ClickGui()
                 }
+                aboveGui.Content()
                 if (warmingUp) WarmUp()
             }
         }
+    }
+
+    @Composable
+    private fun Underlay(content: @Composable () -> Unit) {
+        val layer = rememberGraphicsLayer()
+        SideEffect { underlay = layer }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .drawWithContent {
+                    if (layered) layer.record { this@drawWithContent.drawContent() }
+                    else drawContent()
+                },
+        ) { content() }
     }
 
     @Composable

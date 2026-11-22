@@ -43,6 +43,7 @@ object Style : Module(
     private const val SHAPE_GROUP = "Shape"
     private const val LAYOUT_GROUP = "Layout"
     private const val MOTION_GROUP = "Motion"
+    private const val NOTIFICATIONS_GROUP = "Notifications"
     private const val DARK_THEME_GROUP = "Dark Theme"
     private const val LIGHT_THEME_GROUP = "Light Theme"
 
@@ -100,6 +101,11 @@ object Style : Module(
     @Group(MOTION_GROUP) val smoothScrolling by setting("Smooth Scrolling", true, "The mouse wheel sets a list off fast and lets it glide to rest. On its own: it works with Animations off, and at its own pace")
     @Group(MOTION_GROUP) val scrollSpeed by setting("Scroll Speed", 1f, 0.25f..3f, 0.25f, "How far a notch of the mouse wheel takes a list, as a multiple of three rows")
     @Group(MOTION_GROUP) val tooltipDelay by setting("Tooltip Delay", 500, 0..2000, 50, "How long the pointer rests on something before its description shows", " ms")
+
+    @Group(NOTIFICATIONS_GROUP) val notificationScale by setting("Notification Scale", 1f, 0.5f..3f, 0.05f, "Size of notifications, on top of the scale of the rest of the interface")
+    @Group(NOTIFICATIONS_GROUP) val notificationWidth by setting("Notification Width", 130f, 80f..300f, 10f, "How wide a notification is. Longer messages wrap onto more lines")
+    @Group(NOTIFICATIONS_GROUP) val notificationSeconds by setting("Notification Time", 4f, 1f..15f, 0.5f, "How many seconds a notification stays before it slides away")
+    @Group(NOTIFICATIONS_GROUP) val maxNotifications by setting("Max Notifications", 5, 1..12, 1, "How many notifications stack before the oldest slides off the bottom of the screen")
 
     @Group(DARK_THEME_GROUP) private val darkTheme by configBlock(
         PaletteSettings(
