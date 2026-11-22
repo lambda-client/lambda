@@ -18,6 +18,7 @@
 package com.lambda.module
 
 import com.lambda.command.LambdaCommand
+import com.lambda.config.ClientConfig
 import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
 import com.lambda.config.automation.IMutableAutomationConfig
@@ -38,7 +39,6 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
-import com.lambda.module.modules.client.Client
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 import com.lambda.util.KeyCode
@@ -161,8 +161,8 @@ abstract class Module(
         get() = !isEnabled && !alwaysListening
 
     init {
-        onEnableUnsafe { if (Client.clientSounds) LambdaSound.ModuleOn.play() }
-        onDisableUnsafe { if (Client.clientSounds) LambdaSound.ModuleOff.play() }
+        onEnableUnsafe { if (ClientConfig.clientSounds) LambdaSound.ModuleOn.play() }
+        onDisableUnsafe { if (ClientConfig.clientSounds) LambdaSound.ModuleOff.play() }
 
         listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
         listen<ClientEvent.Startup> { if (autoDisable) disable() }

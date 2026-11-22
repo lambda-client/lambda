@@ -33,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -50,6 +49,7 @@ import com.lambda.gui.Reveal
 import com.lambda.gui.Snap
 import com.lambda.gui.Snap.snapLines
 import com.lambda.gui.component.Button
+import com.lambda.gui.component.guiPresence
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.core.LocalShown
 import com.lambda.gui.core.observe
@@ -58,15 +58,11 @@ import com.lambda.gui.menu.ConfigDialog
 import com.lambda.gui.menu.LoaderPromptDialog
 import com.lambda.gui.menu.MenuBar
 import com.lambda.gui.menu.NewAutomationConfigDialog
-import com.lambda.gui.theme.GuiTransition
 import com.lambda.gui.theme.Look
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.client.AutoUpdater
-import com.lambda.module.modules.client.Style
 
-private val SLIDE = 24.dp
-private const val ZOOM = 0.92f
 
 internal val CLICK_GUI_CATEGORIES = ModuleTag.defaults - ModuleTag.HUD
 
@@ -96,7 +92,7 @@ internal fun ClickGui() {
     }
 
     val settings = remember { OpenSettings() }
-    val inline by observe { Style.inlineSettings }
+    val inline by observe { GuiConfig.inlineSettings }
 
     val revealedModule = Reveal.module
     val revealedSetting = Reveal.setting
@@ -139,18 +135,7 @@ internal fun ClickGui() {
             onClick = settings::closeAll
         ).snapLines {
             drop
-        }.graphicsLayer {
-            val presence = LambdaGui.presence
-            val styles = LambdaGui.transitions
-            if (GuiTransition.Fade in styles) alpha = presence
-            if (GuiTransition.Slide in styles) {
-                translationY = (presence - 1f) * SLIDE.toPx()
-            }
-            if (GuiTransition.Zoom in styles) {
-                scaleX = ZOOM + (1f - ZOOM) * presence
-                scaleY = scaleX
-            }
-        }
+        }.guiPresence()
     ) {
         val inRow = tags.count { it != ModuleTag.DEBUG }
         val screenWidth = with(density) { screen.width.toDp() }

@@ -21,10 +21,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
 
 val LocalShown = compositionLocalOf { true }
+
+val LocalPresence = staticCompositionLocalOf<() -> Float> { { 1f } }
 
 @Composable
 internal fun Retained(

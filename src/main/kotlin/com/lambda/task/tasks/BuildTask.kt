@@ -17,6 +17,7 @@
 
 package com.lambda.task.tasks
 
+import com.lambda.config.ClientConfig
 import com.lambda.config.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
@@ -48,7 +49,6 @@ import com.lambda.interaction.container.SlotIdentity
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
-import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.softFail
@@ -314,7 +314,7 @@ class BuildTask @Ta5kBuilder internal constructor(
 	}
 
 	private fun AutomatedSafeContext.processResults() {
-		Client.drawables = results
+		ClientConfig.drawables = results
 			.filterIsInstance<Drawable>()
 			.plus(pendingInteractions.toList())
 			.toList()

@@ -63,10 +63,12 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
+import com.lambda.config.ClientConfig
 import com.lambda.config.ConfigLoader
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.config.categories.UserAutomationCategory
+import com.lambda.config.settings.complex.Bind
 import com.lambda.gui.GuiConfig
 import com.lambda.gui.LambdaGui
 import com.lambda.gui.clickgui.CLICK_GUI_CATEGORIES
@@ -333,22 +335,12 @@ private fun LambdaMenu() {
         }
     }
     MenuDivider()
-    Submenu("Settings") {
-        MenuItem("GUI Settings...") {
-            ClickGuiState.dialog = ClickGuiDialog.Settings(GuiConfig)
-        }
-        MenuItem("HUD Settings...") {
-            ClickGuiState.dialog = ClickGuiDialog.Settings(HudConfig)
-        }
-        MenuItem("Lambda API Settings...") {
-            ClickGuiState.dialog = ClickGuiDialog.Settings(LambdaAPI)
-        }
-        MenuItem("Baritone Settings...") {
-            ClickGuiState.dialog = ClickGuiDialog.Settings(BaritoneHandler)
-        }
-        MenuDivider()
-        MenuItem("Reset Window Layout") { GuiConfig.resetWindows() }
-    }
+    MenuItem("Client Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(ClientConfig) }
+    MenuItem("GUI Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(GuiConfig) }
+    MenuItem("HUD Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(HudConfig) }
+    MenuItem("Lambda API Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(LambdaAPI) }
+    MenuItem("Baritone Settings...") { ClickGuiState.dialog = ClickGuiDialog.Settings(BaritoneHandler) }
+    MenuDivider()
     Submenu("Open Folder") {
         FolderItem("Lambda Folder", FolderRegistry.lambda)
         FolderItem("Config Folder", FolderRegistry.config)
@@ -361,11 +353,16 @@ private fun LambdaMenu() {
     }
     MenuDivider()
     MenuItem("About...") { ClickGuiState.dialog = ClickGuiDialog.About }
+    MenuDivider()
     MenuItem("Developer Mode", checked = ClickGuiState.developerMode) {
         ClickGuiState.developerMode = !ClickGuiState.developerMode
     }
     MenuDivider()
-    MenuItem("Close GUI", hint = "Esc") { LambdaGui.back() }
+    val keybind by observe { GuiConfig.keybind }
+    val closeKeys =
+        if (keybind == Bind.EMPTY) "Esc"
+        else "Esc/${keybind.name}"
+    MenuItem("Close GUI", hint = closeKeys) { LambdaGui.back() }
     MenuItem("Exit Client") { mc.scheduleStop() }
 }
 

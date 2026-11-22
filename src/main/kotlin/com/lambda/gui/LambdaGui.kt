@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.IntSize
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
+import com.lambda.config.ClientConfig
 import com.lambda.config.settings.complex.KeybindSetting
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
@@ -48,6 +49,7 @@ import com.lambda.gui.component.TextFocus
 import com.lambda.gui.core.ComposeSlot
 import com.lambda.gui.core.GameClipboard
 import com.lambda.gui.core.LocalObservations
+import com.lambda.gui.core.LocalPresence
 import com.lambda.gui.core.Observations
 import com.lambda.gui.core.Retained
 import com.lambda.gui.core.SceneHost
@@ -64,8 +66,6 @@ import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Motion
 import com.lambda.module.modules.client.AutoUpdater
-import com.lambda.module.modules.client.Client
-import com.lambda.module.modules.client.Style
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 import com.lambda.util.CommunicationUtils.warn
@@ -117,17 +117,17 @@ object LambdaGui : Loadable {
             else shownPresence
     internal val transitions: Collection<GuiTransition>
         get() =
-            if (leaving) Style.closeStyle
-            else Style.openStyle
+            if (leaving) GuiConfig.closeStyle
+            else GuiConfig.openStyle
     internal val unfoldsOpen
         get() =
-            Style.animations &&
-                    Style.openAnimation &&
-                    GuiTransition.Unfold in Style.openStyle
+            GuiConfig.animations &&
+                    GuiConfig.openAnimation &&
+                    GuiTransition.Unfold in GuiConfig.openStyle
     private val showsClickGui
         get() = screen == Screen.ClickGui || leaving
     internal val foldsClosed
-        get() = leaving && GuiTransition.Unfold in Style.closeStyle
+        get() = leaving && GuiTransition.Unfold in GuiConfig.closeStyle
 
     private val observations = Observations()
     private val clickGuiObservations = Observations()
@@ -161,7 +161,7 @@ object LambdaGui : Loadable {
 
     fun close() {
         val animated =
-            Style.animations && Style.closeAnimation && Style.closeStyle.isNotEmpty()
+            GuiConfig.animations && GuiConfig.closeAnimation && GuiConfig.closeStyle.isNotEmpty()
         if (screen == Screen.ClickGui && animated) {
             if (shownPresence < 1f) skipTo(1f)
             leaving = true
@@ -170,7 +170,7 @@ object LambdaGui : Loadable {
     }
 
     private fun skipTo(end: Float) {
-        if (Style.interruptedAnimation != GuiInterrupt.Finish) return
+        if (GuiConfig.interruptedAnimation != GuiInterrupt.Finish) return
         jumpTo(end)
         restarts++
     }
@@ -189,7 +189,7 @@ object LambdaGui : Loadable {
             if (!GuiScreen.canOpenOver(mc.currentScreen)) return
             if (leaving) skipTo(0f)
             else jumpTo(0f)
-            if (Client.clientSounds) LambdaSound.ModuleOn.play()
+            if (ClientConfig.clientSounds) LambdaSound.ModuleOn.play()
             GuiScreen.show()
             AutoUpdater.onGuiOpened()
         }
@@ -204,7 +204,7 @@ object LambdaGui : Loadable {
 
     internal fun onScreenRemoved() {
         if (screen == null) return
-        if (Client.clientSounds) LambdaSound.ModuleOff.play()
+        if (ClientConfig.clientSounds) LambdaSound.ModuleOff.play()
         screen = null
         if (!leaving) jumpTo(0f)
         settled = false
@@ -216,7 +216,7 @@ object LambdaGui : Loadable {
         if (broken) return
         val size = IntSize(mc.window.framebufferWidth, mc.window.framebufferHeight)
         if (size.width <= 0 || size.height <= 0) return
-        val density = size.height / REFERENCE_HEIGHT * Style.scale
+        val density = size.height / REFERENCE_HEIGHT * GuiConfig.scale
 
         if (!warmedUp) {
             warmedUp = true
@@ -331,7 +331,7 @@ object LambdaGui : Loadable {
                     shown = showsClickGui || warmingUp,
                     clickGuiObservations
                 ) {
-                    ClickGui()
+                    CompositionLocalProvider(LocalPresence provides ::presence) { ClickGui() }
                 }
                 aboveGui.Content()
                 if (warmingUp) WarmUp()
@@ -362,7 +362,7 @@ object LambdaGui : Loadable {
                 if (present) 1f
                 else 0f
             val animated =
-                if (present) Style.openAnimation && Style.openStyle.isNotEmpty()
+                if (present) GuiConfig.openAnimation && GuiConfig.openStyle.isNotEmpty()
                 else leaving
             if (animated) {
                 val spec = Motion.gui(abs(target - shownPresence))
@@ -377,7 +377,7 @@ object LambdaGui : Loadable {
 
     @Composable
     private fun WarmUp() {
-        SettingsList(Style.settingLayers)
+        SettingsList(GuiConfig.settingLayers)
     }
 
     private fun effects(density: Float): GuiCompositor.Effects {
@@ -387,16 +387,16 @@ object LambdaGui : Loadable {
             else 1f
         return GuiCompositor.Effects(
             frost =
-                if (Style.blur) Style.blurRadius * density * strength
+                if (GuiConfig.blur) GuiConfig.blurRadius * density * strength
                 else 0f,
             glow =
-                if (Style.glow && showsClickGui) Style.glowRadius * density
+                if (GuiConfig.glow && showsClickGui) GuiConfig.glowRadius * density
                 else 0f,
-            glowIntensity = Style.glowIntensity * strength,
-            glowColorA = Style.glowColorA,
-            glowColorB = Style.glowColorB,
+            glowIntensity = GuiConfig.glowIntensity * strength,
+            glowColorA = GuiConfig.glowColorA,
+            glowColorB = GuiConfig.glowColorB,
             dim =
-                if (Style.dimBackground && showsClickGui) Style.dimStrength * presence
+                if (GuiConfig.dimBackground && showsClickGui) GuiConfig.dimStrength * presence
                 else 0f,
         )
     }

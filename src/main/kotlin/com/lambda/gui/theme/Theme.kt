@@ -48,10 +48,10 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lambda.gui.GuiConfig
 import com.lambda.gui.core.Observation
 import com.lambda.gui.core.Observations
 import com.lambda.gui.core.observe
-import com.lambda.module.modules.client.Style
 import com.lambda.util.NamedEnum
 import com.lambda.util.stream
 import kotlin.math.roundToInt
@@ -97,30 +97,30 @@ data class Palette(
 internal object Look {
     private val observations = Observations()
 
-    val windowRounding by style { Style.windowRounding.dp }
-    val panelRounding by style { Style.panelRounding.dp }
-    val menuRounding by style { Style.menuRounding.dp }
-    val controlRounding by style { Style.controlRounding.dp }
+    val windowRounding by style { GuiConfig.windowRounding.dp }
+    val panelRounding by style { GuiConfig.panelRounding.dp }
+    val menuRounding by style { GuiConfig.menuRounding.dp }
+    val controlRounding by style { GuiConfig.controlRounding.dp }
     val boxRounding get() = controlRounding / 2
 
-    val outlines by style { Style.outlines }
-    val outlineWidth by style { Style.outlineWidth.dp }
-    val shadows by style { Style.shadows }
-    val emboss by style { Style.emboss }
-    val backdropBlur by style { if (Style.blur) (Style.blurRadius / 2f).dp else 0.dp }
-    val underlay by style { 1f - Style.layerFade }
+    val outlines by style { GuiConfig.outlines }
+    val outlineWidth by style { GuiConfig.outlineWidth.dp }
+    val shadows by style { GuiConfig.shadows }
+    val emboss by style { GuiConfig.emboss }
+    val backdropBlur by style { if (GuiConfig.blur) (GuiConfig.blurRadius / 2f).dp else 0.dp }
+    val underlay by style { 1f - GuiConfig.layerFade }
 
-    val rowHeight by style { Style.elementHeight.dp }
-    val windowWidth by style { Style.windowWidth.dp }
-    val settingsWidth by style { Style.settingsWidth.dp }
-    val notificationScale by style { Style.notificationScale }
-    val notificationWidth by style { Style.notificationWidth.dp }
-    val windowGap by style { Style.windowGap.dp }
-    val windowTop by style { Style.windowTop.dp }
-    val modulePadding by style { Style.modulePadding.dp }
-    val panelPadding by style { Style.panelPadding.dp }
-    val settingSpacing by style { Style.settingSpacing.dp }
-    val groupIndent by style { Style.groupIndent.dp }
+    val rowHeight by style { GuiConfig.elementHeight.dp }
+    val windowWidth by style { GuiConfig.windowWidth.dp }
+    val settingsWidth by style { GuiConfig.settingsWidth.dp }
+    val notificationScale by style { GuiConfig.notificationScale }
+    val notificationWidth by style { GuiConfig.notificationWidth.dp }
+    val windowGap by style { GuiConfig.windowGap.dp }
+    val windowTop by style { GuiConfig.windowTop.dp }
+    val modulePadding by style { GuiConfig.modulePadding.dp }
+    val panelPadding by style { GuiConfig.panelPadding.dp }
+    val settingSpacing by style { GuiConfig.settingSpacing.dp }
+    val groupIndent by style { GuiConfig.groupIndent.dp }
 
     fun refresh() = observations.refresh()
 
@@ -141,7 +141,7 @@ internal object Motion : MotionDurationScale {
     val SCROLL =
         object : MotionDurationScale {
             override val scaleFactor get() =
-                if (Style.smoothScrolling) 1f
+                if (GuiConfig.smoothScrolling) 1f
                 else 0f
         }
 
@@ -153,15 +153,15 @@ internal object Motion : MotionDurationScale {
         }
 
     override val scaleFactor get() =
-        if (Style.animations) 1f / Style.animationSpeed
+        if (GuiConfig.animations) 1f / GuiConfig.animationSpeed
         else 0f
 
     val windows: FiniteAnimationSpec<IntSize>
-        get() = if (Style.windowAnimations) spring() else snap()
+        get() = if (GuiConfig.windowAnimations) spring() else snap()
     val panels: FiniteAnimationSpec<IntSize>
-        get() = if (Style.panelAnimations) UNFOLDING else snap()
+        get() = if (GuiConfig.panelAnimations) UNFOLDING else snap()
     val pageMillis
-        get() = if (Style.pageAnimations) PAGE_MILLIS else 0
+        get() = if (GuiConfig.pageAnimations) PAGE_MILLIS else 0
     fun gui(distance: Float): FiniteAnimationSpec<Float> =
         tween((GUI_MILLIS * distance).roundToInt())
     val guiFold: FiniteAnimationSpec<IntSize>
@@ -249,9 +249,9 @@ val LocalContentColor = compositionLocalOf { Color.White }
 
 @Composable
 fun LambdaTheme(content: @Composable () -> Unit) {
-    val palette by observe { Style.palette }
-    val font by observe { Style.font }
-    val fontSize by observe { Style.fontSize }
+    val palette by observe { GuiConfig.palette }
+    val font by observe { GuiConfig.font }
+    val fontSize by observe { GuiConfig.fontSize }
     val measurer = rememberTextMeasurer()
     val typography =
         remember(font, fontSize) {

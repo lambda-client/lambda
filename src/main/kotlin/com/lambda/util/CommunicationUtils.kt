@@ -24,9 +24,9 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.ConfigLoader
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
+import com.lambda.gui.GuiConfig
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
-import com.lambda.module.modules.client.Style
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.StringUtils.capitalize
@@ -153,7 +153,7 @@ object CommunicationUtils {
             if (command.usage.isNotBlank()) {
                 literal("\n")
                 literal("Usage: ")
-                color(Style.palette.primary.toAwt()) {
+                color(GuiConfig.palette.primary.toAwt()) {
                     literal(command.usage)
                 }
             }
@@ -161,7 +161,7 @@ object CommunicationUtils {
                 literal("\n")
                 literal("Aliases: ")
                 joinToText(command.aliases) {
-                    color(Style.palette.primary.toAwt()) {
+                    color(GuiConfig.palette.primary.toAwt()) {
                         literal(it)
                     }
                 }
@@ -180,7 +180,7 @@ object CommunicationUtils {
                 literal("\n")
             }
             literal("Keybind: ")
-            color(Style.palette.primary.toAwt()) {
+            color(GuiConfig.palette.primary.toAwt()) {
                 if (module.keybind.key != 0 || module.keybind.mouse > -1) {
                     literal(module.keybind.name)
                 } else {

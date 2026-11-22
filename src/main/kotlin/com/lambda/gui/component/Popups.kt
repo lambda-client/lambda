@@ -25,6 +25,9 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -62,6 +65,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.key.Key
@@ -89,15 +93,17 @@ import androidx.compose.ui.unit.round
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import com.lambda.gui.GuiConfig
+import com.lambda.gui.LambdaGui
 import com.lambda.gui.core.GameClipboard
 import com.lambda.gui.core.LocalShown
 import com.lambda.gui.core.Press
 import com.lambda.gui.core.awaitFrames
+import com.lambda.gui.core.observe
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Motion
 import com.lambda.gui.theme.Type
-import com.lambda.module.modules.client.Style
 import kotlin.math.max
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -145,6 +151,10 @@ class MenuState {
 
     fun toggle() {
         if (dismissedBy != Press.id) isOpen = true
+    }
+
+    fun open() {
+        isOpen = true
     }
 }
 
@@ -235,6 +245,8 @@ private val LocalMenuDismiss = staticCompositionLocalOf<(() -> Unit)?> { null }
 
 private val LocalMenuOpen = compositionLocalOf { true }
 
+private val LocalMenuHovered = compositionLocalOf { false }
+
 @Composable
 private fun MenuPopup(
     open: Boolean,
@@ -247,6 +259,8 @@ private fun MenuPopup(
     val open = open && LocalMenuOpen.current
     val dismissAll = LocalMenuDismiss.current ?: onDismiss
     val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val interactions = remember { MutableInteractionSource() }
+    val hovered by interactions.collectIsHoveredAsState()
     val shape =
         when {
             !attached -> RoundedCornerShape(Look.menuRounding)
@@ -254,9 +268,14 @@ private fun MenuPopup(
             else -> RoundedCornerShape(bottomStart = Look.menuRounding, bottomEnd = Look.menuRounding)
         }
     FloatingPanel(open, position, onDismiss, shape, unfoldFrom) { panel ->
-        CompositionLocalProvider(LocalMenuDismiss provides dismissAll, LocalMenuOpen provides open) {
+        CompositionLocalProvider(
+            LocalMenuDismiss provides dismissAll,
+            LocalMenuOpen provides open,
+            LocalMenuHovered provides hovered
+        ) {
             ScrollColumn(
                 modifier = Modifier
+                    .hoverable(interactions)
                     .heightIn(max = screenHeight)
                     .width(IntrinsicSize.Max)
                     .widthIn(min = maxOf(80.dp, with(LocalDensity.current) { unfoldFrom.width.toDp() }))
@@ -331,14 +350,15 @@ private fun FloatingPanel(
         if (open) SideEffect(onDismiss)
         return
     }
+    val folding = LambdaGui.foldsClosed
     val visibility = remember { MutableTransitionState(false) }
-    visibility.targetState = open
+    visibility.targetState = open && !folding
     if (!open && visibility.isIdle && !visibility.currentState) return
 
     val host = LocalPopupHost.current
     if (host != null && host.closing && open) SideEffect(onDismiss)
     val own = remember { PopupHost() }
-    SideEffect { own.closing = !open }
+    SideEffect { own.closing = !open || folding }
 
     val colors = LambdaTheme.colors
     ScenePopup(
@@ -354,10 +374,16 @@ private fun FloatingPanel(
                 modifier = Modifier
                     .swallowedBy(host)
                     .onGloballyPositioned { own.place(it.boundsInWindow()) }
+                    .guiPresence(position.anchor)
                     .dropShadow(shape, close = true)
                     .window(colors.panel, colors.border, shape),
                 enter = expandIn(Motion.panels, position.corner) { it.coerceAtMost(unfoldFrom) },
-                exit = shrinkOut(Motion.panels, position.corner) { it.coerceAtMost(unfoldFrom) },
+                exit =
+                    shrinkOut(
+                        if (folding) Motion.guiFold
+                        else Motion.panels,
+                        position.corner
+                    ) { it.coerceAtMost(unfoldFrom) },
             ) {
                 CompositionLocalProvider(LocalPopupHost provides own) {
                     content(Modifier.onSizeChanged { position.unfolded = it })
@@ -376,6 +402,13 @@ private class UnfoldingPosition(
 
     var upwards by mutableStateOf(false)
         private set
+
+    val anchor
+        get() =
+            TransformOrigin(
+                if (leftwards) 1f else 0f,
+                if (upwards) 1f else 0f
+            )
 
     val corner
         get() =
@@ -411,6 +444,8 @@ private class UnfoldingPosition(
     }
 }
 
+private val SUGGESTIONS_ANCHOR = TransformOrigin(0.5f, 0f)
+
 @Composable
 fun Suggestions(
     open: Boolean,
@@ -421,8 +456,9 @@ fun Suggestions(
         if (open) SideEffect(onDismiss)
         return
     }
+    val folding = LambdaGui.foldsClosed
     val visibility = remember { MutableTransitionState(false) }
-    visibility.targetState = open
+    visibility.targetState = open && !folding
     if (!open && visibility.isIdle && !visibility.currentState) return
 
     val colors = LambdaTheme.colors
@@ -446,10 +482,16 @@ fun Suggestions(
             AnimatedVisibility(
                 visibleState = visibility,
                 modifier = Modifier
+                    .guiPresence(SUGGESTIONS_ANCHOR)
                     .dropShadow(shape)
                     .window(colors.panel, colors.border, shape),
                 enter = expandVertically(Motion.panels, Alignment.Top),
-                exit = shrinkVertically(Motion.panels, Alignment.Top),
+                exit =
+                    shrinkVertically(
+                        if (folding) Motion.guiFold
+                        else Motion.panels,
+                        Alignment.Top
+                    ),
             ) {
                 ScrollColumn(
                     modifier = Modifier
@@ -515,20 +557,29 @@ fun Submenu(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val colors = LambdaTheme.colors
+    val interactions = remember { MutableInteractionSource() }
+    val hovered by interactions.collectIsHoveredAsState()
+    val menuHovered = LocalMenuHovered.current
     val menu = remember { MenuState() }
+    val onHover by observe { GuiConfig.hoverSubmenus }
+    LaunchedEffect(hovered, menuHovered, onHover) {
+        when {
+            !onHover -> Unit
+            hovered -> menu.open()
+            menuHovered -> menu.dismiss()
+        }
+    }
     Box {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .then(
-                    if (enabled) {
-                        Modifier
-                            .hoverHighlight(colors.controlSelected)
-                            .mouseClickable(onClick = menu::toggle)
-                    }
-                    else Modifier
-                )
+                .hoverable(interactions, enabled)
+                .background(if (hovered || menu.isOpen) colors.controlSelected else Color.Transparent)
+                .mouseClickable(enabled) {
+                    if (onHover) menu.open()
+                    else menu.toggle()
+                }
                 .padding(horizontal = 5.dp, vertical = 1.dp)
         ) {
             Text(
@@ -646,7 +697,7 @@ fun Tooltip(
     var bounds by remember { mutableStateOf(Rect.Zero) }
     LaunchedEffect(hovered) {
         if (!hovered) return@LaunchedEffect
-        awaitFrames(Style.tooltipDelay.toLong())
+        awaitFrames(GuiConfig.tooltipDelay.toLong())
         visible = true
     }
 

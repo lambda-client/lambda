@@ -25,10 +25,10 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.gui.GuiConfig
 import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
-import com.lambda.module.modules.client.Style
 import com.lambda.module.modules.network.AutoReconnect
 import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.CommunicationUtils
@@ -655,7 +655,7 @@ object AutoDisconnect : Module(
                         buildText {
                             text(effect.effectType.value().name)
                             if (effect.amplifier > 0) literal(" ${effect.amplifier + 1}")
-                            color(Style.palette.onSurfaceVariant.toAwt()) {
+                            color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
                                 literal(" (${effectDuration(effect)})")
                             }
                         }
@@ -744,7 +744,7 @@ object AutoDisconnect : Module(
         val customName = stack.get(DataComponentTypes.CUSTOM_NAME)
         if (customName != null) {
             text(stack.itemName)
-            color(Style.palette.onSurfaceVariant.toAwt()) {
+            color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
                 literal(" (")
                 text(customName)
                 literal(")")
@@ -754,13 +754,13 @@ object AutoDisconnect : Module(
         }
 
         if (stack.isDamageable) {
-            color(Style.palette.onSurfaceVariant.toAwt()) {
+            color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
                 literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})")
             }
         }
 
         if (stack.maxCount > 1) {
-            color(Style.palette.onSurfaceVariant.toAwt()) { literal(" (${stack.count})") }
+            color(GuiConfig.palette.onSurfaceVariant.toAwt()) { literal(" (${stack.count})") }
         }
 
         if (selected) {

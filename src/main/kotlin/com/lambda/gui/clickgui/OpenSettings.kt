@@ -24,9 +24,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.dp
+import com.lambda.gui.GuiConfig
 import com.lambda.gui.settings.PanelPage
 import com.lambda.module.Module
-import com.lambda.module.modules.client.Style
 
 internal class SettingsPanelState(val module: Module) {
     var page by mutableStateOf(PanelPage.Settings)
@@ -52,7 +52,7 @@ internal class OpenSettings {
     fun isOpen(module: Module) = module in open
 
     fun open(module: Module) {
-        if (!Style.multipleSettings) closeAll()
+        if (!GuiConfig.multipleSettings) closeAll()
         closing -= module
         if (module !in open) open += module
     }

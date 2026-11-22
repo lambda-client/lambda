@@ -17,6 +17,8 @@
 
 package com.lambda.interaction.handler.handlers.breaking
 
+import com.lambda.config.ClientConfig
+import com.lambda.config.ClientConfig.verboseDebug
 import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
 import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.context.SafeContext
@@ -27,8 +29,6 @@ import com.lambda.interaction.construction.simulation.processing.ProcessorRegist
 import com.lambda.interaction.handler.PostActionHandler
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager.matchesBlockItem
-import com.lambda.module.modules.client.Client
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.emptyState
@@ -62,7 +62,7 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 			if (!info.broken) {
 				val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
 				if (verboseDebug) this@BrokenBlockHandler.warn(message)
-			} else if (!Client.ignoreItemDropWarnings) {
+			} else if (!ClientConfig.ignoreItemDropWarnings) {
 				val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
 				if (verboseDebug) this@BrokenBlockHandler.warn(message)
 			}

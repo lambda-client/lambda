@@ -17,6 +17,7 @@
 
 package com.lambda.util.player
 
+import com.lambda.config.ClientConfig
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -26,7 +27,6 @@ import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.manager.managers.rotating.Rotation
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.manager.managers.rotating.RotationManager
-import com.lambda.module.modules.client.Client
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.PlaceDirection
 import com.lambda.util.extension.component6
@@ -192,7 +192,7 @@ object RotationUtils {
 		val (scanBox, invalidSides) = getScanBox(preProcessing, allowInsideBox) ?: return
 		(visibleSides - invalidSides).forEach { side ->
 			val (minX, minY, minZ, maxX, maxY, maxZ) = scanBox
-				.offset(side.doubleVector.multiply(Client.scanShrinkFactor))
+				.offset(side.doubleVector.multiply(ClientConfig.scanShrinkFactor))
 				.bounds(side)
 
 			val stepX = (maxX - minX) / resolution
@@ -225,31 +225,31 @@ object RotationUtils {
 				val pos = when (side) {
 					Direction.DOWN -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
-						minY - Client.scanShrinkFactor,
+						minY - ClientConfig.scanShrinkFactor,
 						pov.z.coerceIn(minZ, maxZ)
 					)
 					Direction.UP -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
-						maxY + Client.scanShrinkFactor,
+						maxY + ClientConfig.scanShrinkFactor,
 						pov.z.coerceIn(minZ, maxZ)
 					)
 					Direction.NORTH -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
 						pov.y.coerceIn(minY, maxY),
-						minZ - Client.scanShrinkFactor
+						minZ - ClientConfig.scanShrinkFactor
 					)
 					Direction.SOUTH -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
 						pov.y.coerceIn(minY, maxY),
-						maxZ + Client.scanShrinkFactor
+						maxZ + ClientConfig.scanShrinkFactor
 					)
 					Direction.WEST -> Vec3d(
-						minX - Client.scanShrinkFactor,
+						minX - ClientConfig.scanShrinkFactor,
 						pov.y.coerceIn(minY, maxY),
 						pov.z.coerceIn(minZ, maxZ)
 					)
 					Direction.EAST -> Vec3d(
-						maxX + Client.scanShrinkFactor,
+						maxX + ClientConfig.scanShrinkFactor,
 						pov.y.coerceIn(minY, maxY),
 						pov.z.coerceIn(minZ, maxZ)
 					)
@@ -275,7 +275,7 @@ object RotationUtils {
 		preProcessing: PreProcessingData?,
 		allowInsideBox: Boolean
 	): Pair<Box, Set<Direction>>? =
-		with(contract(Client.scanShrinkFactor)) {
+		with(contract(ClientConfig.scanShrinkFactor)) {
 			if (preProcessing == null || preProcessing.info.surfaceScan.mode == ScanMode.Full) return Pair(this, emptySet())
 
 			val (newXBounds, shrunkXSide) = toScanRange(minX, maxX, preProcessing.pos.x, Direction.Axis.X, preProcessing.info.surfaceScan)
@@ -306,8 +306,8 @@ object RotationUtils {
 	): Pair<ClosedRange<Double>, Direction?> {
 		val range = if (scan.axis == axis) {
 			when (scan.mode) {
-				ScanMode.GreaterBlockHalf -> max(origin + 0.5 + Client.scanShrinkFactor, min)..max
-				else -> min..min(origin + 0.5 - Client.scanShrinkFactor, max)
+				ScanMode.GreaterBlockHalf -> max(origin + 0.5 + ClientConfig.scanShrinkFactor, min)..max
+				else -> min..min(origin + 0.5 - ClientConfig.scanShrinkFactor, max)
 			}
 		} else min..max
 		return Pair(

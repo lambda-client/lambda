@@ -33,11 +33,13 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.asSkiaPath
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
@@ -45,6 +47,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.lambda.gui.LambdaGui
+import com.lambda.gui.core.LocalPresence
+import com.lambda.gui.theme.GuiTransition
 import com.lambda.gui.theme.Look
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skia.ColorFilter
@@ -79,6 +84,25 @@ private val DRAWN =
 
 private val REPLACE = Paint().apply { blendMode = org.jetbrains.skia.BlendMode.SRC }
 private val WITHIN = Paint().apply { blendMode = org.jetbrains.skia.BlendMode.SRC_IN }
+
+private val GUI_SLIDE = 24.dp
+private const val GUI_ZOOM = 0.92f
+
+fun Modifier.guiPresence(anchor: TransformOrigin? = null): Modifier =
+    composed {
+        val presence = LocalPresence.current
+        graphicsLayer {
+            val shown = presence()
+            val styles = LambdaGui.transitions
+            if (GuiTransition.Fade in styles) alpha = shown
+            if (GuiTransition.Slide in styles && anchor == null) translationY = (shown - 1f) * GUI_SLIDE.toPx()
+            if (GuiTransition.Zoom in styles) {
+                scaleX = GUI_ZOOM + (1f - GUI_ZOOM) * shown
+                scaleY = scaleX
+                transformOrigin = anchor ?: TransformOrigin.Center
+            }
+        }
+    }
 
 fun Modifier.glass(color: Color, shape: Shape): Modifier =
     clip(shape).composed {

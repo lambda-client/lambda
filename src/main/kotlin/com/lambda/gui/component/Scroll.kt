@@ -45,9 +45,9 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.lambda.gui.GuiConfig
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Motion
-import com.lambda.module.modules.client.Style
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -97,7 +97,7 @@ fun Modifier.wheelScrollable(state: ScrollableState): Modifier =
                     val event = awaitPointerEvent(PointerEventPass.Initial)
                     if (event.type != PointerEventType.Scroll) continue
                     val change = event.changes.first()
-                    val distance = change.scrollDelta.y * notch * Style.scrollSpeed
+                    val distance = change.scrollDelta.y * notch * GuiConfig.scrollSpeed
                     val canFollow =
                         if (distance > 0) state.canScrollForward
                         else state.canScrollBackward

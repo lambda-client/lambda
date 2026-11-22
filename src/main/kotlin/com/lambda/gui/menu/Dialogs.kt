@@ -50,6 +50,7 @@ import com.lambda.gui.component.Text
 import com.lambda.gui.component.TextInput
 import com.lambda.gui.component.rememberTexture
 import com.lambda.gui.core.LocalShown
+import com.lambda.gui.core.observe
 import com.lambda.gui.settings.ConfigSettings
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Type
@@ -103,8 +104,8 @@ internal fun NewAutomationConfigDialog(onDismiss: () -> Unit) {
 @Composable
 internal fun AboutDialog(onDismiss: () -> Unit) {
     val colors = LambdaTheme.colors
-    val facts =
-        remember {
+    val facts by
+        observe {
             val settings =
                 ConfigLoader.configCategories.sumOf { category ->
                     category.configs.sumOf { config ->

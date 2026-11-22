@@ -19,11 +19,11 @@ package com.lambda.module.modules.hud
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import com.lambda.config.ClientConfig
 import com.lambda.gui.core.observe
 import com.lambda.gui.hud.HudText
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
-import com.lambda.module.modules.client.Client
 import com.lambda.task.RootTask
 
 @Suppress("unused")
@@ -33,7 +33,7 @@ object TaskFlowHud : HudModule(
 ) {
     @Composable
     override fun Content() {
-        val tasks by observe { RootTask.taskTree(Client.showInvisibleTasks) }
+        val tasks by observe { RootTask.taskTree(ClientConfig.showInvisibleTasks) }
         HudText(tasks)
     }
 }

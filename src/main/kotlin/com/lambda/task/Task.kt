@@ -19,12 +19,12 @@
 
 package com.lambda.task
 
+import com.lambda.config.ClientConfig.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.task.tasks.wrappers.withRecovery
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.logError

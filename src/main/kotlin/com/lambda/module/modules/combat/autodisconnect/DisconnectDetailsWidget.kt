@@ -18,7 +18,7 @@
 package com.lambda.module.modules.combat.autodisconnect
 
 import androidx.compose.ui.graphics.toArgb
-import com.lambda.module.modules.client.Style
+import com.lambda.gui.GuiConfig
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.text
@@ -268,10 +268,10 @@ class DisconnectDetailsWidget(
         const val HOVER_PADDING = 2
         const val HOVER_RADIUS = 1
 
-        val COLOR_TEXT get() = Style.palette.onSurface.toArgb()
-        val COLOR_BACKGROUND get() = Style.palette.panel.toArgb()
-        val COLOR_BORDER get() = Style.palette.border.toArgb()
-        val COLOR_HOVER_BACKGROUND get() = Style.palette.controlSelected.toArgb()
+        val COLOR_TEXT get() = GuiConfig.palette.onSurface.toArgb()
+        val COLOR_BACKGROUND get() = GuiConfig.palette.panel.toArgb()
+        val COLOR_BORDER get() = GuiConfig.palette.border.toArgb()
+        val COLOR_HOVER_BACKGROUND get() = GuiConfig.palette.controlSelected.toArgb()
         val COLOR_HEADER get() = COLOR_TEXT
     }
 }

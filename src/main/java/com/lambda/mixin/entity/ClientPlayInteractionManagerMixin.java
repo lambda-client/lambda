@@ -17,13 +17,13 @@
 
 package com.lambda.mixin.entity;
 
+import com.lambda.config.ClientConfig;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.handler.handlers.BaritoneHandler;
 import com.lambda.interaction.manager.managers.inventory.InventoryManager;
 import com.lambda.interaction.manager.managers.rotating.RotationManager;
-import com.lambda.module.modules.client.Client;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -120,7 +120,7 @@ public class ClientPlayInteractionManagerMixin {
 
     @ModifyExpressionValue(method = "clickSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/screen/ScreenHandler;getRevision()I"))
     private int modifyClickSlotRevision(int originalRevision) {
-        return Client.INSTANCE.getAvoidInventoryDesync() ? -1 : originalRevision;
+        return ClientConfig.INSTANCE.getAvoidInventoryDesync() ? -1 : originalRevision;
     }
 
     /**

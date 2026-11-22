@@ -18,6 +18,7 @@
 package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
+import com.lambda.config.ClientConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
@@ -29,7 +30,6 @@ import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.RenderDsl
 import com.lambda.module.Module
-import com.lambda.module.modules.client.Client
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.mojang.blaze3d.buffers.GpuBufferSlice
@@ -89,13 +89,13 @@ class ChunkedRenderer(
 		owner.listenConcurrentlyUnsafe<TickEvent.Pre> {
 			if (pauseUpdates()) return@listenConcurrentlyUnsafe
 			val depth = depthTest()
-			rebuildSet.take(Client.chunkRebuildsPerTick).forEach { chunkData ->
+			rebuildSet.take(ClientConfig.chunkRebuildsPerTick).forEach { chunkData ->
 				if (rebuildSet.remove(chunkData)) chunkData.rebuild(depth)
 			}
 		}
 
 		owner.listenUnsafe<TickEvent.Pre> {
-			val polls = minOf(Client.chunkUploadsPerTick, uploadQueue.size)
+			val polls = minOf(ClientConfig.chunkUploadsPerTick, uploadQueue.size)
 			repeat(polls) { uploadQueue.poll()?.invoke() }
 		}
 

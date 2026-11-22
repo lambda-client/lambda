@@ -18,6 +18,8 @@
 package com.lambda.interaction.manager.managers.inventory
 
 import com.lambda.Lambda.LOG
+import com.lambda.config.ClientConfig
+import com.lambda.config.ClientConfig.verboseDebug
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
@@ -34,8 +36,6 @@ import com.lambda.interaction.manager.managers.inventory.InventoryManager.action
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.filter
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.indexInventoryChanges
-import com.lambda.module.modules.client.Client
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runSafe
 import com.lambda.threading.withSafeAutomated
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
@@ -66,7 +66,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 		InventorySyncFilter<ItemStack>(
 			{ a, b -> ItemStack.areEqual(a, b) },
 			{ it.copy() },
-			Client.desyncTimeout * 50L
+			ClientConfig.desyncTimeout * 50L
 		)
 
 	private var actionsThisTick = 0
@@ -75,14 +75,14 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 		super.load()
 
         listen<TickEvent.Post>({ Int.MIN_VALUE }) {
-            if (Client.avoidInventoryDesync) indexInventoryChanges()
+            if (ClientConfig.avoidInventoryDesync) indexInventoryChanges()
             actionsThisTick = 0
             activeRequest = null
             actions = mutableListOf()
         }
 
 		listen<PlayerEvent.SlotClick.Post> {
-			if (Client.avoidInventoryDesync) indexInventoryChanges()
+			if (ClientConfig.avoidInventoryDesync) indexInventoryChanges()
 		}
 
 		listen<PacketEvent.Send.Post> { event ->
@@ -139,7 +139,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 	private fun populateFrom(request: InventoryRequest) {
 		activeRequest = request
 		actions = request.actions.toMutableList()
-		filter.maxAgeMs = Client.desyncTimeout * 50L
+		filter.maxAgeMs = ClientConfig.desyncTimeout * 50L
 	}
 
 	/**
@@ -159,7 +159,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 				action.action(this)
 				if (action is InventoryAction.Player) sentPackets(1, PacketType.PlayerAction)
 				else if (action is InventoryAction.Inventory) sentPackets(1, PacketType.Inventory)
-				if (Client.avoidInventoryDesync) indexInventoryChanges()
+				if (ClientConfig.avoidInventoryDesync) indexInventoryChanges()
 				actionsThisTick++
 				iterator.remove()
 			}
@@ -235,7 +235,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 				original.call(packet)
 				return
 			}
-			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
+			if (!mc.isOnThread || !ClientConfig.avoidInventoryDesync) {
 				original.call(packet)
 				snapshotHandler(packetScreenHandler)
 				return
@@ -285,7 +285,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 		runSafe {
 			val stack = packet.contents()
 			mc.tutorialManager.onSlotUpdate(stack)
-			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
+			if (!mc.isOnThread || !ClientConfig.avoidInventoryDesync) {
 				original.call(packet)
 				snapshotHandler(player.currentScreenHandler)
 				return
@@ -320,7 +320,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 						return
 					}
 				}
-			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
+			if (!mc.isOnThread || !ClientConfig.avoidInventoryDesync) {
 				original.call(packet)
 				snapshotHandler(packetScreenHandler)
 				return
