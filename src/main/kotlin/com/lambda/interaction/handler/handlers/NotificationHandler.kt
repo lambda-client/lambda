@@ -28,6 +28,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.GuiConfig
 import com.lambda.gui.Notifications
 import com.lambda.gui.core.RenderThread
+import com.lambda.gui.theme.NotificationLimit
 import java.awt.Color
 
 object NotificationHandler : Loadable {
@@ -49,9 +50,11 @@ object NotificationHandler : Loadable {
             val notification = Notification(title, message, accent)
             kept += notification
             if (kept.size > MAX_KEPT) kept.removeRange(0, kept.size - MAX_KEPT)
-            kept.filterNot { it.dismissed }
-                .dropLast(GuiConfig.maxNotifications)
-                .forEach { it.dismissed = true }
+            if (GuiConfig.notificationLimit == NotificationLimit.Count) {
+                kept.filterNot { it.dismissed }
+                    .dropLast(GuiConfig.maxNotifications)
+                    .forEach { it.dismissed = true }
+            }
             RenderThread.after((GuiConfig.notificationSeconds * 1000).toLong()) {
                 notification.dismissed = true
             }

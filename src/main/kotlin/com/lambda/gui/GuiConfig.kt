@@ -17,17 +17,30 @@
 
 package com.lambda.gui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.categories.GuiCategory
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.onHold
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.entries.onValueChangeUnsafe
 import com.lambda.config.settings.appliedOnRelease
+import com.lambda.config.settings.comparable.EnumSetting
+import com.lambda.config.settings.comparable.onSelectionHover
 import com.lambda.core.Loadable
+import com.lambda.event.events.ComposeEvent
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.theme.GuiFont
 import com.lambda.gui.theme.GuiInterrupt
 import com.lambda.gui.theme.GuiTransition
+import com.lambda.gui.theme.NotificationFlow
+import com.lambda.gui.theme.NotificationLimit
+import com.lambda.gui.theme.NotificationSide
 import com.lambda.gui.theme.Palette
 import com.lambda.util.KeyCode
 import com.lambda.util.NamedEnum
@@ -49,6 +62,7 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     private const val LAYOUT_GROUP = "Layout"
     private const val MOTION_GROUP = "Motion"
     private const val NOTIFICATIONS_GROUP = "Notifications"
+    private const val NOTIFICATION_PREVIEW_MILLIS = 1500L
     private const val DARK_THEME_GROUP = "Dark Theme"
     private const val LIGHT_THEME_GROUP = "Light Theme"
 
@@ -141,10 +155,14 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     @Tab(STYLE_TAB) @Group(MOTION_GROUP) val scrollSpeed by setting("Scroll Speed", 1f, 0.25f..3f, 0.25f, "How far a notch of the mouse wheel takes a list, as a multiple of three rows")
     @Tab(STYLE_TAB) @Group(MOTION_GROUP) val tooltipDelay by setting("Tooltip Delay", 500, 0..2000, 50, "How long the pointer rests on something before its description shows", " ms")
 
-    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationScale by setting("Notification Scale", 1f, 0.5f..3f, 0.05f, "Size of notifications, on top of the scale of the rest of the interface")
-    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationWidth by setting("Notification Width", 130f, 80f..300f, 10f, "How wide a notification is. Longer messages wrap onto more lines")
-    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationSeconds by setting("Notification Time", 4f, 1f..15f, 0.5f, "How many seconds a notification stays before it slides away")
-    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val maxNotifications by setting("Max Notifications", 5, 1..12, 1, "How many notifications stack before the oldest slides off the bottom of the screen")
+    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationScale by setting("Notification Scale", 1f, 0.5f..3f, 0.05f, "Size of notifications, on top of the scale of the rest of the interface").previewsNotifications()
+    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationWidth by setting("Notification Width", 130f, 80f..300f, 10f, "How wide a notification is. Longer messages wrap onto more lines").previewsNotifications()
+    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationSide by setting("Notification Side", NotificationSide.Right, "Which side of the screen notifications slide in from").previewsNotificationOptions()
+    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationHeight by setting("Notification Height", 0f, 0f..1f, 0.05f, "Where on that side the first notification sits. 0 is the bottom of the screen and 1 the top").previewsNotifications()
+    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationFlow by setting("Notification Direction", NotificationFlow.Up, "Which way the stack grows: each new notification appears on this side of the ones already showing. They leave the other way, and the stack is kept on the screen").previewsNotificationOptions()
+    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationSeconds by setting("Notification Time", 4f, 1f..15f, 0.5f, "How many seconds a notification stays before it leaves")
+    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val notificationLimit by setting("Notification Limit", NotificationLimit.Count, "Count lets the oldest go once more than Max Notifications are showing. Fit Screen shows as many as fit between Notification Height and the edge of the screen the stack grows towards, and the oldest goes when a new one would not fit").previewsNotificationOptions()
+    @Tab(STYLE_TAB) @Group(NOTIFICATIONS_GROUP) val maxNotifications by setting("Max Notifications", 5, 1..12, 1, "How many notifications show at once before the oldest leaves") { notificationLimit == NotificationLimit.Count }.previewsNotifications()
 
     @Tab(STYLE_TAB) @Group(DARK_THEME_GROUP) private val darkTheme by configBlock(
         PaletteSettings(
@@ -228,6 +246,27 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
                 return dark
             }
     }
+
+    private var notificationHeld = false
+    private var notificationPreviewEnd = 0L
+    internal var notificationOption by mutableStateOf<Any?>(null)
+        private set
+
+    init {
+        listenUnsafe<ComposeEvent.Gui.Post> { event ->
+            val previewing = notificationHeld || notificationOption != null || System.currentTimeMillis() < notificationPreviewEnd
+            if (previewing) event.content { NotificationPreview() }
+        }
+    }
+
+    private fun <S : Setting<T>, T> S.previewsNotifications() =
+        apply {
+            onHold { notificationHeld = it }
+            onValueChangeUnsafe { _, _ -> notificationPreviewEnd = System.currentTimeMillis() + NOTIFICATION_PREVIEW_MILLIS }
+        }
+
+    private fun <S : EnumSetting<T>, T : Enum<T>> S.previewsNotificationOptions() =
+        onSelectionHover { notificationOption = it }
 
     internal data class WindowPlacement(
         val x: Float,

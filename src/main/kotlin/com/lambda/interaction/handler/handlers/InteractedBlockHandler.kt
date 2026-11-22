@@ -32,8 +32,8 @@ import com.lambda.util.collections.LimitedDecayQueue
 
 internal object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 	override val pendingActions = LimitedDecayQueue<InteractInfo>(
-		AutomationConfig.Companion.DEFAULT.buildConfig.maxPendingActions,
-		AutomationConfig.Companion.DEFAULT.buildConfig.actionTimeout * 50L
+		AutomationConfig.DEFAULT.buildConfig.maxPendingActions,
+		AutomationConfig.DEFAULT.buildConfig.actionTimeout * 50L
 	) {
 		if (ClientConfig.verboseDebug) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
 		if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {

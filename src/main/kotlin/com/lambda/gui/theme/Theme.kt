@@ -115,6 +115,9 @@ internal object Look {
     val settingsWidth by style { GuiConfig.settingsWidth.dp }
     val notificationScale by style { GuiConfig.notificationScale }
     val notificationWidth by style { GuiConfig.notificationWidth.dp }
+    val notificationSide by style { GuiConfig.notificationSide }
+    val notificationHeight by style { GuiConfig.notificationHeight }
+    val notificationFlow by style { GuiConfig.notificationFlow }
     val windowGap by style { GuiConfig.windowGap.dp }
     val windowTop by style { GuiConfig.windowTop.dp }
     val modulePadding by style { GuiConfig.modulePadding.dp }
@@ -178,6 +181,21 @@ enum class GuiTransition(override val displayName: String) : NamedEnum {
 enum class GuiInterrupt(override val displayName: String) : NamedEnum {
     Reverse("Reverse"),
     Finish("Skip To End"),
+}
+
+enum class NotificationSide(override val displayName: String) : NamedEnum {
+    Left("Left"),
+    Right("Right"),
+}
+
+enum class NotificationFlow(override val displayName: String) : NamedEnum {
+    Up("Up"),
+    Down("Down"),
+}
+
+enum class NotificationLimit(override val displayName: String) : NamedEnum {
+    Count("Count"),
+    Screen("Fit Screen"),
 }
 
 enum class GuiFont(

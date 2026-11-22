@@ -39,10 +39,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -243,10 +245,18 @@ fun <T> Dropdown(
     selected: T,
     optionLabel: (T) -> String,
     modifier: Modifier = Modifier,
+    onOptionHover: (option: T?) -> Unit = {},
+    onOptionClick: (option: T) -> Unit = {},
     onSelect: (T) -> Unit,
 ) {
     val menu = remember { MenuState() }
     var chip by remember { mutableStateOf(IntSize.Zero) }
+    var hovered by remember { mutableStateOf<T?>(null) }
+    val currentOnOptionHover by rememberUpdatedState(onOptionHover)
+    LaunchedEffect(hovered) { currentOnOptionHover(hovered) }
+    DisposableEffect(Unit) {
+        onDispose { currentOnOptionHover(null) }
+    }
     LabeledRow(label, modifier) {
         Box(Modifier.onSizeChanged { chip = it }) {
             Chip(onClick = menu::toggle) {
@@ -259,7 +269,15 @@ fun <T> Dropdown(
                 unfoldFrom = IntSize(chip.width, 0)
             ) {
                 options.forEach { option ->
-                    MenuItem(optionLabel(option), selected = option == selected) {
+                    MenuItem(
+                        optionLabel(option),
+                        selected = option == selected,
+                        onHover = {
+                            if (it) hovered = option
+                            else if (hovered == option) hovered = null
+                        }
+                    ) {
+                        onOptionClick(option)
                         if (option != selected) onSelect(option)
                     }
                 }

@@ -17,8 +17,9 @@
 
 package com.lambda.module.modules.client
 
+import com.lambda.Lambda.mc
 import com.lambda.event.events.ModuleEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.handler.handlers.NotificationHandler
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -48,7 +49,7 @@ object ModuleNotifier : Module(
 	}
 
 	init {
-		listen<ModuleEvent.Enabled> { event ->
+		listenUnsafe<ModuleEvent.Enabled> { event ->
 			logToTargets(event.module, "Enabled", Color(Colors.GREEN)) {
 				color(Color(Colors.GREEN)) {
 					literal("on")
@@ -56,7 +57,7 @@ object ModuleNotifier : Module(
 			}
 		}
 
-		listen<ModuleEvent.Disabled> { event ->
+		listenUnsafe<ModuleEvent.Disabled> { event ->
 			logToTargets(event.module, "Disabled", Color(Colors.RED)) {
 				color(Color(Colors.RED)) {
 					literal("off")
@@ -69,6 +70,7 @@ object ModuleNotifier : Module(
 		if (NotifyTarget.Notification in notifyTarget) {
 			NotificationHandler.notify(module.name, state, color)
 		}
+		if (mc.player == null) return
 		if (NotifyTarget.Chat in notifyTarget) {
 			module.log(buildText(action))
 		}

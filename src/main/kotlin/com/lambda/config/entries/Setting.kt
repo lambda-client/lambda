@@ -118,6 +118,9 @@ abstract class Setting<T>(
 	open var value by this
 
 	val listeners = mutableListOf<ValueListener<T>>()
+	val hoverListeners = mutableListOf<(hovered: Boolean) -> Unit>()
+	val holdListeners = mutableListOf<(held: Boolean) -> Unit>()
+	val clickListeners = mutableListOf<() -> Unit>()
 
 	override val isModified get() = originalCore.value != originalCore.defaultValue
 
@@ -261,6 +264,18 @@ fun <S : Setting<T>, T> S.onValueSet(block: SafeContext.(from: T, to: T) -> Unit
 @ConfigEntryDsl
 fun <S : Setting<T>, T> S.onValueSetUnsafe(block: (from: T, to: T) -> Unit) =
 	apply { listeners.add(ValueListener(false, block)) }
+
+@ConfigEntryDsl
+fun <S : Setting<*>> S.onHover(block: (hovered: Boolean) -> Unit) =
+	apply { hoverListeners.add(block) }
+
+@ConfigEntryDsl
+fun <S : Setting<*>> S.onHold(block: (held: Boolean) -> Unit) =
+	apply { holdListeners.add(block) }
+
+@ConfigEntryDsl
+fun <S : Setting<*>> S.onClick(block: () -> Unit) =
+	apply { clickListeners.add(block) }
 
 @ConfigEntryDsl
 fun <S : Setting<T>, T> S.disabled(predicate: () -> Boolean) =

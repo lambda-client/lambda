@@ -28,6 +28,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -39,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.lambda.config.entries.Setting
@@ -61,6 +63,13 @@ internal val ROW_INSET = 3.dp
 @Composable
 fun SettingRow(setting: Setting<*>) {
     val disabled by observe { setting.disabled() }
+    val pointer = remember(setting) { RowPointer(setting) }
+    DisposableEffect(pointer) {
+        onDispose {
+            pointer.hovered = false
+            pointer.held = false
+        }
+    }
 
     val revealed = Reveal.setting === setting
     val lit by
@@ -82,6 +91,22 @@ fun SettingRow(setting: Setting<*>) {
             Modifier
                 .settingCell()
                 .bringIntoViewRequester(intoView)
+                .pointerInput(pointer) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.first()
+                            val inside = change.position.x in 0f..size.width.toFloat() && change.position.y in 0f..size.height.toFloat()
+                            when (event.type) {
+                                PointerEventType.Enter -> pointer.hovered = true
+                                PointerEventType.Exit -> pointer.hovered = false
+                            }
+                            val wasHeld = pointer.held
+                            pointer.held = event.changes.any { it.pressed }
+                            if (wasHeld && !pointer.held && inside) setting.clickListeners.forEach { it() }
+                        }
+                    }
+                }
                 .drawWithContent {
                     drawContent()
                     drawRect(lit)
@@ -96,6 +121,22 @@ fun SettingRow(setting: Setting<*>) {
             }
         }
     }
+}
+
+private class RowPointer(private val setting: Setting<*>) {
+    var hovered = false
+        set(value) {
+            if (field == value) return
+            field = value
+            setting.hoverListeners.forEach { it(value) }
+        }
+
+    var held = false
+        set(value) {
+            if (field == value) return
+            field = value
+            setting.holdListeners.forEach { it(value) }
+        }
 }
 
 internal fun Modifier.settingCell(): Modifier =

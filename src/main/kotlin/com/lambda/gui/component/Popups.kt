@@ -45,6 +45,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
@@ -52,6 +53,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -512,14 +514,23 @@ fun MenuItem(
     checked: Boolean? = null,
     selected: Boolean = false,
     hint: String? = null,
+    onHover: (hovered: Boolean) -> Unit = {},
     onClick: () -> Unit,
 ) {
     val colors = LambdaTheme.colors
     val dismiss = LocalMenuDismiss.current
+    val interactions = remember { MutableInteractionSource() }
+    val hovered by interactions.collectIsHoveredAsState()
+    val currentOnHover by rememberUpdatedState(onHover)
+    LaunchedEffect(hovered) { currentOnHover(hovered) }
+    DisposableEffect(Unit) {
+        onDispose { currentOnHover(false) }
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .hoverable(interactions)
             .background(if (selected) colors.controlSelected else Color.Transparent)
             .then(
                 if (!enabled) Modifier
@@ -679,6 +690,17 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
         }
     }
 }
+
+@Composable
+fun Overlay(
+    position: (window: IntSize, size: IntSize) -> IntOffset,
+    content: @Composable () -> Unit
+) =
+    ScenePopup(
+        popupPositionProvider = positionProvider { _, window, size -> position(window, size) },
+        properties = PopupProperties(focusable = false),
+        content = content
+    )
 
 @Composable
 fun Tooltip(

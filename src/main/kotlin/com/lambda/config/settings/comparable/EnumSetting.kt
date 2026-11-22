@@ -46,6 +46,9 @@ class EnumSetting<T : Enum<T>>(
     visibility: () -> Boolean,
     defaultValue: T
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
+    val selectionHoverListeners = mutableListOf<(option: T?) -> Unit>()
+    val selectionClickListeners = mutableListOf<(option: T) -> Unit>()
+
     @Composable
     override fun Gui() {
         val selected by observe { value }
@@ -55,6 +58,8 @@ class EnumSetting<T : Enum<T>>(
             selected = selected,
             optionLabel = { it.displayValue },
             modifier = Modifier.padding(start = ROW_INSET),
+            onOptionHover = { option -> selectionHoverListeners.forEach { it(option) } },
+            onOptionClick = { option -> selectionClickListeners.forEach { it(option) } },
         ) { value = it }
     }
 
@@ -76,3 +81,9 @@ class EnumSetting<T : Enum<T>>(
     private val <T : Enum<T>> T.enumValues: Array<T>
         get() = declaringJavaClass.enumConstants
 }
+
+fun <S : EnumSetting<T>, T : Enum<T>> S.onSelectionHover(block: (option: T?) -> Unit) =
+    apply { selectionHoverListeners.add(block) }
+
+fun <S : EnumSetting<T>, T : Enum<T>> S.onSelectionClick(block: (option: T) -> Unit) =
+    apply { selectionClickListeners.add(block) }
