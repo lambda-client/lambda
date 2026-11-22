@@ -60,9 +60,10 @@ abstract class ObstaclePassingMode(
 		}
 		onFlag {
 			if (!passerConfig.passObstacles || !passerConfig.walkWhenFlagged) return@onFlag
-			val snappedDir = getSnappedDir()
-			val closestLinePoint = player.pos.findClosestPointOnLine(snappedDir)
 			runGameScheduled {
+				if (!movedFromStart()) return@runGameScheduled
+				val snappedDir = getSnappedDir()
+				val closestLinePoint = player.pos.findClosestPointOnLine(snappedDir)
 				val delta = snappedDir.multiply(passerConfig.obstacleLookAhead.toDouble())
 				val pathToPoint = closestLinePoint.add(delta)
 				pathToValidPoint(pathToPoint, snappedDir)
@@ -82,16 +83,16 @@ abstract class ObstaclePassingMode(
 		if (!passerConfig.passObstacles) return false
 
 		val playerPos = player.pos
-		val validDistanceFromStart = Vec3d(playerPos.x, startPos.y, playerPos.z) dist startPos > 0.1
-		if (!validDistanceFromStart) return false
+		if (!movedFromStart()) return false
 
 		val snappedDir = getSnappedDir()
 		val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
 
 		passingToPos?.let { passingTo ->
 			if (passingTo distSq startPos < playerPos distSq startPos) {
-				val atClosestPointBlockPos = closestLinePoint.blockPos == player.blockPos
-				if (!atClosestPointBlockPos) pathToValidPoint(closestLinePoint, snappedDir, false)
+				// Baritone stops beside a GoalGetToBlock's block, so count beside as there
+				val atClosestPoint = GoalGetToBlock(closestLinePoint.blockPos).isInGoal(player.blockPos)
+				if (!atClosestPoint) pathToValidPoint(closestLinePoint, snappedDir, false)
 				else {
 					BaritoneHandler.cancel()
 					passingToPos = null
@@ -134,6 +135,8 @@ abstract class ObstaclePassingMode(
 
 		return false
 	}
+
+	protected fun SafeContext.movedFromStart() = Vec3d(player.x, startPos.y, player.z) dist startPos > 0.1
 
 	protected fun SafeContext.getSnappedDir(): Vec3d {
 		val travelDiff = player.pos.subtract(startPos).normalize().let { Vec3d(it.x, 0.0, it.z) }

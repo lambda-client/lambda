@@ -27,6 +27,7 @@ import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -151,6 +152,12 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     @ModifyExpressionValue(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
     boolean modifyIsSprinting(boolean original) {
         return EventFlow.post(new MovementEvent.Sprint(original)).getSprint();
+    }
+
+    // Bounce glides without forward input, which would stop the sprint every tick
+    @WrapWithCondition(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setSprinting(Z)V"))
+    private boolean wrapSetSprinting(ClientPlayerEntity instance, boolean sprinting) {
+        return sprinting || !ElytraFly.getBounceMode().keepsSprint(instance);
     }
 
     @ModifyReturnValue(method = "isSneaking", at = @At("RETURN"))

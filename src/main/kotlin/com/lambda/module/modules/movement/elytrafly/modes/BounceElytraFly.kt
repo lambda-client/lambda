@@ -35,24 +35,25 @@ import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.module.modules.movement.elytrafly.ObstaclePassingMode
 import com.lambda.module.modules.movement.elytrafly.PasserSettings
 import com.lambda.threading.runSafe
-import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.SpeedUnit
 import com.lambda.util.TickTimer
-import com.lambda.util.math.dist
 import com.lambda.util.math.distSq
 import com.lambda.util.math.minus
 import com.lambda.util.player.PlayerUtils.canStartGliding
 import com.lambda.util.player.PlayerUtils.canTakeoff
 import net.minecraft.client.input.KeyboardInput.getMovementMultiplier
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.network.packet.Packet
-import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerInputC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
+import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
 import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.pow
@@ -75,6 +76,7 @@ class BounceElytraFly(
 	private val minimizePackets by c.setting("Minimize Packets", true, "Shrinks the amount of start fly packets sent to the server as much as possible")
 	private val fakeLag by c.setting("Fake Lag", true, "Emulates the player lagging to allow flying in 1x2 tunnels")
 		.onValueChange { _, to -> if (!to) flushPackets() }
+	private val maxHold by c.setting("Max Hold", 10, 1..100, 1, "How long Fake Lag can hold packets", "ticks") { fakeLag }
 
 	@Group(Y_MOTION_GROUP) val yMotionSetting by c.setting("Y Motion", false, "Cancels the players y velocity to aid speed")
 	@Group(Y_MOTION_GROUP) val onlyOnDiagonal: Boolean by c.setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { yMotionSetting }
@@ -100,14 +102,18 @@ class BounceElytraFly(
 	private var wantJump = false
 	private var prevGliding: Boolean? = null
 	private val pauseTimer = TickTimer()
-	private val pingPackets = ConcurrentLinkedQueue<CommonPingS2CPacket>()
+	private val holdTimer = TickTimer()
+	// Holds pongs too, so Grim gets them in order with the moves
 	private val sendPacketQueue = LinkedList<Packet<*>>()
+	private var answeringSetback = false
 	private var sneakLeft = false
 	private var sneakRight = false
 	private var interrupting = false
 
 	private val flightPaused
-		get() = !pauseTimer.hasSurpassed(flagPause) || interrupting || BaritoneHandler.isActive
+		get() = !pauseTimer.hasSurpassed(flagPause) || bouncingStopped
+	private val bouncingStopped
+		get() = interrupting || BaritoneHandler.isActive
 
 	private val SafeContext.queuePackets
 		get() = fakeLag && player.isGliding && (!yMotionSetting || !onYMotionAngle) &&
@@ -123,6 +129,8 @@ class BounceElytraFly(
 		listen<TickEvent.Pre> {
 			pauseTimer.tick()
 			wantJump = false
+			// A sprint doesn't start by itself while gliding
+			if (keepsSprint(player) && !player.isSprinting) player.isSprinting = true
 
 			if (autoPitch) {
 				rotationRequest {
@@ -137,9 +145,8 @@ class BounceElytraFly(
 			if (handlePassingObstacles()) return@listen
 
 			if (yMotionSetting && strictYMotionRange && onYMotionAngle) run yMotionCorrection@ {
+				if (!movedFromStart()) return@yMotionCorrection
 				val playerPos = player.pos
-				val validDistanceFromStart = Vec3d(playerPos.x, startPos.y, playerPos.z) dist startPos > 0.1
-				if (!validDistanceFromStart) return@yMotionCorrection
 
 				val snappedDir = getSnappedDir()
 				val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
@@ -159,7 +166,12 @@ class BounceElytraFly(
 				}
 			}
 
-			if (flightPaused) return@listen
+			if (bouncingStopped) return@listen
+			if (flightPaused) {
+				// Staying on the ground after a landing ends the glide
+				if (player.isOnGround && (player.isGliding || (takeoff && player.canTakeoff))) wantJump = jump
+				return@listen
+			}
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
@@ -190,6 +202,8 @@ class BounceElytraFly(
 
 		listen<TickEvent.Post>({ -100 }) {
 			interrupting = false
+			if (sendPacketQueue.isNotEmpty()) holdTimer.tick()
+			if (holdTimer.hasSurpassed(maxHold)) flushPackets()
 		}
 
 		listen<MovementEvent.InputUpdate> { event ->
@@ -216,24 +230,24 @@ class BounceElytraFly(
 				return@listen
 			}
 			if (!wantJump) return@listen
-			if (flightPaused) return@listen
+			if (bouncingStopped) return@listen
 			input.jump()
 		}
 
 		listen<PacketEvent.Send.Pre>({ 1 }) { event ->
-			if (queuePackets) {
-				sendPacketQueue.add(event.packet)
+			// Keep-alives are answered from the network thread, and the queue is the game thread's
+			if (!mc.isOnThread) return@listen
+			val packet = event.packet
+			// The server takes no moves until it has a setback's confirm and the move after it
+			if (packet is TeleportConfirmC2SPacket) answeringSetback = true
+			if (queuePackets && !answeringSetback) {
+				sendPacketQueue.add(packet)
 				event.cancel()
 				return@listen
 			}
 
 			flushPackets()
-		}
-		listen<PacketEvent.Receive.Pre>({ 1 }) { event ->
-			if (event.packet is CommonPingS2CPacket && queuePackets) {
-				pingPackets.add(event.packet)
-				event.cancel()
-			}
+			if (packet is PlayerMoveC2SPacket) answeringSetback = false
 		}
 
 		onFlag { pauseTimer.reset() }
@@ -241,6 +255,7 @@ class BounceElytraFly(
 		onDisable {
 			wantJump = false
 			prevGliding = false
+			answeringSetback = false
 			flushPackets()
 			sneakLeft = false
 			sneakRight = false
@@ -248,15 +263,33 @@ class BounceElytraFly(
 	}
 
 	private fun SafeContext.flushPackets() {
+		holdTimer.reset()
 		while (sendPacketQueue.isNotEmpty()) {
 			val packet = sendPacketQueue.poll()
 			connection.sendPacketSilently(packet)
 		}
-		while (pingPackets.isNotEmpty()) {
-			val packet = pingPackets.poll()
-			connection.handlePacketSilently(packet)
-		}
 	}
+
+	// Sent like pressing jump mid-air, which Grim checks for
+	override fun SafeContext.startFlyPacket() {
+		if (player.lastPlayerInput.jump) sendJumpKey(false)
+		connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
+		sendJumpKey(true)
+		// Kept down into the next move, as a press would be
+		wantJump = true
+		// Now, as the flags the server echoes for a later sprint can end the next glide
+		if (keepsSprint(player) && !player.isSprinting) player.isSprinting = true
+	}
+
+	private fun SafeContext.sendJumpKey(down: Boolean) {
+		val last = player.lastPlayerInput
+		val input = PlayerInput(last.forward, last.backward, last.left, last.right, down, last.sneak, last.sprint)
+		connection.sendPacket(PlayerInputC2SPacket(input))
+		player.lastPlayerInput = input
+	}
+
+	fun keepsSprint(player: ClientPlayerEntity) =
+		isEnabled && player.isGliding && player.canSprintOrFly()
 
 	fun getModifiedVelocity(original: Vec3d) =
 		runSafe {
