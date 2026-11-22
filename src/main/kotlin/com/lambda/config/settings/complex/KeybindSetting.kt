@@ -53,6 +53,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.Tooltip
 import com.lambda.gui.component.mouseClickable
+import com.lambda.gui.core.Press
 import com.lambda.gui.core.observe
 import com.lambda.gui.settings.Labeled
 import com.lambda.gui.theme.LambdaTheme
@@ -148,7 +149,10 @@ class KeybindSetting(
                         .height(Look.rowHeight)
                         .clip(RoundedCornerShape(Look.controlRounding))
                         .background(if (recording) colors.secondary else colors.control)
-                        .mouseClickable { recorder = this@KeybindSetting }
+                        .mouseClickable {
+                            val stoppedHere = stopped === this@KeybindSetting && stoppedBy == Press.id
+                            if (!stoppedHere) recorder = this@KeybindSetting
+                        }
                         .padding(horizontal = 4.dp)
                 ) {
                     Text(
@@ -177,6 +181,8 @@ class KeybindSetting(
     private fun record(event: ButtonEvent.Mouse.Click) {
         if (!event.isPressed) return
         recorder = null
+        stopped = this
+        stoppedBy = Press.id + 1
         if (event.button == GLFW_MOUSE_BUTTON_LEFT) return
         event.cancel()
         value = Bind(0, event.modifiers, event.button)
@@ -184,6 +190,8 @@ class KeybindSetting(
 
     companion object {
         private var recorder: KeybindSetting? by mutableStateOf(null)
+        private var stopped: KeybindSetting? = null
+        private var stoppedBy = 0L
 
         internal val isRecording get() = recorder != null
 

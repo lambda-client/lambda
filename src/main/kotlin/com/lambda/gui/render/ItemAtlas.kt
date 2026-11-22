@@ -68,6 +68,7 @@ object ItemAtlas {
     private val slots = ArrayList<Slot>()
     private var strip: Strip? = null
     private var pendingImport = false
+    private var rearranged = false
 
     private val state = GuiRenderState()
     private val context by lazy { DrawContext(mc, state, 0, 0) }
@@ -88,10 +89,12 @@ object ItemAtlas {
 
     fun add(slot: Slot) {
         slots += slot
+        rearranged = true
     }
 
     fun remove(slot: Slot) {
         slots -= slot
+        rearranged = true
     }
 
     fun DrawScope.drawItem(slot: Slot) {
@@ -136,7 +139,7 @@ object ItemAtlas {
             moving = moving || it.state().isAnimated
         }
         val changed =
-            scale != this.scale || models != renderedModels ||
+            rearranged || scale != this.scale || models != renderedModels ||
                     slots.any { !ItemStack.areEqual(it.stack, it.rendered) }
         val now = System.nanoTime()
         if (!changed && !(moving && now - renderedAt >= ANIMATION_INTERVAL)) {
@@ -153,6 +156,7 @@ object ItemAtlas {
                 Strip(width, height).also { strip = it }
             }
         this.scale = scale
+        rearranged = false
         renderedModels = models
         slots.forEach { it.rendered = it.stack.copy() }
         draw(strip.framebuffer)

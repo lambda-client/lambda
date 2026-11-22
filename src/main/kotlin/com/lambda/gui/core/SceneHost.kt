@@ -20,11 +20,16 @@ package com.lambda.gui.core
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.asComposeCanvas
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.platform.FrameRecomposer
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toSize
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
@@ -76,8 +81,10 @@ internal class SceneHost(
 
     private var skia: DirectContext? = null
     private var target: SkiaTarget? = null
+    private var underlayTarget: SkiaTarget? = null
 
     val texture: GpuTextureView? get() = target?.view
+    val underlayTexture: GpuTextureView? get() = underlayTarget?.view
 
     fun advance(size: IntSize, density: Float): Boolean {
         if (scene.size != size || scene.density.density != density) {
@@ -91,21 +98,40 @@ internal class SceneHost(
         return invalidated || scene.hasPendingDraw || target == null
     }
 
-    fun draw(beforeScene: (DirectContext) -> Unit = {}) {
+    fun draw(underlay: GraphicsLayer? = null, beforeScene: (DirectContext) -> Unit = {}) {
         val size = scene.size ?: return
-        val outgrown = target?.takeIf { it.size != size }
-        val target = target?.takeIf { it.size == size } ?: SkiaTarget(size).also { target = it }
+        val outgrown =
+            listOfNotNull(
+                target?.takeIf { it.size != size },
+                underlayTarget?.takeIf { it.size != size || underlay == null }
+            )
+        val target = target?.takeIf { it !in outgrown } ?: SkiaTarget(size).also { target = it }
+        val underlayTarget =
+            if (underlay == null) null
+            else underlayTarget?.takeIf { it !in outgrown } ?: SkiaTarget(size)
+        this.underlayTarget = underlayTarget
         GlState.borrow {
             val skia = skia ?: DirectContext.makeGL().also { skia = it }
-            outgrown?.detach()
+            outgrown.forEach { it.detach() }
             val surface = target.attach(skia)
+            val underlaySurface = underlayTarget?.attach(skia)
             skia.resetGLAll()
             beforeScene(skia)
             surface.canvas.clear(Color.TRANSPARENT)
             scene.draw(surface.canvas.asComposeCanvas())
             surface.flushAndSubmit()
+            if (underlay != null && underlaySurface != null) {
+                underlaySurface.canvas.clear(Color.TRANSPARENT)
+                CanvasDrawScope().draw(
+                    scene.density,
+                    LayoutDirection.Ltr,
+                    underlaySurface.canvas.asComposeCanvas(),
+                    size.toSize()
+                ) { drawLayer(underlay) }
+                underlaySurface.flushAndSubmit()
+            }
         }
-        outgrown?.close()
+        outgrown.forEach { it.close() }
         invalidated = false
     }
 
@@ -117,14 +143,15 @@ internal class SceneHost(
     fun closeAndFree() {
         runCatching { scene.close() }
         runCatching { recomposer.close() }
-        val freed = target
+        val freed = listOfNotNull(target, underlayTarget)
         target = null
+        underlayTarget = null
         GlState.borrow {
-            freed?.detach()
+            freed.forEach { it.detach() }
             skia?.close()
         }
         skia = null
-        freed?.close()
+        freed.forEach { it.close() }
     }
 }
 

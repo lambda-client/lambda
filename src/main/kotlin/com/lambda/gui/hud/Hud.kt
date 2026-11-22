@@ -25,11 +25,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
@@ -39,6 +43,7 @@ import com.lambda.gui.GuiScreen
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.shadowed
 import com.lambda.gui.core.observe
+import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Type
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
@@ -49,7 +54,7 @@ private val HUD_TEXT_SHADOW = Color.Black.copy(alpha = 0.75f)
 private val ELEMENT_PADDING = 1.dp
 
 object HudConfig : Loadable, Config("HUD", HudCategory) {
-    val showInScreens by setting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The Lambda GUI always shows them.")
+    val showInScreens by setting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The HUD editor always shows them.")
     val textColor by setting("Text Color", java.awt.Color.WHITE, "Colour of HUD text")
     val scale by setting("Scale", 1f, 0.5f..3f, 0.05f, "Size of HUD text")
 }
@@ -57,18 +62,24 @@ object HudConfig : Loadable, Config("HUD", HudCategory) {
 internal object Hud {
     val modules: List<HudModule> by lazy { ModuleRegistry.modules.filterIsInstance<HudModule>() }
 
+    val enabled: List<HudModule>
+        get() = modules.filter { it.isEnabled }
+
     val shown: List<HudModule>
         get() {
             val screen = mc.currentScreen
             val covered = screen != null && screen !is GuiScreen && !HudConfig.showInScreens
             return if (mc.world == null || mc.options.hudHidden || covered) emptyList()
-            else modules.filter { it.isEnabled }
+            else enabled
         }
 }
 
 @Composable
 internal fun HudLayer(editor: HudEditorState? = null) {
-    val shown by observe { Hud.shown }
+    val shown by observe {
+        if (editor != null) Hud.enabled
+        else Hud.shown
+    }
     Box(Modifier.fillMaxSize()) {
         shown.forEach { hud ->
             key(hud) { HudElement(hud, editor) }
@@ -80,6 +91,7 @@ internal fun HudLayer(editor: HudEditorState? = null) {
 private fun HudElement(hud: HudModule, editor: HudEditorState?) {
     val anchor by observe { Offset(hud.anchorX, hud.anchorY) }
     val background by observe { hud.backgroundColor.value.toCompose() }
+    var empty by remember { mutableStateOf(false) }
     if (editor != null) DisposableEffect(hud) {
         onDispose { editor.bounds -= hud }
     }
@@ -108,7 +120,8 @@ private fun HudElement(hud: HudModule, editor: HudEditorState?) {
             .background(background)
             .padding(ELEMENT_PADDING)
     ) {
-        hud.Content()
+        Box(Modifier.onSizeChanged { empty = it.width == 0 || it.height == 0 }) { hud.Content() }
+        if (editor != null && empty) HudText(hud.name, color = LambdaTheme.colors.onSurfaceVariant)
     }
 }
 

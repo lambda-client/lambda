@@ -131,19 +131,20 @@ internal class HudEditorState(snapping: State<Boolean>) {
     var screen = Size.Zero
     var density = Density(1f)
 
-    val drop: Snap.Result? by derivedStateOf {
-        val hud = dragged ?: return@derivedStateOf null
-        val element = Rect(draggedTo, bounds[hud]?.size ?: return@derivedStateOf null)
-        if (this.snapping) {
-            Snap.snap(
-                element,
-                bounds.filterKeys { it != hud }.values,
-                Rect(Offset.Zero, screen),
-                density
-            )
+    val drop: Snap.Result? by
+        derivedStateOf {
+            val hud = dragged ?: return@derivedStateOf null
+            val element = Rect(draggedTo, bounds[hud]?.size ?: return@derivedStateOf null)
+            if (this.snapping) {
+                Snap.snap(
+                    element,
+                    bounds.filterKeys { it != hud }.values,
+                    Rect(Offset.Zero, screen),
+                    density
+                )
+            }
+            else Snap.free(element, Rect(Offset.Zero, screen))
         }
-        else Snap.free(element, Rect(Offset.Zero, screen))
-    }
 
     fun shownPosition(hud: HudModule) = drop?.position.takeIf { dragged == hud }
 }
