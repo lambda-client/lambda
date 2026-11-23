@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.Expandable
 import com.lambda.gui.component.LocalPopupHost
 import com.lambda.gui.component.PopupHost
@@ -292,7 +293,7 @@ private fun Grip(
     val density = LocalDensity.current
     val color = LambdaTheme.colors.onSurfaceVariant
     Box(
-        contentAlignment = Alignment.Center,
+        contentAlignment = Centered.BOTH,
         modifier = modifier
             .fillMaxWidth()
             .height(Look.panelPadding.coerceAtLeast(MIN_GRIP_HEIGHT))

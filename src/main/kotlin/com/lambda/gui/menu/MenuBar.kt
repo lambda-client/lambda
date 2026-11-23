@@ -41,7 +41,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -74,6 +73,7 @@ import com.lambda.gui.LambdaGui
 import com.lambda.gui.clickgui.CLICK_GUI_CATEGORIES
 import com.lambda.gui.clickgui.ClickGuiDialog
 import com.lambda.gui.clickgui.ClickGuiState
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.Menu
 import com.lambda.gui.component.MenuDivider
 import com.lambda.gui.component.MenuItem
@@ -122,7 +122,7 @@ internal fun MenuBar(modifier: Modifier = Modifier) {
     var menus by remember { mutableStateOf(IntSize.Zero) }
     var search by remember { mutableStateOf(IntSize.Zero) }
     Box(
-        contentAlignment = Alignment.Center,
+        contentAlignment = Centered.BOTH,
         modifier = modifier
             .fillMaxWidth()
             .height(MENU_BAR_HEIGHT)
@@ -132,10 +132,10 @@ internal fun MenuBar(modifier: Modifier = Modifier) {
     ) {
         Row(
             Modifier
-                .align(Alignment.CenterStart)
+                .align(Centered.START)
                 .fillMaxHeight()
                 .onSizeChanged { menus = it },
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Centered.VERTICALLY
         ) {
             BarMenu("Lambda", icon = "textures/lambda.png") { LambdaMenu() }
             BarMenu("Modules") { ModulesMenu() }
@@ -164,7 +164,7 @@ private fun BarMenu(
 ) {
     val menu = remember { MenuState() }
     Box(
-        contentAlignment = Alignment.Center,
+        contentAlignment = Centered.BOTH,
         modifier = Modifier
             .fillMaxHeight()
             .hoverHighlight(LambdaTheme.colors.controlSelected)
@@ -172,7 +172,7 @@ private fun BarMenu(
             .padding(horizontal = 6.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Centered.VERTICALLY,
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             if (icon != null) {
@@ -277,7 +277,7 @@ private fun ResultRow(
     }
     val point by rememberUpdatedState(onPoint)
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Centered.VERTICALLY,
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(min = SEARCH_WIDTH)

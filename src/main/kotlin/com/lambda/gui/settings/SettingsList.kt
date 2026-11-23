@@ -42,7 +42,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
@@ -55,6 +54,7 @@ import com.lambda.config.entries.Setting
 import com.lambda.config.hasVisibleSettings
 import com.lambda.config.holds
 import com.lambda.gui.Reveal
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.Chevron
 import com.lambda.gui.component.ContentColor
 import com.lambda.gui.component.Expandable
@@ -142,7 +142,7 @@ private fun TabPicker(names: List<String>, selected: String, onSelect: (String) 
     Box(Modifier.fillMaxWidth().onSizeChanged { band = it }) {
         ContentColor(colors.onHeader) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Centered.VERTICALLY,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .fillMaxWidth()

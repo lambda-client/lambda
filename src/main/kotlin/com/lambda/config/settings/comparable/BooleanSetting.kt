@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lambda.brigadier.argument.boolean
@@ -34,6 +33,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.Checkmark
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.mouseClickable
@@ -56,7 +56,7 @@ class BooleanSetting(
 	override fun Gui() {
 		val checked by observe { value }
 		Row(
-			verticalAlignment = Alignment.CenterVertically,
+			verticalAlignment = Centered.VERTICALLY,
 			horizontalArrangement = Arrangement.spacedBy(3.dp),
 			modifier = Modifier
 				.fillMaxWidth()

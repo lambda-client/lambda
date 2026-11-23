@@ -62,6 +62,7 @@ import com.lambda.gui.theme.Type
 import com.lambda.util.math.toCompose
 import kotlin.math.roundToInt
 import java.awt.Color as AwtColor
+import com.lambda.gui.component.Centered
 
 private val PICKER_WIDTH = 130.dp
 private val HUES = (0..6).map { Color.hsv(it * 60f % 360f, 1f, 1f) }
@@ -177,7 +178,7 @@ private fun Picker(color: AwtColor, onColorChange: (AwtColor) -> Unit) {
             }
         }
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Centered.VERTICALLY,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text("Hex", color = colors.onSurfaceVariant, style = Type.label)

@@ -44,7 +44,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -65,6 +64,7 @@ import com.lambda.gui.GuiConfig
 import com.lambda.gui.LambdaGui
 import com.lambda.gui.Reveal
 import com.lambda.gui.Snap
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.ScrollColumn
 import com.lambda.gui.component.SlidingText
 import com.lambda.gui.component.Text
@@ -297,7 +297,7 @@ private fun ModuleRow(
 
     Tooltip(module.description, Modifier.fillMaxWidth()) {
         Box(
-            contentAlignment = Alignment.CenterStart,
+            contentAlignment = Centered.START,
             modifier = Modifier
                 .fillMaxWidth()
                 .then(

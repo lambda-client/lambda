@@ -28,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -50,6 +49,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.Tooltip
 import com.lambda.gui.component.mouseClickable
@@ -144,7 +144,7 @@ class KeybindSetting(
         Labeled(name) {
             Tooltip("Click, then press a key or mouse button. Backspace unbinds, Escape cancels.") {
                 Box(
-                    contentAlignment = Alignment.Center,
+                    contentAlignment = Centered.BOTH,
                     modifier = Modifier
                         .height(Look.rowHeight)
                         .clip(RoundedCornerShape(Look.controlRounding))

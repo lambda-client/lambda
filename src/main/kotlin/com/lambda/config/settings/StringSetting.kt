@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lambda.brigadier.argument.greedyString
@@ -39,6 +38,7 @@ import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.TextInput
 import com.lambda.gui.core.observe
@@ -73,7 +73,7 @@ class StringSetting(
             Row(
                 Modifier.padding(start = ROW_INSET, top = 1.dp),
                 Arrangement.spacedBy(ALTERED_GAP),
-                Alignment.CenterVertically
+                Centered.VERTICALLY
             ) {
                 AlteredDot()
                 Text(name, maxLines = 1)

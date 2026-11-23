@@ -529,7 +529,7 @@ fun MenuItem(
         onDispose { currentOnHover(false) }
     }
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Centered.VERTICALLY,
         modifier = Modifier
             .fillMaxWidth()
             .hoverable(interactions)
@@ -584,7 +584,7 @@ fun Submenu(
     }
     Box {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Centered.VERTICALLY,
             modifier = Modifier
                 .fillMaxWidth()
                 .hoverable(interactions, enabled)
@@ -626,7 +626,7 @@ fun MenuHelp(text: String, label: String = "Help") {
     val colors = LambdaTheme.colors
     Tooltip(text, Modifier.fillMaxWidth()) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Centered.VERTICALLY,
             modifier = Modifier
                 .fillMaxWidth()
                 .hoverHighlight(colors.raised)
@@ -670,7 +670,7 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
         onKeyEvent = { onDismiss != null && it.dismissOnEscape(onDismiss) },
     ) {
         KeyboardFocus.Layer()
-        Box(Modifier.fillMaxSize(), Alignment.Center) {
+        Box(Modifier.fillMaxSize(), Centered.BOTH) {
             Box(
                 Modifier
                     .matchParentSize()

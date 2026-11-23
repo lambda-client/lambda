@@ -33,7 +33,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -47,6 +46,7 @@ import com.lambda.config.hasVisibleSettings
 import com.lambda.config.holds
 import com.lambda.gui.Reveal
 import com.lambda.gui.component.Button
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.Dropdown
 import com.lambda.gui.component.LocalClickOnRelease
 import com.lambda.gui.component.ScrollColumn
@@ -145,7 +145,7 @@ private fun PageStrip(
             val isSelected = page == selected
             val line by animateColorAsState(if (isSelected) colors.secondary else colors.raised)
             Box(
-                contentAlignment = Alignment.Center,
+                contentAlignment = Centered.BOTH,
                 modifier = Modifier
                     .weight(page.title.length + 2f)
                     .height(Look.rowHeight + 1.dp)
@@ -179,7 +179,7 @@ private fun SettingsPage(module: Module) {
     else {
         Box(
             Modifier.fillMaxWidth().padding(vertical = 4.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Centered.BOTH
         ) {
             Text("No settings", color = LambdaTheme.colors.onSurfaceVariant)
         }

@@ -31,7 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -47,6 +46,7 @@ import com.lambda.config.EntryCore
 import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.KeyboardFocus
 import com.lambda.gui.component.NumberInput
 import com.lambda.gui.component.Text
@@ -162,7 +162,7 @@ abstract class NumericSetting<T>(
 		val label = remember(shown, unit) { format(shown) }
 		val fraction by animateFloatAsState(fractionOf(shown))
 		Row(
-			verticalAlignment = Alignment.CenterVertically,
+			verticalAlignment = Centered.VERTICALLY,
 			horizontalArrangement = Arrangement.spacedBy(8.dp),
 			modifier = Modifier
 				.fillMaxWidth()
@@ -198,7 +198,7 @@ abstract class NumericSetting<T>(
 			Row(
 				Modifier.weight(1f),
 				Arrangement.spacedBy(ALTERED_GAP),
-				Alignment.CenterVertically
+				Centered.VERTICALLY
 			) {
 				AlteredDot(shadowed = true)
 				Text(name, color = colors.onControl, maxLines = 1)

@@ -37,7 +37,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -73,7 +72,7 @@ fun Scrollbar(adapter: ScrollbarAdapter, modifier: Modifier) {
     Box(modifier) {
         VerticalScrollbar(
             adapter = adapter,
-            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+            modifier = Modifier.align(Centered.END).fillMaxHeight(),
             style = ScrollbarStyle(
                 minimalHeight = 12.dp,
                 thickness = 2.dp,

@@ -40,7 +40,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -48,6 +47,7 @@ import com.lambda.config.serializers.BlockSerializer
 import com.lambda.config.settings.collections.CollectionSetting
 import com.lambda.config.settings.complex.BlockSetting
 import com.lambda.gui.component.Button
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.Chip
 import com.lambda.gui.component.Dialog
 import com.lambda.gui.component.Ellipsis
@@ -105,7 +105,7 @@ private fun <R : Any> CollectionWindow(
         Column(Modifier.width(360.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(setting.name)
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Centered.VERTICALLY,
                 horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 TextInput(
@@ -208,7 +208,7 @@ private fun <R> Pane(
             ) {
                 items(entries) { entry ->
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Centered.VERTICALLY,
                         horizontalArrangement = Arrangement.spacedBy(3.dp),
                         modifier = Modifier
                             .fillMaxWidth()

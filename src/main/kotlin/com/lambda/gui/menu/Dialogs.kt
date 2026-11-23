@@ -30,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -45,6 +44,7 @@ import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.gui.component.Button
+import com.lambda.gui.component.Centered
 import com.lambda.gui.component.Dialog
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.TextInput
@@ -190,7 +190,7 @@ internal fun LoaderPromptDialog(prompt: AutoUpdater.Prompt) {
             Row(
                 Modifier.fillMaxWidth().padding(top = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Centered.VERTICALLY
             ) {
                 Button(
                     label = when (prompt) {

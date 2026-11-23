@@ -46,7 +46,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -88,7 +87,7 @@ fun Button(
         if (prominent) colors.onHeader
         else colors.onControl
     Box(
-        contentAlignment = Alignment.Center,
+        contentAlignment = Centered.BOTH,
         modifier = modifier
             .heightIn(min = Look.rowHeight + 2.dp)
             .clip(RoundedCornerShape(Look.controlRounding))
@@ -194,7 +193,7 @@ fun Section(
             }
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Centered.VERTICALLY,
             horizontalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -225,7 +224,7 @@ fun Chip(
     val colors = LambdaTheme.colors
     ContentColor(colors.onControl) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Centered.VERTICALLY,
             horizontalArrangement = Arrangement.spacedBy(3.dp),
             modifier = modifier
                 .height(Look.rowHeight)
@@ -298,14 +297,14 @@ fun LabeledRow(
     Layout(
         content = {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Centered.VERTICALLY,
                 horizontalArrangement = Arrangement.spacedBy(LEADING_GAP)
             ) {
                 leading()
                 Text(label, maxLines = 1)
             }
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Centered.VERTICALLY,
                 horizontalArrangement = Arrangement.spacedBy(LABEL_GAP),
                 content = editor
             )
