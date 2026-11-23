@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -34,6 +35,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
@@ -91,11 +94,14 @@ internal fun HudLayer(editor: HudEditorState? = null) {
 private fun HudElement(hud: HudModule, editor: HudEditorState?) {
     val anchor by observe { Offset(hud.anchorX, hud.anchorY) }
     val background by observe { hud.backgroundColor.value.toCompose() }
+    val scale by observe { hud.scale }
     var empty by remember { mutableStateOf(false) }
     if (editor != null) DisposableEffect(hud) {
         onDispose { editor.bounds -= hud }
     }
 
+    val density = LocalDensity.current
+    val scaled = remember(density, scale) { Density(density.density * scale, density.fontScale) }
     Box(
         Modifier
             .layout { measurable, constraints ->
@@ -118,10 +124,13 @@ private fun HudElement(hud: HudModule, editor: HudEditorState?) {
             .then(if (editor != null) Modifier.hudEditable(hud, editor) else Modifier)
             .clipToBounds()
             .background(background)
-            .padding(ELEMENT_PADDING)
     ) {
-        Box(Modifier.onSizeChanged { empty = it.width == 0 || it.height == 0 }) { hud.Content() }
-        if (editor != null && empty) HudText(hud.name, color = LambdaTheme.colors.onSurfaceVariant)
+        CompositionLocalProvider(LocalDensity provides scaled) {
+            Box(Modifier.padding(ELEMENT_PADDING)) {
+                Box(Modifier.onSizeChanged { empty = it.width == 0 || it.height == 0 }) { hud.Content() }
+                if (editor != null && empty) HudText(hud.name, color = LambdaTheme.colors.onSurfaceVariant)
+            }
+        }
     }
 }
 

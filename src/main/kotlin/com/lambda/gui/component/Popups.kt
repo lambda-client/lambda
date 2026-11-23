@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -98,6 +99,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.lambda.gui.GuiConfig
 import com.lambda.gui.LambdaGui
 import com.lambda.gui.core.GameClipboard
+import com.lambda.gui.core.LocalPresence
 import com.lambda.gui.core.LocalShown
 import com.lambda.gui.core.Press
 import com.lambda.gui.core.awaitFrames
@@ -659,6 +661,7 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
         return
     }
     val colors = LambdaTheme.colors
+    val presence = LocalPresence.current
     ScenePopup(
         popupPositionProvider = remember {
             positionProvider { _, _, _ -> IntOffset.Zero }
@@ -667,25 +670,30 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
         onKeyEvent = { onDismiss != null && it.dismissOnEscape(onDismiss) },
     ) {
         KeyboardFocus.Layer()
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .glass(Color.Black.copy(alpha = 0.35f), RectangleShape)
-                .mouseClickable(keyboard = false) { onDismiss?.invoke() }
-        ) {
+        Box(Modifier.fillMaxSize(), Alignment.Center) {
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .graphicsLayer { alpha = presence() }
+                    .glass(Color.Black.copy(alpha = 0.35f), RectangleShape)
+                    .mouseClickable(keyboard = false) { onDismiss?.invoke() }
+            )
             ContentColor(colors.onSurface) {
-                Box(
+                AnimatedVisibility(
+                    visible = !LambdaGui.foldsClosed,
                     modifier = Modifier
+                        .guiPresence()
                         .window(
                             colors.panel,
                             colors.border,
                             RoundedCornerShape(Look.panelRounding),
                             floating = true
-                        )
-                        .padding(6.dp),
-                    content = content
-                )
+                        ),
+                    enter = expandVertically(Motion.guiFold),
+                    exit = shrinkVertically(Motion.guiFold),
+                ) {
+                    Box(Modifier.padding(6.dp), content = content)
+                }
             }
         }
     }
@@ -743,7 +751,7 @@ fun Tooltip(
             }
     ) {
         content()
-        if (visible && hovered) {
+        if (visible && hovered && !LambdaGui.leaving) {
             val below = with(LocalDensity.current) { 16.dp.roundToPx() }
             ScenePopup(
                 popupPositionProvider = remember(pointer, bounds) {

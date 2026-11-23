@@ -27,10 +27,14 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -73,21 +77,30 @@ import com.lambda.gui.LambdaGui
 import com.lambda.gui.Reveal
 import com.lambda.gui.Snap
 import com.lambda.gui.Snap.snapLines
+import com.lambda.gui.clickgui.MIN_PANEL_WIDTH
+import com.lambda.gui.clickgui.widthOfContent
 import com.lambda.gui.component.ContextMenu
 import com.lambda.gui.component.MenuDivider
 import com.lambda.gui.component.MenuHelp
 import com.lambda.gui.component.MenuItem
 import com.lambda.gui.component.MenuLabel
+import com.lambda.gui.component.Text
 import com.lambda.gui.component.onMousePress
 import com.lambda.gui.component.rememberLast
 import com.lambda.gui.component.window
 import com.lambda.gui.core.observe
 import com.lambda.gui.settings.ConfigSettings
+import com.lambda.gui.settings.ModuleSettings
+import com.lambda.gui.settings.PanelPage
+import com.lambda.gui.settings.ROW_INSET
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Look
+import com.lambda.gui.theme.Type
 import com.lambda.module.HudModule
+import com.lambda.module.Module
 
 private val PANEL_SCALE = spring<Float>(stiffness = Spring.StiffnessMedium)
+private val CONFIG_WIDTH = 150.dp
 
 internal class HudEditorState(snapping: State<Boolean>) {
     val snapping by snapping
@@ -270,11 +283,8 @@ private fun ElementSettings(config: Config, open: Boolean, editor: HudEditorStat
         enter = scaleIn(PANEL_SCALE),
         exit = scaleOut(PANEL_SCALE),
     ) {
-        ConfigSettings(
-            config = config,
-            maxHeight = maxHeight,
-            onDone = { editor.configure(null) },
-            modifier = Modifier
+        Column(
+            Modifier
                 .onSizeChanged { size = it }
                 .window(colors.panel, colors.border, RoundedCornerShape(Look.panelRounding), floating = true)
                 .pointerInput(Unit) {
@@ -288,9 +298,27 @@ private fun ElementSettings(config: Config, open: Boolean, editor: HudEditorStat
                         }
                     }
                 }
-                .padding(6.dp)
-                .width(200.dp)
-        )
+                .padding(Look.panelPadding)
+        ) {
+            if (config is Module) {
+                var page by remember(config) { mutableStateOf(PanelPage.Settings) }
+                Column(
+                    Modifier
+                        .widthIn(MIN_PANEL_WIDTH, Look.settingsWidth)
+                        .heightIn(max = maxHeight)
+                        .widthOfContent()
+                ) {
+                    Text(
+                        config.name,
+                        Modifier.padding(start = ROW_INSET, bottom = Look.settingSpacing),
+                        style = Type.title,
+                        maxLines = 1
+                    )
+                    ModuleSettings(config, page, { page = it }, rememberScrollState())
+                }
+            }
+            else ConfigSettings(config, maxHeight, onDone = { editor.configure(null) }, Modifier.width(CONFIG_WIDTH))
+        }
     }
 }
 

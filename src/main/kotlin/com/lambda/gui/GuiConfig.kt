@@ -90,7 +90,7 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     @Tab(SNAPPING_TAB) val snapEnabled by setting("Enable Snapping", true, "Master toggle for snapping HUD elements and click GUI windows into line when they are dragged")
     @Tab(SNAPPING_TAB) val snapKey by setting("Snap Key", KeyCode.LeftShift, "What is dragged only snaps while this is held. Unbind it to snap all the time.") { snapEnabled }
     @Tab(SNAPPING_TAB) val showSnapLines by setting("Show Snap Lines", false, "Draw the grid, and the line an element snaps to, while it is dragged") { snapEnabled }
-    @Tab(SNAPPING_TAB) val gridSize by setting("Grid Size", 25f, 2f..128f, 1f, "Grid step") { snapEnabled }
+    @Tab(SNAPPING_TAB) val gridSize by setting("Grid Size", 5f, 2f..128f, 1f, "Grid step") { snapEnabled }
     @Tab(SNAPPING_TAB) val snapToEdges by setting("Snap To Element Edges", true) { snapEnabled }
     @Tab(SNAPPING_TAB) val snapToCenters by setting("Snap To Element Centers", true) { snapEnabled }
     @Tab(SNAPPING_TAB) val snapToScreenCenter by setting("Snap To Screen Center", true) { snapEnabled }
@@ -255,7 +255,7 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     init {
         listenUnsafe<ComposeEvent.Gui.Post> { event ->
             val previewing = notificationHeld || notificationOption != null || System.currentTimeMillis() < notificationPreviewEnd
-            if (previewing) event.content { NotificationPreview() }
+            if (previewing && !LambdaGui.leaving) event.content { NotificationPreview() }
         }
     }
 

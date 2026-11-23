@@ -28,6 +28,9 @@ abstract class HudModule(
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
+    defaultScale: Float = 1f,
+    defaultAnchorX: Float = DEFAULT_ANCHOR,
+    defaultAnchorY: Float? = null,
 ) : Module(
     name,
     description,
@@ -37,9 +40,10 @@ abstract class HudModule(
     defaultKeybind = defaultKeybind
 ) {
     val backgroundColor = setting("Background Color", Color(0, 0, 0, 0))
+    val scale by setting("Scale", defaultScale, 0.25f..5f, 0.05f, "Size of this element, on top of the Scale in HUD Settings")
 
-    var anchorX by setting("HUD X", DEFAULT_ANCHOR, 0f..1f, 0.001f) { false }
-    var anchorY by setting("HUD Y", (DEFAULT_ANCHOR + DEFAULT_SPACING * created++).coerceAtMost(1f), 0f..1f, 0.001f) { false }
+    var anchorX by setting("HUD X", defaultAnchorX, 0f..1f, 0.001f) { false }
+    var anchorY by setting("HUD Y", defaultAnchorY ?: (DEFAULT_ANCHOR + DEFAULT_SPACING * created++).coerceAtMost(1f), 0f..1f, 0.001f) { false }
 
     @Composable
     abstract fun Content()

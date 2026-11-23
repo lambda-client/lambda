@@ -78,8 +78,6 @@ internal object Snap {
                 val neighbours =
                     buildList {
                         if (GuiConfig.snapToEdges) {
-                            add(startAt(start(area)))
-                            add(endAt(end(area)))
                             others.forEach { other ->
                                 add(startAt(start(other)))
                                 add(endAt(end(other)))

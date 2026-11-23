@@ -20,11 +20,9 @@ package com.lambda.module.modules.hud
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lambda.gui.component.rememberTexture
-import com.lambda.gui.core.observe
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 
@@ -33,17 +31,19 @@ object Watermark : HudModule(
     name = "Watermark",
     tag = ModuleTag.HUD,
     enabledByDefault = true,
+    defaultScale = 0.45f,
+    defaultAnchorX = 0.005f,
+    defaultAnchorY = 0.009f,
 ) {
-    private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
+    private const val LOGO_SCALE = 0.05f
 
     @Composable
     override fun Content() {
         val logo = rememberTexture("textures/lambda.png")
-        val scale by observe { scale }
         Image(
             logo,
             "Lambda",
-            Modifier.size((logo.width * scale).dp, (logo.height * scale).dp)
+            Modifier.size((logo.width * LOGO_SCALE).dp, (logo.height * LOGO_SCALE).dp)
         )
     }
 }

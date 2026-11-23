@@ -89,7 +89,7 @@ import com.lambda.module.ModuleTag
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-private val MIN_WIDTH = 130.dp
+internal val MIN_PANEL_WIDTH = 130.dp
 private val MIN_HEIGHT = 120.dp
 private val MIN_GRIP_HEIGHT = 3.dp
 private val INSET_SHADOW = 5.dp
@@ -181,7 +181,7 @@ internal fun SettingsPanel(
         ) {
             Box(
                 Modifier
-                    .widthIn(MIN_WIDTH, Look.settingsWidth)
+                    .widthIn(MIN_PANEL_WIDTH, Look.settingsWidth)
                     .heightIn(max = maxHeight)
                     .widthOfContent()
                     .onSizeChanged { size = it }
@@ -260,7 +260,7 @@ internal fun InlineSettings(panel: SettingsPanelState, open: Boolean) {
     }
 }
 
-private fun Modifier.widthOfContent(): Modifier =
+internal fun Modifier.widthOfContent(): Modifier =
     composed {
         val scope = rememberCoroutineScope()
         var width by remember { mutableStateOf<Animatable<Float, AnimationVector1D>?>(null) }
