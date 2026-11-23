@@ -19,7 +19,6 @@ package com.lambda.gui.settings
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -44,8 +42,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -77,6 +77,8 @@ internal val NUMBER_FIELD_WIDTH = 34.dp
 internal val ROW_INSET = 3.dp
 internal val ALTERED_GAP = 3.dp
 private val ALTERED_DOT = 3.dp
+private val ALTERED_SHADE = 3.5.dp
+private const val ALTERED_SHADE_ALPHA = 0.3f
 
 private val LocalAltered = compositionLocalOf { false }
 
@@ -122,7 +124,7 @@ fun SettingRow(setting: Setting<*>) {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
                             val change = event.changes.first()
                             val inside = change.position.x in 0f..size.width.toFloat() && change.position.y in 0f..size.height.toFloat()
-                            if (event.type == PointerEventType.Press && event.button == PointerButton.Secondary) {
+                            if (event.type == PointerEventType.Press && event.button == PointerButton.Secondary && modified) {
                                 change.consume()
                                 menu = (origin + change.position).round()
                                 continue
@@ -156,7 +158,7 @@ fun SettingRow(setting: Setting<*>) {
     rememberLast(menu)?.let { position ->
         key(position) {
             ContextMenu(menu != null, position, onDismiss = { menu = null }) {
-                MenuItem("Reset", enabled = modified) { setting.reset(silent = true) }
+                MenuItem("Reset") { setting.reset(silent = true) }
             }
         }
     }
@@ -204,6 +206,23 @@ internal fun Labeled(
 ) = LabeledRow(name, modifier.padding(start = ROW_INSET), { AlteredDot() }, editor)
 
 @Composable
-internal fun AlteredDot(color: Color = LambdaTheme.colors.secondary) {
-    if (LocalAltered.current) Box(Modifier.size(ALTERED_DOT).background(color, CircleShape))
+internal fun AlteredDot(shadowed: Boolean = false) {
+    if (!LocalAltered.current) return
+    val colors = LambdaTheme.colors
+    Box(
+        Modifier.size(ALTERED_DOT).drawBehind {
+            val reach = ALTERED_SHADE.toPx()
+            if (shadowed) {
+                drawCircle(
+                    Brush.radialGradient(
+                        listOf(Color.Black.copy(alpha = ALTERED_SHADE_ALPHA), Color.Transparent),
+                        center,
+                        reach
+                    ),
+                    reach
+                )
+            }
+            drawCircle(colors.secondary)
+        }
+    )
 }

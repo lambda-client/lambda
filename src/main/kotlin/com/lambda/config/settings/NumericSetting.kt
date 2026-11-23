@@ -200,7 +200,7 @@ abstract class NumericSetting<T>(
 				Arrangement.spacedBy(ALTERED_GAP),
 				Alignment.CenterVertically
 			) {
-				AlteredDot(colors.onControl)
+				AlteredDot(shadowed = true)
 				Text(name, color = colors.onControl, maxLines = 1)
 			}
 			Text(

@@ -241,6 +241,7 @@ internal fun CategoryWindow(
                     ModuleRow(
                         module = module,
                         isEdited = settings.isOpen(module),
+                        isLast = module === modules.last(),
                         pressedIn = !inline,
                         panel = settings.panelOf(module).takeUnless { inline },
                         onEdit = { settings.toggle(module) },
@@ -261,11 +262,15 @@ internal fun CategoryWindow(
 private fun ModuleRow(
     module: Module,
     isEdited: Boolean,
+    isLast: Boolean,
     pressedIn: Boolean,
     panel: SettingsPanelState?,
     onEdit: () -> Unit
 ) {
     val colors = LambdaTheme.colors
+    val end =
+        if (isLast && Look.outlines) Look.outlineWidth
+        else 0.dp
     val enabled by observe { module.isEnabled }
     val fill by
         animateColorAsState(
@@ -310,8 +315,8 @@ private fun ModuleRow(
                 .background(lit)
                 .hoverHighlight(colors.raised)
                 .then(if (Look.emboss) Modifier.background(EMBOSS) else Modifier)
-                .heightIn(min = Look.rowHeight)
-                .padding(horizontal = Look.modulePadding)
+                .heightIn(min = Look.rowHeight + end)
+                .padding(start = Look.modulePadding, end = Look.modulePadding, bottom = end)
         ) {
             SlidingText(
                 text = module.name,
