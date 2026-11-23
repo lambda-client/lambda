@@ -43,6 +43,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.unit.dp
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.EntryCore
 import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
@@ -54,6 +55,8 @@ import com.lambda.gui.component.keyboardFocusable
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.component.scrubbable
 import com.lambda.gui.core.observe
+import com.lambda.gui.settings.ALTERED_GAP
+import com.lambda.gui.settings.AlteredDot
 import com.lambda.gui.settings.ROW_INSET
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Look
@@ -92,8 +95,8 @@ abstract class NumericSetting<T>(
 
 	var appliedOnRelease = false
 
-	override val isModified
-		get() = abs(originalCore.value.toDouble() - originalCore.defaultValue.toDouble()) > step.toDouble() * SAME
+	override fun isModified(core: EntryCore<T>) =
+		abs(core.value.toDouble() - core.defaultValue.toDouble()) > step.toDouble() * SAME
 
 	protected abstract fun convert(number: BigDecimal): T
 
@@ -141,7 +144,7 @@ abstract class NumericSetting<T>(
 				current,
 				::parse,
 				{ value = it },
-				Modifier.fillMaxWidth(),
+				Modifier.fillMaxWidth().padding(start = ROW_INSET),
 				focused = true
 			) {
 				typing = false
@@ -163,6 +166,7 @@ abstract class NumericSetting<T>(
 			horizontalArrangement = Arrangement.spacedBy(8.dp),
 			modifier = Modifier
 				.fillMaxWidth()
+				.padding(start = ROW_INSET)
 				.heightIn(min = Look.rowHeight)
 				.clip(RoundedCornerShape(Look.controlRounding))
 				.background(colors.track)
@@ -191,7 +195,14 @@ abstract class NumericSetting<T>(
 				}
 				.padding(horizontal = ROW_INSET)
 		) {
-			Text(name, Modifier.weight(1f), colors.onControl, maxLines = 1)
+			Row(
+				Modifier.weight(1f),
+				Arrangement.spacedBy(ALTERED_GAP),
+				Alignment.CenterVertically
+			) {
+				AlteredDot(colors.onControl)
+				Text(name, color = colors.onControl, maxLines = 1)
+			}
 			Text(
 				text = label,
 				modifier = Modifier.mouseClickable(keyboard = false) { typing = true },

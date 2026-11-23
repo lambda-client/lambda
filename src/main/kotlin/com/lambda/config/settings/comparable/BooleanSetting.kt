@@ -38,6 +38,7 @@ import com.lambda.gui.component.Checkmark
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.mouseClickable
 import com.lambda.gui.core.observe
+import com.lambda.gui.settings.AlteredDot
 import com.lambda.gui.settings.ROW_INSET
 import com.lambda.gui.theme.Look
 import com.lambda.util.extension.CommandBuilder
@@ -64,7 +65,8 @@ class BooleanSetting(
 				.padding(horizontal = ROW_INSET)
 		) {
 			Checkmark(checked)
-			Text(name, maxLines = 1)
+			Text(name, Modifier.weight(1f), maxLines = 1)
+			AlteredDot()
 		}
 	}
 

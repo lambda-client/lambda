@@ -22,6 +22,7 @@ package com.lambda.config.settings.collections
 import androidx.compose.runtime.Composable
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.EntryCore
 import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
@@ -64,8 +65,8 @@ open class CollectionSetting<R : Any>(
 	val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 	val unsafeDeselectListeners = mutableListOf<(R) -> Unit>()
 
-	override val isModified: Boolean
-		get() = with(originalCore) {
+	override fun isModified(core: EntryCore<MutableCollection<R>>) =
+		with(core) {
 			value.size != defaultValue.size || defaultValue.any { !value.contains(it) }
 		}
 

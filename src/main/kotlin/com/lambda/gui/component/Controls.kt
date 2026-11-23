@@ -70,6 +70,7 @@ import com.lambda.gui.theme.Look
 private const val TOGGLE_MILLIS = 150
 private val SECTION_BAR = 1.dp
 private val LABEL_GAP = 3.dp
+private val LEADING_GAP = 3.dp
 
 @Composable
 fun Button(
@@ -117,7 +118,7 @@ fun Checkmark(checked: Boolean, modifier: Modifier = Modifier) {
                 lineTo(side * 0.42f, side * 0.72f)
                 lineTo(side * 0.78f, side * 0.28f)
             },
-            color = colors.onPrimary,
+            color = colors.onControl,
             style = Stroke(side * 0.16f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
     }
@@ -188,7 +189,7 @@ fun Section(
             .drawWithContent {
                 drawContent()
                 if (size.height > rowHeight.toPx() + 1f) {
-                    drawRect(colors.primary, size = Size(SECTION_BAR.toPx(), size.height))
+                    drawRect(colors.secondary, size = Size(SECTION_BAR.toPx(), size.height))
                 }
             }
     ) {
@@ -245,6 +246,7 @@ fun <T> Dropdown(
     selected: T,
     optionLabel: (T) -> String,
     modifier: Modifier = Modifier,
+    leading: @Composable () -> Unit = {},
     onOptionHover: (option: T?) -> Unit = {},
     onOptionClick: (option: T) -> Unit = {},
     onSelect: (T) -> Unit,
@@ -257,7 +259,7 @@ fun <T> Dropdown(
     DisposableEffect(Unit) {
         onDispose { currentOnOptionHover(null) }
     }
-    LabeledRow(label, modifier) {
+    LabeledRow(label, modifier, leading) {
         Box(Modifier.onSizeChanged { chip = it }) {
             Chip(onClick = menu::toggle) {
                 SlidingText(optionLabel(selected), Modifier.weight(1f, fill = false))
@@ -290,11 +292,18 @@ fun <T> Dropdown(
 fun LabeledRow(
     label: String,
     modifier: Modifier = Modifier,
+    leading: @Composable () -> Unit = {},
     editor: @Composable RowScope.() -> Unit
 ) {
     Layout(
         content = {
-            Text(label, maxLines = 1)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LEADING_GAP)
+            ) {
+                leading()
+                Text(label, maxLines = 1)
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(LABEL_GAP),

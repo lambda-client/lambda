@@ -32,6 +32,7 @@ import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.component.Dropdown
 import com.lambda.gui.core.observe
+import com.lambda.gui.settings.AlteredDot
 import com.lambda.gui.settings.ROW_INSET
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
@@ -58,6 +59,7 @@ class EnumSetting<T : Enum<T>>(
             selected = selected,
             optionLabel = { it.displayValue },
             modifier = Modifier.padding(start = ROW_INSET),
+            leading = { AlteredDot() },
             onOptionHover = { option -> selectionHoverListeners.forEach { it(option) } },
             onOptionClick = { option -> selectionClickListeners.forEach { it(option) } },
         ) { value = it }

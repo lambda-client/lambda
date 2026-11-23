@@ -33,7 +33,7 @@ class Property<T>(
 ) : ConfigEntry<T> {
 	override var core = EntryCore(defaultValue, setter(value))
 	override val originalCore = core
-	override val isModified get() = !equals.invoke(core.value, core.defaultValue)
+	override fun isModified(core: EntryCore<T>) = !equals.invoke(core.value, core.defaultValue)
 
 	operator fun setValue(thisRef: Any?, property: Any?, newValue: T) {
 		core.value = setter(newValue)

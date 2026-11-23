@@ -26,7 +26,10 @@ interface ConfigEntry<T> {
 	val layer: EntryLayer.Single<*>
 	val config: Config
 
-	val isModified: Boolean
+	val isModified get() = isModified(core)
+	val isOriginalModified get() = isModified(originalCore)
+
+	fun isModified(core: EntryCore<T>): Boolean
 
 	operator fun getValue(thisRef: Any?, property: Any?) = core.value
 	operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) { core.value = newValue }

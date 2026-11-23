@@ -21,11 +21,13 @@ package com.lambda.config.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lambda.brigadier.argument.greedyString
@@ -40,6 +42,8 @@ import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.component.Text
 import com.lambda.gui.component.TextInput
 import com.lambda.gui.core.observe
+import com.lambda.gui.settings.ALTERED_GAP
+import com.lambda.gui.settings.AlteredDot
 import com.lambda.gui.settings.Labeled
 import com.lambda.gui.settings.ROW_INSET
 import com.lambda.gui.settings.TEXT_FIELD_WIDTH
@@ -66,7 +70,14 @@ class StringSetting(
             Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
-            Text(name, Modifier.padding(start = ROW_INSET, top = 1.dp), maxLines = 1)
+            Row(
+                Modifier.padding(start = ROW_INSET, top = 1.dp),
+                Arrangement.spacedBy(ALTERED_GAP),
+                Alignment.CenterVertically
+            ) {
+                AlteredDot()
+                Text(name, maxLines = 1)
+            }
             TextInput(
                 value,
                 { this@StringSetting.value = it },

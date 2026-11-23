@@ -122,7 +122,7 @@ abstract class Setting<T>(
 	val holdListeners = mutableListOf<(held: Boolean) -> Unit>()
 	val clickListeners = mutableListOf<() -> Unit>()
 
-	override val isModified get() = originalCore.value != originalCore.defaultValue
+	override fun isModified(core: EntryCore<T>) = core.value != core.defaultValue
 
 	override operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
 		val oldValue = core.value
@@ -134,12 +134,12 @@ abstract class Setting<T>(
 	}
 
 	fun reset(silent: Boolean = false) {
-		if (!silent && originalCore.value == originalCore.defaultValue) {
+		if (!silent && !isModified) {
 			ConfigCommand.info(notChangedMessage())
 			return
 		}
-		if (!silent) ConfigCommand.info(resetMessage(value, originalCore.defaultValue))
-		value = originalCore.defaultValue
+		if (!silent) ConfigCommand.info(resetMessage(value, core.defaultValue))
+		value = core.defaultValue
 	}
 
 	fun restoreOriginalCore() {
