@@ -18,6 +18,8 @@
 package com.lambda.module.modules.chat
 
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.FriendHandler
@@ -39,7 +41,7 @@ object FriendHighlight : Module(
 	description = "Highlights your friends names in chat",
 	tag = ModuleTag.CHAT,
 ) {
-	private var color: Formatting by setting("Color", Formatting.GREEN)
+	private var color: Formatting by enumSetting("Color", Formatting.GREEN)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
 	private val javaColor: Color
 		get() {
@@ -47,12 +49,12 @@ object FriendHighlight : Module(
 			return Color(rgb and 16777215)
 		}
 
-	private val bold by setting("Bold", true)
-	private val italic by setting("Italic", false)
-	private val underlined by setting("Underlined", false)
-	private val strikethrough by setting("Strikethrough", false)
+	private val bold by boolSetting("Bold", true)
+	private val italic by boolSetting("Italic", false)
+	private val underlined by boolSetting("Underlined", false)
+	private val strikethrough by boolSetting("Strikethrough", false)
 
-	private val ping by setting("Ping On Message", true)
+	private val ping by boolSetting("Ping On Message", true)
 
 	init {
 		onEnable {

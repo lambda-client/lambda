@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -31,9 +33,9 @@ object SafeWalk : Module(
     description = "Keeps you at the edge",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val sneakOnLedge by setting("Sneak On Ledge", true)
-    private val ledgeDistance by setting("Ledge Distance", 0.2, 0.0..0.5, 0.01, unit = " blocks")
-    private val stepHeight by setting("Step Height", 0.5, 0.0..4.0, 0.05, unit = " blocks")
+    private val sneakOnLedge by boolSetting("Sneak On Ledge", true)
+    private val ledgeDistance by doubleSetting("Ledge Distance", 0.2, 0.0..0.5, 0.01, unit = " blocks")
+    private val stepHeight by doubleSetting("Step Height", 0.5, 0.0..4.0, 0.05, unit = " blocks")
 
     init {
         listen<MovementEvent.InputUpdate> {

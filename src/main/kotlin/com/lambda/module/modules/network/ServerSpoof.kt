@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.network
 
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.stringSetting
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.module.Module
@@ -39,9 +41,9 @@ object ServerSpoof : Module(
     description = "Decide yourself if you want to accept the server resource pack.",
     tag = ModuleTag.NETWORK,
 ) {
-    private val spoofClientBrand by setting("Spoof Client Brand", true)
-    private val spoofName by setting("Spoof Name", "vanilla", visibility = { spoofClientBrand })
-    private val cancelResourcePack by setting("Cancel Resource Pack Loading", true)
+    private val spoofClientBrand by boolSetting("Spoof Client Brand", true)
+    private val spoofName by stringSetting("Spoof Name", "vanilla", visibility = { spoofClientBrand })
+    private val cancelResourcePack by boolSetting("Cancel Resource Pack Loading", true)
 
     init {
         listenUnsafe<PacketEvent.Send.Pre> {

@@ -24,11 +24,20 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+
+@ConfigEntryDsl
+fun Config.charSetting(
+	name: String,
+	defaultValue: Char,
+	description: String = "",
+	visibility: () -> Boolean = { true }
+) = setting(name) { layer -> CharSetting(name, description, this, layer, defaultValue, visibility) }
 
 /**
  * @see [com.lambda.config.Config]

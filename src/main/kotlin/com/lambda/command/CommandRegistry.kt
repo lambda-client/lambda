@@ -20,6 +20,7 @@ package com.lambda.command
 import com.lambda.command.CommandHandler.dispatcher
 import com.lambda.config.Config
 import com.lambda.config.categories.LambdaCategory
+import com.lambda.config.settings.charSetting
 import com.lambda.core.Loadable
 import com.lambda.util.ReflectionUtils.getInstances
 import com.mojang.brigadier.tree.CommandNode
@@ -32,7 +33,7 @@ object CommandRegistry : Config(
     LambdaCategory
 ), Loadable {
     override val priority get() = -2
-    val prefixSetting = setting("prefix", ';')
+    val prefixSetting = charSetting("prefix", ';')
     val prefix by prefixSetting
 
     val commands = getInstances<LambdaCommand>().toMutableList()

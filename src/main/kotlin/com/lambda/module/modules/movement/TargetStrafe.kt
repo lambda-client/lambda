@@ -20,6 +20,9 @@ package com.lambda.module.modules.movement
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.forEachSetting
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.floatSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
@@ -43,17 +46,17 @@ object TargetStrafe : Module(
     description = "Strafes around a target in a circle. The default settings work great for old NCP.",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val autoJump by setting("AutoJump", true)
-    private val distanceSetting by setting("PreferredDistance", 1f, 0f..6f, 0.1f)
-    private val maxDistance by setting("MaxDistance", 10f, 1f..32f, 0.5f)
-    private val turnAmount by setting("TurnAmount", 5f, 1f..90f, 0.5f)
-    private val hSpeed by setting("HSpeed", 0.2873f, 0.001f..10.0f, 0.0001f)
+    private val autoJump by boolSetting("AutoJump", true)
+    private val distanceSetting by floatSetting("PreferredDistance", 1f, 0f..6f, 0.1f)
+    private val maxDistance by floatSetting("MaxDistance", 10f, 1f..32f, 0.5f)
+    private val turnAmount by floatSetting("TurnAmount", 5f, 1f..90f, 0.5f)
+    private val hSpeed by floatSetting("HSpeed", 0.2873f, 0.001f..10.0f, 0.0001f)
 
-    private val needsAura by setting("NeedsAura", true)
-    private val antiStuck by setting("AntiStuck", true)
+    private val needsAura by boolSetting("NeedsAura", true)
+    private val antiStuck by boolSetting("AntiStuck", true)
 
-    private val renderCircle by setting("RenderCircle", true)
-    private val renderCircleColor by setting("RenderCircleColor", Color(255, 255, 255, 100)) { renderCircle }
+    private val renderCircle by boolSetting("RenderCircle", true)
+    private val renderCircleColor by colorSetting("RenderCircleColor", Color(255, 255, 255, 100)) { renderCircle }
     private val renderThickness by configBlock(WorldLineSettings(this))
          .withEdits {
              hideAllExcept(

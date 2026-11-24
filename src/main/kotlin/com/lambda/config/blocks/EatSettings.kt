@@ -19,6 +19,10 @@ package com.lambda.config.blocks
 
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
+import com.lambda.config.settings.collections.itemCollectionSetting
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.intSetting
 import net.minecraft.item.Items
 
 class EatSettings(override val c: Config) : EatConfig, ConfigBlock {
@@ -27,16 +31,16 @@ class EatSettings(override val c: Config) : EatConfig, ConfigBlock {
     val regenerationFoodDefaults = listOf(Items.ENCHANTED_GOLDEN_APPLE, Items.GOLDEN_APPLE)
     val negativeFoodDefaults = listOf(Items.CHICKEN, Items.POISONOUS_POTATO, Items.PUFFERFISH, Items.ROTTEN_FLESH, Items.SPIDER_EYE)
 
-    override val eatOnHunger by c.setting("Eat On Hunger", true, "Whether to eat when hungry")
-    override val minFoodLevel by c.setting("Minimum Food Level", 6, 0..20, 1, "The minimum food level to eat food", " food level") { eatOnHunger }
-    override val saturated by c.setting("Saturated", EatConfig.Saturation.EatSmart, "When to stop eating") { eatOnHunger }
-    override val nutritiousFood by c.setting("Nutritious Food", nutritiousFoodDefaults, nutritiousFoodDefaults, "Items that are be considered nutritious") { eatOnHunger }
-    override val selectionPriority by c.setting("Selection Priority", EatConfig.SelectionPriority.MostNutritious, "The priority for selecting food items") { eatOnHunger }
-    override val eatOnFire by c.setting("Eat On Fire", true, "Whether to eat when on fire")
-    override val resistanceFood by c.setting("Resistance Food", resistanceFoodDefaults, resistanceFoodDefaults, "Items that give Fire Resistance") { eatOnFire }
-    override val eatOnDamage by c.setting("Eat On Damage", true, "Whether to eat when damaged")
-    override val minDamage by c.setting("Minimum Damage", 10, 0..20, 1, "The minimum damage threshold to trigger eating") { eatOnDamage }
-    override val regenerationFood by c.setting("Regeneration Food", regenerationFoodDefaults, regenerationFoodDefaults, "Items that give Regeneration") { eatOnDamage }
-    override val ignoreBadFood by c.setting("Ignore Bad Food", true, "Whether to eat when the food is bad")
-    override val badFood by c.setting("Bad Food", negativeFoodDefaults, negativeFoodDefaults, "Items that are considered bad food") { ignoreBadFood }
+    override val eatOnHunger by c.boolSetting("Eat On Hunger", true, "Whether to eat when hungry")
+    override val minFoodLevel by c.intSetting("Minimum Food Level", 6, 0..20, 1, "The minimum food level to eat food", " food level") { eatOnHunger }
+    override val saturated by c.enumSetting("Saturated", EatConfig.Saturation.EatSmart, "When to stop eating") { eatOnHunger }
+    override val nutritiousFood by c.itemCollectionSetting("Nutritious Food", nutritiousFoodDefaults, nutritiousFoodDefaults, "Items that are be considered nutritious") { eatOnHunger }
+    override val selectionPriority by c.enumSetting("Selection Priority", EatConfig.SelectionPriority.MostNutritious, "The priority for selecting food items") { eatOnHunger }
+    override val eatOnFire by c.boolSetting("Eat On Fire", true, "Whether to eat when on fire")
+    override val resistanceFood by c.itemCollectionSetting("Resistance Food", resistanceFoodDefaults, resistanceFoodDefaults, "Items that give Fire Resistance") { eatOnFire }
+    override val eatOnDamage by c.boolSetting("Eat On Damage", true, "Whether to eat when damaged")
+    override val minDamage by c.intSetting("Minimum Damage", 10, 0..20, 1, "The minimum damage threshold to trigger eating") { eatOnDamage }
+    override val regenerationFood by c.itemCollectionSetting("Regeneration Food", regenerationFoodDefaults, regenerationFoodDefaults, "Items that give Regeneration") { eatOnDamage }
+    override val ignoreBadFood by c.boolSetting("Ignore Bad Food", true, "Whether to eat when the food is bad")
+    override val badFood by c.itemCollectionSetting("Bad Food", negativeFoodDefaults, negativeFoodDefaults, "Items that are considered bad food") { ignoreBadFood }
 }

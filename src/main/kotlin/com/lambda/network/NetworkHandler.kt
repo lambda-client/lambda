@@ -21,6 +21,7 @@ import com.lambda.Lambda.mapper
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.categories.SecretsCategory
+import com.lambda.config.settings.stringSetting
 import com.lambda.core.Loadable
 import com.lambda.network.api.v1.models.Authentication
 import com.lambda.network.api.v1.models.Authentication.Data
@@ -31,7 +32,7 @@ object NetworkHandler : Config(
     "network",
     SecretsCategory
 ), Loadable {
-    var accessToken by setting("access_token", "") { false }; private set
+    var accessToken by stringSetting("access_token", "") { false }; private set
 
     val isValid: Boolean
         get() = mc.gameProfile.name == auth.value?.data?.name &&

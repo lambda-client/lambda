@@ -24,6 +24,8 @@ import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.editSetting
 import com.lambda.config.editTypedSettings
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.colorSetting
 import com.lambda.config.withEdits
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -68,8 +70,8 @@ object EnderChestFarmer : Module(
 ) {
 	private const val RENDER_GROUP = "Render"
 
-	@Group(RENDER_GROUP) private val renderFarmPos by setting("Render Farm Pos", true, "Outlines the position ender chests are placed and broken at")
-	@Group(RENDER_GROUP) private val farmPosColor by setting("Farm Pos Color", Color(155, 0, 255), "The outline color of the farm position") { renderFarmPos }
+	@Group(RENDER_GROUP) private val renderFarmPos by boolSetting("Render Farm Pos", true, "Outlines the position ender chests are placed and broken at")
+	@Group(RENDER_GROUP) private val farmPosColor by colorSetting("Farm Pos Color", Color(155, 0, 255), "The outline color of the farm position") { renderFarmPos }
 
 	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 

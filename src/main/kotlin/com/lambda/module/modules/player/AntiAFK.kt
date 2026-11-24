@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -29,8 +31,8 @@ object AntiAFK : Module(
     description = "Keeps you from getting kicked",
     tag = ModuleTag.PLAYER,
 ) {
-    private val delay by setting("Delay", 300, 5..600, 1, unit = " s", description = "Delay between swinging the hand.")
-    private val swingHand by setting("Swing Hand", Hand.MAIN_HAND, description = "Hand to swing.")
+    private val delay by intSetting("Delay", 300, 5..600, 1, unit = " s", description = "Delay between swinging the hand.")
+    private val swingHand by enumSetting("Swing Hand", Hand.MAIN_HAND, description = "Hand to swing.")
 
     init {
         listen<TickEvent.Pre> {

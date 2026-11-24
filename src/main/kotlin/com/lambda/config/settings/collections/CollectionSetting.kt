@@ -19,6 +19,7 @@
 
 package com.lambda.config.settings.collections
 
+import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.SettingEditBuilder
@@ -36,6 +37,21 @@ import com.lambda.imgui.flag.ImGuiPopupFlags
 import com.lambda.imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import com.lambda.threading.runSafe
 import tools.jackson.databind.JavaType
+
+@ConfigEntryDsl
+@JvmName("collectionSetting4")
+inline fun <reified T : Any> Config.collectionSetting(
+	name: String,
+	defaultValue: Collection<T>,
+	immutableList: Collection<T> = defaultValue,
+	description: String = "",
+	displayClassName: Boolean = false,
+	serialize: Boolean = false,
+	noinline visibility: () -> Boolean = { true }
+) = setting(name) { layer ->
+	if (displayClassName) ClassCollectionSetting(name, description, this, layer, visibility, immutableList, defaultValue.toMutableList())
+	else CollectionSetting(name, description, this, layer, visibility, defaultValue.toMutableList(), immutableList, typeFactory.constructCollectionType(Collection::class.java, T::class.java), serialize)
+}
 
 /**
  * This generic collection settings handles all [Comparable] values (i.e., not classes) and serialize

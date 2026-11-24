@@ -22,11 +22,20 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+
+@ConfigEntryDsl
+fun Config.boolSetting(
+	name: String,
+	defaultValue: Boolean,
+	description: String = "",
+	visibility: () -> Boolean = { true }
+) = setting(name) { layer -> BooleanSetting(name, description, this, layer, visibility, defaultValue) }
 
 class BooleanSetting(
 	name: String,

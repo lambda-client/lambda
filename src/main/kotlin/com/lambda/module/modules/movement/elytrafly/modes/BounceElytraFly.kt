@@ -20,6 +20,9 @@ package com.lambda.module.modules.movement.elytrafly.modes
 import com.lambda.config.Config
 import com.lambda.config.Group
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
@@ -67,24 +70,24 @@ class BounceElytraFly(
 		private const val BOUNCE_OBSTACLE_PASSER_GROUP = "Bounce Obstacle Passer"
 	}
 
-	private val takeoff by c.setting("Takeoff", true, "Automatically jumps and initiates gliding")
-	private val autoPitch by c.setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds")
-	private val smartPitch by c.setting("Smart", true, "Calculates the best pitch for bounce") { autoPitch }
-	private val pitch by c.setting("Pitch", 72.0, -90.0..90.0, 0.000001) { autoPitch && !smartPitch }
-	private val jump by c.setting("Jump", true, "Automatically jumps")
-	private val flagPause by c.setting("FlagPause Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks")
-	private val minimizePackets by c.setting("Minimize Packets", true, "Shrinks the amount of start fly packets sent to the server as much as possible")
-	private val fakeLag by c.setting("Fake Lag", true, "Emulates the player lagging to allow flying in 1x2 tunnels")
+	private val takeoff by c.boolSetting("Takeoff", true, "Automatically jumps and initiates gliding")
+	private val autoPitch by c.boolSetting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds")
+	private val smartPitch by c.boolSetting("Smart", true, "Calculates the best pitch for bounce") { autoPitch }
+	private val pitch by c.doubleSetting("Pitch", 72.0, -90.0..90.0, 0.000001) { autoPitch && !smartPitch }
+	private val jump by c.boolSetting("Jump", true, "Automatically jumps")
+	private val flagPause by c.intSetting("FlagPause Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks")
+	private val minimizePackets by c.boolSetting("Minimize Packets", true, "Shrinks the amount of start fly packets sent to the server as much as possible")
+	private val fakeLag by c.boolSetting("Fake Lag", true, "Emulates the player lagging to allow flying in 1x2 tunnels")
 		.onValueChange { _, to -> if (!to) flushPackets() }
-	private val maxHold by c.setting("Max Hold", 10, 1..100, 1, "How long Fake Lag can hold packets", "ticks") { fakeLag }
+	private val maxHold by c.intSetting("Max Hold", 10, 1..100, 1, "How long Fake Lag can hold packets", "ticks") { fakeLag }
 
-	@Group(Y_MOTION_GROUP) val yMotionSetting by c.setting("Y Motion", false, "Cancels the players y velocity to aid speed")
-	@Group(Y_MOTION_GROUP) val onlyOnDiagonal: Boolean by c.setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { yMotionSetting }
-	@Group(Y_MOTION_GROUP) val minDiagonalAngle by c.setting("Min Diagonal Angle", 15.0, 0.0..180.0, 0.1, "The minimum angle the player must be flying to use y motion") { yMotionSetting && onlyOnDiagonal }
-	@Group(Y_MOTION_GROUP) val strictYMotionRange by c.setting("Strict Range", true, "provides an extra range check to sneak until within. Typically used for when you need to get within sub-block distances of walls for collision checks") { yMotionSetting }
-	@Group(Y_MOTION_GROUP) val acceptableYMotionRange by c.setting("Acceptable Range", 0.1, 0.01..5.0, 0.01, "The acceptable distance, aside from forward distance, from the start position") { yMotionSetting && strictYMotionRange }
-	@Group(Y_MOTION_GROUP) val yMotionStartSpeed by c.setting("Y Motion Start Speed", 30, 0..40, 1, unit = "bps") { yMotionSetting }
-	@Group(Y_MOTION_GROUP) val speedLimit by c.setting("Speed Limit", 120, 10..400, 1, unit = "bps") { yMotionSetting }
+	@Group(Y_MOTION_GROUP) val yMotionSetting by c.boolSetting("Y Motion", false, "Cancels the players y velocity to aid speed")
+	@Group(Y_MOTION_GROUP) val onlyOnDiagonal: Boolean by c.boolSetting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { yMotionSetting }
+	@Group(Y_MOTION_GROUP) val minDiagonalAngle by c.doubleSetting("Min Diagonal Angle", 15.0, 0.0..180.0, 0.1, "The minimum angle the player must be flying to use y motion") { yMotionSetting && onlyOnDiagonal }
+	@Group(Y_MOTION_GROUP) val strictYMotionRange by c.boolSetting("Strict Range", true, "provides an extra range check to sneak until within. Typically used for when you need to get within sub-block distances of walls for collision checks") { yMotionSetting }
+	@Group(Y_MOTION_GROUP) val acceptableYMotionRange by c.doubleSetting("Acceptable Range", 0.1, 0.01..5.0, 0.01, "The acceptable distance, aside from forward distance, from the start position") { yMotionSetting && strictYMotionRange }
+	@Group(Y_MOTION_GROUP) val yMotionStartSpeed by c.intSetting("Y Motion Start Speed", 30, 0..40, 1, unit = "bps") { yMotionSetting }
+	@Group(Y_MOTION_GROUP) val speedLimit by c.intSetting("Speed Limit", 120, 10..400, 1, unit = "bps") { yMotionSetting }
 	private val SafeContext.yMotion
 		get() = yMotionSetting &&
 				onYMotionAngle &&

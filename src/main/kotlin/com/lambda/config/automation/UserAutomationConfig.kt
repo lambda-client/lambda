@@ -18,13 +18,14 @@
 package com.lambda.config.automation
 
 import com.lambda.config.categories.UserAutomationCategory
+import com.lambda.config.settings.collections.collectionSetting
 import com.lambda.config.settings.collections.onDeselect
 import com.lambda.config.settings.collections.onSelect
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry.moduleNameMap
 
 class UserAutomationConfig(name: String) : AutomationConfig(name, UserAutomationCategory) {
-    val linkedModules = setting<String>("Linked Modules", emptySet(), moduleNameMap.filter { it.value.defaultAutomationConfig != DEFAULT }.keys) { false }
+    val linkedModules = collectionSetting<String>("Linked Modules", emptySet(), moduleNameMap.filter { it.value.defaultAutomationConfig != DEFAULT }.keys) { false }
         .onSelect { name ->
 	        moduleNameMap[name]?.let {
 		        it.removeLink()

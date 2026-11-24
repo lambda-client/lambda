@@ -22,6 +22,9 @@ import com.lambda.config.blocks.OutlineSettings
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.complex.colorSetting
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -46,18 +49,18 @@ object BlockOutline : Module(
 		Outline
 	}
 
-	private val mode by setting("Mode", Mode.Boxes)
-	private val interpolate by setting("Interpolate", true) { mode == Mode.Boxes }
-	private val depthTest by setting("Depth Test", true)
+	private val mode by enumSetting("Mode", Mode.Boxes)
+	private val interpolate by boolSetting("Interpolate", true) { mode == Mode.Boxes }
+	private val depthTest by boolSetting("Depth Test", true)
 
 	private const val BOX_FILL_GROUP = "Box Fill"
 	private const val BOX_OUTLINE_GROUP = "Box Outline"
 	private const val OUTLINE_GROUP = "Outline"
 
-	@Group(BOX_FILL_GROUP) private val fill by setting("Fill", true) { mode == Mode.Boxes }
-	@Group(BOX_FILL_GROUP) private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
-	@Group(BOX_OUTLINE_GROUP) private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
-	@Group(BOX_OUTLINE_GROUP) private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { mode == Mode.Boxes && boxOutline }
+	@Group(BOX_FILL_GROUP) private val fill by boolSetting("Fill", true) { mode == Mode.Boxes }
+	@Group(BOX_FILL_GROUP) private val fillColor by colorSetting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
+	@Group(BOX_OUTLINE_GROUP) private val boxOutline by boolSetting("Box Outline", true) { mode == Mode.Boxes }
+	@Group(BOX_OUTLINE_GROUP) private val boxOutlineColor by colorSetting("Box Outline Color", Color(255, 255, 255, 120)) { mode == Mode.Boxes && boxOutline }
 	@Group(BOX_OUTLINE_GROUP) private val lineConfig by configBlock(WorldLineSettings(this))
 		.withEdits {
 			hide(::startColor, ::endColor)
@@ -66,7 +69,7 @@ object BlockOutline : Module(
 			}
 		}
 
-	@Group(OUTLINE_GROUP) private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
+	@Group(OUTLINE_GROUP) private val outlineColor by colorSetting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
 	@Group(OUTLINE_GROUP) private val outlineStyle by configBlock(OutlineSettings(this))
 		.withEdits {
 			forEachSetting {

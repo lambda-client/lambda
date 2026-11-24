@@ -20,7 +20,13 @@ package com.lambda.module.modules.world
 import com.lambda.config.Group
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.collections.collectionSetting
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
+import com.lambda.config.settings.complex.blockPosSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
@@ -65,12 +71,12 @@ object AutoVillagerCycle : Module(
 ) {
 	private val allEnchantments = ArrayList<String>()
 
-	private val lecternPos by setting("Lectern Pos", BlockPos.ORIGIN, "Position where the lectern should be placed/broken")
-	private val logFoundBooks by setting("Log Found Books", true, "Log all enchanted books found during cycling")
-	private val interactDelay by setting("Interact Delay", 20, 1..40, 1, "Ticks to wait before interacting with the villager", " ticks")
-	private val breakDelay by setting("Break Delay", 5, 1..20, 1, "Ticks to wait after breaking the lectern", " ticks")
-	private val searchRange by setting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks")
-	private val startCyclingBind by setting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling")
+	private val lecternPos by blockPosSetting("Lectern Pos", BlockPos.ORIGIN, "Position where the lectern should be placed/broken")
+	private val logFoundBooks by boolSetting("Log Found Books", true, "Log all enchanted books found during cycling")
+	private val interactDelay by intSetting("Interact Delay", 20, 1..40, 1, "Ticks to wait before interacting with the villager", " ticks")
+	private val breakDelay by intSetting("Break Delay", 5, 1..20, 1, "Ticks to wait after breaking the lectern", " ticks")
+	private val searchRange by doubleSetting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks")
+	private val startCyclingBind by bindSetting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling")
 		.onPress {
 			if (cycleState != CycleState.Idle) {
 				info("Stopped villager cycling.")
@@ -84,8 +90,8 @@ object AutoVillagerCycle : Module(
 		}
 
 	private const val ENCHANTMENTS_GROUP = "Enchantments"
-	@Group(ENCHANTMENTS_GROUP) private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments)
-	@Group(ENCHANTMENTS_GROUP) private val minLevel by setting("Min Level", 1, 1..5, 1, "Minimum enchantment level to look for")
+	@Group(ENCHANTMENTS_GROUP) private val desiredEnchantments by collectionSetting("Desired Enchantments", emptySet(), allEnchantments)
+	@Group(ENCHANTMENTS_GROUP) private val minLevel by intSetting("Min Level", 1, 1..5, 1, "Minimum enchantment level to look for")
 
 	private var cycleState = CycleState.Idle
 	private var tickCounter = 0

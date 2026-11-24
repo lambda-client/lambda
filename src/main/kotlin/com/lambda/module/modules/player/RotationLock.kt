@@ -20,6 +20,8 @@ package com.lambda.module.modules.player
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -36,12 +38,12 @@ object RotationLock : Module(
 	tag = ModuleTag.PLAYER,
 	modulePriority = 100
 ) {
-	@JvmStatic val yawMode by setting("Yaw Mode", Mode.Snap)
-	private val yawStep by setting("Yaw Step", 45.0, 1.0..180.0, 0.1) { yawMode == Mode.Snap }
-	private val customYaw by setting("Custom Yaw", 0.0, -179.0..180.0, 0.1) { yawMode == Mode.Custom }
-	@JvmStatic val pitchMode by setting("Pitch Mode", Mode.None)
-	private val pitchStep by setting("Pitch Step", 45.0, 1.0..90.0, 0.1) { pitchMode == Mode.Snap }
-	private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 0.1) { pitchMode == Mode.Custom }
+	@JvmStatic val yawMode by enumSetting("Yaw Mode", Mode.Snap)
+	private val yawStep by doubleSetting("Yaw Step", 45.0, 1.0..180.0, 0.1) { yawMode == Mode.Snap }
+	private val customYaw by doubleSetting("Custom Yaw", 0.0, -179.0..180.0, 0.1) { yawMode == Mode.Custom }
+	@JvmStatic val pitchMode by enumSetting("Pitch Mode", Mode.None)
+	private val pitchStep by doubleSetting("Pitch Step", 45.0, 1.0..90.0, 0.1) { pitchMode == Mode.Snap }
+	private val customPitch by doubleSetting("Custom Pitch", 0.0, -90.0..90.0, 0.1) { pitchMode == Mode.Custom }
 
     init {
 	    setDefaultAutomationConfig()

@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.hud
 
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.module.HudModule
@@ -29,8 +30,8 @@ object ModuleList : HudModule(
     name = "ModuleList",
     tag = ModuleTag.HUD,
 ) {
-	val onlyBound by setting("Only Bound", false, "Only displays modules with a keybind")
-	val showKeybind by setting("Show Keybind", true, "Display keybind next to a module")
+	val onlyBound by boolSetting("Only Bound", false, "Only displays modules with a keybind")
+	val showKeybind by boolSetting("Show Keybind", true, "Display keybind next to a module")
 
     init {
         drawSetting.value = false

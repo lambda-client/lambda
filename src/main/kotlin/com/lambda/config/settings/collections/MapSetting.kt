@@ -17,11 +17,26 @@
 
 package com.lambda.config.settings.collections
 
+import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import tools.jackson.databind.JavaType
+
+@ConfigEntryDsl
+inline fun <reified K : Any, reified V : Any> Config.mapSetting(
+	name: String,
+	defaultValue: Map<K, V>,
+	description: String = "",
+	noinline visibility: () -> Boolean = { true }
+) = setting(name) { layer ->
+	MapSetting(
+		name, description, this, layer, visibility, defaultValue.toMutableMap(),
+		typeFactory.constructMapType(MutableMap::class.java, K::class.java, V::class.java)
+	)
+}
 
 class MapSetting<K, V>(
 	name: String,

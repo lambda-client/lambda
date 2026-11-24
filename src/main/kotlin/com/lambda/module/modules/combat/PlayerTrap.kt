@@ -20,6 +20,8 @@ package com.lambda.module.modules.combat
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.hideBlock
+import com.lambda.config.settings.collections.blockCollectionSetting
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
@@ -50,9 +52,9 @@ object PlayerTrap : Module(
 	description = "Surrounds players with any given block",
 	tag = ModuleTag.COMBAT
 ) {
-	private val blocks by setting("Blocks", setOf(Blocks.OBSIDIAN, Blocks.ENDER_CHEST, Blocks.CRYING_OBSIDIAN))
-	private val friends by setting("Friends", false)
-	private val self by setting("Self", false)
+	private val blocks by blockCollectionSetting("Blocks", setOf(Blocks.OBSIDIAN, Blocks.ENDER_CHEST, Blocks.CRYING_OBSIDIAN))
+	private val friends by boolSetting("Friends", false)
+	private val self by boolSetting("Self", false)
 
 	private var task: Task<*>? = null
 

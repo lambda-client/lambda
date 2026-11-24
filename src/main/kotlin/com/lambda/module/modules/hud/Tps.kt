@@ -17,6 +17,10 @@
 
 package com.lambda.module.modules.hud
 
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.floatSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImVec2
 import com.lambda.module.HudModule
@@ -31,11 +35,11 @@ object Tps : HudModule(
 	description = "Display the server's tick rate",
 	tag = ModuleTag.HUD,
 ) {
-	private val format by setting("Tick format", ServerTPSUtils.TickFormat.Tps)
-	private val showGraph by setting("Show TPS Graph", false)
-	private val graphHeight by setting("Graph Height", 40f, 10f..200f, 1f)
-	private val graphWidth by setting("Graph Width", 200f, 10f..500f, 1f)
-	private val graphStride by setting("Graph Stride", 1, 1..20, 1)
+	private val format by enumSetting("Tick format", ServerTPSUtils.TickFormat.Tps)
+	private val showGraph by boolSetting("Show TPS Graph", false)
+	private val graphHeight by floatSetting("Graph Height", 40f, 10f..200f, 1f)
+	private val graphWidth by floatSetting("Graph Width", 200f, 10f..500f, 1f)
+	private val graphStride by intSetting("Graph Stride", 1, 1..20, 1)
 
 	override fun ImGuiBuilder.buildLayout() {
 		val data = recentData(format)

@@ -18,9 +18,18 @@
 package com.lambda.config.settings
 
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
+
+@ConfigEntryDsl
+fun <T : () -> R, R> Config.functionSetting(
+	name: String,
+	defaultValue: T,
+	description: String = "",
+	visibility: () -> Boolean = { true }
+) = setting(name) { layer -> FunctionSetting(name, description, defaultValue, this, layer, visibility) }
 
 class FunctionSetting<T : () -> R, R>(
 	name: String,

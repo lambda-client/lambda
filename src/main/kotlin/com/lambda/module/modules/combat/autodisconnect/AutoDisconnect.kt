@@ -20,6 +20,10 @@ package com.lambda.module.modules.combat.autodisconnect
 import com.lambda.Lambda
 import com.lambda.config.Group
 import com.lambda.config.Tab
+import com.lambda.config.settings.collections.collectionSetting
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
@@ -137,69 +141,69 @@ object AutoDisconnect : Module(
     private const val ARMOR_GROUP = "Armor Settings"
     private const val ENTITY_GROUP = "Entity Settings"
 
-    @Tab(TRIGGERS_TAB) private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
-    @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
-    @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val healthSmart by setting("Smart Toggle", true, "Stop re-triggering on health until it climbs back above the minimum.") { health }
-    @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val reEnableThreshold by setting("Re-enable Threshold", 14, 1..36, 1, "Once health climbs above this, the Health trigger re-arms. Never lower than Min Health.", unit = " half-hearts") { health && healthSmart }
+    @Tab(TRIGGERS_TAB) private val health by boolSetting("Health", true, "Disconnect from the server when health is below the set limit.")
+    @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val minimumHealth by intSetting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
+    @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val healthSmart by boolSetting("Smart Toggle", true, "Stop re-triggering on health until it climbs back above the minimum.") { health }
+    @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val reEnableThreshold by intSetting("Re-enable Threshold", 14, 1..36, 1, "Once health climbs above this, the Health trigger re-arms. Never lower than Min Health.", unit = " half-hearts") { health && healthSmart }
 
-    @Tab(TRIGGERS_TAB) private val yLevel by setting("Y Level", false, "Disconnect from the server when the player is below a certain y level")
-    @Tab(TRIGGERS_TAB) @Group(Y_LEVEL_GROUP) private val minimumYLevel by setting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }
-    @Tab(TRIGGERS_TAB) @Group(Y_LEVEL_GROUP) private val yLevelSmart by setting("Smart Toggle", true, "Stop re-triggering on y level until the player climbs back above it.") { yLevel }
+    @Tab(TRIGGERS_TAB) private val yLevel by boolSetting("Y Level", false, "Disconnect from the server when the player is below a certain y level")
+    @Tab(TRIGGERS_TAB) @Group(Y_LEVEL_GROUP) private val minimumYLevel by intSetting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }
+    @Tab(TRIGGERS_TAB) @Group(Y_LEVEL_GROUP) private val yLevelSmart by boolSetting("Smart Toggle", true, "Stop re-triggering on y level until the player climbs back above it.") { yLevel }
 
-    @Tab(TRIGGERS_TAB) private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")
-    @Tab(TRIGGERS_TAB) @Group(FALLS_GROUP) private val fallDistance by setting("Fall Distance", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
-    @Tab(TRIGGERS_TAB) @Group(FALLS_GROUP) private val fallsSmart by setting("Smart Toggle", true, "Stop re-triggering on fall damage until the threat clears.") { falls }
+    @Tab(TRIGGERS_TAB) private val falls by boolSetting("Falls", false, "Disconnect if the player will die of fall damage")
+    @Tab(TRIGGERS_TAB) @Group(FALLS_GROUP) private val fallDistance by intSetting("Fall Distance", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
+    @Tab(TRIGGERS_TAB) @Group(FALLS_GROUP) private val fallsSmart by boolSetting("Smart Toggle", true, "Stop re-triggering on fall damage until the threat clears.") { falls }
 
-    @Tab(TRIGGERS_TAB) private val crystals by setting("Crystals", false, "Disconnect if an End Crystal is close by")
-    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val playerNearCrystal by setting("Player Near Crystal", true, "Disconnect if a player is near an End Crystal near you") { crystals }
-    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val projectileNearCrystal by setting("Projectile Near Crystal", true, "Disconnect if a projectile is near an End Crystal near you") { crystals }
-    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val crystalIgnoreFriends by setting("Ignore Friends", false, "Exclude friends from triggering crystal-based disconnections.") { crystals && playerNearCrystal }
-    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val crystalsSmart by setting("Smart Toggle", false, "Stop re-triggering on crystals until it will no longer be triggered ") { crystals }
+    @Tab(TRIGGERS_TAB) private val crystals by boolSetting("Crystals", false, "Disconnect if an End Crystal is close by")
+    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val playerNearCrystal by boolSetting("Player Near Crystal", true, "Disconnect if a player is near an End Crystal near you") { crystals }
+    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val projectileNearCrystal by boolSetting("Projectile Near Crystal", true, "Disconnect if a projectile is near an End Crystal near you") { crystals }
+    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val crystalIgnoreFriends by boolSetting("Ignore Friends", false, "Exclude friends from triggering crystal-based disconnections.") { crystals && playerNearCrystal }
+    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val crystalsSmart by boolSetting("Smart Toggle", false, "Stop re-triggering on crystals until it will no longer be triggered ") { crystals }
 
-    @Tab(TRIGGERS_TAB) private val creeper by setting("Creepers", true, "Disconnect when an ignited Creeper is nearby.")
-    @Tab(TRIGGERS_TAB) @Group(CREEPERS_GROUP) private val creeperSmart by setting("Smart Toggle", true, "Stop re-triggering on creepers until none are nearby.") { creeper }
+    @Tab(TRIGGERS_TAB) private val creeper by boolSetting("Creepers", true, "Disconnect when an ignited Creeper is nearby.")
+    @Tab(TRIGGERS_TAB) @Group(CREEPERS_GROUP) private val creeperSmart by boolSetting("Smart Toggle", true, "Stop re-triggering on creepers until none are nearby.") { creeper }
 
-    @Tab(TRIGGERS_TAB) private val totem by setting("Totem", false, "Disconnect if the number of Totems is below the required amount.")
-    @Tab(TRIGGERS_TAB) @Group(TOTEM_GROUP) private val minTotems by setting("Min Totems", 2, 1..10, 1, "Set the minimum number of Totems of Undying required to prevent disconnection.") { totem }
-    @Tab(TRIGGERS_TAB) @Group(TOTEM_GROUP) private val totemSmart by setting("Smart Toggle", true, "Stop re-triggering on totems until you're back above the minimum.") { totem }
+    @Tab(TRIGGERS_TAB) private val totem by boolSetting("Totem", false, "Disconnect if the number of Totems is below the required amount.")
+    @Tab(TRIGGERS_TAB) @Group(TOTEM_GROUP) private val minTotems by intSetting("Min Totems", 2, 1..10, 1, "Set the minimum number of Totems of Undying required to prevent disconnection.") { totem }
+    @Tab(TRIGGERS_TAB) @Group(TOTEM_GROUP) private val totemSmart by boolSetting("Smart Toggle", true, "Stop re-triggering on totems until you're back above the minimum.") { totem }
 
-    @Tab(TRIGGERS_TAB) private val players by setting("Players", false, "Disconnect if a nearby player is detected within the set distance.")
-    @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }
-    @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val ignoreFriends by setting("Ignore Friends", false, "Exclude friends from triggering player-based disconnections.") { players }
-    @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val playersSmart by setting("Smart Toggle", false, "Stop re-triggering on players until none are within range.") { players }
+    @Tab(TRIGGERS_TAB) private val players by boolSetting("Players", false, "Disconnect if a nearby player is detected within the set distance.")
+    @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val minPlayerDistance by intSetting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }
+    @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val ignoreFriends by boolSetting("Ignore Friends", false, "Exclude friends from triggering player-based disconnections.") { players }
+    @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val playersSmart by boolSetting("Smart Toggle", false, "Stop re-triggering on players until none are within range.") { players }
 
-    @Tab(TRIGGERS_TAB) private val armor by setting("Armor", false, "Disconnect when an equipped armor piece's durability drops below the set limit.")
-    @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val minArmorDurability by setting("Min Armor Durability", 10, 1..50, 1, "Disconnect when any equipped armor piece's remaining durability falls below this.") { armor }
-    @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val armorSmart by setting("Smart Toggle", true, "Stop re-triggering on armor until durability climbs back above the minimum.") { armor }
+    @Tab(TRIGGERS_TAB) private val armor by boolSetting("Armor", false, "Disconnect when an equipped armor piece's durability drops below the set limit.")
+    @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val minArmorDurability by intSetting("Min Armor Durability", 10, 1..50, 1, "Disconnect when any equipped armor piece's remaining durability falls below this.") { armor }
+    @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val armorSmart by boolSetting("Smart Toggle", true, "Stop re-triggering on armor until durability climbs back above the minimum.") { armor }
 
-    @Tab(TRIGGERS_TAB) private val entities by setting("Entity", false, "Disconnect when an entity of a selected type is within range.")
-    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val selectedEntities by setting("Entities", setOf(Registries.ENTITY_TYPE.getId(EntityType.TNT_MINECART).path), Registries.ENTITY_TYPE.ids.map { it.path }.sorted(), "Select specific entities.") { entities }
-    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val entityRange by setting("Entity Range", 10.0, 0.0..100.0, 1.0, "The range to check for entities.", unit = " blocks") { entities }
-    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val entitiesSmart by setting("Smart Toggle", true, "Stop re-triggering on entities until none of the selected types are within range.") { entities }
+    @Tab(TRIGGERS_TAB) private val entities by boolSetting("Entity", false, "Disconnect when an entity of a selected type is within range.")
+    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val selectedEntities by collectionSetting("Entities", setOf(Registries.ENTITY_TYPE.getId(EntityType.TNT_MINECART).path), Registries.ENTITY_TYPE.ids.map { it.path }.sorted(), "Select specific entities.") { entities }
+    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val entityRange by doubleSetting("Entity Range", 10.0, 0.0..100.0, 1.0, "The range to check for entities.", unit = " blocks") { entities }
+    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val entitiesSmart by boolSetting("Smart Toggle", true, "Stop re-triggering on entities until none of the selected types are within range.") { entities }
 
     // ToDo: Only those DamageTypes are reported by the server. why?
-    @Tab(TRIGGERS_TAB) private val damage by setting("Damage", false, "Disconnect when taking damage of a selected type.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val generic by setting("Generic", false, "Disconnect from the server when you take generic damage. (will always trigger!)") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val lava by setting("Lava", false, "Disconnect from the server when you take lava damage.") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you take \"hot floor\" damage.") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val drown by setting("Drown", false, "Disconnect from the server when you take drowning damage.") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val cactus by setting("Cactus", false, "Disconnect from the server when you take cactus damage.") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val fall by setting("Fall", false, "Disconnect from the server when you take fall damage.") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you take \"out of the world\" damage") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val wither by setting("Wither", false, "Disconnect from the server when you take wither damage.") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you take stalagmite damage.") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val arrow by setting("Arrow", false, "Disconnect from the server when you take arrow damage.") { damage }
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val trident by setting("Trident", false, "Disconnect from the server when you take trident damage.") { damage }
+    @Tab(TRIGGERS_TAB) private val damage by boolSetting("Damage", false, "Disconnect when taking damage of a selected type.")
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val generic by boolSetting("Generic", false, "Disconnect from the server when you take generic damage. (will always trigger!)") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val inFire by boolSetting("Burning", false, "Disconnect from the server when you take fire damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val lava by boolSetting("Lava", false, "Disconnect from the server when you take lava damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val hotFloor by boolSetting("Hot Floor", false, "Disconnect from the server when you take \"hot floor\" damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val drown by boolSetting("Drown", false, "Disconnect from the server when you take drowning damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val cactus by boolSetting("Cactus", false, "Disconnect from the server when you take cactus damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val fall by boolSetting("Fall", false, "Disconnect from the server when you take fall damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val outOfWorld by boolSetting("Out of World", false, "Disconnect from the server when you take \"out of the world\" damage") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val wither by boolSetting("Wither", false, "Disconnect from the server when you take wither damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val stalagmite by boolSetting("Stalagmite", false, "Disconnect from the server when you take stalagmite damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val arrow by boolSetting("Arrow", false, "Disconnect from the server when you take arrow damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val trident by boolSetting("Trident", false, "Disconnect from the server when you take trident damage.") { damage }
 
-    @Tab(GENERAL_TAB) private val disableAutoReconnect by setting("Disable ${AutoReconnect.name}", false, "Disables ${AutoReconnect.name} when disconnecting")
-    @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val invalidHotbarDisconnect by setting("Select Invalid Hotbar Slot", false, "Sends an invalid hotbar selection to force the server to kick the player")
-    @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val attackSelfDisconnect by setting("Attack Self", false, "Sends an attack self packet to force the server to kick the player")
-    @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val impossibleTimestampChatDisconnect by setting("Send Impossible Chat Timestamp", false, "Sends a chat message with an impossible timestamp to force the server to kick the player")
+    @Tab(GENERAL_TAB) private val disableAutoReconnect by boolSetting("Disable ${AutoReconnect.name}", false, "Disables ${AutoReconnect.name} when disconnecting")
+    @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val invalidHotbarDisconnect by boolSetting("Select Invalid Hotbar Slot", false, "Sends an invalid hotbar selection to force the server to kick the player")
+    @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val attackSelfDisconnect by boolSetting("Attack Self", false, "Sends an attack self packet to force the server to kick the player")
+    @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val impossibleTimestampChatDisconnect by boolSetting("Send Impossible Chat Timestamp", false, "Sends a chat message with an impossible timestamp to force the server to kick the player")
 
-    @Tab(DISPLAY_TAB) private val hideDetails by setting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen")
-    @Tab(DISPLAY_TAB) private val showCoordinates by setting("Show Coordinates", true, "Show the player's coordinates on the disconnect screen")
-    @Tab(DISPLAY_TAB) private val showTime by setting("Show Time", true, "Show the time of disconnection on the disconnect screen")
+    @Tab(DISPLAY_TAB) private val hideDetails by boolSetting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen")
+    @Tab(DISPLAY_TAB) private val showCoordinates by boolSetting("Show Coordinates", true, "Show the player's coordinates on the disconnect screen")
+    @Tab(DISPLAY_TAB) private val showTime by boolSetting("Show Time", true, "Show the time of disconnection on the disconnect screen")
 
     private var disconnectDetails: DisconnectDetails? = null
     private var disconnectInProgress: Boolean = false

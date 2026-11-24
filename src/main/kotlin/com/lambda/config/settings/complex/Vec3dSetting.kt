@@ -22,12 +22,21 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
+
+@ConfigEntryDsl
+fun Config.vec3dSetting(
+    name: String,
+    defaultValue: Vec3d,
+    description: String = "",
+    visibility: () -> Boolean = { true }
+) = setting(name) { layer -> Vec3dSetting(name, description, this, layer, visibility, defaultValue) }
 
 class Vec3dSetting(
     name: String,

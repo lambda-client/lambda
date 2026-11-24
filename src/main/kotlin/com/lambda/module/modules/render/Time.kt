@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.settings.numeric.longSetting
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -29,7 +30,7 @@ object Time : Module(
 	description = "Changes the time of day",
 	tag = ModuleTag.RENDER
 ) {
-	private val time by setting("Time", 12000L, 0L..24000L, 100L)
+	private val time by longSetting("Time", 12000L, 0L..24000L, 100L)
 
 	private var prevTime = 0L
 

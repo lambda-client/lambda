@@ -17,6 +17,9 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.PacketEvent
@@ -39,14 +42,14 @@ object TickShift : Module(
     description = "Smort tickshift for smort anticheats",
     tag = ModuleTag.MOVEMENT,
 ) {
-    val maxBalance by setting("Max Balance", 20, 3..400, 1)
-    private val boostAmount by setting("Boost", 3.0, 1.1..20.0, 0.01)
-    private val slowdown by setting("Slowdown", 0.35, 0.01..0.9, 0.01)
-    private val delaySetting by setting("Delay", 0, 0..2000, 10)
-    private val grim by setting("Grim", true)
-    private val strictSetting by setting("Strict", true) { !grim }
-    private val shiftVelocity by setting("Shift velocity", true) { grim }
-    private val requiresAura by setting("Requires Aura", false)
+    val maxBalance by intSetting("Max Balance", 20, 3..400, 1)
+    private val boostAmount by doubleSetting("Boost", 3.0, 1.1..20.0, 0.01)
+    private val slowdown by doubleSetting("Slowdown", 0.35, 0.01..0.9, 0.01)
+    private val delaySetting by intSetting("Delay", 0, 0..2000, 10)
+    private val grim by boolSetting("Grim", true)
+    private val strictSetting by boolSetting("Strict", true) { !grim }
+    private val shiftVelocity by boolSetting("Shift velocity", true) { grim }
+    private val requiresAura by boolSetting("Requires Aura", false)
 
     private val strict get() = grim || strictSetting
 

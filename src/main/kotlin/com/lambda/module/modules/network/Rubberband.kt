@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.network
 
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -41,9 +42,9 @@ object Rubberband : Module(
     description = "Info about rubberbands",
     tag = ModuleTag.NETWORK,
 ) {
-    private val showLastPacketInfo by setting("Show Last Packet", true)
-    private val showConnectionState by setting("Show Connection State", true)
-    private val showRubberbandInfo by setting("Show Rubberband Info", true)
+    private val showLastPacketInfo by boolSetting("Show Last Packet", true)
+    private val showConnectionState by boolSetting("Show Connection State", true)
+    private val showRubberbandInfo by boolSetting("Show Rubberband Info", true)
 
     val configurations = LimitedOrderedSet<Vec3d>(100)
 

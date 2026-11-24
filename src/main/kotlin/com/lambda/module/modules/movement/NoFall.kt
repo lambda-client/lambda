@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -41,7 +42,7 @@ object NoFall : Module(
     description = "Reduces fall damage",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val mode by setting("Mode", Mode.Grim)
+    private val mode by enumSetting("Mode", Mode.Grim)
 
     enum class Mode {
         Grim

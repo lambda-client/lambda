@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.debug
 
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -32,12 +33,12 @@ object BlockTest : Module(
     description = "BlockTest",
     tag = ModuleTag.DEBUG,
 ) {
-    private val rangeX by setting("Range X", 5, 1..7, 1, "Range X")
-    private val rangeY by setting("Range Y", 5, 1..7, 1, "Range Y")
-    private val rangeZ by setting("Range Z", 5, 1..7, 1, "Range Z")
-    private val stepX by setting("Step X", 1, 1..7, 1, "Step X")
-    private val stepY by setting("Step Y", 1, 1..7, 1, "Step Y")
-    private val stepZ by setting("Step Z", 1, 1..7, 1, "Step Z")
+    private val rangeX by intSetting("Range X", 5, 1..7, 1, "Range X")
+    private val rangeY by intSetting("Range Y", 5, 1..7, 1, "Range Y")
+    private val rangeZ by intSetting("Range Z", 5, 1..7, 1, "Range Z")
+    private val stepX by intSetting("Step X", 1, 1..7, 1, "Step X")
+    private val stepY by intSetting("Step Y", 1, 1..7, 1, "Step Y")
+    private val stepZ by intSetting("Step Z", 1, 1..7, 1, "Step Z")
 
     private val range: Vec3i
         get() = Vec3i(rangeX, rangeY, rangeZ)

@@ -19,6 +19,9 @@ package com.lambda.gui.components
 
 import com.lambda.config.Config
 import com.lambda.config.categories.HudCategory
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.floatSetting
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -46,15 +49,15 @@ object HudGuiLayout : Loadable, Config(
     "HUD",
     HudCategory
 ) {
-    val showInScreens by setting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The Lambda GUI always shows them.")
+    val showInScreens by boolSetting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The Lambda GUI always shows them.")
 
     // HUD Outline
-    val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f)
-    val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90))
-    val hudOutlineBorderColor by setting("HUD Corner Border Color", Color(190, 190, 190, 200))
-    val hudOutlineHaloThickness by setting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f)
-    val hudOutlineBorderThickness by setting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f)
-    val hudOutlineCornerInflate by setting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc")
+    val hudOutlineCornerRadius by floatSetting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f)
+    val hudOutlineHaloColor by colorSetting("HUD Corner Halo Color", Color(140, 140, 140, 90))
+    val hudOutlineBorderColor by colorSetting("HUD Corner Border Color", Color(190, 190, 190, 200))
+    val hudOutlineHaloThickness by floatSetting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f)
+    val hudOutlineBorderThickness by floatSetting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f)
+    val hudOutlineCornerInflate by floatSetting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc")
 
     const val DEFAULT_HUD_FLAGS =
         ImGuiWindowFlags.NoDecoration or

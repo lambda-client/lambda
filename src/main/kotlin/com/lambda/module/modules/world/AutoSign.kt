@@ -18,6 +18,9 @@
 package com.lambda.module.modules.world
 
 import com.ibm.icu.util.Calendar
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.longSetting
+import com.lambda.config.settings.stringSetting
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -51,15 +54,15 @@ object AutoSign : Module(
 	""".trimMargin(),
 	tag = ModuleTag.WORLD
 ) {
-	private var autoWrite by setting("Auto Write", true)
-	private var line1 by setting("Line 1", "Welcome to Lambda!") { autoWrite }
-	private var line2 by setting("Line 2", "Enjoy your stay.") { autoWrite }
-	private var line3 by setting("Line 3", "Have fun!") { autoWrite }
-	private var line4 by setting("Line 4", "Lambda <dd>/<M>/<yy>") { autoWrite }
-	private var writeOnFront by setting("Write Front", true, description = "Write on front side of the sign") { autoWrite }
+	private var autoWrite by boolSetting("Auto Write", true)
+	private var line1 by stringSetting("Line 1", "Welcome to Lambda!") { autoWrite }
+	private var line2 by stringSetting("Line 2", "Enjoy your stay.") { autoWrite }
+	private var line3 by stringSetting("Line 3", "Have fun!") { autoWrite }
+	private var line4 by stringSetting("Line 4", "Lambda <dd>/<M>/<yy>") { autoWrite }
+	private var writeOnFront by boolSetting("Write Front", true, description = "Write on front side of the sign") { autoWrite }
 
-	private var autoClose by setting("Auto Close", true)
-	var signWriteDelay by setting("Sign Write Delay", 400L, 100L..1000L, 50L, description = "Delay in milliseconds before sending the sign text to the server") { autoClose }
+	private var autoClose by boolSetting("Auto Close", true)
+	var signWriteDelay by longSetting("Sign Write Delay", 400L, 100L..1000L, 50L, description = "Delay in milliseconds before sending the sign text to the server") { autoClose }
 
 	init {
 		listen<GuiEvent.SignEditorOpen> { event ->

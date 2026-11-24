@@ -18,6 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import net.minecraft.client.font.TextRenderer
@@ -38,7 +39,7 @@ object MapPreview : Module(
     description = "Preview maps in your inventory",
     tag = ModuleTag.RENDER,
 ) {
-    @JvmStatic val showInSlot by setting("Show In Slot", true, "Shows the map in the slot rather than the basic map icon")
+    @JvmStatic val showInSlot by boolSetting("Show In Slot", true, "Shows the map in the slot rather than the basic map icon")
 
     private val background = Identifier.ofVanilla("textures/map/map_background.png")
 

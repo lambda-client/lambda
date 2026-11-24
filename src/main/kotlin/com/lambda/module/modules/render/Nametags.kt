@@ -24,6 +24,12 @@ import com.lambda.config.blocks.EntitySelectionSettings
 import com.lambda.config.blocks.ScreenTextSettings
 import com.lambda.config.editSetting
 import com.lambda.config.hide
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.floatSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -60,20 +66,20 @@ object Nametags : Module(
 	private const val BACKGROUND_TAB = "Background"
 	private const val TEXT_TAB = "Text"
 
-	@Tab(GENERAL_TAB) private val textSize by setting("Text Size", 18, 1..50, 1)
-	@Tab(GENERAL_TAB) private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f)
-	@Tab(GENERAL_TAB) private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01)
-	@Tab(GENERAL_TAB) private val spacing by setting("Spacing", 0, 0..10, 1)
-	@Tab(GENERAL_TAB) private val health by setting("Health", true)
-	@Tab(GENERAL_TAB) private val ping by setting("Ping", true)
-	@Tab(GENERAL_TAB) private val gear by setting("Gear", true)
-	@Tab(GENERAL_TAB) private val mainItem by setting("Main Item", true) { gear }
-	@Tab(GENERAL_TAB) private val offhandItem by setting("Offhand Item", true) { gear }
+	@Tab(GENERAL_TAB) private val textSize by intSetting("Text Size", 18, 1..50, 1)
+	@Tab(GENERAL_TAB) private val itemScale by floatSetting("Item Scale", 3f, 0.4f..5f, 0.01f)
+	@Tab(GENERAL_TAB) private val yOffset by doubleSetting("Y Offset", 0.2, 0.0..1.0, 0.01)
+	@Tab(GENERAL_TAB) private val spacing by intSetting("Spacing", 0, 0..10, 1)
+	@Tab(GENERAL_TAB) private val health by boolSetting("Health", true)
+	@Tab(GENERAL_TAB) private val ping by boolSetting("Ping", true)
+	@Tab(GENERAL_TAB) private val gear by boolSetting("Gear", true)
+	@Tab(GENERAL_TAB) private val mainItem by boolSetting("Main Item", true) { gear }
+	@Tab(GENERAL_TAB) private val offhandItem by boolSetting("Offhand Item", true) { gear }
 //ToDo: Implement 	private val enchantments by setting("Enchantments", false) { gear }
-	@Tab(GENERAL_TAB) private val itemName by setting("Item Name", true)
-	@Tab(GENERAL_TAB) private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }
-	@Tab(GENERAL_TAB) private val itemCount by setting("Item Count", true)
-	@Tab(GENERAL_TAB) private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }
+	@Tab(GENERAL_TAB) private val itemName by boolSetting("Item Name", true)
+	@Tab(GENERAL_TAB) private val itemNameScale by floatSetting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }
+	@Tab(GENERAL_TAB) private val itemCount by boolSetting("Item Count", true)
+	@Tab(GENERAL_TAB) private val durabilityMode by enumSetting("Durability Mode", DurabilityMode.Text) { gear }
 
 	@Tab(ENTITY_TAB) private val entitySelectionSettings by configBlock(EntitySelectionSettings(this))
 		.withEdits { hide(::blockEntities) }
@@ -89,9 +95,9 @@ object Nametags : Module(
 	@Tab(TEXT_TAB) @Group(OTHER_GROUP) private val otherTextConfig by configBlock(ScreenTextSettings(this))
 		.withEdits { hide(::sizeSetting) }
 
-	@Tab(BACKGROUND_TAB) private val background by setting("Background", true)
-	@Tab(BACKGROUND_TAB) private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }
-	@Tab(BACKGROUND_TAB) private val backgroundSize by setting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }
+	@Tab(BACKGROUND_TAB) private val background by boolSetting("Background", true)
+	@Tab(BACKGROUND_TAB) private val backgroundColor by colorSetting("Background Color", Color(0, 0, 0, 60)) { background }
+	@Tab(BACKGROUND_TAB) private val backgroundSize by floatSetting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }
 
 	var heightWidthRatio = 0f
 	var trueItemScaleX = 0f
