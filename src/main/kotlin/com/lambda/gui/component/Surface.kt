@@ -26,7 +26,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
@@ -104,29 +103,32 @@ fun Modifier.guiPresence(anchor: TransformOrigin? = null): Modifier =
         }
     }
 
-fun Modifier.glass(color: Color, shape: Shape): Modifier =
+fun Modifier.glass(color: Color, shape: Shape, strength: () -> Float = { 1f }): Modifier =
     clip(shape).composed {
         val sigma = with(LocalDensity.current) { Look.backdropBlur.toPx() }
         val underlay = Look.underlay
-        val blur =
-            remember(sigma, underlay) {
-                if (sigma <= 0f) return@remember null
-                val blurred = ImageFilter.makeBlur(sigma, sigma, FilterTileMode.CLAMP)
-                if (underlay >= 1f) blurred
-                else ImageFilter.makeColorFilter(faded(underlay), blurred, null)
-            }
+        val full = remember(sigma, underlay) { backdropFilter(sigma, underlay) }
         drawBehind {
-            if (blur == null) {
-                drawRect(color, blendMode = BlendMode.Src)
-                return@drawBehind
-            }
-            drawIntoCanvas { canvas ->
-                canvas.skiaCanvas.saveLayer(Canvas.SaveLayerRec(Rect.makeWH(size.width, size.height), REPLACE, blur))
+            val amount = strength().coerceIn(0f, 1f)
+            if (amount <= 0f) return@drawBehind
+            val backdrop =
+                if (amount >= 1f) full
+                else backdropFilter(sigma * amount, 1f - (1f - underlay) * amount)
+            if (backdrop != null) drawIntoCanvas { canvas ->
+                canvas.skiaCanvas.saveLayer(Canvas.SaveLayerRec(Rect.makeWH(size.width, size.height), REPLACE, backdrop))
                 canvas.skiaCanvas.restore()
             }
-            drawRect(color)
+            drawRect(color.copy(alpha = color.alpha * amount))
         }
     }
+
+private fun backdropFilter(sigma: Float, underlay: Float): ImageFilter? {
+    val blurred =
+        if (sigma > 0f) ImageFilter.makeBlur(sigma, sigma, FilterTileMode.CLAMP)
+        else null
+    return if (underlay >= 1f) blurred
+    else ImageFilter.makeColorFilter(faded(underlay), blurred, null)
+}
 
 fun Modifier.window(
     color: Color,

@@ -86,9 +86,8 @@ internal fun ClickGui() {
     val screen = LocalWindowInfo.current.containerSize
     val developerMode = ClickGuiState.developerMode
     val tags by observe {
-        CLICK_GUI_CATEGORIES.filter(ModuleTag::isTagShown) + listOfNotNull(
-            ModuleTag.DEBUG.takeIf { developerMode }
-        )
+        CLICK_GUI_CATEGORIES.filter(ModuleTag::isTagShown) +
+                listOfNotNull(ModuleTag.DEBUG.takeIf { developerMode })
     }
 
     val settings = remember { OpenSettings() }

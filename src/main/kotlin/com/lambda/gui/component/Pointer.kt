@@ -42,6 +42,8 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntSize
 
+val LocalClickOnRelease = compositionLocalOf { false }
+
 @OptIn(ExperimentalComposeUiApi::class)
 fun Modifier.mouseClickable(
     enabled: Boolean = true,
@@ -96,8 +98,6 @@ fun Modifier.mouseClickable(
             }
         }
     }
-
-val LocalClickOnRelease = compositionLocalOf { false }
 
 fun Modifier.onMousePress(
     button: PointerButton,

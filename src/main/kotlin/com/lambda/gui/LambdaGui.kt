@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.IntSize
 import com.lambda.Lambda.LOG
@@ -50,8 +51,8 @@ import com.lambda.gui.core.ComposeSlot
 import com.lambda.gui.core.GameClipboard
 import com.lambda.gui.core.LocalObservations
 import com.lambda.gui.core.LocalPresence
+import com.lambda.gui.core.LocalShown
 import com.lambda.gui.core.Observations
-import com.lambda.gui.core.Retained
 import com.lambda.gui.core.SceneHost
 import com.lambda.gui.core.SceneInput
 import com.lambda.gui.hud.Hud
@@ -59,6 +60,7 @@ import com.lambda.gui.hud.HudEditor
 import com.lambda.gui.hud.HudLayer
 import com.lambda.gui.render.GuiCompositor
 import com.lambda.gui.render.ItemAtlas
+import com.lambda.gui.settings.PickerWarmUp
 import com.lambda.gui.settings.SettingsList
 import com.lambda.gui.theme.GuiInterrupt
 import com.lambda.gui.theme.GuiTransition
@@ -120,10 +122,9 @@ object LambdaGui : Loadable {
             if (leaving) GuiConfig.closeStyle
             else GuiConfig.openStyle
     internal val unfoldsOpen
-        get() =
-            GuiConfig.animations &&
-                    GuiConfig.openAnimation &&
-                    GuiTransition.Unfold in GuiConfig.openStyle
+        get() = GuiConfig.animations &&
+                GuiConfig.openAnimation &&
+                GuiTransition.Unfold in GuiConfig.openStyle
     private val showsClickGui
         get() = screen == Screen.ClickGui || leaving
     internal val foldsClosed
@@ -159,17 +160,33 @@ object LambdaGui : Loadable {
         else close()
     }
 
+    fun open(screen: Screen) {
+        if (broken) {
+            warn("Lambda's GUI stopped after repeated errors. Restart the game to bring it back.")
+            return
+        }
+        if (this.screen == null) {
+            if (!GuiScreen.canOpenOver(mc.currentScreen)) return
+            if (leaving) attemptSkipTo(0f)
+            else jumpTo(0f)
+            if (ClientConfig.clientSounds) LambdaSound.ModuleOn.play()
+            GuiScreen.show()
+            AutoUpdater.onGuiOpened()
+        }
+        leaving = false
+        this.screen = screen
+    }
+
     fun close() {
-        val animated =
-            GuiConfig.animations && GuiConfig.closeAnimation && GuiConfig.closeStyle.isNotEmpty()
+        val animated = GuiConfig.animations && GuiConfig.closeAnimation && GuiConfig.closeStyle.isNotEmpty()
         if (screen == Screen.ClickGui && animated) {
-            if (shownPresence < 1f) skipTo(1f)
+            if (shownPresence < 1f) attemptSkipTo(1f)
             leaving = true
         }
         GuiScreen.close()
     }
 
-    private fun skipTo(end: Float) {
+    private fun attemptSkipTo(end: Float) {
         if (GuiConfig.interruptedAnimation != GuiInterrupt.Finish) return
         jumpTo(end)
         restarts++
@@ -178,23 +195,6 @@ object LambdaGui : Loadable {
     private fun jumpTo(value: Float) {
         animation?.cancel()
         shownPresence = value
-    }
-
-    fun open(screen: Screen) {
-        if (broken) {
-            warn("Lambda's GUI stopped after repeated errors. Restart the game to bring it back.")
-            return
-        }
-        if (this.screen == null) {
-            if (!GuiScreen.canOpenOver(mc.currentScreen)) return
-            if (leaving) skipTo(0f)
-            else jumpTo(0f)
-            if (ClientConfig.clientSounds) LambdaSound.ModuleOn.play()
-            GuiScreen.show()
-            AutoUpdater.onGuiOpened()
-        }
-        leaving = false
-        this.screen = screen
     }
 
     fun back() {
@@ -290,7 +290,8 @@ object LambdaGui : Loadable {
             val host = createHost()
             warmingUp = true
             host.advance(size, density)
-            host.draw()
+            ItemAtlas.render()
+            host.draw(beforeScene = ItemAtlas::import)
             warmingUp = false
             host.advance(size, density)
             LOG.info("Prepared the GUI in ${(System.nanoTime() - start) / 1_000_000} ms")
@@ -340,6 +341,27 @@ object LambdaGui : Loadable {
     }
 
     @Composable
+    private fun Retained(
+        shown: Boolean,
+        observations: Observations,
+        content: @Composable () -> Unit
+    ) {
+        CompositionLocalProvider(
+            LocalShown provides shown,
+            LocalObservations provides observations
+        ) {
+            Box(
+                Modifier.layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    layout(placeable.width, placeable.height) {
+                        if (shown) placeable.place(0, 0)
+                    }
+                }
+            ) { content() }
+        }
+    }
+
+    @Composable
     private fun Underlay(content: @Composable () -> Unit) {
         val layer = rememberGraphicsLayer()
         SideEffect { underlay = layer }
@@ -369,8 +391,7 @@ object LambdaGui : Loadable {
                 animate(shownPresence, target, animationSpec = spec) { value, _ ->
                     shownPresence = value
                 }
-            }
-            else shownPresence = target
+            } else shownPresence = target
             if (!present) leaving = false
         }
     }
@@ -378,6 +399,7 @@ object LambdaGui : Loadable {
     @Composable
     private fun WarmUp() {
         SettingsList(GuiConfig.settingLayers)
+        PickerWarmUp()
     }
 
     private fun effects(density: Float): GuiCompositor.Effects {
@@ -386,7 +408,7 @@ object LambdaGui : Loadable {
             if (showsClickGui) presence
             else 1f
         return GuiCompositor.Effects(
-            frost =
+            blur =
                 if (GuiConfig.blur) GuiConfig.blurRadius * density * strength
                 else 0f,
             glow =

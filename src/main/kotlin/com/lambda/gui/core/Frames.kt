@@ -19,7 +19,11 @@ package com.lambda.gui.core
 
 import androidx.compose.runtime.withFrameNanos
 
+private const val NANOS_PER_MILLI = 1_000_000
+
 suspend fun awaitFrames(millis: Long) {
-    val start = withFrameNanos { it }
-    while (withFrameNanos { it } - start < millis * 1_000_000) Unit
+    val end = withFrameNanos { it } + millis * NANOS_PER_MILLI
+    do {
+        val now = withFrameNanos { it }
+    } while (now < end)
 }

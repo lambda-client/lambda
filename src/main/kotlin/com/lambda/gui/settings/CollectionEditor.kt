@@ -66,6 +66,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.registry.Registries
 
 private val ICON_SIZE = 8.dp
+private const val WARM_UP_ENTRIES = 64
 
 @Composable
 internal fun <R : Any> CollectionButton(setting: CollectionSetting<R>) {
@@ -165,7 +166,7 @@ internal fun BlockPicker(setting: BlockSetting) {
         remember(query) {
             entries.filter { it.label.contains(query.trim(), ignoreCase = true) }
         }
-    Dialog(onDismiss = { picking = false }) {
+    Dialog(onDismiss = { picking = false }) { dismiss ->
         Column(Modifier.width(200.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(setting.name)
             TextInput(
@@ -177,9 +178,23 @@ internal fun BlockPicker(setting: BlockSetting) {
             )
             Pane("Blocks (${matching.size})", matching, Modifier.height(220.dp)) {
                 setting.value = it
-                picking = false
+                dismiss()
             }
         }
+    }
+}
+
+@Composable
+internal fun PickerWarmUp() {
+    val entries =
+        remember {
+            Registries.BLOCK.take(WARM_UP_ENTRIES).map {
+                Entry(it, BlockSerializer.stringify(it), ItemStack(it.asItem()))
+            }
+        }
+    Column(Modifier.width(200.dp)) {
+        TextInput("", {}, Modifier.fillMaxWidth())
+        Pane("", entries, Modifier.height(220.dp)) {}
     }
 }
 

@@ -19,6 +19,7 @@ package com.lambda.gui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
@@ -123,6 +124,13 @@ private val FLOATING =
     )
 
 private val SLACK = 4.dp
+private const val DIALOG_ZOOM = 0.85f
+private val SUGGESTIONS_ANCHOR = TransformOrigin(0.5f, 0f)
+
+private val LocalMenuDismiss = staticCompositionLocalOf<(() -> Unit)?> { null }
+private val LocalMenuOpen = compositionLocalOf { true }
+private val LocalMenuHovered = compositionLocalOf { false }
+val LocalPopupHost = compositionLocalOf<PopupHost?> { null }
 
 @Composable
 private fun ScenePopup(
@@ -245,12 +253,6 @@ private class LastValue<T : Any> {
     var value: T? = null
 }
 
-private val LocalMenuDismiss = staticCompositionLocalOf<(() -> Unit)?> { null }
-
-private val LocalMenuOpen = compositionLocalOf { true }
-
-private val LocalMenuHovered = compositionLocalOf { false }
-
 @Composable
 private fun MenuPopup(
     open: Boolean,
@@ -305,8 +307,6 @@ class PopupHost {
         if (!closing) full = bounds
     }
 }
-
-val LocalPopupHost = compositionLocalOf<PopupHost?> { null }
 
 private fun Modifier.swallowedBy(host: PopupHost?): Modifier =
     if (host == null) this
@@ -447,8 +447,6 @@ private class UnfoldingPosition(
         )
     }
 }
-
-private val SUGGESTIONS_ANCHOR = TransformOrigin(0.5f, 0f)
 
 @Composable
 fun Suggestions(
@@ -655,44 +653,56 @@ fun MenuDivider() =
     )
 
 @Composable
-fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.() -> Unit) {
+fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.(dismiss: () -> Unit) -> Unit) {
     if (!LocalShown.current) {
         if (onDismiss != null) SideEffect(onDismiss)
         return
     }
     val colors = LambdaTheme.colors
     val presence = LocalPresence.current
+    val shape = RoundedCornerShape(Look.panelRounding)
+    val opened = remember { Animatable(0f) }
+    var closing by remember { mutableStateOf(false) }
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val dismiss = { closing = currentOnDismiss != null }
+    LaunchedEffect(closing) {
+        if (closing) {
+            opened.animateTo(0f, Motion.dialogs)
+            currentOnDismiss?.invoke()
+        }
+        else opened.animateTo(1f, Motion.dialogs)
+    }
     ScenePopup(
         popupPositionProvider = remember {
             positionProvider { _, _, _ -> IntOffset.Zero }
         },
         properties = PopupProperties(focusable = true),
-        onKeyEvent = { onDismiss != null && it.dismissOnEscape(onDismiss) },
+        onKeyEvent = { onDismiss != null && it.dismissOnEscape(dismiss) },
     ) {
         KeyboardFocus.Layer()
         Box(Modifier.fillMaxSize(), Centered.BOTH) {
             Box(
                 Modifier
                     .matchParentSize()
-                    .graphicsLayer { alpha = presence() }
-                    .glass(Color.Black.copy(alpha = 0.35f), RectangleShape)
-                    .mouseClickable(keyboard = false) { onDismiss?.invoke() }
+                    .glass(Color.Black.copy(alpha = 0.35f), RectangleShape) { presence() * opened.value }
+                    .mouseClickable(keyboard = false, onClick = dismiss)
             )
             ContentColor(colors.onSurface) {
                 AnimatedVisibility(
                     visible = !LambdaGui.foldsClosed,
                     modifier = Modifier
+                        .graphicsLayer {
+                            val shown = opened.value
+                            alpha = shown
+                            scaleX = DIALOG_ZOOM + (1f - DIALOG_ZOOM) * shown
+                            scaleY = scaleX
+                        }
                         .guiPresence()
-                        .window(
-                            colors.panel,
-                            colors.border,
-                            RoundedCornerShape(Look.panelRounding),
-                            floating = true
-                        ),
+                        .window(colors.panel, colors.border, shape, floating = true),
                     enter = expandVertically(Motion.guiFold),
                     exit = shrinkVertically(Motion.guiFold),
                 ) {
-                    Box(Modifier.padding(6.dp), content = content)
+                    Box(Modifier.padding(6.dp)) { content(dismiss) }
                 }
             }
         }

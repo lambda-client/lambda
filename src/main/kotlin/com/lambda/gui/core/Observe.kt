@@ -20,11 +20,16 @@ package com.lambda.gui.core
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
+
+val LocalShown = compositionLocalOf { true }
+val LocalPresence = staticCompositionLocalOf { { 1f } }
+internal val LocalObservations = staticCompositionLocalOf<Observations> { error("observe was called outside the interface") }
 
 @Composable
 fun <T> observe(read: () -> T): State<T> {
@@ -54,5 +59,3 @@ internal class Observations {
 
     fun refresh() = active.forEach { it.refresh() }
 }
-
-internal val LocalObservations = staticCompositionLocalOf<Observations> { error("observe was called outside the interface") }

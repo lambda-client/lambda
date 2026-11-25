@@ -66,8 +66,8 @@ internal fun ConfigDialog(config: Config, onDismiss: () -> Unit) {
         with(LocalDensity.current) {
             LocalWindowInfo.current.containerSize.height.toDp()
         } * 0.7f
-    Dialog(onDismiss) {
-        ConfigSettings(config, maxHeight, onDismiss, Modifier.width(240.dp))
+    Dialog(onDismiss) { dismiss ->
+        ConfigSettings(config, maxHeight, dismiss, Modifier.width(240.dp))
     }
 }
 
@@ -76,13 +76,13 @@ internal fun NewAutomationConfigDialog(onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
     val isAvailable = name.isNotBlank() && ConfigLoader.configs.none { it.name == name }
 
-    fun create() {
+    fun create(dismiss: () -> Unit) {
         if (!isAvailable) return
         UserAutomationConfig(name)
-        onDismiss()
+        dismiss()
     }
 
-    Dialog(onDismiss) {
+    Dialog(onDismiss) { dismiss ->
         Column(Modifier.width(180.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("New Automation Config", style = Type.title)
             TextInput(
@@ -94,8 +94,8 @@ internal fun NewAutomationConfigDialog(onDismiss: () -> Unit) {
             )
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Spacer(Modifier.weight(1f))
-                Button("Cancel", onClick = onDismiss)
-                Button("Create", enabled = isAvailable, onClick = ::create)
+                Button("Cancel", onClick = dismiss)
+                Button("Create", enabled = isAvailable) { create(dismiss) }
             }
         }
     }
@@ -135,7 +135,7 @@ internal fun AboutDialog(onDismiss: () -> Unit) {
                 .filter { it.isNotEmpty() }
         }
 
-    Dialog(onDismiss) {
+    Dialog(onDismiss) { dismiss ->
         Column(Modifier.width(240.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Image(
                 bitmap = rememberTexture("textures/lambda_text_color.png"),
@@ -159,7 +159,7 @@ internal fun AboutDialog(onDismiss: () -> Unit) {
                     Util.getOperatingSystem().open("$REPO_URL/blob/master/LICENSE.md")
                 }
                 Spacer(Modifier.weight(1f))
-                Button("Close", onClick = onDismiss)
+                Button("Close", onClick = dismiss)
             }
         }
     }

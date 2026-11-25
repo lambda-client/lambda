@@ -31,7 +31,7 @@ import java.util.*
 
 internal object GuiCompositor {
     data class Effects(
-        val frost: Float = 0f,
+        val blur: Float = 0f,
         val glow: Float = 0f,
         val glowIntensity: Float = 0f,
         val glowColorA: Color = Color.WHITE,
@@ -44,9 +44,9 @@ internal object GuiCompositor {
     }
 
     private val backdrop by lazy { BlurPyramid("Lambda GUI backdrop") }
-    private val halo by lazy { BlurPyramid("Lambda GUI glow") }
-    private var haloView: GpuTextureView? = null
-    private var haloRadius = 0f
+    private val glow by lazy { BlurPyramid("Lambda GUI glow") }
+    private var glowView: GpuTextureView? = null
+    private var glowRadius = 0f
 
     private val uniformSize =
         Std140SizeCalculator()
@@ -77,18 +77,18 @@ internal object GuiCompositor {
         val linear = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
         val nearest = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
 
-        if (effects.frost <= 0f && effects.glow <= 0f && effects.dim <= 0f) {
-            haloView = null
+        if (effects.blur <= 0f && effects.glow <= 0f && effects.dim <= 0f) {
+            glowView = null
             return blit(gui)
         }
 
         val backdropView =
-            if (effects.frost > 0f) backdrop.blur(screen, width, height, effects.frost)
+            if (effects.blur > 0f) backdrop.blur(screen, width, height, effects.blur)
             else gui
-        if (effects.glow <= 0f) haloView = null
-        else if (guiChanged || haloView == null || haloRadius != effects.glow) {
-            haloView = halo.blur(gui, width, height, effects.glow)
-            haloRadius = effects.glow
+        if (effects.glow <= 0f) glowView = null
+        else if (guiChanged || glowView == null || glowRadius != effects.glow) {
+            glowView = glow.blur(gui, width, height, effects.glow)
+            glowRadius = effects.glow
         }
 
         writeUniforms(effects)
@@ -98,7 +98,7 @@ internal object GuiCompositor {
                 pass.setPipeline(LambdaRenderPipelines.GUI_COMPOSITE)
                 pass.bindTexture("GuiSampler", gui, nearest)
                 pass.bindTexture("BackdropSampler", backdropView, linear)
-                pass.bindTexture("HaloSampler", haloView ?: gui, linear)
+                pass.bindTexture("GlowSampler", glowView ?: gui, linear)
                 pass.setUniform("GuiEffects", uniforms)
                 pass.draw(0, 3)
             }
@@ -123,7 +123,7 @@ internal object GuiCompositor {
                     .putColor(effects.glowColorA)
                     .putColor(effects.glowColorB)
                     .putFloat(if (effects.glow > 0f) effects.glowIntensity else 0f)
-                    .putFloat(if (effects.frost > 0f) 1f else 0f)
+                    .putFloat(if (effects.blur > 0f) 1f else 0f)
                     .putFloat((System.currentTimeMillis() % GLOW_CYCLE_MILLIS) / 1000f)
                     .putFloat(effects.dim)
                     .get()

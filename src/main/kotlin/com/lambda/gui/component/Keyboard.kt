@@ -47,6 +47,8 @@ import com.lambda.gui.theme.LambdaTheme
 
 private val FOCUS_MARK = 1.dp
 
+val LocalKeyboardReachable = compositionLocalOf { true }
+
 internal object KeyboardFocus {
     var visible by mutableStateOf(false)
 
@@ -85,7 +87,5 @@ fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier =
                 )
             }
     }
-
-val LocalKeyboardReachable = compositionLocalOf { true }
 
 internal val KeyEvent.isActivation get() = key == Key.Enter || key == Key.Spacebar

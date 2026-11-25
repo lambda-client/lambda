@@ -60,6 +60,12 @@ private const val LINE_HEIGHT = 10.95f
 
 private val ON_LIGHT_ACCENT = Color(0xFF1B1024)
 
+private val LocalPalette =
+    staticCompositionLocalOf<Palette> { error("No LambdaTheme in this composition") }
+private val LocalTypography =
+    staticCompositionLocalOf<Typography> { error("No LambdaTheme in this composition") }
+val LocalContentColor = compositionLocalOf { Color.White }
+
 @Immutable
 data class Palette(
     val primary: Color,
@@ -134,6 +140,7 @@ internal object Look {
 internal object Motion : MotionDurationScale {
     private const val PAGE_MILLIS = 160
     private const val GUI_MILLIS = 180
+    private const val DIALOG_MILLIS = 140
     private const val NOTIFICATION_MILLIS = 260
     private val UNFOLDING =
         spring(
@@ -165,6 +172,8 @@ internal object Motion : MotionDurationScale {
         get() = if (GuiConfig.panelAnimations) UNFOLDING else snap()
     val pageMillis
         get() = if (GuiConfig.pageAnimations) PAGE_MILLIS else 0
+    val dialogs: FiniteAnimationSpec<Float>
+        get() = if (GuiConfig.dialogAnimations) tween(DIALOG_MILLIS) else snap()
     fun gui(distance: Float): FiniteAnimationSpec<Float> =
         tween((GUI_MILLIS * distance).roundToInt())
     val guiFold: FiniteAnimationSpec<IntSize>
@@ -257,13 +266,6 @@ object LambdaTheme {
     val colors: Palette
         @Composable @ReadOnlyComposable get() = LocalPalette.current
 }
-
-private val LocalPalette =
-    staticCompositionLocalOf<Palette> { error("No LambdaTheme in this composition") }
-private val LocalTypography =
-    staticCompositionLocalOf<Typography> { error("No LambdaTheme in this composition") }
-
-val LocalContentColor = compositionLocalOf { Color.White }
 
 @Composable
 fun LambdaTheme(content: @Composable () -> Unit) {

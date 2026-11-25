@@ -337,7 +337,7 @@ object LambdaRenderPipelines : Loadable {
 		guiPass(
 			"gui_composite",
 			Identifier.of("lambda", "core/gui_composite"),
-			samplers = listOf("GuiSampler", "BackdropSampler", "HaloSampler"),
+			samplers = listOf("GuiSampler", "BackdropSampler", "GlowSampler"),
 			uniform = "GuiEffects",
 			blend = BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA
 		)

@@ -123,7 +123,7 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     @Tab(STYLE_TAB) @Group(BACKDROP_GROUP) val dimStrength by floatSetting("Dim Strength", 0.6f, 0.05f..1f, 0.05f, "How dark the background gets. Minecraft's own menus use about 0.8") { dimBackground }
     @Tab(STYLE_TAB) @Group(BACKDROP_GROUP) val blur by boolSetting("Blur", true, "Blurs what is behind windows for a frosted glass look")
     @Tab(STYLE_TAB) @Group(BACKDROP_GROUP) val blurRadius by floatSetting("Blur Radius", 4f, 1f..32f, 1f, "Strength of the blur") { blur }
-    @Tab(STYLE_TAB) @Group(BACKDROP_GROUP) val layerFade by floatSetting("Layer Fade", 0.5f, 0f..1f, 0.05f, "How far the interface fades out underneath a panel, menu or window opened over it, letting the game show there instead so the two do not run together") { blur }
+    @Tab(STYLE_TAB) @Group(BACKDROP_GROUP) val layerFade by floatSetting("Layer Fade", 0.5f, 0f..1f, 0.05f, "How far the interface fades out underneath a panel, menu or window opened over it, letting the game show there instead so the two do not run together")
     @Tab(STYLE_TAB) @Group(BACKDROP_GROUP) val glow by boolSetting("Glow", false, "Surrounds the click GUI with a glow, in the two glow colours of the theme in use")
     @Tab(STYLE_TAB) @Group(BACKDROP_GROUP) val glowRadius by floatSetting("Glow Radius", 17f, 1f..100f, 1f) { glow }
     @Tab(STYLE_TAB) @Group(BACKDROP_GROUP) val glowIntensity by floatSetting("Glow Intensity", 0.3f, 0.1f..3f, 0.1f) { glow }
@@ -159,6 +159,7 @@ object GuiConfig : Loadable, Config("GUI", GuiCategory) {
     @Tab(STYLE_TAB) @Group(MOTION_GROUP) val windowAnimations by boolSetting("Window Animations", true, "Category windows unfold out of their headers") { animations }
     @Tab(STYLE_TAB) @Group(MOTION_GROUP) val panelAnimations by boolSetting("Panel Animations", true, "Settings panels, menus, dropdowns and search results unfold out of what opened them") { animations }
     @Tab(STYLE_TAB) @Group(MOTION_GROUP) val pageAnimations by boolSetting("Page Animations", true, "Changing the tab or the page of a settings panel slides the new one in") { animations }
+    @Tab(STYLE_TAB) @Group(MOTION_GROUP) val dialogAnimations by boolSetting("Dialog Animations", true, "Dialogs such as GUI Settings grow out of the centre of the screen as they open, and shrink back as they close") { animations }
     @Tab(STYLE_TAB) @Group(MOTION_GROUP) val smoothScrolling by boolSetting("Smooth Scrolling", true, "The mouse wheel sets a list off fast and lets it glide to rest. On its own: it works with Animations off, and at its own pace")
     @Tab(STYLE_TAB) @Group(MOTION_GROUP) val scrollSpeed by floatSetting("Scroll Speed", 1f, 0.25f..3f, 0.25f, "How far a notch of the mouse wheel takes a list, as a multiple of three rows")
     @Tab(STYLE_TAB) @Group(MOTION_GROUP) val tooltipDelay by intSetting("Tooltip Delay", 500, 0..2000, 50, "How long the pointer rests on something before its description shows", " ms")
