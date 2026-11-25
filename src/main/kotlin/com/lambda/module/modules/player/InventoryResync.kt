@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
@@ -31,7 +32,7 @@ object InventoryResync : Module(
 	tag = ModuleTag.PLAYER,
 	modulePriority = 10
 ) {
-	private val delay by setting("Delay", 100, 0..1000, 5, unit = " ticks")
+	private val delay by intSetting("Delay", 100, 0..1000, 5, unit = " ticks")
 
 	private val timer = TickTimer()
 

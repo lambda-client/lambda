@@ -22,6 +22,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.categories.SecretsCategory
 import com.lambda.config.entries.onValueChangeUnsafe
+import com.lambda.config.settings.stringSetting
 import com.lambda.core.Loadable
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -54,7 +55,7 @@ object CapeHandler : Config(
     "capes",
     SecretsCategory
 ), Loadable {
-    var currentCape by setting("cape", "")
+    var currentCape by stringSetting("cape", "")
         .onValueChangeUnsafe { _, to -> updateCape(to) }
 
     val cache = ConcurrentHashMap<UUID, String>()

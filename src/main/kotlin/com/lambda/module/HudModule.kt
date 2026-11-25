@@ -18,6 +18,7 @@
 package com.lambda.module
 
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.colorSetting
 import com.lambda.gui.Layout
 import java.awt.Color
 
@@ -29,5 +30,5 @@ abstract class HudModule(
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
 ) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind = defaultKeybind), Layout {
-    val backgroundColor = setting("Background Color", Color(0, 0, 0, 0))
+    val backgroundColor = colorSetting("Background Color", Color(0, 0, 0, 0))
 }

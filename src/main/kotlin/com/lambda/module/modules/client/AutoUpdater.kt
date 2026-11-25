@@ -18,6 +18,8 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
@@ -42,9 +44,9 @@ object AutoUpdater : Module(
     description = "Installs / uninstalls Lambda loader",
     tag = ModuleTag.CLIENT,
 ) {
-    private val debug by setting("Debug", false, "Enable debug logging")
-    private val loaderBranch by setting("Loader Branch", Branch.Stable, "Select loader update branch")
-    private val clientBranch by setting("Client Branch", Branch.Dev, "Select client update branch")
+    private val debug by boolSetting("Debug", false, "Enable debug logging")
+    private val loaderBranch by enumSetting("Loader Branch", Branch.Stable, "Select loader update branch")
+    private val clientBranch by enumSetting("Client Branch", Branch.Dev, "Select client update branch")
 
     private var loaderPromptHandled by property(false)
 

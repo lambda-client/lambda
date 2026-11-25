@@ -17,6 +17,10 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.floatSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -29,14 +33,14 @@ object Zoom : Module(
 	description = "Zooms the current view",
 	tag = ModuleTag.RENDER,
 ) {
-	private var zoom by setting("Zoom", 2f, 1f..10f, 0.1f)
-	private val style by setting("Style", ZoomStyle.EaseOut)
-	private val animationDuration by setting("Animation Duration", 200, 40..1500, 20, unit = "ms") { style != ZoomStyle.Instant }
-	private val disableDuration by setting("Disable Duration", 100, 0..1500, 20, unit = "ms") { style != ZoomStyle.Instant }
-	private val scroll by setting("Scroll", true)
-	private val persistentScroll by setting("Persistent Scroll", false) { scroll }
-	private val sensitivity by setting("Sensitivity", 0.2f, 0.1f..1f, 0.1f) { scroll }
-	@JvmStatic val smoothMovement by setting("Smooth Movement", false)
+	private var zoom by floatSetting("Zoom", 2f, 1f..10f, 0.1f)
+	private val style by enumSetting("Style", ZoomStyle.EaseOut)
+	private val animationDuration by intSetting("Animation Duration", 200, 40..1500, 20, unit = "ms") { style != ZoomStyle.Instant }
+	private val disableDuration by intSetting("Disable Duration", 100, 0..1500, 20, unit = "ms") { style != ZoomStyle.Instant }
+	private val scroll by boolSetting("Scroll", true)
+	private val persistentScroll by boolSetting("Persistent Scroll", false) { scroll }
+	private val sensitivity by floatSetting("Sensitivity", 0.2f, 0.1f..1f, 0.1f) { scroll }
+	@JvmStatic val smoothMovement by boolSetting("Smooth Movement", false)
 
 	private var extraZoom = 0f
 		set(value) {

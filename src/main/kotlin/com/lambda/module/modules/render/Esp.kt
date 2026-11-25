@@ -26,6 +26,9 @@ import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.config.withEdits
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -64,20 +67,20 @@ object Esp : Module(
 		Outline("Outline")
 	}
 
-	@Tab(GENERAL_TAB) private val mode by setting("Mode", EspMode.Shader)
-	@Tab(GENERAL_TAB) private val depthTest by setting("Depth Test", false, "Blend ESP renders into the world")
+	@Tab(GENERAL_TAB) private val mode by enumSetting("Mode", EspMode.Shader)
+	@Tab(GENERAL_TAB) private val depthTest by boolSetting("Depth Test", false, "Blend ESP renders into the world")
 
 	//Shader Outline
 	@Tab(GENERAL_TAB) private val outlineStyle by configBlock(OutlineSettings(this))
 		.withEdits { forEachSetting { visibility { old -> { old() && mode == EspMode.Shader } } } }
 
 	//Box
-	@Tab(GENERAL_TAB) private var drawFilled: Boolean by setting("Box Fill", true, "Fill entity boxes") { mode == EspMode.Box }
+	@Tab(GENERAL_TAB) private var drawFilled: Boolean by boolSetting("Box Fill", true, "Fill entity boxes") { mode == EspMode.Box }
 		.onValueChange { _, to -> if (!to && !drawOutline) drawOutline = true }
-	@Tab(GENERAL_TAB) private val fillAlpha by setting("Filled Alpha", 0.2, 0.0..1.0, 0.05) { mode == EspMode.Box && drawFilled }
-	@Tab(GENERAL_TAB) @Group(BOX_OUTLINE_GROUP) private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }
+	@Tab(GENERAL_TAB) private val fillAlpha by doubleSetting("Filled Alpha", 0.2, 0.0..1.0, 0.05) { mode == EspMode.Box && drawFilled }
+	@Tab(GENERAL_TAB) @Group(BOX_OUTLINE_GROUP) private var drawOutline: Boolean by boolSetting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }
 		.onValueChange { _, to -> if (!to && !drawFilled) drawFilled = true }
-	@Tab(GENERAL_TAB) @Group(BOX_OUTLINE_GROUP) private val outlineAlpha by setting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { mode == EspMode.Box && drawOutline }
+	@Tab(GENERAL_TAB) @Group(BOX_OUTLINE_GROUP) private val outlineAlpha by doubleSetting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { mode == EspMode.Box && drawOutline }
 	@Tab(GENERAL_TAB) @Group(BOX_OUTLINE_GROUP) private val boxOutlineSettings by configBlock(WorldLineSettings(this))
 		.withEdits {
 			forEachSetting { visibility { old -> { old() && mode == EspMode.Box && drawOutline } } }

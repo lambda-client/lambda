@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.debug
 
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -47,7 +48,7 @@ object ContainerTransferTest : Module(
     description = "Test moving stack selections over 1 stack from one external container to another.",
     tag = ModuleTag.DEBUG,
 ) {
-    private val amountToMove by setting("Amount", 128, 1..1000)
+    private val amountToMove by intSetting("Amount", 128, 1..1000)
 
     private var sourcePos: BlockPos? = null
     private var destPos: BlockPos? = null

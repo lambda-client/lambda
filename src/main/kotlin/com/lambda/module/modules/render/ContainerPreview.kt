@@ -20,7 +20,10 @@ package com.lambda.module.modules.render
 import com.lambda.Lambda.mc
 import com.lambda.config.Tab
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
+import com.lambda.config.settings.numeric.floatSetting
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -65,14 +68,14 @@ object ContainerPreview : Module(
     private const val CONTAINER_TOOLTIP_TAB = "Container Tooltip"
     private const val CONTENT_PREVIEW_TAB = "Content Preview"
 
-    @Tab(CONTAINER_TOOLTIP_TAB) private val lockKey by setting("Lock Key", Bind(KeyCode.LeftShift.code, 0, -1), "Key to lock the tooltip in place for item interaction")
-    @Tab(CONTAINER_TOOLTIP_TAB) private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color")
+    @Tab(CONTAINER_TOOLTIP_TAB) private val lockKey by bindSetting("Lock Key", Bind(KeyCode.LeftShift.code, 0, -1), "Key to lock the tooltip in place for item interaction")
+    @Tab(CONTAINER_TOOLTIP_TAB) private val colorTint by boolSetting("Color Tint", true, "Tint the background with the shulker box color")
 
-    @Tab(CONTENT_PREVIEW_TAB) private val contentPreview by setting("Content Preview", true, "Show a preview of the most common item in a container on the container item in inventories")
-    @Tab(CONTENT_PREVIEW_TAB) private val previewItemScale by setting("Item Scale", 11f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }
-    @Tab(CONTENT_PREVIEW_TAB) private val previewItemXOffset by setting("Item X Offset", -2f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }
-    @Tab(CONTENT_PREVIEW_TAB) private val previewItemYOffset by setting("Item Y Offset", 2f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }
-    @Tab(CONTENT_PREVIEW_TAB) private val previewItemWeightedCount by setting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }
+    @Tab(CONTENT_PREVIEW_TAB) private val contentPreview by boolSetting("Content Preview", true, "Show a preview of the most common item in a container on the container item in inventories")
+    @Tab(CONTENT_PREVIEW_TAB) private val previewItemScale by floatSetting("Item Scale", 11f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }
+    @Tab(CONTENT_PREVIEW_TAB) private val previewItemXOffset by floatSetting("Item X Offset", -2f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }
+    @Tab(CONTENT_PREVIEW_TAB) private val previewItemYOffset by floatSetting("Item Y Offset", 2f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }
+    @Tab(CONTENT_PREVIEW_TAB) private val previewItemWeightedCount by boolSetting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }
         .onValueChange { _, _ -> containerCache.clear() }
 
     private val background = Identifier.ofVanilla("textures/gui/container/shulker_box.png")

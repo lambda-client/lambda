@@ -24,8 +24,15 @@ import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
+import com.lambda.config.settings.collections.blockCollectionSetting
+import com.lambda.config.settings.collections.collectionSetting
 import com.lambda.config.settings.collections.onDeselect
 import com.lambda.config.settings.collections.onSelect
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RenderBuilder
@@ -65,29 +72,29 @@ object Search : Module(
     private const val OUTLINE_GROUP = "Outline"
     private const val TRACERS_GROUP = "Tracers"
 
-    private val blocks by setting("Blocks", setOf(Blocks.CHEST, Blocks.ENDER_CHEST, Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY), description = "Render blocks")
+    private val blocks by blockCollectionSetting("Blocks", setOf(Blocks.CHEST, Blocks.ENDER_CHEST, Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY), description = "Render blocks")
         .onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
-    private val entities by setting("Entities", decorationEntityMap.values)
+    private val entities by collectionSetting("Entities", decorationEntityMap.values)
         .onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
 
-    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").onValueChange(::rebuildMesh)
+    private val mesh by boolSetting("Mesh", true, "Connect similar adjacent blocks").onValueChange(::rebuildMesh)
 
-    private val useNaturalColor by setting("Use Natural Color", true, "Use the color of the block instead").onValueChange(::rebuildMesh)
-    private val naturalColorAlpha by setting("Natural Color Alpha", 0.3, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
-    private val naturalTracerAlpha by setting("Natural Tracer Alpha", 1.0, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
-    private val minimumNaturalBrightness by setting("Min Brightness", 150, 0..255, 1) { useNaturalColor }.onValueChange(::rebuildMesh)
+    private val useNaturalColor by boolSetting("Use Natural Color", true, "Use the color of the block instead").onValueChange(::rebuildMesh)
+    private val naturalColorAlpha by doubleSetting("Natural Color Alpha", 0.3, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
+    private val naturalTracerAlpha by doubleSetting("Natural Tracer Alpha", 1.0, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
+    private val minimumNaturalBrightness by intSetting("Min Brightness", 150, 0..255, 1) { useNaturalColor }.onValueChange(::rebuildMesh)
 
-    @Group(FILL_GROUP) private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private var fill: Boolean by boolSetting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh)
         .onValueChange { _, to -> if (!to) outline = true }
-    @Group(FILL_GROUP) private val blockFillColor by setting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
-    @Group(FILL_GROUP) private val entityFillColor by setting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private val blockFillColor by colorSetting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private val entityFillColor by colorSetting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
 
-    @Group(OUTLINE_GROUP) private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private var outline: Boolean by boolSetting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh)
         .onValueChange { _, to -> if (!to) fill = true }
-    @Group(OUTLINE_GROUP) private val blockLineColor by setting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
-    @Group(OUTLINE_GROUP) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val blockLineColor by colorSetting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val entityOutlineColor by colorSetting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
 
-    @Group(OUTLINE_GROUP) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val blockOutlineMode by enumSetting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
     @Group(OUTLINE_GROUP) private val outlineConfig by configBlock(WorldLineSettings(this))
         .withEdits {
             hide(::startColor, ::endColor)
@@ -96,7 +103,7 @@ object Search : Module(
                 onValueChange(::rebuildMesh)
             }
         }
-    @Group(TRACERS_GROUP) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
+    @Group(TRACERS_GROUP) private val tracers by boolSetting("Tracers", true, "Draw a line from your cursor to the highlighted position")
     @Group(TRACERS_GROUP) private val tracerConfig by configBlock(ScreenLineSettings(this))
         .withEdits {
             forEachSetting { visibility { old -> { old() && tracers } } }

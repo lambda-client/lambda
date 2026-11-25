@@ -22,6 +22,7 @@ import com.lambda.config.blocks.FormatterSettings
 import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.hide
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.config.withEdits
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -45,7 +46,7 @@ object ChatTimestamp : Module(
 	description = "Displays the time a message was sent next to it",
 	tag = ModuleTag.CHAT,
 ) {
-	private var color: Formatting by setting("Color", Formatting.GRAY)
+	private var color: Formatting by enumSetting("Color", Formatting.GRAY)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
 	private val javaColor: Color
 		get() {

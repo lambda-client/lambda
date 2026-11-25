@@ -17,45 +17,13 @@
 
 package com.lambda.config
 
-import com.lambda.Lambda.typeFactory
 import com.lambda.config.ConfigLoader.configs
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Property
 import com.lambda.config.entries.PropertyEntryLayer
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.config.settings.CharSetting
-import com.lambda.config.settings.FunctionSetting
-import com.lambda.config.settings.StringSetting
-import com.lambda.config.settings.collections.BlockCollectionSetting
-import com.lambda.config.settings.collections.ClassCollectionSetting
-import com.lambda.config.settings.collections.CollectionSetting
-import com.lambda.config.settings.collections.FluidCollectionSetting
-import com.lambda.config.settings.collections.ItemCollectionSetting
-import com.lambda.config.settings.collections.MapSetting
-import com.lambda.config.settings.comparable.BooleanSetting
-import com.lambda.config.settings.comparable.EnumSetting
-import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.BlockPosSetting
-import com.lambda.config.settings.complex.BlockSetting
-import com.lambda.config.settings.complex.ColorSetting
-import com.lambda.config.settings.complex.KeybindSetting
-import com.lambda.config.settings.complex.Vec3dSetting
-import com.lambda.config.settings.numeric.DoubleSetting
-import com.lambda.config.settings.numeric.FloatSetting
-import com.lambda.config.settings.numeric.IntegerSetting
-import com.lambda.config.settings.numeric.LongSetting
-import com.lambda.event.Muteable
-import com.lambda.imgui.flag.ImGuiInputTextFlags
-import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import net.minecraft.block.Block
-import net.minecraft.fluid.Fluid
-import net.minecraft.item.Item
-import net.minecraft.registry.Registries
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
-import java.awt.Color
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.declaredMemberProperties
@@ -189,210 +157,6 @@ abstract class Config(
 	}
 
 	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Boolean,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> BooleanSetting(name, description, this, layer, visibility, defaultValue) }
-
-	@ConfigEntryDsl
-	fun <T : Enum<T>> setting(
-		name: String,
-		defaultValue: T,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> EnumSetting(name, description, this, layer, visibility, defaultValue) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Char,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> CharSetting(name, description, this, layer, defaultValue, visibility) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: String,
-		multiline: Boolean = false,
-		flags: Int = ImGuiInputTextFlags.None,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
-
-	@ConfigEntryDsl
-	@JvmName("collectionSetting1")
-	fun setting(
-		name: String,
-		defaultValue: Collection<Block>,
-		immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> BlockCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
-
-	@ConfigEntryDsl
-	@JvmName("collectionSetting2")
-	fun setting(
-		name: String,
-		defaultValue: Collection<Item>,
-		immutableCollection: Collection<Item> = Registries.ITEM.toList(),
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> ItemCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
-
-	@ConfigEntryDsl
-	@JvmName("collectionSetting3")
-	fun setting(
-		name: String,
-		defaultValue: Collection<Fluid>,
-		immutableCollection: Collection<Fluid> = Registries.FLUID.toList(),
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> FluidCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
-
-	@ConfigEntryDsl
-	@JvmName("collectionSetting4")
-	inline fun <reified T : Any> setting(
-		name: String,
-		defaultValue: Collection<T>,
-		immutableList: Collection<T> = defaultValue,
-		description: String = "",
-		displayClassName: Boolean = false,
-		serialize: Boolean = false,
-		noinline visibility: () -> Boolean = { true }
-	) = setting(name) { layer ->
-		if (displayClassName) ClassCollectionSetting(name, description, this, layer, visibility, immutableList, defaultValue.toMutableList())
-		else CollectionSetting(name, description, this, layer, visibility, defaultValue.toMutableList(), immutableList, typeFactory.constructCollectionType(Collection::class.java, T::class.java), serialize)
-	}
-
-	@ConfigEntryDsl
-	inline fun <reified K : Any, reified V : Any> setting(
-		name: String,
-		defaultValue: Map<K, V>,
-		description: String = "",
-		noinline visibility: () -> Boolean = { true }
-	) = setting(name) { layer ->
-		MapSetting(
-			name, description, this, layer, visibility, defaultValue.toMutableMap(),
-			typeFactory.constructMapType(MutableMap::class.java, K::class.java, V::class.java)
-		)
-	}
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Double,
-		range: ClosedRange<Double>,
-		step: Double = 1.0,
-		description: String = "",
-		unit: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> DoubleSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Float,
-		range: ClosedRange<Float>,
-		step: Float = 1f,
-		description: String = "",
-		unit: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> FloatSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Int,
-		range: ClosedRange<Int>,
-		step: Int = 1,
-		description: String = "",
-		unit: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> IntegerSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Long,
-		range: ClosedRange<Long>,
-		step: Long = 1,
-		description: String = "",
-		unit: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> LongSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Bind,
-		description: String = "",
-		alwaysListening: Boolean = false,
-		screenCheck: Boolean = true,
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: KeyCode,
-		description: String = "",
-		alwaysListening: Boolean = false,
-		screenCheck: Boolean = true,
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Color,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> ColorSetting(name, description, this, layer, visibility, defaultValue) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Vec3d,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> Vec3dSetting(name, description, this, layer, visibility, defaultValue) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: BlockPos.Mutable,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: BlockPos,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
-
-	@ConfigEntryDsl
-	fun setting(
-		name: String,
-		defaultValue: Block,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> BlockSetting(name, description, this, layer, visibility, defaultValue) }
-
-	@ConfigEntryDsl
-	fun <T : () -> R, R> setting(
-		name: String,
-		defaultValue: T,
-		description: String = "",
-		visibility: () -> Boolean = { true }
-	) = setting(name) { layer -> FunctionSetting(name, description, defaultValue, this, layer, visibility) }
-
-	@ConfigEntryDsl
 	fun <T : ConfigBlock> configBlock(
 		configBlock: T
 	): ConfigBlockWrapper<T> {
@@ -486,8 +250,7 @@ abstract class Config(
 		valueSupplier: () -> T = { defaultValue }
 	) = property(defaultValue, valueSupplier(), setter, equals)
 
-	@PublishedApi
-	internal fun <T : Setting<R>, R> setting(name: String, settingSupplier: (single: SettingEntryLayer<T, R>) -> T): T {
+	fun <T : Setting<R>, R> setting(name: String, settingSupplier: (single: SettingEntryLayer<T, R>) -> T): T {
 		val spec = try {
 			registrationQueue.removeFirst()
 		} catch (_: NoSuchElementException) {

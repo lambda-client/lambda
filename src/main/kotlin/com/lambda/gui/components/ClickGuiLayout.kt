@@ -22,6 +22,13 @@ import com.lambda.config.Config
 import com.lambda.config.Tab
 import com.lambda.config.categories.GuiCategory
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.complex.setting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.floatSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
@@ -142,11 +149,11 @@ object ClickGuiLayout : Loadable, Config(
 	}
 
 	// General
-	@Tab(GENERAL_TAB) internal val scaleSetting by setting("Scale", BASE_SCALE, 50..300, 1, unit = "%")
-	@Tab(GENERAL_TAB) val alpha by setting("Alpha", 1.0f, 0.0f..1.0f, 0.01f)
-	@Tab(GENERAL_TAB) val disabledAlpha by setting("Disabled Alpha", 0.6f, 0.0f..1.0f, 0.01f)
-	@Tab(GENERAL_TAB) val tooltipType by setting("Tooltip Type", TooltipType.Stationary, description = "When to show the tooltip.")
-	@Tab(GENERAL_TAB) val setLambdaWindowIcon by setting("Set Lambda Window Icon", true)
+	@Tab(GENERAL_TAB) internal val scaleSetting by intSetting("Scale", BASE_SCALE, 50..300, 1, unit = "%")
+	@Tab(GENERAL_TAB) val alpha by floatSetting("Alpha", 1.0f, 0.0f..1.0f, 0.01f)
+	@Tab(GENERAL_TAB) val disabledAlpha by floatSetting("Disabled Alpha", 0.6f, 0.0f..1.0f, 0.01f)
+	@Tab(GENERAL_TAB) val tooltipType by enumSetting("Tooltip Type", TooltipType.Stationary, description = "When to show the tooltip.")
+	@Tab(GENERAL_TAB) val setLambdaWindowIcon by boolSetting("Set Lambda Window Icon", true)
 		.onValueChange { _, to ->
 			if (to) setLambdaWindowIcon()
 			else {
@@ -154,117 +161,117 @@ object ClickGuiLayout : Loadable, Config(
 				mc.window.setIcon(mc.defaultResourcePack, icon)
 			}
 		}
-	@Tab(GENERAL_TAB) @JvmStatic val setLambdaWindowTitle by setting("Set Lambda Window Title", true).onValueChange { _, _ -> mc.updateWindowTitle() }
-	@Tab(GENERAL_TAB) val lambdaTitleAppendixName by setting("Append Username", true) { setLambdaWindowTitle }.onValueChange { _, _ -> mc.updateWindowTitle() }
-	@Tab(GENERAL_TAB) val backgroundBlur by setting("Background Blur", true)
-	@Tab(GENERAL_TAB) val backgroundDarkening by setting("Background Darkening", true)
+	@Tab(GENERAL_TAB) @JvmStatic val setLambdaWindowTitle by boolSetting("Set Lambda Window Title", true).onValueChange { _, _ -> mc.updateWindowTitle() }
+	@Tab(GENERAL_TAB) val lambdaTitleAppendixName by boolSetting("Append Username", true) { setLambdaWindowTitle }.onValueChange { _, _ -> mc.updateWindowTitle() }
+	@Tab(GENERAL_TAB) val backgroundBlur by boolSetting("Background Blur", true)
+	@Tab(GENERAL_TAB) val backgroundDarkening by boolSetting("Background Darkening", true)
 
 	// Snapping
-	@Tab(SNAPPING_TAB) val snapEnabled by setting("Enable Snapping", true, "Master toggle for GUI/HUD snapping")
-	@Tab(SNAPPING_TAB) val gridSize by setting("Grid Size", 25f, 2f..128f, 1f, "Grid step in pixels") { snapEnabled }
-	@Tab(SNAPPING_TAB) val snapToEdges by setting("Snap To Element Edges", true) { snapEnabled }
-	@Tab(SNAPPING_TAB) val snapToCenters by setting("Snap To Element Centers", true) { snapEnabled }
-	@Tab(SNAPPING_TAB) val snapToScreenCenter by setting("Snap To Screen Center", true) { snapEnabled }
-	@Tab(SNAPPING_TAB) val snapToGrid by setting("Snap To Grid", true) { snapEnabled }
-	@Tab(SNAPPING_TAB) val snapDistanceElement by setting("Snap Distance (Elements)", 20f, 1f..48f, 1f, "Distance threshold in px") { snapEnabled }
-	@Tab(SNAPPING_TAB) val snapDistanceScreen by setting("Snap Distance (Screen Center)", 14f, 1f..48f, 1f) { snapEnabled }
-	@Tab(SNAPPING_TAB) val snapDistanceGrid by setting("Snap Distance (Grid)", 12f, 1f..48f, 1f) { snapEnabled }
-	@Tab(SNAPPING_TAB) val snapLineColor by setting("Snap Line Color", Color(255, 160, 0, 220)) { snapEnabled }
+	@Tab(SNAPPING_TAB) val snapEnabled by boolSetting("Enable Snapping", true, "Master toggle for GUI/HUD snapping")
+	@Tab(SNAPPING_TAB) val gridSize by floatSetting("Grid Size", 25f, 2f..128f, 1f, "Grid step in pixels") { snapEnabled }
+	@Tab(SNAPPING_TAB) val snapToEdges by boolSetting("Snap To Element Edges", true) { snapEnabled }
+	@Tab(SNAPPING_TAB) val snapToCenters by boolSetting("Snap To Element Centers", true) { snapEnabled }
+	@Tab(SNAPPING_TAB) val snapToScreenCenter by boolSetting("Snap To Screen Center", true) { snapEnabled }
+	@Tab(SNAPPING_TAB) val snapToGrid by boolSetting("Snap To Grid", true) { snapEnabled }
+	@Tab(SNAPPING_TAB) val snapDistanceElement by floatSetting("Snap Distance (Elements)", 20f, 1f..48f, 1f, "Distance threshold in px") { snapEnabled }
+	@Tab(SNAPPING_TAB) val snapDistanceScreen by floatSetting("Snap Distance (Screen Center)", 14f, 1f..48f, 1f) { snapEnabled }
+	@Tab(SNAPPING_TAB) val snapDistanceGrid by floatSetting("Snap Distance (Grid)", 12f, 1f..48f, 1f) { snapEnabled }
+	@Tab(SNAPPING_TAB) val snapLineColor by colorSetting("Snap Line Color", Color(255, 160, 0, 220)) { snapEnabled }
 
 	// Sizing
-	@Tab(SIZING_TAB) val windowPaddingX by setting("Window Padding X", 8.0f, 0.0f..20.0f, 0.1f)
-	@Tab(SIZING_TAB) val windowPaddingY by setting("Window Padding Y", 8.0f, 0.0f..20.0f, 0.1f)
-	@Tab(SIZING_TAB) val windowMinSizeX by setting("Window Min Size X", 32.0f, 0.0f..100.0f, 1.0f)
-	@Tab(SIZING_TAB) val windowMinSizeY by setting("Window Min Size Y", 32.0f, 0.0f..100.0f, 1.0f)
-	@Tab(SIZING_TAB) val windowTitleAlignX by setting("Window Title Align X", 0.0f, 0.0f..1.0f, 0.01f)
-	@Tab(SIZING_TAB) val windowTitleAlignY by setting("Window Title Align Y", 0.5f, 0.0f..1.0f, 0.01f)
-	@Tab(SIZING_TAB) val framePaddingX by setting("Frame Padding X", 4.0f, 0.0f..20.0f, 0.1f)
-	@Tab(SIZING_TAB) val framePaddingY by setting("Frame Padding Y", 3.0f, 0.0f..20.0f, 0.1f)
-	@Tab(SIZING_TAB) val itemSpacingX by setting("Item Spacing X", 8.0f, 0.0f..20.0f, 0.1f)
-	@Tab(SIZING_TAB) val itemSpacingY by setting("Item Spacing Y", 4.0f, 0.0f..20.0f, 0.1f)
-	@Tab(SIZING_TAB) val itemInnerSpacingX by setting("Item Inner Spacing X", 4.0f, 0.0f..20.0f, 0.1f)
-	@Tab(SIZING_TAB) val itemInnerSpacingY by setting("Item Inner Spacing Y", 4.0f, 0.0f..20.0f, 0.1f)
-	@Tab(SIZING_TAB) val indentSpacing by setting("Indent Spacing", 21.0f, 0.0f..50.0f, 0.1f)
-	@Tab(SIZING_TAB) val scrollbarSize by setting("Scrollbar Size", 8.4f, 0.0f..30.0f, 0.1f)
-	@Tab(SIZING_TAB) val grabMinSize by setting("Grab Min Size", 10.0f, 0.0f..30.0f, 0.1f)
-	@Tab(SIZING_TAB) val windowBorderSize by setting("Window Border Size", 1.0f, 0.0f..5.0f, 0.1f)
-	@Tab(SIZING_TAB) val childBorderSize by setting("Child Border Size", 1.0f, 0.0f..5.0f, 0.1f)
-	@Tab(SIZING_TAB) val popupBorderSize by setting("Popup Border Size", 1.0f, 0.0f..5.0f, 0.1f)
-	@Tab(SIZING_TAB) val frameBorderSize by setting("Frame Border Size", 0.0f, 0.0f..5.0f, 0.1f)
-	@Tab(SIZING_TAB) val tabBorderSize by setting("Tab Border Size", 0.0f, 0.0f..5.0f, 0.1f)
+	@Tab(SIZING_TAB) val windowPaddingX by floatSetting("Window Padding X", 8.0f, 0.0f..20.0f, 0.1f)
+	@Tab(SIZING_TAB) val windowPaddingY by floatSetting("Window Padding Y", 8.0f, 0.0f..20.0f, 0.1f)
+	@Tab(SIZING_TAB) val windowMinSizeX by floatSetting("Window Min Size X", 32.0f, 0.0f..100.0f, 1.0f)
+	@Tab(SIZING_TAB) val windowMinSizeY by floatSetting("Window Min Size Y", 32.0f, 0.0f..100.0f, 1.0f)
+	@Tab(SIZING_TAB) val windowTitleAlignX by floatSetting("Window Title Align X", 0.0f, 0.0f..1.0f, 0.01f)
+	@Tab(SIZING_TAB) val windowTitleAlignY by floatSetting("Window Title Align Y", 0.5f, 0.0f..1.0f, 0.01f)
+	@Tab(SIZING_TAB) val framePaddingX by floatSetting("Frame Padding X", 4.0f, 0.0f..20.0f, 0.1f)
+	@Tab(SIZING_TAB) val framePaddingY by floatSetting("Frame Padding Y", 3.0f, 0.0f..20.0f, 0.1f)
+	@Tab(SIZING_TAB) val itemSpacingX by floatSetting("Item Spacing X", 8.0f, 0.0f..20.0f, 0.1f)
+	@Tab(SIZING_TAB) val itemSpacingY by floatSetting("Item Spacing Y", 4.0f, 0.0f..20.0f, 0.1f)
+	@Tab(SIZING_TAB) val itemInnerSpacingX by floatSetting("Item Inner Spacing X", 4.0f, 0.0f..20.0f, 0.1f)
+	@Tab(SIZING_TAB) val itemInnerSpacingY by floatSetting("Item Inner Spacing Y", 4.0f, 0.0f..20.0f, 0.1f)
+	@Tab(SIZING_TAB) val indentSpacing by floatSetting("Indent Spacing", 21.0f, 0.0f..50.0f, 0.1f)
+	@Tab(SIZING_TAB) val scrollbarSize by floatSetting("Scrollbar Size", 8.4f, 0.0f..30.0f, 0.1f)
+	@Tab(SIZING_TAB) val grabMinSize by floatSetting("Grab Min Size", 10.0f, 0.0f..30.0f, 0.1f)
+	@Tab(SIZING_TAB) val windowBorderSize by floatSetting("Window Border Size", 1.0f, 0.0f..5.0f, 0.1f)
+	@Tab(SIZING_TAB) val childBorderSize by floatSetting("Child Border Size", 1.0f, 0.0f..5.0f, 0.1f)
+	@Tab(SIZING_TAB) val popupBorderSize by floatSetting("Popup Border Size", 1.0f, 0.0f..5.0f, 0.1f)
+	@Tab(SIZING_TAB) val frameBorderSize by floatSetting("Frame Border Size", 0.0f, 0.0f..5.0f, 0.1f)
+	@Tab(SIZING_TAB) val tabBorderSize by floatSetting("Tab Border Size", 0.0f, 0.0f..5.0f, 0.1f)
 
 	// Rounding
-	@Tab(ROUNDING_TAB) val windowRounding by setting("Window Rounding", 4.6f, 0.0f..12.0f, 0.1f)
-	@Tab(ROUNDING_TAB) val childRounding by setting("Child Rounding", 0.0f, 0.0f..12.0f, 0.1f)
-	@Tab(ROUNDING_TAB) val frameRounding by setting("Frame Rounding", 4.6f, 0.0f..12.0f, 0.1f)
-	@Tab(ROUNDING_TAB) val popupRounding by setting("Popup Rounding", 4.6f, 0.0f..12.0f, 0.1f)
-	@Tab(ROUNDING_TAB) val scrollbarRounding by setting("Scrollbar Rounding", 9.0f, 0.0f..12.0f, 0.1f)
-	@Tab(ROUNDING_TAB) val grabRounding by setting("Grab Rounding", 4.6f, 0.0f..12.0f, 0.1f)
-	@Tab(ROUNDING_TAB) val tabRounding by setting("Tab Rounding", 4.6f, 0.0f..12.0f, 0.1f)
-	@Tab(ROUNDING_TAB) val curveTessellationTol by setting("Curve Tessellation Tol", 1.25f, 0.1f..10.0f, 0.05f)
+	@Tab(ROUNDING_TAB) val windowRounding by floatSetting("Window Rounding", 4.6f, 0.0f..12.0f, 0.1f)
+	@Tab(ROUNDING_TAB) val childRounding by floatSetting("Child Rounding", 0.0f, 0.0f..12.0f, 0.1f)
+	@Tab(ROUNDING_TAB) val frameRounding by floatSetting("Frame Rounding", 4.6f, 0.0f..12.0f, 0.1f)
+	@Tab(ROUNDING_TAB) val popupRounding by floatSetting("Popup Rounding", 4.6f, 0.0f..12.0f, 0.1f)
+	@Tab(ROUNDING_TAB) val scrollbarRounding by floatSetting("Scrollbar Rounding", 9.0f, 0.0f..12.0f, 0.1f)
+	@Tab(ROUNDING_TAB) val grabRounding by floatSetting("Grab Rounding", 4.6f, 0.0f..12.0f, 0.1f)
+	@Tab(ROUNDING_TAB) val tabRounding by floatSetting("Tab Rounding", 4.6f, 0.0f..12.0f, 0.1f)
+	@Tab(ROUNDING_TAB) val curveTessellationTol by floatSetting("Curve Tessellation Tol", 1.25f, 0.1f..10.0f, 0.05f)
 
 	// Font
-	@Tab(FONT_TAB) val fontScale by setting("Font Scale", 1.0, 0.5..2.0, 0.1)
+	@Tab(FONT_TAB) val fontScale by doubleSetting("Font Scale", 1.0, 0.5..2.0, 0.1)
 
 	// Colors
-	@Tab(COLORS_TAB) val primaryColor by setting("Primary Color", Color(130, 200, 255))
-	@Tab(COLORS_TAB) val secondaryColor by setting("Secondary Color", Color(225, 130, 225))
+	@Tab(COLORS_TAB) val primaryColor by colorSetting("Primary Color", Color(130, 200, 255))
+	@Tab(COLORS_TAB) val secondaryColor by colorSetting("Secondary Color", Color(225, 130, 225))
 
-	@Tab(COLORS_TAB) val text by setting("Text", Color(255, 255, 255, 255))
-	@Tab(COLORS_TAB) val textDisabled by setting("Text Disabled", Color(128, 128, 128, 255))
-	@Tab(COLORS_TAB) val windowBg by setting("Window Background", Color(35, 0, 14, 240))
-	@Tab(COLORS_TAB) val childBg by setting("Child Background", Color(35, 0, 14, 240))
-	@Tab(COLORS_TAB) val popupBg by setting("Popup Background", Color(35, 0, 14, 240))
-	@Tab(COLORS_TAB) val border by setting("Border", Color(130, 12, 60, 240))
-	@Tab(COLORS_TAB) val borderShadow by setting("Border Shadow", Color(51, 0, 21, 240))
-	@Tab(COLORS_TAB) val frameBg by setting("Frame Background", Color(171, 32, 93, 102))
-	@Tab(COLORS_TAB) val frameBgHovered by setting("Frame Background Hovered", Color(214, 45, 119, 102))
-	@Tab(COLORS_TAB) val frameBgActive by setting("Frame Background Active", Color(255, 50, 140, 102))
-	@Tab(COLORS_TAB) val titleBg by setting("Title Background", Color(125, 0, 50, 240))
-	@Tab(COLORS_TAB) val titleBgActive by setting("Title Background Active", Color(162, 0, 68, 240))
-	@Tab(COLORS_TAB) val titleBgCollapsed by setting("Title Background Collapsed", Color(35, 0, 14, 240))
-	@Tab(COLORS_TAB) val menuBarBg by setting("MenuBar Background", Color(35, 0, 14, 240))
-	@Tab(COLORS_TAB) val scrollbarBg by setting("Scrollbar Background", Color(35, 0, 14, 240))
-	@Tab(COLORS_TAB) val scrollbarGrab by setting("Scrollbar Grab", Color(159, 30, 83, 240))
-	@Tab(COLORS_TAB) val scrollbarGrabHovered by setting("Scrollbar Grab Hovered", Color(198, 40, 105, 240))
-	@Tab(COLORS_TAB) val scrollbarGrabActive by setting("Scrollbar Grab Active", Color(235, 49, 126, 240))
-	@Tab(COLORS_TAB) val checkMark by setting("Check Mark", Color(255, 64, 148, 220))
-	@Tab(COLORS_TAB) val sliderGrab by setting("Slider Grab", Color(207, 46, 117, 200))
-	@Tab(COLORS_TAB) val sliderGrabActive by setting("Slider Grab Active", Color(241, 67, 143, 200))
-	@Tab(COLORS_TAB) val button by setting("Button", Color(171, 32, 93, 102))
-	@Tab(COLORS_TAB) val buttonHovered by setting("Button Hovered", Color(214, 45, 119, 102))
-	@Tab(COLORS_TAB) val buttonActive by setting("Button Active", Color(255, 50, 140, 102))
-	@Tab(COLORS_TAB) val header by setting("Header", Color(192, 30, 94, 115))
-	@Tab(COLORS_TAB) val headerHovered by setting("Header Hovered", Color(255, 59, 136, 115))
-	@Tab(COLORS_TAB) val headerActive by setting("Header Active", Color(202, 36, 101, 115))
-	@Tab(COLORS_TAB) val separator by setting("Separator", Color(107, 0, 47, 128))
-	@Tab(COLORS_TAB) val separatorHovered by setting("Separator Hovered", Color(146, 0, 64, 128))
-	@Tab(COLORS_TAB) val separatorActive by setting("Separator Active", Color(186, 0, 82, 128))
-	@Tab(COLORS_TAB) val resizeGrip by setting("Resize Grip", Color(214, 45, 119, 102))
-	@Tab(COLORS_TAB) val resizeGripHovered by setting("Resize Grip Hovered", Color(214, 45, 119, 102))
-	@Tab(COLORS_TAB) val resizeGripActive by setting("Resize Grip Active", Color(214, 45, 119, 102))
-	@Tab(COLORS_TAB) val tab by setting("Tab", Color(121, 21, 65, 140))
-	@Tab(COLORS_TAB) val tabHovered by setting("Tab Hovered", Color(169, 34, 94, 140))
-	@Tab(COLORS_TAB) val tabActive by setting("Tab Active", Color(209, 34, 112, 140))
-	@Tab(COLORS_TAB) val tabUnfocused by setting("Tab Unfocused", Color(121, 21, 65, 120))
-	@Tab(COLORS_TAB) val tabUnfocusedActive by setting("Tab Unfocused Active", Color(196, 36, 107, 120))
-	@Tab(COLORS_TAB) val dockingPreview by setting("Docking Preview", Color(208, 47, 117, 102))
-	@Tab(COLORS_TAB) val dockingEmptyBg by setting("Docking Empty Background", Color(35, 0, 14, 240))
-	@Tab(COLORS_TAB) val plotLines by setting("Plot Lines", Color(178, 36, 95, 240))
-	@Tab(COLORS_TAB) val plotLinesHovered by setting("Plot Lines Hovered", Color(209, 40, 110, 240))
-	@Tab(COLORS_TAB) val plotHistogram by setting("Plot Histogram", Color(192, 32, 91, 255))
-	@Tab(COLORS_TAB) val plotHistogramHovered by setting("Plot Histogram Hovered", Color(226, 38, 108, 255))
-	@Tab(COLORS_TAB) val tableHeaderBg by setting("Table Header Background", Color(75, 0, 31, 240))
-	@Tab(COLORS_TAB) val tableBorderStrong by setting("Table Border Strong", Color(88, 0, 36, 240))
-	@Tab(COLORS_TAB) val tableBorderLight by setting("Table Border Light", Color(67, 0, 28, 240))
-	@Tab(COLORS_TAB) val tableRowBg by setting("Table Row Background", Color(35, 0, 14, 240))
-	@Tab(COLORS_TAB) val tableRowBgAlt by setting("Table Row Background Alt", Color(242, 140, 182, 240))
-	@Tab(COLORS_TAB) val textSelectedBg by setting("Text Selected Background", Color(218, 54, 121, 240))
-	@Tab(COLORS_TAB) val dragDropTarget by setting("Drag Drop Target", Color(218, 54, 121, 240))
-	@Tab(COLORS_TAB) val navHighlight by setting("Nav Highlight", Color(218, 54, 121, 240))
-	@Tab(COLORS_TAB) val navWindowingHighlight by setting("Nav Windowing Highlight", Color(242, 140, 182, 240))
-	@Tab(COLORS_TAB) val navWindowingDimBg by setting("Nav Windowing Dim Background", Color(242, 140, 182, 240))
-	@Tab(COLORS_TAB) val modalWindowDimBg by setting("Modal Window Dim Background", Color(35, 0, 14, 90))
+	@Tab(COLORS_TAB) val text by colorSetting("Text", Color(255, 255, 255, 255))
+	@Tab(COLORS_TAB) val textDisabled by colorSetting("Text Disabled", Color(128, 128, 128, 255))
+	@Tab(COLORS_TAB) val windowBg by colorSetting("Window Background", Color(35, 0, 14, 240))
+	@Tab(COLORS_TAB) val childBg by colorSetting("Child Background", Color(35, 0, 14, 240))
+	@Tab(COLORS_TAB) val popupBg by colorSetting("Popup Background", Color(35, 0, 14, 240))
+	@Tab(COLORS_TAB) val border by colorSetting("Border", Color(130, 12, 60, 240))
+	@Tab(COLORS_TAB) val borderShadow by colorSetting("Border Shadow", Color(51, 0, 21, 240))
+	@Tab(COLORS_TAB) val frameBg by colorSetting("Frame Background", Color(171, 32, 93, 102))
+	@Tab(COLORS_TAB) val frameBgHovered by colorSetting("Frame Background Hovered", Color(214, 45, 119, 102))
+	@Tab(COLORS_TAB) val frameBgActive by colorSetting("Frame Background Active", Color(255, 50, 140, 102))
+	@Tab(COLORS_TAB) val titleBg by colorSetting("Title Background", Color(125, 0, 50, 240))
+	@Tab(COLORS_TAB) val titleBgActive by colorSetting("Title Background Active", Color(162, 0, 68, 240))
+	@Tab(COLORS_TAB) val titleBgCollapsed by colorSetting("Title Background Collapsed", Color(35, 0, 14, 240))
+	@Tab(COLORS_TAB) val menuBarBg by colorSetting("MenuBar Background", Color(35, 0, 14, 240))
+	@Tab(COLORS_TAB) val scrollbarBg by colorSetting("Scrollbar Background", Color(35, 0, 14, 240))
+	@Tab(COLORS_TAB) val scrollbarGrab by colorSetting("Scrollbar Grab", Color(159, 30, 83, 240))
+	@Tab(COLORS_TAB) val scrollbarGrabHovered by colorSetting("Scrollbar Grab Hovered", Color(198, 40, 105, 240))
+	@Tab(COLORS_TAB) val scrollbarGrabActive by colorSetting("Scrollbar Grab Active", Color(235, 49, 126, 240))
+	@Tab(COLORS_TAB) val checkMark by colorSetting("Check Mark", Color(255, 64, 148, 220))
+	@Tab(COLORS_TAB) val sliderGrab by colorSetting("Slider Grab", Color(207, 46, 117, 200))
+	@Tab(COLORS_TAB) val sliderGrabActive by colorSetting("Slider Grab Active", Color(241, 67, 143, 200))
+	@Tab(COLORS_TAB) val button by colorSetting("Button", Color(171, 32, 93, 102))
+	@Tab(COLORS_TAB) val buttonHovered by colorSetting("Button Hovered", Color(214, 45, 119, 102))
+	@Tab(COLORS_TAB) val buttonActive by colorSetting("Button Active", Color(255, 50, 140, 102))
+	@Tab(COLORS_TAB) val header by colorSetting("Header", Color(192, 30, 94, 115))
+	@Tab(COLORS_TAB) val headerHovered by colorSetting("Header Hovered", Color(255, 59, 136, 115))
+	@Tab(COLORS_TAB) val headerActive by colorSetting("Header Active", Color(202, 36, 101, 115))
+	@Tab(COLORS_TAB) val separator by colorSetting("Separator", Color(107, 0, 47, 128))
+	@Tab(COLORS_TAB) val separatorHovered by colorSetting("Separator Hovered", Color(146, 0, 64, 128))
+	@Tab(COLORS_TAB) val separatorActive by colorSetting("Separator Active", Color(186, 0, 82, 128))
+	@Tab(COLORS_TAB) val resizeGrip by colorSetting("Resize Grip", Color(214, 45, 119, 102))
+	@Tab(COLORS_TAB) val resizeGripHovered by colorSetting("Resize Grip Hovered", Color(214, 45, 119, 102))
+	@Tab(COLORS_TAB) val resizeGripActive by colorSetting("Resize Grip Active", Color(214, 45, 119, 102))
+	@Tab(COLORS_TAB) val tab by colorSetting("Tab", Color(121, 21, 65, 140))
+	@Tab(COLORS_TAB) val tabHovered by colorSetting("Tab Hovered", Color(169, 34, 94, 140))
+	@Tab(COLORS_TAB) val tabActive by colorSetting("Tab Active", Color(209, 34, 112, 140))
+	@Tab(COLORS_TAB) val tabUnfocused by colorSetting("Tab Unfocused", Color(121, 21, 65, 120))
+	@Tab(COLORS_TAB) val tabUnfocusedActive by colorSetting("Tab Unfocused Active", Color(196, 36, 107, 120))
+	@Tab(COLORS_TAB) val dockingPreview by colorSetting("Docking Preview", Color(208, 47, 117, 102))
+	@Tab(COLORS_TAB) val dockingEmptyBg by colorSetting("Docking Empty Background", Color(35, 0, 14, 240))
+	@Tab(COLORS_TAB) val plotLines by colorSetting("Plot Lines", Color(178, 36, 95, 240))
+	@Tab(COLORS_TAB) val plotLinesHovered by colorSetting("Plot Lines Hovered", Color(209, 40, 110, 240))
+	@Tab(COLORS_TAB) val plotHistogram by colorSetting("Plot Histogram", Color(192, 32, 91, 255))
+	@Tab(COLORS_TAB) val plotHistogramHovered by colorSetting("Plot Histogram Hovered", Color(226, 38, 108, 255))
+	@Tab(COLORS_TAB) val tableHeaderBg by colorSetting("Table Header Background", Color(75, 0, 31, 240))
+	@Tab(COLORS_TAB) val tableBorderStrong by colorSetting("Table Border Strong", Color(88, 0, 36, 240))
+	@Tab(COLORS_TAB) val tableBorderLight by colorSetting("Table Border Light", Color(67, 0, 28, 240))
+	@Tab(COLORS_TAB) val tableRowBg by colorSetting("Table Row Background", Color(35, 0, 14, 240))
+	@Tab(COLORS_TAB) val tableRowBgAlt by colorSetting("Table Row Background Alt", Color(242, 140, 182, 240))
+	@Tab(COLORS_TAB) val textSelectedBg by colorSetting("Text Selected Background", Color(218, 54, 121, 240))
+	@Tab(COLORS_TAB) val dragDropTarget by colorSetting("Drag Drop Target", Color(218, 54, 121, 240))
+	@Tab(COLORS_TAB) val navHighlight by colorSetting("Nav Highlight", Color(218, 54, 121, 240))
+	@Tab(COLORS_TAB) val navWindowingHighlight by colorSetting("Nav Windowing Highlight", Color(242, 140, 182, 240))
+	@Tab(COLORS_TAB) val navWindowingDimBg by colorSetting("Nav Windowing Dim Background", Color(242, 140, 182, 240))
+	@Tab(COLORS_TAB) val modalWindowDimBg by colorSetting("Modal Window Dim Background", Color(35, 0, 14, 90))
 
 	init {
 		listenUnsafe<GuiEvent.NewImguiFrame> {

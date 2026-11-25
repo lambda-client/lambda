@@ -21,6 +21,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.Config
 import com.lambda.config.categories.FontCategory
 import com.lambda.config.entries.onValueChangeUnsafe
+import com.lambda.config.settings.stringSetting
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -56,7 +57,7 @@ object FontHandler : Loadable, Config(
 		getOrLoadFont(defaultFontInfo) ?: throw IllegalStateException("Failed to load default font")
 	}
 
-	private val selectedFont by setting("Selected Font", defaultFontInfo.path, description = "The file name of the font you want to use. (The font must be placed in the fonts folder in the lambda directory)")
+	private val selectedFont by stringSetting("Selected Font", defaultFontInfo.path, description = "The file name of the font you want to use. (The font must be placed in the fonts folder in the lambda directory)")
 		.onValueChangeUnsafe { _, to -> activeFont = getOrLoadFont(to) ?: defaultFont }
 
 	var activeFont = defaultFont

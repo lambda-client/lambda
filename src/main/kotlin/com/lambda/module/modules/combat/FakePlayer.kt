@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.combat
 
+import com.lambda.config.settings.stringSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PlayerEvent
@@ -43,7 +44,7 @@ object FakePlayer : Module(
     description = "Spawns a fake player",
     tag = ModuleTag.COMBAT,
 ) {
-    private val playerName by setting("Name", "Steve")
+    private val playerName by stringSetting("Name", "Steve")
 
     private var fakePlayer_field: OtherClientPlayerEntity? = null
     private var SafeContext.fakePlayer

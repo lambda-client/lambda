@@ -18,6 +18,7 @@
 package com.lambda.module.modules.chat
 
 import com.lambda.command.CommandRegistry.prefix
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.BaritoneHandler
@@ -34,10 +35,10 @@ object FancyChat : Module(
 	description = "Makes messages you send - fancy",
 	tag = ModuleTag.CHAT,
 ) {
-	private val uwu by setting("uwu", false)
-	private val leet by setting("1337", false)
-	private val green by setting(">", true)
-	private val blue by setting("`", false)
+	private val uwu by boolSetting("uwu", false)
+	private val leet by boolSetting("1337", false)
+	private val green by boolSetting(">", true)
+	private val blue by boolSetting("`", false)
 
 	init {
 		listen<ChatEvent.Send> {

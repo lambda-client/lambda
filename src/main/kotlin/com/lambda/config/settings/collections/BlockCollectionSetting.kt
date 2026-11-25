@@ -19,10 +19,22 @@ package com.lambda.config.settings.collections
 
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.serializers.BlockSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.block.Block
+import net.minecraft.registry.Registries
+
+@ConfigEntryDsl
+@JvmName("collectionSetting1")
+fun Config.blockCollectionSetting(
+	name: String,
+	defaultValue: Collection<Block>,
+	immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
+	description: String = "",
+	visibility: () -> Boolean = { true }
+) = setting(name) { layer -> BlockCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
 
 class BlockCollectionSetting(
 	name: String,

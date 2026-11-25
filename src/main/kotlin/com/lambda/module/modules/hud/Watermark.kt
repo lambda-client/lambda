@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.hud
 
+import com.lambda.config.settings.numeric.floatSetting
 import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
@@ -30,7 +31,7 @@ object Watermark : HudModule(
     enabledByDefault = true,
 ) {
     private val texture = upload("textures/lambda.png")
-    private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
+    private val scale by floatSetting("Scale", 0.15f, 0.01f..1f, 0.01f)
 
     override fun ImGuiBuilder.buildLayout() {
         val width = texture.width * scale

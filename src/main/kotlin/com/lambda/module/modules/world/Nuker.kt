@@ -21,7 +21,11 @@ import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.BreakConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
@@ -52,18 +56,18 @@ object Nuker : Module(
 	tag = ModuleTag.WORLD,
 	autoDisable = true
 ) {
-	private val height by setting("Height", 6, 1..8, 1)
-	private val width by setting("Width", 6, 1..8, 1)
-	private val flattenMode by setting("Flatten Mode", FlattenMode.Standard)
-	private val directionalDig by setting("Directional Dig", DigDirection.None)
-	private val selective by setting("Selective", false, description = "Click on a block to nuke that type of block")
-	private val selectAddKey by setting("Select Additional Keybind", Bind(GLFW.GLFW_KEY_LEFT_CONTROL, 0), description = "Hold down this key to add more blocks to the selective block list", visibility = { selective })
-	private val onGround by setting("On Ground", false, "Only break blocks when the player is standing on ground")
-	private val fillFloor by setting("Fill Floor", false)
-	private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
-	private val inverseSelection by setting("Inverse Selection", false, "Breaks blocks outside of the baritone selection and ignores blocks inside") { baritoneSelection }
-	private val sneakLowersFlatten by setting("Sneak Lowers Flatten", false)
-	private val async by setting("Async", true, "Allows the simulation the 50 milliseconds between ticks where nothing changes to avoid lag. This causes a 1 tick wait between starting the module, and it performing actions")
+	private val height by intSetting("Height", 6, 1..8, 1)
+	private val width by intSetting("Width", 6, 1..8, 1)
+	private val flattenMode by enumSetting("Flatten Mode", FlattenMode.Standard)
+	private val directionalDig by enumSetting("Directional Dig", DigDirection.None)
+	private val selective by boolSetting("Selective", false, description = "Click on a block to nuke that type of block")
+	private val selectAddKey by bindSetting("Select Additional Keybind", Bind(GLFW.GLFW_KEY_LEFT_CONTROL, 0), description = "Hold down this key to add more blocks to the selective block list", visibility = { selective })
+	private val onGround by boolSetting("On Ground", false, "Only break blocks when the player is standing on ground")
+	private val fillFloor by boolSetting("Fill Floor", false)
+	private val baritoneSelection by boolSetting("Baritone Selection", false, "Restricts nuker to your baritone selection")
+	private val inverseSelection by boolSetting("Inverse Selection", false, "Breaks blocks outside of the baritone selection and ignores blocks inside") { baritoneSelection }
+	private val sneakLowersFlatten by boolSetting("Sneak Lowers Flatten", false)
+	private val async by boolSetting("Async", true, "Allows the simulation the 50 milliseconds between ticks where nothing changes to avoid lag. This causes a 1 tick wait between starting the module, and it performing actions")
 		.onValueChange { _, _ -> if (buildTask != null) startBuildTask() }
 
 	private var buildTask: Task<*>? = null

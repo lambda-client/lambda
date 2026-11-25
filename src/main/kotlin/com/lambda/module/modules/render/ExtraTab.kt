@@ -17,6 +17,10 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.intSetting
+import com.lambda.config.settings.numeric.longSetting
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import java.awt.Color
@@ -26,10 +30,10 @@ object ExtraTab : Module(
 	description = "Adds more tabs to the main menu",
 	tag = ModuleTag.RENDER,
 ) {
-	@JvmStatic val tabEntries by setting("Tab Entries", 80L, 1L..500L, 1L)
-	@JvmStatic val rows by setting("Rows", 20, 1..100, 1)
-	@JvmStatic val friendsOnly by setting("Friends Only", false)
-	@JvmStatic val sortFriendsFirst by setting("Sort Friends First", true)
-	@JvmStatic val highlightFriends by setting("Highlight Friends", true)
-	@JvmStatic val friendColor by setting("Friend Color", Color(120, 120, 255, 255), "The color friends will be highlighted") { highlightFriends }
+	@JvmStatic val tabEntries by longSetting("Tab Entries", 80L, 1L..500L, 1L)
+	@JvmStatic val rows by intSetting("Rows", 20, 1..100, 1)
+	@JvmStatic val friendsOnly by boolSetting("Friends Only", false)
+	@JvmStatic val sortFriendsFirst by boolSetting("Sort Friends First", true)
+	@JvmStatic val highlightFriends by boolSetting("Highlight Friends", true)
+	@JvmStatic val friendColor by colorSetting("Friend Color", Color(120, 120, 255, 255), "The color friends will be highlighted") { highlightFriends }
 }

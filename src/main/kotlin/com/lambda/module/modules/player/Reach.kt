@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 
@@ -25,6 +26,6 @@ object Reach : Module(
 	description = "Changes the reach distance of the player",
 	tag = ModuleTag.PLAYER
 ) {
-	@JvmStatic val blockReach by setting("Block Reach", 4.5, 0.0..10.0, 0.01)
-	@JvmStatic val entityReach by setting("Entity Reach", 3.0, 0.0..10.0, 0.01)
+	@JvmStatic val blockReach by doubleSetting("Block Reach", 4.5, 0.0..10.0, 0.01)
+	@JvmStatic val entityReach by doubleSetting("Entity Reach", 3.0, 0.0..10.0, 0.01)
 }

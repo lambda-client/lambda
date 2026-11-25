@@ -19,6 +19,9 @@ package com.lambda.module.modules.network
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
@@ -51,20 +54,20 @@ object PacketLogger : Module(
     tag = ModuleTag.NETWORK,
     autoDisable = true
 ) {
-    private val logToChat by setting("Log To Chat", false, "Log packets to chat")
+    private val logToChat by boolSetting("Log To Chat", false, "Log packets to chat")
 
     // ToDo: Implement HUD logging when HUD is done
 //    private val logToHUD by setting("Log To HUD", false, "Log packets to HUD")
-    private val networkSide by setting("Network Side", NetworkSide.Any, "Side of the network to log packets from")
-    private val logTicks by setting("Log Ticks", true, "Show game ticks in the log")
-    private val scope by setting("Scope", Scope.Any, "Scope of packets to log")
+    private val networkSide by enumSetting("Network Side", NetworkSide.Any, "Side of the network to log packets from")
+    private val logTicks by boolSetting("Log Ticks", true, "Show game ticks in the log")
+    private val scope by enumSetting("Scope", Scope.Any, "Scope of packets to log")
 
 //    val packetList = getInstances<Packet<*>>()
     // ToDo: Add a packet list
     //private val whitelist by setting<String>("Whitelist Packets", emptyList<String>(), emptyList<String>(), "Packets to whitelist", { JsonPrimitive(it) }, { it.asString }) { scope == Scope.Whitelist }
     //private val blacklist by setting<String>("Blacklist Packets", emptyList<String>(), emptyList<String>(), "Packets to blacklist", { JsonPrimitive(it) }, { it.asString }) { scope == Scope.Blacklist }
-    private val maxRecursionDepth by setting("Max Recursion Depth", 6, 1..10, 1, "Maximum recursion depth for packet serialization")
-    private val logConcurrent by setting("Build Data Concurrent", false, "Whether to serialize packets concurrently. Will not save packets in chronological order but wont lag the game.")
+    private val maxRecursionDepth by intSetting("Max Recursion Depth", 6, 1..10, 1, "Maximum recursion depth for packet serialization")
+    private val logConcurrent by boolSetting("Build Data Concurrent", false, "Whether to serialize packets concurrently. Will not save packets in chronological order but wont lag the game.")
 
     private var file: File? = null
     private val entryFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSS")

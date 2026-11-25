@@ -18,6 +18,8 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -47,9 +49,9 @@ object Blink : Module(
     description = "Holds packets",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private var delay by setting("Delay", 500, 50..10000, 10)
-    private val shiftVelocity by setting("Shift velocity", true)
-    private val requiresAura by setting("Requires Aura", false)
+    private var delay by intSetting("Delay", 500, 50..10000, 10)
+    private val shiftVelocity by boolSetting("Shift velocity", true)
+    private val requiresAura by boolSetting("Requires Aura", false)
 
     private val isActive get() = (KillAura.isEnabled && KillAura.target != null) || !requiresAura
 

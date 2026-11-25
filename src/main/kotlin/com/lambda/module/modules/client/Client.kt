@@ -19,6 +19,10 @@ package com.lambda.module.modules.client
 
 import com.lambda.config.Group
 import com.lambda.config.Tab
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.module.Module
@@ -36,18 +40,18 @@ object Client : Module(
 
 	private const val RENDERING_GROUP = "Rendering"
 
-	@Tab(GENERAL_TAB) val clientSounds by setting("Client Sounds", true, "Plays sounds when certain actions are performed with lambda. Toggling modules, for example")
-	@Tab(GENERAL_TAB) val buildTaskRenders by setting("Build Task Renders", false, "Displays renders from some build sim results generated from the build task")
-	@Tab(GENERAL_TAB) val avoidInventoryDesync by setting("Avoid Inventory Desync", true, "Cancels incoming inventory update packets if they match previous actions")
-	@Tab(GENERAL_TAB) val desyncTimeout by setting("Desync Timeout", 30, 1..30, 1, unit = " ticks", description = "Time to store previous inventory actions before dropping the cache") { avoidInventoryDesync }
-	@Tab(GENERAL_TAB) val scanShrinkFactor by setting("Scan Shrink Factor", 0.001, 0.0..1.0, 0.001, "How much to shrink block scans from the edges to avoid flagging anticheats")
-	@Tab(GENERAL_TAB) @Group(RENDERING_GROUP) val chunkUploadsPerTick by setting("Chunk Uploads", 16, 1..256, 1, unit = " chunks/tick")
-	@Tab(GENERAL_TAB) @Group(RENDERING_GROUP) val chunkRebuildsPerTick by setting("Chunk Rebuilds", 64, 1..256, 1, unit = " chunks/tick")
-	@Tab(GENERAL_TAB) val highlightColor by setting("Text Highlight Color", Color(214, 55, 87), "Base text highlight color")
+	@Tab(GENERAL_TAB) val clientSounds by boolSetting("Client Sounds", true, "Plays sounds when certain actions are performed with lambda. Toggling modules, for example")
+	@Tab(GENERAL_TAB) val buildTaskRenders by boolSetting("Build Task Renders", false, "Displays renders from some build sim results generated from the build task")
+	@Tab(GENERAL_TAB) val avoidInventoryDesync by boolSetting("Avoid Inventory Desync", true, "Cancels incoming inventory update packets if they match previous actions")
+	@Tab(GENERAL_TAB) val desyncTimeout by intSetting("Desync Timeout", 30, 1..30, 1, unit = " ticks", description = "Time to store previous inventory actions before dropping the cache") { avoidInventoryDesync }
+	@Tab(GENERAL_TAB) val scanShrinkFactor by doubleSetting("Scan Shrink Factor", 0.001, 0.0..1.0, 0.001, "How much to shrink block scans from the edges to avoid flagging anticheats")
+	@Tab(GENERAL_TAB) @Group(RENDERING_GROUP) val chunkUploadsPerTick by intSetting("Chunk Uploads", 16, 1..256, 1, unit = " chunks/tick")
+	@Tab(GENERAL_TAB) @Group(RENDERING_GROUP) val chunkRebuildsPerTick by intSetting("Chunk Rebuilds", 64, 1..256, 1, unit = " chunks/tick")
+	@Tab(GENERAL_TAB) val highlightColor by colorSetting("Text Highlight Color", Color(214, 55, 87), "Base text highlight color")
 
-	@Tab(DEBUG_TAB) val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager")
-	@Tab(DEBUG_TAB) val verboseDebug by setting("Verbose Debug", false, "Prints more, and more detailed, debug logs")
-	@Tab(DEBUG_TAB) val showInvisibleTasks by setting("Show Invisible Tasks", false, "Shows utility tasks such as chaining wrappers in the Task Flow HUD")
+	@Tab(DEBUG_TAB) val ignoreItemDropWarnings by boolSetting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager")
+	@Tab(DEBUG_TAB) val verboseDebug by boolSetting("Verbose Debug", false, "Prints more, and more detailed, debug logs")
+	@Tab(DEBUG_TAB) val showInvisibleTasks by boolSetting("Show Invisible Tasks", false, "Shows utility tasks such as chaining wrappers in the Task Flow HUD")
 
 	@Volatile
 	var drawables = listOf<Drawable>()

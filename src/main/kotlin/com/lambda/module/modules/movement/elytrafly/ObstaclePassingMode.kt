@@ -20,6 +20,9 @@ package com.lambda.module.modules.movement.elytrafly
 import baritone.api.pathing.goals.GoalGetToBlock
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.modules.hud.Speedometer
@@ -210,11 +213,11 @@ abstract class ObstaclePassingMode(
 }
 
 class PasserSettings(override val c: Config) : ConfigBlock {
-	val passObstacles by c.setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone")
-	val walkWhenFlagged by c.setting("Walk When Flagged", true, "Triggers obstacle passer when the server forces your position (typically getting flagged by the anticheat)") { passObstacles }
-	val minObstacleHeight by c.setting("Min Obstacle Height", 0.063, 0.0..1.0, 0.0001, "The minimum height an obstacle must be above the ground to trigger obstacle passer") { passObstacles }
-	val headHitters by c.setting("Head Hitters", true, "Flags obstacles above the y level you started flying at") { passObstacles }
-	val acceptableOffsetRange by c.setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { passObstacles }
-	val obstacleLookAhead by c.setting("Obstacle Look-Ahead", 8, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { passObstacles }
-	val directionStep by c.setting("Direction Step", 22.5, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { passObstacles }
+	val passObstacles by c.boolSetting("Pass Obstacles", true, "Automatically paths around obstacles using baritone")
+	val walkWhenFlagged by c.boolSetting("Walk When Flagged", true, "Triggers obstacle passer when the server forces your position (typically getting flagged by the anticheat)") { passObstacles }
+	val minObstacleHeight by c.doubleSetting("Min Obstacle Height", 0.063, 0.0..1.0, 0.0001, "The minimum height an obstacle must be above the ground to trigger obstacle passer") { passObstacles }
+	val headHitters by c.boolSetting("Head Hitters", true, "Flags obstacles above the y level you started flying at") { passObstacles }
+	val acceptableOffsetRange by c.doubleSetting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { passObstacles }
+	val obstacleLookAhead by c.intSetting("Obstacle Look-Ahead", 8, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { passObstacles }
+	val directionStep by c.doubleSetting("Direction Step", 22.5, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { passObstacles }
 }

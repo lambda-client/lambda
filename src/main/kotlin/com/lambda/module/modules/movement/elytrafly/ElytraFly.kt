@@ -23,6 +23,9 @@ import com.lambda.config.editSetting
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.config.withEdits
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
@@ -60,7 +63,7 @@ object ElytraFly : Module(
     description = "Modifies elytra functionality to allow for more control",
     tag = ModuleTag.MOVEMENT,
 ) {
-    @JvmStatic val mode by setting("Fly Mode", FlyMode.Bounce)
+    @JvmStatic val mode by enumSetting("Fly Mode", FlyMode.Bounce)
         .onValueChange { from, to ->
             from.elytraFly.onDisableListeners.forEach { it() }
             to.elytraFly.onEnableListeners.forEach { it() }
@@ -71,13 +74,13 @@ object ElytraFly : Module(
         Grim("Grim")
     }
 
-    private val boostSpeed by setting("Boost", 0.0, 0.0..0.5, 0.005, description = "Speed to add when flying")
-    @JvmStatic val rocketBoostMode by setting("Rocket Boost Mode", RocketBoostMode.Grim)
-    private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you") { rocketBoostMode == RocketBoostMode.Standard }
-    private val maxGrimBoost by setting("Max Grim Boost", 3.0, 0.0..3.0, 0.01, description = "Maximum additional speed the firework boost can add on top of the base rocket speed") { rocketBoostMode == RocketBoostMode.Grim }
-    private val safetyMargin by setting("Safety Margin", 0.2, 0.0..2.0, 0.01, "The time (in seconds) to shorten the firework use delay to account for ping variation", "s")
-    private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
-    @JvmStatic val fakeFly by setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
+    private val boostSpeed by doubleSetting("Boost", 0.0, 0.0..0.5, 0.005, description = "Speed to add when flying")
+    @JvmStatic val rocketBoostMode by enumSetting("Rocket Boost Mode", RocketBoostMode.Grim)
+    private val rocketSpeed by doubleSetting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you") { rocketBoostMode == RocketBoostMode.Standard }
+    private val maxGrimBoost by doubleSetting("Max Grim Boost", 3.0, 0.0..3.0, 0.01, description = "Maximum additional speed the firework boost can add on top of the base rocket speed") { rocketBoostMode == RocketBoostMode.Grim }
+    private val safetyMargin by doubleSetting("Safety Margin", 0.2, 0.0..2.0, 0.01, "The time (in seconds) to shorten the firework use delay to account for ping variation", "s")
+    private val mute by boolSetting("Mute Elytra", false, "Mutes the elytra sound when gliding")
+    @JvmStatic val fakeFly by boolSetting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
 
     private const val BOUNCE_TAB = "Bounce"
 //    private const val CONTROL_TAB = "Control"

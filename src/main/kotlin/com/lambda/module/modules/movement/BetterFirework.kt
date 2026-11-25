@@ -22,7 +22,9 @@ import com.lambda.Lambda.mc
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -58,7 +60,7 @@ object BetterFirework : Module(
 	tag = ModuleTag.MOVEMENT,
 	modulePriority = 1
 ) {
-	private var activateButton: Bind by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
+	private var activateButton: Bind by bindSetting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
 		.onPress {
 			if (mc.crosshairTarget?.type == HitResult.Type.BLOCK &&
 				!middleClickCancel &&
@@ -76,14 +78,14 @@ object BetterFirework : Module(
 			else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
 		}
 	@Suppress("unused")
-	private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind.EMPTY, "Firework use key for mid flight activation")
+	private var midFlightActivationKey by bindSetting("Mid-Flight Activation Key", Bind.EMPTY, "Firework use key for mid flight activation")
 		.onPress { if (player.isGliding) takeoffState = TakeoffState.StartFlying }
-	private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
-	private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
-	private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
+	private var middleClickCancel by boolSetting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
+	private var fireworkInteract by boolSetting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
+	private var fireworkInteractCancel by boolSetting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
 
-	private var clientSwing by setting("Swing", true, "Swing hand client side")
-	private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }
+	private var clientSwing by boolSetting("Swing", true, "Swing hand client side")
+	private var invUse by boolSetting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }
 
 	private var takeoffState = TakeoffState.Idle
 

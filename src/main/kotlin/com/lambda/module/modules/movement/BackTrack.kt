@@ -18,6 +18,10 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
@@ -60,11 +64,11 @@ object BackTrack : Module(
     description = "Gives reach advantage by delaying your packets",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val outbound by setting("Outbound", true)
-    private val mode by setting("Mode", Mode.Fixed)
-    private val delay by setting("Delay", 500, 100..2000) { mode == Mode.Fixed }
-    private val maxDelay by setting("Max Delay", 1000, 100..2000) { mode == Mode.Ranged || mode == Mode.Adaptive }
-    private val distance by setting("Distance", 3.0, 1.0..5.0, 0.1) { mode == Mode.Ranged || mode == Mode.Adaptive }
+    private val outbound by boolSetting("Outbound", true)
+    private val mode by enumSetting("Mode", Mode.Fixed)
+    private val delay by intSetting("Delay", 500, 100..2000) { mode == Mode.Fixed }
+    private val maxDelay by intSetting("Max Delay", 1000, 100..2000) { mode == Mode.Ranged || mode == Mode.Adaptive }
+    private val distance by doubleSetting("Distance", 3.0, 1.0..5.0, 0.1) { mode == Mode.Ranged || mode == Mode.Adaptive }
 
     private var target: LivingEntity? = null
     private var targetPos: Vec3d? = null

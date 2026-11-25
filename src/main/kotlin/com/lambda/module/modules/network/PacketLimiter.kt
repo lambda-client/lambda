@@ -18,6 +18,9 @@
 package com.lambda.module.modules.network
 
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.settings.collections.collectionSetting
+import com.lambda.config.settings.numeric.intSetting
+import com.lambda.config.settings.numeric.longSetting
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -41,12 +44,12 @@ object PacketLimiter : Module(
 	private var packetQueueMap = mutableMapOf<String, LimitedDecayQueue<PacketEvent.Send.Pre>>()
 	private val globalQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(1, 1)
 
-	private val limit by setting("Limit per packet", 99, 1..100, 1, "The maximum amount of packets to send per given time interval", unit = " packets")
+	private val limit by intSetting("Limit per packet", 99, 1..100, 1, "The maximum amount of packets to send per given time interval", unit = " packets")
 		.onValueChange { _, to -> packetQueueMap.forEach { (t, u) -> u.setSizeLimit(to) } }
-	private val globalLimit by setting("Global Limit", 1000, 100..5000, 50, "The maximum amount of packets to send overall per given time interval", unit = " packets")
+	private val globalLimit by intSetting("Global Limit", 1000, 100..5000, 50, "The maximum amount of packets to send overall per given time interval", unit = " packets")
 		.onValueChange { _, to -> globalQueue.setSizeLimit(to) }
 
-	private val interval by setting("Duration", 4000L, 1L..10000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms")
+	private val interval by longSetting("Duration", 4000L, 1L..10000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms")
 		.onValueChange { _, to -> packetQueueMap.forEach { (t, u) -> u.setDecayTime(to) }; globalQueue.setDecayTime(to) }
 
 	private val defaultIgnorePackets = setOf(
@@ -61,7 +64,7 @@ object PacketLimiter : Module(
 	inline fun <reified T> nameOf(): String = T::class.className
 
 	// ToDo: Find a way to have a list of serverbound packets
-	private val ignorePackets by setting("Ignore Packets", defaultIgnorePackets, description = "Packets to ignore when limiting")
+	private val ignorePackets by collectionSetting("Ignore Packets", defaultIgnorePackets, description = "Packets to ignore when limiting")
 
 	init {
 		onEnable {

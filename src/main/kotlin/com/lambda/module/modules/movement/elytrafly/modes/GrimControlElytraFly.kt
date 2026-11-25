@@ -18,6 +18,10 @@
 package com.lambda.module.modules.movement.elytrafly.modes
 
 import com.lambda.config.Config
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.floatSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
@@ -46,11 +50,11 @@ import net.minecraft.util.math.Vec3d
 class GrimControlElytraFly(
 	override val c: Config
 ) : ElytraFlyMode(FlyMode.GrimControl) {
-	private val inventory by c.setting("Inventory", true, "Allow using fireworks from the players inventory")
-	private val upAngle by c.setting("Up Angle", 45f, 0f..90f, 0.1f)
-	private val downAngle by c.setting("Down Angle", 20f, 0f..90f, 0.1f)
-	val flipFlopMode by c.setting("Flip Flop Mode", FlipFlopMode.None)
-	private val packetGap by c.setting("Packet Gap", 20, 0..100, 1, "The gap between allowing player movement packets to pass") { flipFlopMode != FlipFlopMode.None }
+	private val inventory by c.boolSetting("Inventory", true, "Allow using fireworks from the players inventory")
+	private val upAngle by c.floatSetting("Up Angle", 45f, 0f..90f, 0.1f)
+	private val downAngle by c.floatSetting("Down Angle", 20f, 0f..90f, 0.1f)
+	val flipFlopMode by c.enumSetting("Flip Flop Mode", FlipFlopMode.None)
+	private val packetGap by c.intSetting("Packet Gap", 20, 0..100, 1, "The gap between allowing player movement packets to pass") { flipFlopMode != FlipFlopMode.None }
 
 	@Suppress("unused")
 	enum class FlipFlopMode(

@@ -25,7 +25,10 @@ import com.lambda.config.automation.MutableAutomationConfig
 import com.lambda.config.categories.ModuleCategory
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.entries.onValueChangeUnsafe
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.updateListenerSorting
@@ -129,8 +132,8 @@ abstract class Module(
 ) : Nameable, Muteable, OwnerPriority, Config(name, ModuleCategory),
     IMutableAutomationConfig by MutableAutomationConfig()
 {
-    private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
-    val prioritySetting = setting("Module Priority", modulePriority, -100..100, 1, "Priority over other modules") { false }
+    private val isEnabledSetting = boolSetting("Enabled", enabledByDefault) { false }
+    val prioritySetting = intSetting("Module Priority", modulePriority, -100..100, 1, "Priority over other modules") { false }
 		.onValueChangeUnsafe { _, to -> ownerPriority = to }
     override var ownerPriority = modulePriority
         set(value) {
@@ -138,12 +141,12 @@ abstract class Module(
             field = value
             if (value != oldVal) updateListenerSorting()
         }
-    val keybindSetting = setting("Keybind", defaultKeybind, alwaysListening = true) { false }
+    val keybindSetting = bindSetting("Keybind", defaultKeybind, alwaysListening = true) { false }
         .onPress { toggle() }
         .onRelease { if (disableOnRelease) disable() }
-    val disableOnReleaseSetting = setting("Disable On Release", false) { false }
-    val drawSetting = setting("Draw", true, "Draws the module in the module list hud element") { false }
-    val showInClickGui = setting("Show In ClickGui", true, "Shows the module in the ClickGui layout") { false }
+    val disableOnReleaseSetting = boolSetting("Disable On Release", false) { false }
+    val drawSetting = boolSetting("Draw", true, "Draws the module in the module list hud element") { false }
+    val showInClickGui = boolSetting("Show In ClickGui", true, "Shows the module in the ClickGui layout") { false }
 
     var isEnabled by isEnabledSetting
         private set

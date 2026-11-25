@@ -18,6 +18,8 @@
 package com.lambda.module.modules.render
 
 import com.lambda.config.Tab
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
@@ -32,10 +34,10 @@ object Weather : Module(
 	private const val NETHER_TAB = "Nether"
 	private const val END_TAB = "End"
 
-	@Tab(OVERWORLD_TAB) @JvmStatic val overworldMode by setting("Overworld Mode", WeatherMode.Clear)
-	@Tab(OVERWORLD_TAB) @JvmStatic val overrideSnow by setting("Override Snow", false) { overworldMode == WeatherMode.Rain }
-	@Tab(NETHER_TAB) @JvmStatic val netherMode by setting("Nether Mode", WeatherMode.Clear)
-	@Tab(END_TAB) @JvmStatic val endMode by setting("End Mode", WeatherMode.Clear)
+	@Tab(OVERWORLD_TAB) @JvmStatic val overworldMode by enumSetting("Overworld Mode", WeatherMode.Clear)
+	@Tab(OVERWORLD_TAB) @JvmStatic val overrideSnow by boolSetting("Override Snow", false) { overworldMode == WeatherMode.Rain }
+	@Tab(NETHER_TAB) @JvmStatic val netherMode by enumSetting("Nether Mode", WeatherMode.Clear)
+	@Tab(END_TAB) @JvmStatic val endMode by enumSetting("End Mode", WeatherMode.Clear)
 
 	@JvmStatic fun getWeatherMode() =
 		runSafe {

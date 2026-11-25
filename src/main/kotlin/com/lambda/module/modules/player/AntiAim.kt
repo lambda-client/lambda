@@ -18,6 +18,9 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.floatSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -40,21 +43,21 @@ object AntiAim : Module(
     private const val GENERAL_TAB = "General"
     private const val ROTATION_TAB = "Rotation"
 
-    private val yaw by setting("Yaw Mode", YawMode.Spin, "The mode used when setting the players yaw")
+    private val yaw by enumSetting("Yaw Mode", YawMode.Spin, "The mode used when setting the players yaw")
         .onValueChange { _, to -> if (to == YawMode.Custom) customYaw = player.yaw }
-    private val spinMode by setting("Spin Mode", LeftRight.Right) { yaw == YawMode.Spin }
-    private val sideMode by setting("Side Mode", LeftRight.Left) { yaw == YawMode.Sideways }
-    private var customYaw: Float by setting("Custom Yaw", 0f, -179f..180f, 1f) { yaw == YawMode.Custom }
-    private val yawPlayerMode by setting("Yaw Player mode", PlayerMode.Closest) { yaw == YawMode.Player }
+    private val spinMode by enumSetting("Spin Mode", LeftRight.Right) { yaw == YawMode.Spin }
+    private val sideMode by enumSetting("Side Mode", LeftRight.Left) { yaw == YawMode.Sideways }
+    private var customYaw: Float by floatSetting("Custom Yaw", 0f, -179f..180f, 1f) { yaw == YawMode.Custom }
+    private val yawPlayerMode by enumSetting("Yaw Player mode", PlayerMode.Closest) { yaw == YawMode.Player }
 
-    private val pitch by setting("Pitch Mode", PitchMode.UpAndDown, "The mode used when setting the players pitch")
+    private val pitch by enumSetting("Pitch Mode", PitchMode.UpAndDown, "The mode used when setting the players pitch")
         .onValueChange { _, to -> if (to == PitchMode.Custom) customPitch = player.pitch }
-    private val upDownMode by setting("Vertical Mode", UpDown.Up) { pitch == PitchMode.Vertical }
-    private var customPitch: Float by setting("Custom Pitch", 0f, -90f..90f, 1f) { pitch == PitchMode.Custom }
-    private val pitchPlayerMode by setting("Pitch Player Mode", PlayerMode.Closest) { pitch == PitchMode.Player }
+    private val upDownMode by enumSetting("Vertical Mode", UpDown.Up) { pitch == PitchMode.Vertical }
+    private var customPitch: Float by floatSetting("Custom Pitch", 0f, -90f..90f, 1f) { pitch == PitchMode.Custom }
+    private val pitchPlayerMode by enumSetting("Pitch Player Mode", PlayerMode.Closest) { pitch == PitchMode.Player }
 
-    private val yawSpeed by setting("Yaw Speed", 30, 1..90, 1, "Yaw rotation degrees per tick", "°") { yaw != YawMode.None }
-    private val pitchSpeed by setting("Pitch Speed", 30, 1..90, 1, "Pitch rotation degrees per tick", "°") { pitch != PitchMode.None }
+    private val yawSpeed by intSetting("Yaw Speed", 30, 1..90, 1, "Yaw rotation degrees per tick", "°") { yaw != YawMode.None }
+    private val pitchSpeed by intSetting("Pitch Speed", 30, 1..90, 1, "Pitch rotation degrees per tick", "°") { pitch != PitchMode.None }
 
     private var currentYaw = 0.0f
     private var currentPitch = 0.0f

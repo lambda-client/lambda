@@ -19,6 +19,8 @@ package com.lambda.module.modules.chat
 
 import com.google.common.collect.Comparators.min
 import com.lambda.command.CommandRegistry.prefix
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.stringSetting
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.BaritoneHandler
@@ -32,9 +34,9 @@ object CustomChat : Module(
 	description = "Adds a custom ending to your message",
 	tag = ModuleTag.CHAT,
 ) {
-	private val decoration by setting("Decoration", Decoration.Separator)
-	private val text by setting("Text", Text.Lambda)
-	private val customText by setting("Custom Text", "") { text == Text.Custom }
+	private val decoration by enumSetting("Decoration", Decoration.Separator)
+	private val text by enumSetting("Text", Text.Lambda)
+	private val customText by stringSetting("Custom Text", "") { text == Text.Custom }
 
 	init {
 		listen<ChatEvent.Send> {

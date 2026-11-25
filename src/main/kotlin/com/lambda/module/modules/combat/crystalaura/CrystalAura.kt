@@ -24,6 +24,12 @@ import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
+import com.lambda.config.settings.numeric.longSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
@@ -77,40 +83,40 @@ object CrystalAura : Module(
     private const val TARGETING_TAB = "Targeting"
     private const val RENDERING_TAB = "Rendering"
 
-    @Tab(GENERAL_TAB) val rotate by setting("Rotate", true)
-    @Tab(GENERAL_TAB) private val updateMode by setting("Update Mode", UpdateMode.Ticked)
-    @Tab(GENERAL_TAB) private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }
-    @Tab(GENERAL_TAB) private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }
+    @Tab(GENERAL_TAB) val rotate by boolSetting("Rotate", true)
+    @Tab(GENERAL_TAB) private val updateMode by enumSetting("Update Mode", UpdateMode.Ticked)
+    @Tab(GENERAL_TAB) private val updateDelaySetting by longSetting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }
+    @Tab(GENERAL_TAB) private val maxUpdatesPerFrame by intSetting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }
     @Tab(GENERAL_TAB) private val updateDelay get() = if (updateMode == UpdateMode.Async) updateDelaySetting else 0L
-    @Tab(GENERAL_TAB) private val debug by setting("Debug", false)
+    @Tab(GENERAL_TAB) private val debug by boolSetting("Debug", false)
 
-    @Tab(PLACEMENT_TAB) private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks")
-    @Tab(PLACEMENT_TAB) val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
-    @Tab(PLACEMENT_TAB) val swap by setting("Swap", true, "Swaps to crystals")
-    @Tab(PLACEMENT_TAB) val swapHand: Hand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
-    @Tab(PLACEMENT_TAB) val priorityMode by setting("Crystal Priority", Priority.Damage)
-    @Tab(PLACEMENT_TAB) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
-    @Tab(PLACEMENT_TAB) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
-    @Tab(PLACEMENT_TAB) private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals")
-    @Tab(PLACEMENT_TAB) private val minPlaceHealth by setting("Min Place Health", 5.0, 0.0..36.0, 0.5, "Minimum player health to place crystals")
-    @Tab(PLACEMENT_TAB) private val preventDeath by setting("Prevent Death", true, "Prevent death by crystal")
-    @Tab(PLACEMENT_TAB) private val oldPlace by setting("1.12 Placement", false)
+    @Tab(PLACEMENT_TAB) private val placeRange by doubleSetting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks")
+    @Tab(PLACEMENT_TAB) val placeDelay by longSetting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
+    @Tab(PLACEMENT_TAB) val swap by boolSetting("Swap", true, "Swaps to crystals")
+    @Tab(PLACEMENT_TAB) val swapHand: Hand by enumSetting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
+    @Tab(PLACEMENT_TAB) val priorityMode by enumSetting("Crystal Priority", Priority.Damage)
+    @Tab(PLACEMENT_TAB) private val minDamageAdvantage by doubleSetting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
+    @Tab(PLACEMENT_TAB) private val minTargetDamage by doubleSetting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
+    @Tab(PLACEMENT_TAB) private val maxSelfDamage by doubleSetting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals")
+    @Tab(PLACEMENT_TAB) private val minPlaceHealth by doubleSetting("Min Place Health", 5.0, 0.0..36.0, 0.5, "Minimum player health to place crystals")
+    @Tab(PLACEMENT_TAB) private val preventDeath by boolSetting("Prevent Death", true, "Prevent death by crystal")
+    @Tab(PLACEMENT_TAB) private val oldPlace by boolSetting("1.12 Placement", false)
 
-    @Tab(EXPLODING_TAB) private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks")
-    @Tab(EXPLODING_TAB) val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
+    @Tab(EXPLODING_TAB) private val explodeRange by doubleSetting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks")
+    @Tab(EXPLODING_TAB) val explodeDelay by longSetting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
 
-    @Tab(PREDICTION_TAB) val prediction by setting("Prediction", PredictionMode.None)
-    @Tab(PREDICTION_TAB) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1, "Flags grim") { prediction.onPacket }
-    @Tab(PREDICTION_TAB) private val explodeOnPacket by setting("Explode On Packet", false, "Explodes the received crystal on packet") { prediction != PredictionMode.None }
-    @Tab(PREDICTION_TAB) val placePostPause by setting("Place Post Pause", false, "Resets the place delay timer after receiving a entity spawn packet (adds a delay)") { prediction != PredictionMode.None }
-    @Tab(PREDICTION_TAB) val postPacketPlace by setting("Post Packet Place", true, "Places the crystal on the next tick from the entity spawn packet") { prediction == PredictionMode.Tick && !placePostPause }
-    @Tab(PREDICTION_TAB) val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
-    @Tab(PREDICTION_TAB) val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
+    @Tab(PREDICTION_TAB) val prediction by enumSetting("Prediction", PredictionMode.None)
+    @Tab(PREDICTION_TAB) private val packetPredictions by intSetting("Packet Predictions", 1, 0..20, 1, "Flags grim") { prediction.onPacket }
+    @Tab(PREDICTION_TAB) private val explodeOnPacket by boolSetting("Explode On Packet", false, "Explodes the received crystal on packet") { prediction != PredictionMode.None }
+    @Tab(PREDICTION_TAB) val placePostPause by boolSetting("Place Post Pause", false, "Resets the place delay timer after receiving a entity spawn packet (adds a delay)") { prediction != PredictionMode.None }
+    @Tab(PREDICTION_TAB) val postPacketPlace by boolSetting("Post Packet Place", true, "Places the crystal on the next tick from the entity spawn packet") { prediction == PredictionMode.Tick && !placePostPause }
+    @Tab(PREDICTION_TAB) val placePredictions by intSetting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
+    @Tab(PREDICTION_TAB) val packetLifetime by longSetting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
 
     @Tab(PREDICTION_TAB) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this, 10.0))
 
-    @Tab(RENDERING_TAB) private val render by setting("Rendering", true)
-    @Tab(RENDERING_TAB) private val renderPlacements by setting("Placement Rendering", true)
+    @Tab(RENDERING_TAB) private val render by boolSetting("Rendering", true)
+    @Tab(RENDERING_TAB) private val renderPlacements by boolSetting("Placement Rendering", true)
 
     @Tab(RENDERING_TAB) private val renderLineSettings by configBlock(WorldLineSettings(this))
         .withEdits {
@@ -119,10 +125,10 @@ object CrystalAura : Module(
 		        visibility { old -> { old() && render } }
 	        }
         }
-    @Tab(RENDERING_TAB) val primaryColorLine by setting("Primary Color (outline)", Color(130, 200, 255, 200), visibility = { render })
-    @Tab(RENDERING_TAB) val secondaryColorLine by setting("Secondary Color (outline)", Color(130, 130, 255, 200), visibility = { render })
-    @Tab(RENDERING_TAB) val primaryColor by setting("Primary Color", Color(225, 130, 225, 100), visibility = { render })
-    @Tab(RENDERING_TAB) val secondaryColor by setting("Secondary Color", Color(170, 60, 170, 100), visibility = { render })
+    @Tab(RENDERING_TAB) val primaryColorLine by colorSetting("Primary Color (outline)", Color(130, 200, 255, 200), visibility = { render })
+    @Tab(RENDERING_TAB) val secondaryColorLine by colorSetting("Secondary Color (outline)", Color(130, 130, 255, 200), visibility = { render })
+    @Tab(RENDERING_TAB) val primaryColor by colorSetting("Primary Color", Color(225, 130, 225, 100), visibility = { render })
+    @Tab(RENDERING_TAB) val secondaryColor by colorSetting("Secondary Color", Color(170, 60, 170, 100), visibility = { render })
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     var lastHit: BlockPos? = null

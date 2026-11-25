@@ -18,6 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.managers.rotating.Rotation
@@ -34,9 +35,9 @@ object FreeLook : Module(
     tag = ModuleTag.PLAYER,
     autoDisable = true
 ) {
-    @JvmStatic val enableYaw by setting("Enable Yaw", false, "Don't effect pitch if enabled")
-    @JvmStatic val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")
-    val togglePerspective by setting("Toggle Perspective", true, "Toggle perspective when enabling FreeLook")
+    @JvmStatic val enableYaw by boolSetting("Enable Yaw", false, "Don't effect pitch if enabled")
+    @JvmStatic val enablePitch by boolSetting("Enable Pitch", false, "Don't effect yaw if enabled")
+    val togglePerspective by boolSetting("Toggle Perspective", true, "Toggle perspective when enabling FreeLook")
 
     var camera: Rotation = Rotation.ZERO
     var previousPerspective: Perspective = mc.options.perspective

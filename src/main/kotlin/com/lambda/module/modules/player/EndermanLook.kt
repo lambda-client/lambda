@@ -19,6 +19,8 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -39,9 +41,9 @@ object EndermanLook : Module(
 	description = "Either stares at every enderman or stops you from staring at them",
 	tag = ModuleTag.PLAYER,
 ) {
-	private val mode by setting("Mode", Mode.Away, "Whether to stare down endermen or avoid their gaze")
-	private val stunHostiles by setting("Stun Hostiles", true, "Stare back at already provoked endermen to freeze them") { mode == Mode.Away }
-	private val disableWhileGliding by setting("Disable While Gliding", true, "Disables when gliding with an elytra")
+	private val mode by enumSetting("Mode", Mode.Away, "Whether to stare down endermen or avoid their gaze")
+	private val stunHostiles by boolSetting("Stun Hostiles", true, "Stare back at already provoked endermen to freeze them") { mode == Mode.Away }
+	private val disableWhileGliding by boolSetting("Disable While Gliding", true, "Disables when gliding with an elytra")
 
 	private const val STARE_CONE = 0.025 // vanilla to aggro endermen
 

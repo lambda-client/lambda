@@ -23,12 +23,21 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import java.awt.Color
+
+@ConfigEntryDsl
+fun Config.colorSetting(
+    name: String,
+    defaultValue: Color,
+    description: String = "",
+    visibility: () -> Boolean = { true }
+) = setting(name) { layer -> ColorSetting(name, description, this, layer, visibility, defaultValue) }
 
 class ColorSetting(
     name: String,

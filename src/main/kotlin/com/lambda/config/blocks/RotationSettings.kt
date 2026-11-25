@@ -19,6 +19,10 @@ package com.lambda.config.blocks
 
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.interaction.manager.managers.rotating.RotationMode
@@ -30,30 +34,30 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 class RotationSettings(override val c: Config) : RotationConfig, ConfigBlock {
-    override var rotationMode by c.setting("Mode", RotationMode.Sync, "How the player is being rotated on interaction")
+    override var rotationMode by c.enumSetting("Mode", RotationMode.Sync, "How the player is being rotated on interaction")
 
     /** How many ticks to keep the rotation before resetting */
-    override val keepTicks by c.setting("Keep Rotation", 1, 1..10, 1, "Ticks to keep rotation", " ticks")
+    override val keepTicks by c.intSetting("Keep Rotation", 1, 1..10, 1, "Ticks to keep rotation", " ticks")
 
     /** How many ticks to wait before resetting the rotation */
-    override val decayTicks by c.setting("Reset Rotation", 1, 1..10, 1, "Ticks before rotation is reset", " ticks")
+    override val decayTicks by c.intSetting("Reset Rotation", 1, 1..10, 1, "Ticks before rotation is reset", " ticks")
 
     override val tickStageMask = ALL_STAGES.subList(0, ALL_STAGES.indexOf(TickEvent.Player.Post)).toSet()
 
     /** Whether the rotation is instant */
-    var instant by c.setting("Instant Rotation", true, "Instantly rotate")
+    var instant by c.boolSetting("Instant Rotation", true, "Instantly rotate")
 
     /**
      * The mean (average/base) value used to calculate rotation speed.
      * This value represents the center of the distribution.
      */
-    var mean by c.setting("Mean", 40.0, 1.0..120.0, 0.1, "Average rotation speed", unit = "°") { !instant }
+    var mean by c.doubleSetting("Mean", 40.0, 1.0..120.0, 0.1, "Average rotation speed", unit = "°") { !instant }
 
     /**
      * The standard deviation for the Gaussian distribution used to calculate rotation speed.
      * This value represents the spread of rotation speed.
      */
-    var spread by c.setting("Spread", 10.0, 0.0..60.0, 0.1, "Spread of rotation speeds", unit = "°") { !instant }
+    var spread by c.doubleSetting("Spread", 10.0, 0.0..60.0, 0.1, "Spread of rotation speeds", unit = "°") { !instant }
 
     /**
      * We must always provide turn speed to the interpolator because the player's yaw might exceed the -180 to 180 range.

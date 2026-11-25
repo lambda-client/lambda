@@ -20,6 +20,8 @@ package com.lambda.module.modules.player
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -43,8 +45,8 @@ object StackReplenish : Module(
 	description = "Automatically refills stacks from your inventory",
 	tag = ModuleTag.PLAYER
 ) {
-	private val minStackPercent by setting("Min Stack Percentage", 30, 0..100, 1, "Minimum percentage of a complete stack before refilling", "%")
-	private val offhand by setting("Offhand", false, "Replenishes the players offhand stack")
+	private val minStackPercent by intSetting("Min Stack Percentage", 30, 0..100, 1, "Minimum percentage of a complete stack before refilling", "%")
+	private val offhand by boolSetting("Offhand", false, "Replenishes the players offhand stack")
 
 	init {
 		setDefaultAutomationConfig()

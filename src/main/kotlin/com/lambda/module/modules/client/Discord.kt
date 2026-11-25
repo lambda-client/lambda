@@ -19,6 +19,9 @@ package com.lambda.module.modules.client
 
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.longSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.lambda.event.events.TickEvent
@@ -48,12 +51,12 @@ object Discord : Module(
 	tag = ModuleTag.CLIENT,
 	enabledByDefault = true,
 ) {
-	private val delay by setting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")
-	private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.")
-	private val line1Left by setting("Line 1 Left", LineInfo.World)
-	private val line1Right by setting("Line 1 Right", LineInfo.Username)
-	private val line2Left by setting("Line 2 Left", LineInfo.Version)
-	private val line2Right by setting("Line 2 Right", LineInfo.Fps)
+	private val delay by longSetting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")
+	private val showTime by boolSetting("Show Time", true, description = "Show how long you have been playing for.")
+	private val line1Left by enumSetting("Line 1 Left", LineInfo.World)
+	private val line1Right by enumSetting("Line 1 Right", LineInfo.Username)
+	private val line2Left by enumSetting("Line 2 Left", LineInfo.Version)
+	private val line2Right by enumSetting("Line 2 Right", LineInfo.Fps)
 
 	val rpc by lazy {
 		KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)

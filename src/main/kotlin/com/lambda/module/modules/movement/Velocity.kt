@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -28,9 +29,9 @@ object Velocity : Module(
     description = "Modifies your velocity",
     tag = ModuleTag.MOVEMENT,
 ) {
-    @JvmStatic val pushed by setting("Pushed", true, "Prevents the player from getting pushed by other entities")
-    private val knockback by setting("Knockback", true, "Prevents the player from taking knockback when being attacked")
-    @JvmStatic val explosion by setting("Explosion", true, "Prevents the player from taking knockback from explosions")
+    @JvmStatic val pushed by boolSetting("Pushed", true, "Prevents the player from getting pushed by other entities")
+    private val knockback by boolSetting("Knockback", true, "Prevents the player from taking knockback when being attacked")
+    @JvmStatic val explosion by boolSetting("Explosion", true, "Prevents the player from taking knockback from explosions")
 
     init {
         listen<PacketEvent.Receive.Pre> { event ->

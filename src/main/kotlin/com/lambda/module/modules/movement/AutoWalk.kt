@@ -18,6 +18,8 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.config.Group
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
@@ -44,18 +46,18 @@ object AutoWalk : Module(
 	private const val MOVEMENT_GROUP = "Movement"
 	private const val PAUSING_GROUP = "Pausing"
 
-	@Group(MOVEMENT_GROUP) private val walkForward by setting("Forward", true, "Automatically walks forward")
-	@Group(MOVEMENT_GROUP) private val walkBackward by setting("Backward", false, "Automatically walks backward")
-	@Group(MOVEMENT_GROUP) private val strafeLeft by setting("Strafe Left", false, "Automatically strafes left")
-	@Group(MOVEMENT_GROUP) private val strafeRight by setting("Strafe Right", false, "Automatically strafes right")
-	@Group(MOVEMENT_GROUP) private val sneak by setting("Sneak", false, "Automatically sneaks")
-	@Group(MOVEMENT_GROUP) private val sprint by setting("Sprint", false, "Automatically sprints")
-	@Group(MOVEMENT_GROUP) private val jump by setting("Jump", false, "Automatically holds jump")
+	@Group(MOVEMENT_GROUP) private val walkForward by boolSetting("Forward", true, "Automatically walks forward")
+	@Group(MOVEMENT_GROUP) private val walkBackward by boolSetting("Backward", false, "Automatically walks backward")
+	@Group(MOVEMENT_GROUP) private val strafeLeft by boolSetting("Strafe Left", false, "Automatically strafes left")
+	@Group(MOVEMENT_GROUP) private val strafeRight by boolSetting("Strafe Right", false, "Automatically strafes right")
+	@Group(MOVEMENT_GROUP) private val sneak by boolSetting("Sneak", false, "Automatically sneaks")
+	@Group(MOVEMENT_GROUP) private val sprint by boolSetting("Sprint", false, "Automatically sprints")
+	@Group(MOVEMENT_GROUP) private val jump by boolSetting("Jump", false, "Automatically holds jump")
 
-	@Group(PAUSING_GROUP) private val pauseWhileMining by setting("Pause While Mining", false, "Pauses walking while breaking blocks or when breaks are queued")
-	@Group(PAUSING_GROUP) private val pauseWhilePlacing by setting("Pause While Placing", false, "Pauses walking while placing blocks or when places are queued - only works with blocks placed by a lambda module")
-	@Group(PAUSING_GROUP) private val pauseAfterPlacing by setting("Pause After Placing", false, "Pauses walking for a period after placing a block - Works with all placing")
-	@Group(PAUSING_GROUP) private val ticksToWaitAfterPlacing by setting("Ticks To Wait After Placing", 1, 1..20, 1, "Extends the pause after placing to this many ticks") { pauseAfterPlacing }
+	@Group(PAUSING_GROUP) private val pauseWhileMining by boolSetting("Pause While Mining", false, "Pauses walking while breaking blocks or when breaks are queued")
+	@Group(PAUSING_GROUP) private val pauseWhilePlacing by boolSetting("Pause While Placing", false, "Pauses walking while placing blocks or when places are queued - only works with blocks placed by a lambda module")
+	@Group(PAUSING_GROUP) private val pauseAfterPlacing by boolSetting("Pause After Placing", false, "Pauses walking for a period after placing a block - Works with all placing")
+	@Group(PAUSING_GROUP) private val ticksToWaitAfterPlacing by intSetting("Ticks To Wait After Placing", 1, 1..20, 1, "Extends the pause after placing to this many ticks") { pauseAfterPlacing }
 
 	private var placeWaitTicks = 0
 

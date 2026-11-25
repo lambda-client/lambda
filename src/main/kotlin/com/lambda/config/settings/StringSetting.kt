@@ -26,12 +26,23 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.SettingEditBuilder
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.flag.ImGuiInputTextFlags
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+
+@ConfigEntryDsl
+fun Config.stringSetting(
+    name: String,
+    defaultValue: String,
+    multiline: Boolean = false,
+    flags: Int = ImGuiInputTextFlags.None,
+    description: String = "",
+    visibility: () -> Boolean = { true }
+) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
 
 /**
  * @see [com.lambda.config.Config]

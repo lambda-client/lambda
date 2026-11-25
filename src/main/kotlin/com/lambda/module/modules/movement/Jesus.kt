@@ -17,6 +17,9 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerPacketEvent
@@ -44,13 +47,13 @@ object Jesus : Module(
     description = "Allows to walk on water",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val mode by setting("Mode", Mode.Ncp)
+    private val mode by enumSetting("Mode", Mode.Ncp)
 
     // Dolphin
-    private val dolphinStrength by setting("Dolphin Strength", 0.1, 0.01..0.2, 0.01) { mode == Mode.NcpDolphin }
+    private val dolphinStrength by doubleSetting("Dolphin Strength", 0.1, 0.01..0.2, 0.01) { mode == Mode.NcpDolphin }
 
     // NCP New
-    private val slowDown by setting("Slow Down", true) { mode == Mode.NcpNew }
+    private val slowDown by boolSetting("Slow Down", true) { mode == Mode.NcpNew }
 
     private val fullShape = VoxelShapes.fullCube()
     private var goUp = true

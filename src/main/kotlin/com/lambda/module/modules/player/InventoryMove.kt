@@ -19,6 +19,8 @@ package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
 import com.lambda.config.blocks.RotationConfig
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
@@ -49,10 +51,10 @@ object InventoryMove : Module(
 	description = "Allows you to move with GUIs opened",
 	tag = ModuleTag.PLAYER,
 ) {
-	private val clickGui by setting("ClickGui", false)
-	private val disableSneak by setting("Disable Sneak", false)
-	private val arrowKeys by setting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
-	private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
+	private val clickGui by boolSetting("ClickGui", false)
+	private val disableSneak by boolSetting("Disable Sneak", false)
+	private val arrowKeys by boolSetting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
+	private val speed by intSetting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
 	override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
 	@JvmStatic

@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -32,7 +33,7 @@ object EntityControl : Module(
     description = "Control mountable entities",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val forceMount by setting("Force Mount", true, description = "Attempts to force mount chested entities.")
+    private val forceMount by boolSetting("Force Mount", true, description = "Attempts to force mount chested entities.")
 
     private val saddledHorses = mutableSetOf<AbstractHorseEntity>()
 
