@@ -109,7 +109,7 @@ internal fun SettingsPanel(
 	val visibility = remember(LocalShown.current) { MutableTransitionState(false) }
 	val window = windows[panel.module.tag]
 	val beneath = window == null || row.top >= window.top
-	val hung = panel.placed && (panel.settled || panel.unfolding && beneath)
+	val hung = panel.placed && (panel.settled || (panel.unfolding && beneath))
 	val wanted = open && hung && !row.isEmpty
 	val popups = remember { PopupHost() }
 	SideEffect { popups.closing = !wanted }

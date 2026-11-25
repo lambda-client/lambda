@@ -108,7 +108,7 @@ internal class SceneInput(private val scene: ComposeScene) {
 				FocusDirection.Up, FocusDirection.Left -> FocusDirection.Previous
 				else -> FocusDirection.Next
 			}
-		return KeyboardFocus.move(direction) || direction != inOrder && KeyboardFocus.move(inOrder)
+		return KeyboardFocus.move(direction) || (direction != inOrder && KeyboardFocus.move(inOrder))
 	}
 
 	fun type(codePoint: Int): Boolean =

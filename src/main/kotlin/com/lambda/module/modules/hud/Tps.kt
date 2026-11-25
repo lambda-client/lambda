@@ -91,7 +91,7 @@ object Tps : HudModule(
 		val path = Path()
 		points.forEachIndexed { index, value ->
 			val x = index * size.width / (points.size - 1)
-			val y = size.height - (value - min) / range * size.height
+			val y = size.height - ((value - min) / range * size.height)
 			if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
 		}
 		drawPath(path, color, style = Stroke(1.5.dp.toPx()))

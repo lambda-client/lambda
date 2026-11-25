@@ -227,7 +227,7 @@ object LambdaGui : Loadable {
 		aboveHud.collect()
 		beneathGui.collect(showsGui)
 		aboveGui.collect(showsGui)
-		val showsHud = !beneathHud.isEmpty || !aboveHud.isEmpty || screen == null && Hud.shown.isNotEmpty()
+		val showsHud = !beneathHud.isEmpty || !aboveHud.isEmpty || (screen == null && Hud.shown.isNotEmpty())
 		if (!showsGui && !showsHud && settled) return
 		layered = showsGui && showsHud
 

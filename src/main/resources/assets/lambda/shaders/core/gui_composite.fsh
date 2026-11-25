@@ -31,10 +31,10 @@ void main() {
 	if (GlowIntensity > 0.0) {
 		float glowMask = clamp(texture(GlowSampler, texCoord).a * 2.0, 0.0, 1.0);
 		float glow = clamp(pow(glowMask, 1.5) * GlowIntensity, 0.0, 1.0) * (1.0 - covered);
-		float wave = 0.5 + 0.5 * sin(Time * 2.0 + texCoord.x * 5.0 + texCoord.y * 3.0);
+		float wave = 0.5 + (0.5 * sin((Time * 2.0) + (texCoord.x * 5.0) + (texCoord.y * 3.0)));
 		under += vec4(mix(GlowColorA.rgb, GlowColorB.rgb, wave), 1.0) * glow * (1.0 - blurred);
 	}
 
-	vec4 over = gui + under * (1.0 - gui.a);
-	fragColor = over + vec4(DIM_COLOR, 1.0) * Dim * (1.0 - over.a);
+	vec4 over = gui + (under * (1.0 - gui.a));
+	fragColor = over + (vec4(DIM_COLOR, 1.0) * Dim * (1.0 - over.a));
 }

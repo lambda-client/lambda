@@ -72,7 +72,7 @@ abstract class HudModule(
 	var shownScreen = IntSize.Zero
 
 	var anchorX by floatSetting("HUD X", defaultAnchorX, 0f..1f, 0.001f) { false }
-	var anchorY by floatSetting("HUD Y", defaultAnchorY ?: (DEFAULT_ANCHOR + DEFAULT_SPACING * created++).coerceAtMost(1f), 0f..1f, 0.001f) { false }
+	var anchorY by floatSetting("HUD Y", defaultAnchorY ?: (DEFAULT_ANCHOR + (DEFAULT_SPACING * created++)).coerceAtMost(1f), 0f..1f, 0.001f) { false }
 
 	@Composable
 	abstract fun Content()

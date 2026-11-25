@@ -261,7 +261,7 @@ private fun AwtColor.toHex() =
 private fun parseHex(text: String): AwtColor? {
 	val digits = text.removePrefix("#")
 	if (
-		digits.length != 6 && digits.length != 8 ||
+		(digits.length != 6 && digits.length != 8) ||
 		digits.any { it.digitToIntOrNull(16) == null }
 	) {
 		return null

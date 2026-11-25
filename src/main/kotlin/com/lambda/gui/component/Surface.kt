@@ -96,7 +96,7 @@ fun Modifier.guiPresence(anchor: TransformOrigin? = null): Modifier =
 			if (GuiTransition.Fade in styles) alpha = shown
 			if (GuiTransition.Slide in styles && anchor == null) translationY = (shown - 1f) * GUI_SLIDE.toPx()
 			if (GuiTransition.Zoom in styles) {
-				scaleX = GUI_ZOOM + (1f - GUI_ZOOM) * shown
+				scaleX = GUI_ZOOM + ((1f - GUI_ZOOM) * shown)
 				scaleY = scaleX
 				transformOrigin = anchor ?: TransformOrigin.Center
 			}
@@ -113,7 +113,7 @@ fun Modifier.glass(color: Color, shape: Shape, strength: () -> Float = { 1f }): 
 			if (amount <= 0f) return@drawBehind
 			val backdrop =
 				if (amount >= 1f) full
-				else backdropFilter(sigma * amount, 1f - (1f - underlay) * amount)
+				else backdropFilter(sigma * amount, 1f - ((1f - underlay) * amount))
 			if (backdrop != null) drawIntoCanvas { canvas ->
 				canvas.skiaCanvas.saveLayer(Canvas.SaveLayerRec(Rect.makeWH(size.width, size.height), REPLACE, backdrop))
 				canvas.skiaCanvas.restore()
@@ -151,8 +151,8 @@ private data class Inset(private val shape: Shape, private val inset: Dp) : Shap
 		val edge = with(density) { inset.toPx() }
 		val inner =
 			Size(
-				(size.width - edge * 2).coerceAtLeast(0f),
-				(size.height - edge * 2).coerceAtLeast(0f)
+				(size.width - (edge * 2)).coerceAtLeast(0f),
+				(size.height - (edge * 2)).coerceAtLeast(0f)
 			)
 		val path = Path().apply { addOutline(shape.createOutline(inner, layoutDirection, density)) }
 		path.translate(Offset(edge, edge))

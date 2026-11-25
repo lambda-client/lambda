@@ -470,7 +470,7 @@ fun Suggestions(
 	ScenePopup(
 		popupPositionProvider = remember {
 			positionProvider { anchor, window, popup ->
-				val centred = anchor.left + (anchor.width - popup.width) / 2
+				val centred = anchor.left + ((anchor.width - popup.width) / 2)
 				IntOffset(
 					centred.coerceIn(0, (window.width - popup.width).coerceAtLeast(0)),
 					anchor.bottom
@@ -694,7 +694,7 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.(dismiss: () 
 						.graphicsLayer {
 							val shown = opened.value
 							alpha = shown
-							scaleX = DIALOG_ZOOM + (1f - DIALOG_ZOOM) * shown
+							scaleX = DIALOG_ZOOM + ((1f - DIALOG_ZOOM) * shown)
 							scaleY = scaleX
 						}
 						.guiPresence()

@@ -118,7 +118,7 @@ abstract class NumericSetting<T>(
 		when {
 			fraction <= 0f -> range.start
 			fraction >= 1f -> range.endInclusive
-			else -> onGrid(lowest + (highest - lowest) * fraction.toBigDecimal(), RoundingMode.HALF_UP)
+			else -> onGrid(lowest + ((highest - lowest) * fraction.toBigDecimal()), RoundingMode.HALF_UP)
 		}
 
 	private fun stepped(by: Int): T =
@@ -128,7 +128,7 @@ abstract class NumericSetting<T>(
 		val step = step.decimal
 		if (step.signum() <= 0) return convert(target.coerceIn(lowest, highest))
 		val steps = (target - lowest).divide(step, 0, rounding) + offset.toBigDecimal()
-		return convert((lowest + step * steps).coerceIn(lowest, highest))
+		return convert((lowest + (step * steps)).coerceIn(lowest, highest))
 	}
 
 	@Composable

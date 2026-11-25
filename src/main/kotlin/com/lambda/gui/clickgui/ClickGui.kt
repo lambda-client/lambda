@@ -144,14 +144,14 @@ internal fun ClickGui() {
 					(screenWidth - Look.windowWidth) / (inRow - 1).coerceAtLeast(1)
 				)
 				.coerceAtLeast(0.dp)
-		val rowWidth = Look.windowWidth + pitch * (inRow - 1)
+		val rowWidth = Look.windowWidth + (pitch * (inRow - 1))
 		val rowStart = ((screenWidth - rowWidth) / 2).coerceAtLeast(0.dp)
 
 		tags.forEachIndexed { index, tag ->
 			key(tag) {
 				CategoryWindow(
 					tag = tag,
-					defaultPosition = DpOffset(rowStart + pitch * index, Look.windowTop),
+					defaultPosition = DpOffset(rowStart + (pitch * index), Look.windowTop),
 					bounds = bounds,
 					snapping = snapping,
 					onDrop = { drop = it },

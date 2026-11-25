@@ -73,7 +73,7 @@ internal object Snap {
 				val size = end(element) - from
 				fun startAt(at: Float, guide: Float? = at) = Target(at - from, guide)
 				fun endAt(at: Float, guide: Float? = at) = Target(at - size - from, guide)
-				fun centerAt(at: Float, guide: Float? = at) = Target(at - size / 2 - from, guide)
+				fun centerAt(at: Float, guide: Float? = at) = Target(at - (size / 2) - from, guide)
 
 				val neighbours =
 					buildList {
@@ -81,8 +81,8 @@ internal object Snap {
 							others.forEach { other ->
 								add(startAt(start(other)))
 								add(endAt(end(other)))
-								add(startAt(end(other) + spacing, end(other) + spacing / 2))
-								add(endAt(start(other) - spacing, start(other) - spacing / 2))
+								add(startAt(end(other) + spacing, end(other) + (spacing / 2)))
+								add(endAt(start(other) - spacing, start(other) - (spacing / 2)))
 							}
 						}
 						if (GuiConfig.snapToCenters) others.forEach { add(centerAt(center(it))) }
@@ -99,7 +99,7 @@ internal object Snap {
 				val grid =
 					listOf(
 						startAt(onGrid(from), null),
-						centerAt(onGrid(from + size / 2), null),
+						centerAt(onGrid(from + (size / 2)), null),
 						endAt(onGrid(from + size), null),
 					).takeIf { GuiConfig.snapToGrid }.orEmpty()
 

@@ -96,7 +96,7 @@ internal fun NotificationPreview() {
 	Scaled {
 		val margin = with(LocalDensity.current) { MARGIN.roundToPx() }
 		val gap = with(LocalDensity.current) { GAP.roundToPx() }
-		val line = margin + ((1f - height) * (screen.height - margin * 2)).roundToInt()
+		val line = margin + ((1f - height) * (screen.height - (margin * 2))).roundToInt()
 		val room =
 			if (rising) line.coerceAtLeast(margin + older) - margin
 			else screen.height - margin - line.coerceAtMost(screen.height - margin - older)
@@ -104,7 +104,7 @@ internal fun NotificationPreview() {
 			when {
 				limit == NotificationLimit.Count -> max
 				older == 0 || newest == 0 -> PREVIEW_COUNT
-				else -> (1 + (room - newest) / (older + gap)).coerceAtLeast(1)
+				else -> (1 + ((room - newest) / (older + gap))).coerceAtLeast(1)
 			}
 		val newestAt =
 			if (rising) 0
@@ -166,7 +166,7 @@ private fun Stack(notifications: List<Notification>) {
 	val gap = with(density) { GAP.roundToPx() }
 	val live = notifications.filterNot { it.dismissed }
 	val oldest = live.firstOrNull()?.let { heights[it] } ?: 0
-	val line = margin + ((1f - Look.notificationHeight) * (screen.height - margin * 2)).roundToInt()
+	val line = margin + ((1f - Look.notificationHeight) * (screen.height - (margin * 2))).roundToInt()
 	val rising = Look.notificationFlow == NotificationFlow.Up
 	val anchor =
 		if (rising) line.coerceAtLeast(margin + oldest)
@@ -229,7 +229,7 @@ private fun Toast(
 	val screen = LocalWindowInfo.current.containerSize
 	val margin = with(density) { MARGIN.toPx() }
 	val width = with(density) { Look.notificationWidth.toPx() }
-	val reach = width + margin * 4
+	val reach = width + (margin * 4)
 	val leftSide = Look.notificationSide == NotificationSide.Left
 	val entered = remember { Animatable(0f) }
 	val placed = remember { Animatable(top.toFloat()) }

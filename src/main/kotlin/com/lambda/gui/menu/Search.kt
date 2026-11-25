@@ -140,14 +140,14 @@ internal object Search {
 	private fun score(query: String, target: String, lenient: Boolean): Int {
 		if (target.isEmpty()) return 0
 		if (target == query) return 200
-		if (target.startsWith(query)) return 100 + query.length * 50 / target.length
-		if (target.contains(query)) return 50 + query.length * 40 / target.length
+		if (target.startsWith(query)) return 100 + (query.length * 50 / target.length)
+		if (target.contains(query)) return 50 + (query.length * 40 / target.length)
 
 		val distance = query.levenshteinDistance(target)
 		val allowed =
 			if (lenient) (query.length / 2).coerceIn(2, 6)
 			else (query.length / 3).coerceIn(1, 4)
-		return if (distance <= allowed) (50 - distance * 10).coerceAtLeast(1)
+		return if (distance <= allowed) (50 - (distance * 10)).coerceAtLeast(1)
 		else 0
 	}
 }

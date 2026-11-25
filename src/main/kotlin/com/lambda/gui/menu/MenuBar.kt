@@ -148,7 +148,7 @@ internal fun MenuBar(modifier: Modifier = Modifier) {
 				.onSizeChanged { search = it }
 				.offset {
 					IntOffset(
-						(menus.width - (bar.width - search.width) / 2).coerceAtLeast(0),
+						(menus.width - ((bar.width - search.width) / 2)).coerceAtLeast(0),
 						0
 					)
 				}
@@ -227,7 +227,7 @@ private fun SearchField(modifier: Modifier = Modifier) {
 				}
 				!open || results.isEmpty() -> false
 				event.key == Key.DirectionDown ||
-						event.key == Key.Tab && !event.isShiftPressed -> {
+						(event.key == Key.Tab && !event.isShiftPressed) -> {
 					marked = (marked + 1).mod(results.size)
 					true
 				}

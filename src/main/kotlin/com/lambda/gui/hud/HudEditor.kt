@@ -139,7 +139,7 @@ internal class HudEditorState(snapping: State<Boolean>) {
 		configuring = config
 		if (config != null) panelPosition = position
 			?: Offset(
-				screen.width / 2 - 120 * density.density,
+				(screen.width / 2) - (120 * density.density),
 				screen.height * 0.15f
 			)
 	}
