@@ -30,18 +30,18 @@ import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(InactivityFpsLimiter.class)
 public class InactivityFpsLimiterMixin {
-    @Shadow
-    @Final
-    private MinecraftClient client;
+	@Shadow
+	@Final
+	private MinecraftClient client;
 
-    @ModifyReturnValue(method = "getLimitReason", at = @At("RETURN"))
-    private InactivityFpsLimiter.LimitReason liftMenuLimit(InactivityFpsLimiter.LimitReason reason) {
-        boolean shown = client.currentScreen == GuiScreen.INSTANCE
-                || LambdaGui.INSTANCE.getLeaving()
-                || !NotificationHandler.INSTANCE.getNotifications().isEmpty();
-        if (reason == InactivityFpsLimiter.LimitReason.OUT_OF_LEVEL_MENU && shown) {
-            return InactivityFpsLimiter.LimitReason.NONE;
-        }
-        return reason;
-    }
+	@ModifyReturnValue(method = "getLimitReason", at = @At("RETURN"))
+	private InactivityFpsLimiter.LimitReason liftMenuLimit(InactivityFpsLimiter.LimitReason reason) {
+		boolean shown = client.currentScreen == GuiScreen.INSTANCE
+				|| LambdaGui.INSTANCE.getLeaving()
+				|| !NotificationHandler.INSTANCE.getNotifications().isEmpty();
+		if (reason == InactivityFpsLimiter.LimitReason.OUT_OF_LEVEL_MENU && shown) {
+			return InactivityFpsLimiter.LimitReason.NONE;
+		}
+		return reason;
+	}
 }

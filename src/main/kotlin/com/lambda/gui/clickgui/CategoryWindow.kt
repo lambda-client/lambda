@@ -89,244 +89,254 @@ import kotlin.math.absoluteValue
 private val REACH = 40.dp
 private const val IN_ROW = 1.5f
 private val EMBOSS =
-    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.05f), Color.Transparent))
+	Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.05f), Color.Transparent))
 
 @Composable
 internal fun CategoryWindow(
-    tag: ModuleTag,
-    defaultPosition: DpOffset,
-    bounds: MutableMap<ModuleTag, Rect>,
-    snapping: Boolean,
-    onDrop: (Snap.Result?) -> Unit,
-    settings: OpenSettings,
-    inline: Boolean,
-    onFocus: () -> Unit,
-    modifier: Modifier = Modifier,
+	tag: ModuleTag,
+	defaultPosition: DpOffset,
+	bounds: MutableMap<ModuleTag, Rect>,
+	snapping: Boolean,
+	onDrop: (Snap.Result?) -> Unit,
+	settings: OpenSettings,
+	inline: Boolean,
+	onFocus: () -> Unit,
+	modifier: Modifier = Modifier,
 ) {
-    val modules by
-        observe {
-            ModuleRegistry.modules.filter { it.tag == tag && it.showInClickGui.value }
-        }
-    if (modules.isEmpty()) return
+	val modules by
+		observe {
+			ModuleRegistry.modules.filter { it.tag == tag && it.showInClickGui.value }
+		}
+	if (modules.isEmpty()) return
 
-    val colors = LambdaTheme.colors
-    val density = LocalDensity.current
-    val screen = LocalWindowInfo.current.containerSize.toSize()
-    val screenHeight = with(density) { screen.height.toDp() }
-    val area =
-        Rect(
-            0f,
-            with(density) { MENU_BAR_HEIGHT.toPx() },
-            screen.width,
-            screen.height
-        )
+	val colors = LambdaTheme.colors
+	val density = LocalDensity.current
+	val screen = LocalWindowInfo.current.containerSize.toSize()
+	val screenHeight = with(density) { screen.height.toDp() }
+	val area =
+		Rect(
+			0f,
+			with(density) { MENU_BAR_HEIGHT.toPx() },
+			screen.width,
+			screen.height
+		)
 
-    val placement by observe { GuiConfig.windows[tag.name] }
-    val position = placement?.takeUnless { it.inRow }?.let { DpOffset(it.x.dp, it.y.dp) }
-    val collapsed = placement?.collapsed ?: false
+	val placement by observe { GuiConfig.windows[tag.name] }
+	val position = placement?.takeUnless { it.inRow }?.let { DpOffset(it.x.dp, it.y.dp) }
+	val collapsed = placement?.collapsed ?: false
 
-    var dragged by remember { mutableStateOf<Offset?>(null) }
-    val drop =
-        dragged?.let { corner ->
-            val window = Rect(corner, bounds[tag]?.size ?: Size.Zero)
-            if (snapping) {
-                Snap.snap(
-                    window,
-                    bounds.filterKeys { it != tag }.values,
-                    area,
-                    density,
-                    with(density) { Look.windowGap.toPx() }
-                )
-            }
-            else Snap.free(window, area)
-        }
-    if (drop != null) SideEffect { onDrop(drop) }
-    val shownPosition =
-        drop?.let {
-            with(density) { DpOffset(it.position.x.toDp(), it.position.y.toDp()) }
-        } ?: (position ?: defaultPosition).let { at ->
-            val screenWidth = with(density) { screen.width.toDp() }
-            DpOffset(
-                at.x.coerceIn(
-                    0.dp,
-                    (screenWidth - Look.windowWidth).coerceAtLeast(0.dp)
-                ),
-                at.y.coerceIn(
-                    MENU_BAR_HEIGHT,
-                    (screenHeight - REACH).coerceAtLeast(MENU_BAR_HEIGHT)
-                ),
-            )
-        }
-    val currentPosition by rememberUpdatedState(shownPosition)
-    DisposableEffect(tag) {
-        onDispose { bounds -= tag }
-    }
+	var dragged by remember { mutableStateOf<Offset?>(null) }
+	val drop =
+		dragged?.let { corner ->
+			val window = Rect(corner, bounds[tag]?.size ?: Size.Zero)
+			if (snapping) {
+				Snap.snap(
+					window,
+					bounds.filterKeys { it != tag }.values,
+					area,
+					density,
+					with(density) { Look.windowGap.toPx() }
+				)
+			}
+			else Snap.free(window, area)
+		}
+	if (drop != null) SideEffect { onDrop(drop) }
+	val shownPosition =
+		drop?.let {
+			with(density) { DpOffset(it.position.x.toDp(), it.position.y.toDp()) }
+		} ?: (position ?: defaultPosition).let { at ->
+			val screenWidth = with(density) { screen.width.toDp() }
+			DpOffset(
+				at.x.coerceIn(
+					0.dp,
+					(screenWidth - Look.windowWidth).coerceAtLeast(0.dp)
+				),
+				at.y.coerceIn(
+					MENU_BAR_HEIGHT,
+					(screenHeight - REACH).coerceAtLeast(MENU_BAR_HEIGHT)
+				),
+			)
+		}
+	val currentPosition by rememberUpdatedState(shownPosition)
+	DisposableEffect(tag) {
+		onDispose { bounds -= tag }
+	}
 
-    fun place(at: DpOffset, collapsed: Boolean) {
-        val inRow = (at.x - defaultPosition.x).value.absoluteValue < IN_ROW &&
-                (at.y - defaultPosition.y).value.absoluteValue < IN_ROW
-        GuiConfig.windows += tag.name to
-            if (inRow) GuiConfig.WindowPlacement.inRow(collapsed)
-            else GuiConfig.WindowPlacement(at.x.value, at.y.value, collapsed)
-    }
-    LaunchedEffect(placement) {
-        position?.let { place(it, collapsed) }
-    }
+	fun place(at: DpOffset, collapsed: Boolean) {
+		val inRow = (at.x - defaultPosition.x).value.absoluteValue < IN_ROW &&
+				(at.y - defaultPosition.y).value.absoluteValue < IN_ROW
+		GuiConfig.windows += tag.name to
+			if (inRow) GuiConfig.WindowPlacement.inRow(collapsed)
+			else GuiConfig.WindowPlacement(at.x.value, at.y.value, collapsed)
+	}
+	LaunchedEffect(placement) {
+		position?.let { place(it, collapsed) }
+	}
 
-    Column(
-        modifier = modifier
-            .offset(shownPosition.x, shownPosition.y)
-            .width(Look.windowWidth)
-            .onGloballyPositioned { bounds[tag] = Rect(it.positionInRoot(), it.size.toSize()) }
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        if (event.type == PointerEventType.Press) onFocus()
-                    }
-                }
-            }
-            .window(colors.surface, colors.border, RoundedCornerShape(Look.windowRounding))
-    ) {
-        Text(
-            text = tag.name,
-            color = colors.onHeader,
-            style = Type.title.shadowed(),
-            maxLines = 1,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.header)
-                .mouseDraggable(
-                    onDragStart = { dragged = bounds[tag]?.topLeft },
-                    onDragEnd = {
-                        if (dragged != null) place(currentPosition, collapsed)
-                        dragged = null
-                        onDrop(null)
-                    },
-                ) { delta -> dragged = dragged?.plus(delta) }
-                .mouseClickable(onRightClick = {
-                    if (!collapsed) settings.close(modules)
-                    place(currentPosition, !collapsed)
-                })
-                .padding(horizontal = Look.modulePadding, vertical = 2.dp)
-        )
+	Column(
+		modifier = modifier
+			.offset(shownPosition.x, shownPosition.y)
+			.width(Look.windowWidth)
+			.onGloballyPositioned { bounds[tag] = Rect(it.positionInRoot(), it.size.toSize()) }
+			.pointerInput(Unit) {
+				awaitPointerEventScope {
+					while (true) {
+						val event = awaitPointerEvent(PointerEventPass.Initial)
+						if (event.type == PointerEventType.Press) onFocus()
+					}
+				}
+			}
+			.window(colors.surface, colors.border, RoundedCornerShape(Look.windowRounding))
+	) {
+		Text(
+			text = tag.name,
+			color = colors.onHeader,
+			style = Type.title.shadowed(),
+			maxLines = 1,
+			modifier = Modifier
+				.fillMaxWidth()
+				.background(colors.header)
+				.mouseDraggable(
+					onDragStart = { dragged = bounds[tag]?.topLeft },
+					onDragEnd = {
+						if (dragged != null) place(currentPosition, collapsed)
+						dragged = null
+						onDrop(null)
+					},
+				) { delta -> dragged = dragged?.plus(delta) }
+				.mouseClickable(onRightClick = {
+					if (!collapsed) settings.close(modules)
+					place(currentPosition, !collapsed)
+				})
+				.padding(horizontal = Look.modulePadding, vertical = 2.dp)
+		)
 
-        val shown = LocalShown.current
-        val folding = LambdaGui.foldsClosed
-        val unfolded =
-            remember(shown, LambdaGui.restarts) {
-                MutableTransitionState(
-                    (folding || !LambdaGui.unfoldsOpen) && shown && !collapsed
-                )
-            }
-        unfolded.targetState = shown && !folding && !collapsed
-        val settled = unfolded.isIdle && unfolded.currentState
-        val hanging = modules.mapNotNull(settings::panelOf)
-        SideEffect { hanging.forEach { it.settled = settled } }
-        AnimatedVisibility(
-            visibleState = unfolded,
-            enter = expandVertically(Motion.windows),
-            exit =
-                shrinkVertically(
-                    if (folding) Motion.guiFold
-                    else Motion.windows
-                ),
-        ) {
-            ScrollColumn(
-                Modifier.heightIn(
-                    max = (screenHeight - shownPosition.y - 24.dp).coerceAtLeast(48.dp)
-                )
-            ) {
-                modules.forEach { module ->
-                    ModuleRow(
-                        module = module,
-                        isEdited = settings.isOpen(module),
-                        isLast = module === modules.last(),
-                        pressedIn = !inline,
-                        panel = settings.panelOf(module).takeUnless { inline },
-                        onEdit = { settings.toggle(module) },
-                    )
-                    if (inline) {
-                        InlineSettings(
-                            settings.stateOf(module),
-                            open = settings.isOpen(module)
-                        )
-                    }
-                }
-            }
-        }
-    }
+		val shown = LocalShown.current
+		val folding = LambdaGui.foldsClosed
+		val unfolded =
+			remember(shown, LambdaGui.restarts) {
+				MutableTransitionState(
+					(folding || !LambdaGui.unfoldsOpen) && shown && !collapsed
+				)
+			}
+		unfolded.targetState = shown && !folding && !collapsed
+		val settled = unfolded.isIdle && unfolded.currentState
+		val hanging = modules.mapNotNull(settings::panelOf)
+		val unfolding = unfolded.targetState
+		SideEffect {
+			hanging.forEach {
+				it.unfolding = unfolding
+				it.settled = settled
+			}
+		}
+		AnimatedVisibility(
+			visibleState = unfolded,
+			enter = expandVertically(Motion.windows),
+			exit =
+				shrinkVertically(
+					if (folding) Motion.guiFold
+					else Motion.windows
+				),
+		) {
+			ScrollColumn(
+				Modifier.heightIn(
+					max = (screenHeight - shownPosition.y - 24.dp).coerceAtLeast(48.dp)
+				)
+			) {
+				modules.forEach { module ->
+					ModuleRow(
+						module = module,
+						isEdited = settings.isOpen(module),
+						isLast = module === modules.last(),
+						pressedIn = !inline,
+						panel = settings.panelOf(module).takeUnless { inline },
+						onEdit = { settings.toggle(module) },
+					)
+					if (inline) {
+						InlineSettings(
+							settings.stateOf(module),
+							open = settings.isOpen(module)
+						)
+					}
+				}
+			}
+		}
+	}
 }
 
 @Composable
 private fun ModuleRow(
-    module: Module,
-    isEdited: Boolean,
-    isLast: Boolean,
-    pressedIn: Boolean,
-    panel: SettingsPanelState?,
-    onEdit: () -> Unit
+	module: Module,
+	isEdited: Boolean,
+	isLast: Boolean,
+	pressedIn: Boolean,
+	panel: SettingsPanelState?,
+	onEdit: () -> Unit
 ) {
-    val colors = LambdaTheme.colors
-    val end =
-        if (isLast && Look.outlines) Look.outlineWidth
-        else 0.dp
-    val enabled by observe { module.isEnabled }
-    val fill by
-        animateColorAsState(
-            if (enabled) colors.moduleEnabled else Color.Transparent,
-            spring()
-        )
-    val pressed by
-        animateColorAsState(
-            if (isEdited && pressedIn) colors.inset.copy(alpha = colors.inset.alpha / 2)
-            else Color.Transparent,
-            spring()
-        )
+	val colors = LambdaTheme.colors
+	val end =
+		if (isLast && Look.outlines) Look.outlineWidth
+		else 0.dp
+	val enabled by observe { module.isEnabled }
+	val fill by
+		animateColorAsState(
+			if (enabled) colors.moduleEnabled else Color.Transparent,
+			spring()
+		)
+	val pressed by
+		animateColorAsState(
+			if (isEdited && pressedIn) colors.inset.copy(alpha = colors.inset.alpha / 2)
+			else Color.Transparent,
+			spring()
+		)
 
-    val revealed = Reveal.module === module && Reveal.setting == null
-    val lit by
-        animateColorAsState(
-            if (revealed) colors.onSurface.copy(alpha = 0.4f) else Color.Transparent,
-            tween(250)
-        )
-    val intoView = remember { BringIntoViewRequester() }
-    LaunchedEffect(revealed) {
-        if (revealed) intoView.bringIntoView()
-    }
+	val revealed = Reveal.module === module && Reveal.setting == null
+	val lit by
+		animateColorAsState(
+			if (revealed) colors.onSurface.copy(alpha = 0.4f) else Color.Transparent,
+			tween(250)
+		)
+	val intoView = remember { BringIntoViewRequester() }
+	LaunchedEffect(revealed) {
+		if (revealed) intoView.bringIntoView()
+	}
+	DisposableEffect(panel) {
+		onDispose { panel?.placed = false }
+	}
 
-    Tooltip(module.description, Modifier.fillMaxWidth()) {
-        Box(
-            contentAlignment = Centered.START,
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(
-                    if (panel == null) Modifier
-                    else Modifier.onGloballyPositioned {
-                        panel.row = Rect(it.positionInRoot(), it.size.toSize())
-                    }
-                )
-                .bringIntoViewRequester(intoView)
-                .mouseClickable(onRightClick = onEdit) {
-                    if (module.alwaysEnabled) onEdit() else module.toggle()
-                }
-                .background(fill)
-                .background(pressed)
-                .background(lit)
-                .hoverHighlight(colors.raised)
-                .then(if (Look.emboss) Modifier.background(EMBOSS) else Modifier)
-                .heightIn(min = Look.rowHeight + end)
-                .padding(start = Look.modulePadding, end = Look.modulePadding, bottom = end)
-        ) {
-            SlidingText(
-                text = module.name,
-                color = when {
-                    enabled -> colors.onModuleEnabled
-                    isEdited -> colors.onSurface
-                    else -> colors.onSurfaceVariant
-                },
-                style = Type.body.shadowed(),
-            )
-        }
-    }
+	Tooltip(module.description, Modifier.fillMaxWidth()) {
+		Box(
+			contentAlignment = Centered.START,
+			modifier = Modifier
+				.fillMaxWidth()
+				.then(
+					if (panel == null) Modifier
+					else Modifier.onGloballyPositioned {
+						panel.row = Rect(it.positionInRoot(), it.size.toSize())
+						panel.placed = true
+					}
+				)
+				.bringIntoViewRequester(intoView)
+				.mouseClickable(onRightClick = onEdit) {
+					if (module.alwaysEnabled) onEdit() else module.toggle()
+				}
+				.background(fill)
+				.background(pressed)
+				.background(lit)
+				.hoverHighlight(colors.raised)
+				.then(if (Look.emboss) Modifier.background(EMBOSS) else Modifier)
+				.heightIn(min = Look.rowHeight + end)
+				.padding(start = Look.modulePadding, end = Look.modulePadding, bottom = end)
+		) {
+			SlidingText(
+				text = module.name,
+				color = when {
+					enabled -> colors.onModuleEnabled
+					isEdited -> colors.onSurface
+					else -> colors.onSurfaceVariant
+				},
+				style = Type.body.shadowed(),
+			)
+		}
+	}
 }

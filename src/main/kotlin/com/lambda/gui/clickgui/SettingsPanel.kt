@@ -99,209 +99,211 @@ private val WIDTH_CHANGE = spring<Float>(stiffness = Spring.StiffnessMedium)
 
 @Composable
 internal fun SettingsPanel(
-    panel: SettingsPanelState,
-    open: Boolean,
-    windows: Map<ModuleTag, Rect>,
-    onClosed: () -> Unit,
-    modifier: Modifier = Modifier,
+	panel: SettingsPanelState,
+	open: Boolean,
+	windows: Map<ModuleTag, Rect>,
+	onClosed: () -> Unit,
+	modifier: Modifier = Modifier,
 ) {
-    val row = panel.row
-    val visibility = remember(LocalShown.current) { MutableTransitionState(false) }
-    val wanted = open && panel.settled && !row.isEmpty
-    val popups = remember { PopupHost() }
-    SideEffect { popups.closing = !wanted }
-    visibility.targetState = wanted
-    if (!open && visibility.isIdle && !visibility.currentState) {
-        SideEffect(onClosed)
-        return
-    }
-    if (row.isEmpty) return
+	val row = panel.row
+	val visibility = remember(LocalShown.current) { MutableTransitionState(false) }
+	val window = windows[panel.module.tag]
+	val beneath = window == null || row.top >= window.top
+	val hung = panel.placed && (panel.settled || panel.unfolding && beneath)
+	val wanted = open && hung && !row.isEmpty
+	val popups = remember { PopupHost() }
+	SideEffect { popups.closing = !wanted }
+	visibility.targetState = wanted
+	if (!open && visibility.isIdle && !visibility.currentState) {
+		SideEffect(onClosed)
+		return
+	}
+	if (row.isEmpty) return
 
-    val density = LocalDensity.current
-    val screen = LocalWindowInfo.current.containerSize
-    var size by remember { mutableStateOf(IntSize.Zero) }
-    var unfolded by remember { mutableStateOf(0) }
+	val density = LocalDensity.current
+	val screen = LocalWindowInfo.current.containerSize
+	var size by remember { mutableStateOf(IntSize.Zero) }
+	var unfolded by remember { mutableStateOf(0) }
 
-    val scroll = rememberScrollState()
-    val screenHeight = with(density) { screen.height.toDp() }
-    val barBottom = with(density) { MENU_BAR_HEIGHT.toPx() }
-    val window = windows[panel.module.tag]
-    val top =
-        (
-            if (window == null) row.top
-            else {
-                row.top.coerceIn(
-                    window.top,
-                    (window.bottom - row.height).coerceAtLeast(window.top)
-                )
-            }
-        ).coerceAtLeast(barBottom)
-    val below = with(density) { (screen.height - top).toDp() }.coerceAtLeast(MIN_HEIGHT)
-    val highest = screenHeight - MENU_BAR_HEIGHT
-    val maxHeight = (below + panel.extension).coerceAtMost(highest)
+	val scroll = rememberScrollState()
+	val screenHeight = with(density) { screen.height.toDp() }
+	val barBottom = with(density) { MENU_BAR_HEIGHT.toPx() }
+	val top =
+		(
+			if (window == null) row.top
+			else {
+				row.top.coerceIn(
+					window.top,
+					(window.bottom - row.height).coerceAtLeast(window.top)
+				)
+			}
+		).coerceAtLeast(barBottom)
+	val below = with(density) { (screen.height - top).toDp() }.coerceAtLeast(MIN_HEIGHT)
+	val highest = screenHeight - MENU_BAR_HEIGHT
+	val maxHeight = (below + panel.extension).coerceAtMost(highest)
 
-    val overlap = with(density) { 1.dp.toPx() }
-    val fitsRight = row.right - overlap + size.width <= screen.width
-    val fitsLeft = row.left + overlap - size.width >= 0
-    val flipped = !fitsRight && (fitsLeft || row.left > screen.width - row.right)
-    val lift = (top + unfolded - screen.height).coerceIn(0f, top - barBottom)
+	val overlap = with(density) { 1.dp.toPx() }
+	val fitsRight = row.right - overlap + size.width <= screen.width
+	val fitsLeft = row.left + overlap - size.width >= 0
+	val flipped = !fitsRight && (fitsLeft || row.left > screen.width - row.right)
+	val lift = (top + unfolded - screen.height).coerceIn(0f, top - barBottom)
 
-    val shape =
-        RoundedCornerShape(
-            topStart = if (flipped || lift > 0f) Look.panelRounding else 0.dp,
-            topEnd = if (!flipped || lift > 0f) Look.panelRounding else 0.dp,
-            bottomEnd = Look.panelRounding,
-            bottomStart = Look.panelRounding,
-        )
-    val seam =
-        if (flipped) Alignment.TopEnd
-        else Alignment.TopStart
+	val shape =
+		RoundedCornerShape(
+			topStart = if (flipped || lift > 0f) Look.panelRounding else 0.dp,
+			topEnd = if (!flipped || lift > 0f) Look.panelRounding else 0.dp,
+			bottomEnd = Look.panelRounding,
+			bottomStart = Look.panelRounding,
+		)
+	val seam =
+		if (flipped) Alignment.TopEnd
+		else Alignment.TopStart
 
-    Box(
-        modifier
-            .offset {
-                val room = (screen.width - size.width).coerceAtLeast(0)
-                IntOffset(
-                    if (flipped) (row.left + overlap).roundToInt().coerceIn(screen.width - room, screen.width)
-                    else (row.right - overlap).roundToInt().coerceIn(0, room),
-                    (top - lift).roundToInt()
-                )
-            }
-            .size(0.dp)
-            .wrapContentSize(seam, unbounded = true)
-    ) {
-        AnimatedVisibility(
-            visibleState = visibility,
-            modifier = Modifier
-                .onSizeChanged { unfolded = it.height }
-                .onGloballyPositioned { popups.place(it.boundsInWindow()) }
-                .dropShadow(RoundedCornerShape(Look.panelRounding))
-                .window(LambdaTheme.colors.panel, LambdaTheme.colors.border, shape),
-            enter = expandIn(Motion.panels, seam),
-            exit = shrinkOut(Motion.panels, seam),
-        ) {
-            Box(
-                Modifier
-                    .widthIn(MIN_PANEL_WIDTH, Look.settingsWidth)
-                    .heightIn(max = maxHeight)
-                    .widthOfContent()
-                    .onSizeChanged { size = it }
-            ) {
-                CompositionLocalProvider(LocalPopupHost provides popups) {
-                    Column(Modifier.padding(Look.panelPadding)) {
-                        ModuleSettings(
-                            panel.module,
-                            panel.page,
-                            { panel.page = it },
-                            scroll
-                        )
-                    }
-                }
-                if (scroll.maxValue > 0 || lift > 0f) {
-                    Grip(
-                        onDragStart = {
-                            panel.extension = panel.extension.coerceAtMost(with(density) { lift.toDp() })
-                        },
-                        onDrag = { up ->
-                            val needed = panel.extension + with(density) { scroll.maxValue.toDp() }
-                            panel.extension =
-                                (panel.extension + up).coerceIn(
-                                    0.dp,
-                                    needed
-                                        .coerceAtMost(highest - below)
-                                        .coerceAtLeast(0.dp)
-                                )
-                        },
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
-                }
-            }
-        }
-    }
+	Box(
+		modifier
+			.offset {
+				val room = (screen.width - size.width).coerceAtLeast(0)
+				IntOffset(
+					if (flipped) (row.left + overlap).roundToInt().coerceIn(screen.width - room, screen.width)
+					else (row.right - overlap).roundToInt().coerceIn(0, room),
+					(top - lift).roundToInt()
+				)
+			}
+			.size(0.dp)
+			.wrapContentSize(seam, unbounded = true)
+	) {
+		AnimatedVisibility(
+			visibleState = visibility,
+			modifier = Modifier
+				.onSizeChanged { unfolded = it.height }
+				.onGloballyPositioned { popups.place(it.boundsInWindow()) }
+				.dropShadow(RoundedCornerShape(Look.panelRounding))
+				.window(LambdaTheme.colors.panel, LambdaTheme.colors.border, shape),
+			enter = expandIn(Motion.panels, seam),
+			exit = shrinkOut(Motion.panels, seam),
+		) {
+			Box(
+				Modifier
+					.widthIn(MIN_PANEL_WIDTH, Look.settingsWidth)
+					.heightIn(max = maxHeight)
+					.widthOfContent()
+					.onSizeChanged { size = it }
+			) {
+				CompositionLocalProvider(LocalPopupHost provides popups) {
+					Column(Modifier.padding(Look.panelPadding)) {
+						ModuleSettings(
+							panel.module,
+							panel.page,
+							{ panel.page = it },
+							scroll
+						)
+					}
+				}
+				if (scroll.maxValue > 0 || lift > 0f) {
+					Grip(
+						onDragStart = {
+							panel.extension = panel.extension.coerceAtMost(with(density) { lift.toDp() })
+						},
+						onDrag = { up ->
+							val needed = panel.extension + with(density) { scroll.maxValue.toDp() }
+							panel.extension =
+								(panel.extension + up).coerceIn(
+									0.dp,
+									needed
+										.coerceAtMost(highest - below)
+										.coerceAtLeast(0.dp)
+								)
+						},
+						modifier = Modifier.align(Alignment.TopCenter)
+					)
+				}
+			}
+		}
+	}
 }
 
 @Composable
 internal fun InlineSettings(panel: SettingsPanelState, open: Boolean) {
-    val intoView = remember { BringIntoViewRequester() }
-    LaunchedEffect(open) {
-        if (open) {
-            awaitFrames(SETTLE_MILLIS)
-            intoView.bringIntoView()
-        }
-    }
-    Expandable(open) {
-        val colors = LambdaTheme.colors
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .bringIntoViewRequester(intoView)
-                .background(colors.panel)
-                .background(colors.inset.copy(alpha = colors.inset.alpha / 4))
-                .drawWithCache {
-                    val depth = INSET_SHADOW.toPx().coerceAtMost(size.height / 2)
-                    val dark = colors.inset.copy(alpha = colors.inset.alpha / 2)
-                    val top = Brush.verticalGradient(listOf(dark, Color.Transparent), 0f, depth)
-                    val bottom =
-                        Brush.verticalGradient(
-                            listOf(Color.Transparent, dark),
-                            size.height - depth,
-                            size.height
-                        )
-                    onDrawBehind {
-                        drawRect(top, size = Size(size.width, depth))
-                        drawRect(
-                            bottom,
-                            Offset(0f, size.height - depth),
-                            Size(size.width, depth)
-                        )
-                    }
-                }
-                .padding(Look.panelPadding / 2)
-        ) { ModuleSettings(panel.module, panel.page, { panel.page = it }, scroll = null) }
-    }
+	val intoView = remember { BringIntoViewRequester() }
+	LaunchedEffect(open) {
+		if (open) {
+			awaitFrames(SETTLE_MILLIS)
+			intoView.bringIntoView()
+		}
+	}
+	Expandable(open) {
+		val colors = LambdaTheme.colors
+		Column(
+			Modifier
+				.fillMaxWidth()
+				.bringIntoViewRequester(intoView)
+				.background(colors.panel)
+				.background(colors.inset.copy(alpha = colors.inset.alpha / 4))
+				.drawWithCache {
+					val depth = INSET_SHADOW.toPx().coerceAtMost(size.height / 2)
+					val dark = colors.inset.copy(alpha = colors.inset.alpha / 2)
+					val top = Brush.verticalGradient(listOf(dark, Color.Transparent), 0f, depth)
+					val bottom =
+						Brush.verticalGradient(
+							listOf(Color.Transparent, dark),
+							size.height - depth,
+							size.height
+						)
+					onDrawBehind {
+						drawRect(top, size = Size(size.width, depth))
+						drawRect(
+							bottom,
+							Offset(0f, size.height - depth),
+							Size(size.width, depth)
+						)
+					}
+				}
+				.padding(Look.panelPadding / 2)
+		) { ModuleSettings(panel.module, panel.page, { panel.page = it }, scroll = null) }
+	}
 }
 
 internal fun Modifier.widthOfContent(): Modifier =
-    composed {
-        val scope = rememberCoroutineScope()
-        var width by remember { mutableStateOf<Animatable<Float, AnimationVector1D>?>(null) }
-        layout { measurable, constraints ->
-            val wanted =
-                measurable.maxIntrinsicWidth(constraints.maxHeight)
-                    .coerceIn(constraints.minWidth, constraints.maxWidth).toFloat()
-            val current = width ?: Animatable(wanted).also { width = it }
-            if (current.targetValue != wanted) {
-                scope.launch { current.animateTo(wanted, WIDTH_CHANGE) }
-            }
+	composed {
+		val scope = rememberCoroutineScope()
+		var width by remember { mutableStateOf<Animatable<Float, AnimationVector1D>?>(null) }
+		layout { measurable, constraints ->
+			val wanted =
+				measurable.maxIntrinsicWidth(constraints.maxHeight)
+					.coerceIn(constraints.minWidth, constraints.maxWidth).toFloat()
+			val current = width ?: Animatable(wanted).also { width = it }
+			if (current.targetValue != wanted) {
+				scope.launch { current.animateTo(wanted, WIDTH_CHANGE) }
+			}
 
-            val placeable =
-                measurable.measure(
-                    Constraints.fixedWidth(current.value.roundToInt()).copy(
-                        maxHeight = constraints.maxHeight
-                    )
-                )
-            layout(placeable.width, placeable.height) { placeable.place(0, 0) }
-        }
-    }
+			val placeable =
+				measurable.measure(
+					Constraints.fixedWidth(current.value.roundToInt()).copy(
+						maxHeight = constraints.maxHeight
+					)
+				)
+			layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+		}
+	}
 
 @Composable
 private fun Grip(
-    onDragStart: () -> Unit,
-    onDrag: (up: Dp) -> Unit,
-    modifier: Modifier = Modifier
+	onDragStart: () -> Unit,
+	onDrag: (up: Dp) -> Unit,
+	modifier: Modifier = Modifier
 ) {
-    val density = LocalDensity.current
-    val color = LambdaTheme.colors.onSurfaceVariant
-    Box(
-        contentAlignment = Centered.BOTH,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(Look.panelPadding.coerceAtLeast(MIN_GRIP_HEIGHT))
-            .pointerHoverIcon(ResizeVerticalIcon)
-            .mouseDraggable(onDragStart = onDragStart) { delta ->
-                onDrag(with(density) { -delta.y.toDp() })
-            }
-    ) {
-        Spacer(Modifier.size(16.dp, 1.dp).background(color, RoundedCornerShape(50)))
-    }
+	val density = LocalDensity.current
+	val color = LambdaTheme.colors.onSurfaceVariant
+	Box(
+		contentAlignment = Centered.BOTH,
+		modifier = modifier
+			.fillMaxWidth()
+			.height(Look.panelPadding.coerceAtLeast(MIN_GRIP_HEIGHT))
+			.pointerHoverIcon(ResizeVerticalIcon)
+			.mouseDraggable(onDragStart = onDragStart) { delta ->
+				onDrag(with(density) { -delta.y.toDp() })
+			}
+	) {
+		Spacer(Modifier.size(16.dp, 1.dp).background(color, RoundedCornerShape(50)))
+	}
 }

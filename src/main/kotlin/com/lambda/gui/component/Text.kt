@@ -38,41 +38,41 @@ private val LocalTextShadow = compositionLocalOf<Shadow?> { null }
 
 @Composable
 fun Text(
-    text: String,
-    modifier: Modifier = Modifier,
-    color: Color = LocalContentColor.current,
-    style: TextStyle = Type.body,
-    maxLines: Int = Int.MAX_VALUE,
-    softWrap: Boolean = true,
+	text: String,
+	modifier: Modifier = Modifier,
+	color: Color = LocalContentColor.current,
+	style: TextStyle = Type.body,
+	maxLines: Int = Int.MAX_VALUE,
+	softWrap: Boolean = true,
 ) {
-    if (maxLines == 1) return SlidingText(text, modifier, color, style)
-    BasicText(
-        text = text,
-        modifier = modifier,
-        style = style.copy(color = color, shadow = style.shadow ?: LocalTextShadow.current),
-        maxLines = maxLines,
-        softWrap = softWrap,
-        overflow = if (maxLines == Int.MAX_VALUE) TextOverflow.Clip else TextOverflow.Ellipsis,
-    )
+	if (maxLines == 1) return SlidingText(text, modifier, color, style)
+	BasicText(
+		text = text,
+		modifier = modifier,
+		style = style.copy(color = color, shadow = style.shadow ?: LocalTextShadow.current),
+		maxLines = maxLines,
+		softWrap = softWrap,
+		overflow = if (maxLines == Int.MAX_VALUE) TextOverflow.Clip else TextOverflow.Ellipsis,
+	)
 }
 
 @Composable
 fun ContentColor(color: Color, content: @Composable () -> Unit) =
-    CompositionLocalProvider(LocalContentColor provides color, content = content)
+	CompositionLocalProvider(LocalContentColor provides color, content = content)
 
 @Composable
 fun SoftTextShadow(content: @Composable () -> Unit) {
-    val density = LocalDensity.current
-    val color = LambdaTheme.colors.textShadow
-    val shadow =
-        remember(density, color) {
-            with(density) { Shadow(color, Offset(0f, 0.5.dp.toPx()), blurRadius = 1.5.dp.toPx()) }
-        }
-    CompositionLocalProvider(LocalTextShadow provides shadow, content = content)
+	val density = LocalDensity.current
+	val color = LambdaTheme.colors.textShadow
+	val shadow =
+		remember(density, color) {
+			with(density) { Shadow(color, Offset(0f, 0.5.dp.toPx()), blurRadius = 1.5.dp.toPx()) }
+		}
+	CompositionLocalProvider(LocalTextShadow provides shadow, content = content)
 }
 
 @Composable
 fun TextStyle.shadowed(color: Color = LambdaTheme.colors.textShadow): TextStyle {
-    val offset = with(LocalDensity.current) { 1.dp.toPx() }
-    return copy(shadow = Shadow(color, Offset(offset, offset)))
+	val offset = with(LocalDensity.current) { 1.dp.toPx() }
+	return copy(shadow = Shadow(color, Offset(offset, offset)))
 }

@@ -49,7 +49,7 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
 
 plugins {
     kotlin("jvm") version "2.3.21"
-    kotlin("plugin.compose") version "2.3.21"
+	kotlin("plugin.compose") version "2.3.21"
     id("org.jetbrains.dokka") version "2.1.0"
     id("fabric-loom") version "1.17-SNAPSHOT"
     id("com.gradleup.shadow") version "9.3.0"
@@ -76,9 +76,9 @@ configurations.all {
         if (requested.group == "org.lwjgl") {
             useVersion(lwjglVersion)
         }
-        if (requested.group == "org.jetbrains.skiko") {
-            useVersion(skikoVersion)
-        }
+		if (requested.group == "org.jetbrains.skiko") {
+			useVersion(skikoVersion)
+		}
     }
 }
 
@@ -88,7 +88,7 @@ repositories {
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
     maven("https://api.modrinth.com/maven")
-    google()
+	google()
     mavenCentral()
 
     // Allow the use of local libraries
@@ -178,18 +178,18 @@ dependencies {
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
 
-    listOf("runtime:runtime", "ui:ui", "foundation:foundation").forEach { module ->
-        shadowLib("org.jetbrains.compose.$module-desktop:$composeVersion") {
-            exclude(group = "org.jetbrains.kotlin")
-            exclude(group = "org.jetbrains.kotlinx")
-        }
-    }
-    skikoPlatforms.forEach { platform ->
-        shadowLib("org.jetbrains.skiko:skiko-awt-runtime-$platform:$skikoVersion") {
-            exclude(group = "org.jetbrains.kotlin")
-            exclude(group = "org.jetbrains.kotlinx")
-        }
-    }
+	listOf("runtime:runtime", "ui:ui", "foundation:foundation").forEach { module ->
+		shadowLib("org.jetbrains.compose.$module-desktop:$composeVersion") {
+			exclude(group = "org.jetbrains.kotlin")
+			exclude(group = "org.jetbrains.kotlinx")
+		}
+	}
+	skikoPlatforms.forEach { platform ->
+		shadowLib("org.jetbrains.skiko:skiko-awt-runtime-$platform:$skikoVersion") {
+			exclude(group = "org.jetbrains.kotlin")
+			exclude(group = "org.jetbrains.kotlinx")
+		}
+	}
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")

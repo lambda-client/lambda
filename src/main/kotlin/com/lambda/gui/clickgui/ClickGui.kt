@@ -69,146 +69,146 @@ internal val CLICK_GUI_CATEGORIES = ModuleTag.defaults - ModuleTag.HUD
 private class RowLayout(var row: Triple<Dp, Dp, Dp>, var shown: Boolean = false)
 
 internal sealed interface ClickGuiDialog {
-    data object About : ClickGuiDialog
-    data object NewAutomationConfig : ClickGuiDialog
-    data class Settings(val config: Config) : ClickGuiDialog
+	data object About : ClickGuiDialog
+	data object NewAutomationConfig : ClickGuiDialog
+	data class Settings(val config: Config) : ClickGuiDialog
 }
 
 internal object ClickGuiState {
-    var dialog: ClickGuiDialog? by mutableStateOf(null)
-    var developerMode by mutableStateOf(false)
-    var focusSearch by mutableStateOf(false)
+	var dialog: ClickGuiDialog? by mutableStateOf(null)
+	var developerMode by mutableStateOf(false)
+	var focusSearch by mutableStateOf(false)
 }
 
 @Composable
 internal fun ClickGui() {
-    val density = LocalDensity.current
-    val screen = LocalWindowInfo.current.containerSize
-    val developerMode = ClickGuiState.developerMode
-    val tags by observe {
-        CLICK_GUI_CATEGORIES.filter(ModuleTag::isTagShown) +
-                listOfNotNull(ModuleTag.DEBUG.takeIf { developerMode })
-    }
+	val density = LocalDensity.current
+	val screen = LocalWindowInfo.current.containerSize
+	val developerMode = ClickGuiState.developerMode
+	val tags by observe {
+		CLICK_GUI_CATEGORIES.filter(ModuleTag::isTagShown) +
+				listOfNotNull(ModuleTag.DEBUG.takeIf { developerMode })
+	}
 
-    val settings = remember { OpenSettings() }
-    val inline by observe { GuiConfig.inlineSettings }
+	val settings = remember { OpenSettings() }
+	val inline by observe { GuiConfig.inlineSettings }
 
-    val revealedModule = Reveal.module
-    val revealedSetting = Reveal.setting
-    LaunchedEffect(revealedModule, revealedSetting) {
-        if (
-            revealedModule != null &&
-            revealedModule !is HudModule &&
-            revealedSetting != null
-        ) {
-            settings.open(revealedModule)
-        }
-    }
+	val revealedModule = Reveal.module
+	val revealedSetting = Reveal.setting
+	LaunchedEffect(revealedModule, revealedSetting) {
+		if (
+			revealedModule != null &&
+			revealedModule !is HudModule &&
+			revealedSetting != null
+		) {
+			settings.open(revealedModule)
+		}
+	}
 
-    val shown = LocalShown.current
-    LaunchedEffect(shown) {
-        if (!shown && !GuiConfig.keepSettingsOpen) settings.forget()
-    }
+	val shown = LocalShown.current
+	LaunchedEffect(shown) {
+		if (!shown && !GuiConfig.keepSettingsOpen) settings.forget()
+	}
 
-    val row = Triple(Look.windowWidth, Look.windowGap, Look.windowTop)
-    val laidOut = remember { RowLayout(row) }
-    SideEffect {
-        if (row != laidOut.row && shown && laidOut.shown) {
-            GuiConfig.windows =
-                GuiConfig.windows.mapValues {
-                    GuiConfig.WindowPlacement.inRow(it.value.collapsed)
-                }
-        }
-        laidOut.row = row
-        laidOut.shown = shown
-    }
+	val row = Triple(Look.windowWidth, Look.windowGap, Look.windowTop)
+	val laidOut = remember { RowLayout(row) }
+	SideEffect {
+		if (row != laidOut.row && shown && laidOut.shown) {
+			GuiConfig.windows =
+				GuiConfig.windows.mapValues {
+					GuiConfig.WindowPlacement.inRow(it.value.collapsed)
+				}
+		}
+		laidOut.row = row
+		laidOut.shown = shown
+	}
 
-    val stacking = remember { mutableStateListOf<ModuleTag>() }
-    val bounds = remember { mutableStateMapOf<ModuleTag, Rect>() }
-    val snapping by observe { Snap.isActive }
-    var drop by remember { mutableStateOf<Snap.Result?>(null) }
+	val stacking = remember { mutableStateListOf<ModuleTag>() }
+	val bounds = remember { mutableStateMapOf<ModuleTag, Rect>() }
+	val snapping by observe { Snap.isActive }
+	var drop by remember { mutableStateOf<Snap.Result?>(null) }
 
-    Box(
-        Modifier.fillMaxSize().mouseClickable(
-            keyboard = false,
-            onClick = settings::closeAll
-        ).snapLines {
-            drop
-        }.guiPresence()
-    ) {
-        val inRow = tags.count { it != ModuleTag.DEBUG }
-        val screenWidth = with(density) { screen.width.toDp() }
-        val pitch =
-            (Look.windowWidth + Look.windowGap)
-                .coerceAtMost(
-                    (screenWidth - Look.windowWidth) / (inRow - 1).coerceAtLeast(1)
-                )
-                .coerceAtLeast(0.dp)
-        val rowWidth = Look.windowWidth + pitch * (inRow - 1)
-        val rowStart = ((screenWidth - rowWidth) / 2).coerceAtLeast(0.dp)
+	Box(
+		Modifier.fillMaxSize().mouseClickable(
+			keyboard = false,
+			onClick = settings::closeAll
+		).snapLines {
+			drop
+		}.guiPresence()
+	) {
+		val inRow = tags.count { it != ModuleTag.DEBUG }
+		val screenWidth = with(density) { screen.width.toDp() }
+		val pitch =
+			(Look.windowWidth + Look.windowGap)
+				.coerceAtMost(
+					(screenWidth - Look.windowWidth) / (inRow - 1).coerceAtLeast(1)
+				)
+				.coerceAtLeast(0.dp)
+		val rowWidth = Look.windowWidth + pitch * (inRow - 1)
+		val rowStart = ((screenWidth - rowWidth) / 2).coerceAtLeast(0.dp)
 
-        tags.forEachIndexed { index, tag ->
-            key(tag) {
-                CategoryWindow(
-                    tag = tag,
-                    defaultPosition = DpOffset(rowStart + pitch * index, Look.windowTop),
-                    bounds = bounds,
-                    snapping = snapping,
-                    onDrop = { drop = it },
-                    settings = settings,
-                    inline = inline,
-                    onFocus = {
-                        stacking.remove(tag)
-                        stacking.add(tag)
-                    },
-                    modifier = Modifier.zIndex(stacking.indexOf(tag).toFloat())
-                )
-            }
-        }
+		tags.forEachIndexed { index, tag ->
+			key(tag) {
+				CategoryWindow(
+					tag = tag,
+					defaultPosition = DpOffset(rowStart + pitch * index, Look.windowTop),
+					bounds = bounds,
+					snapping = snapping,
+					onDrop = { drop = it },
+					settings = settings,
+					inline = inline,
+					onFocus = {
+						stacking.remove(tag)
+						stacking.add(tag)
+					},
+					modifier = Modifier.zIndex(stacking.indexOf(tag).toFloat())
+				)
+			}
+		}
 
-        settings.panels.forEach { panel ->
-            key(panel.module) {
-                SettingsPanel(
-                    panel = panel,
-                    open = settings.isOpen(panel.module) && !inline,
-                    windows = bounds,
-                    onClosed = { settings.closed(panel.module) },
-                    modifier = Modifier.zIndex(stacking.size.toFloat())
-                )
-            }
-        }
+		settings.panels.forEach { panel ->
+			key(panel.module) {
+				SettingsPanel(
+					panel = panel,
+					open = settings.isOpen(panel.module) && !inline,
+					windows = bounds,
+					onClosed = { settings.closed(panel.module) },
+					modifier = Modifier.zIndex(stacking.size.toFloat())
+				)
+			}
+		}
 
-        MenuBar(
-            Modifier
-                .align(Alignment.TopStart)
-                .zIndex(stacking.size + 1f)
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            if (event.type == PointerEventType.Press) settings.closeAll()
-                        }
-                    }
-                }
-        )
-        Button(
-            label = "HUD Editor",
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(4.dp)
-                .zIndex(stacking.size + 1f),
-            prominent = true,
-        ) { LambdaGui.open(LambdaGui.Screen.HudEditor) }
-    }
+		MenuBar(
+			Modifier
+				.align(Alignment.TopStart)
+				.zIndex(stacking.size + 1f)
+				.pointerInput(Unit) {
+					awaitPointerEventScope {
+						while (true) {
+							val event = awaitPointerEvent(PointerEventPass.Initial)
+							if (event.type == PointerEventType.Press) settings.closeAll()
+						}
+					}
+				}
+		)
+		Button(
+			label = "HUD Editor",
+			modifier = Modifier
+				.align(Alignment.BottomEnd)
+				.padding(4.dp)
+				.zIndex(stacking.size + 1f),
+			prominent = true,
+		) { LambdaGui.open(LambdaGui.Screen.HudEditor) }
+	}
 
-    val prompt = observe { AutoUpdater.prompt }.value
-    val closeDialog = { ClickGuiState.dialog = null }
-    val dialog = ClickGuiState.dialog
-    when {
-        prompt != null -> LoaderPromptDialog(prompt)
-        dialog is ClickGuiDialog.About -> AboutDialog(closeDialog)
-        dialog is ClickGuiDialog.NewAutomationConfig ->
-            NewAutomationConfigDialog(closeDialog)
-        dialog is ClickGuiDialog.Settings -> ConfigDialog(dialog.config, closeDialog)
-    }
+	val prompt = observe { AutoUpdater.prompt }.value
+	val closeDialog = { ClickGuiState.dialog = null }
+	val dialog = ClickGuiState.dialog
+	when {
+		prompt != null -> LoaderPromptDialog(prompt)
+		dialog is ClickGuiDialog.About -> AboutDialog(closeDialog)
+		dialog is ClickGuiDialog.NewAutomationConfig ->
+			NewAutomationConfigDialog(closeDialog)
+		dialog is ClickGuiDialog.Settings -> ConfigDialog(dialog.config, closeDialog)
+	}
 }

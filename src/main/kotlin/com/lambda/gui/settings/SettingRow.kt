@@ -85,144 +85,144 @@ private val LocalAltered = compositionLocalOf { false }
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun SettingRow(setting: Setting<*>) {
-    val disabled by observe { setting.disabled() }
-    val modified by observe { setting.isModified }
-    var origin by remember { mutableStateOf(Offset.Zero) }
-    var menu by remember { mutableStateOf<IntOffset?>(null) }
-    val pointer = remember(setting) { RowPointer(setting) }
-    DisposableEffect(pointer) {
-        onDispose {
-            pointer.hovered = false
-            pointer.held = false
-        }
-    }
+	val disabled by observe { setting.disabled() }
+	val modified by observe { setting.isModified }
+	var origin by remember { mutableStateOf(Offset.Zero) }
+	var menu by remember { mutableStateOf<IntOffset?>(null) }
+	val pointer = remember(setting) { RowPointer(setting) }
+	DisposableEffect(pointer) {
+		onDispose {
+			pointer.hovered = false
+			pointer.held = false
+		}
+	}
 
-    val revealed = Reveal.setting === setting
-    val lit by
-        animateColorAsState(
-            if (revealed) LambdaTheme.colors.onSurface.copy(alpha = 0.35f)
-            else Color.Transparent,
-            tween(250)
-        )
-    val intoView = remember { BringIntoViewRequester() }
-    LaunchedEffect(revealed) {
-        if (revealed) {
-            awaitFrames(SETTLE_MILLIS)
-            intoView.bringIntoView()
-        }
-    }
+	val revealed = Reveal.setting === setting
+	val lit by
+		animateColorAsState(
+			if (revealed) LambdaTheme.colors.onSurface.copy(alpha = 0.35f)
+			else Color.Transparent,
+			tween(250)
+		)
+	val intoView = remember { BringIntoViewRequester() }
+	LaunchedEffect(revealed) {
+		if (revealed) {
+			awaitFrames(SETTLE_MILLIS)
+			intoView.bringIntoView()
+		}
+	}
 
-    Tooltip(setting.description, Modifier.fillMaxWidth()) {
-        Box(
-            Modifier
-                .settingCell()
-                .bringIntoViewRequester(intoView)
-                .onGloballyPositioned { origin = it.positionInWindow() }
-                .pointerInput(pointer) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            val change = event.changes.first()
-                            val inside = change.position.x in 0f..size.width.toFloat() && change.position.y in 0f..size.height.toFloat()
-                            if (event.type == PointerEventType.Press && event.button == PointerButton.Secondary && modified) {
-                                change.consume()
-                                menu = (origin + change.position).round()
-                                continue
-                            }
-                            when (event.type) {
-                                PointerEventType.Enter -> pointer.hovered = true
-                                PointerEventType.Exit -> pointer.hovered = false
-                            }
-                            val wasHeld = pointer.held
-                            pointer.held = event.changes.any { it.pressed }
-                            if (wasHeld && !pointer.held && inside) setting.clickListeners.forEach { it() }
-                        }
-                    }
-                }
-                .drawWithContent {
-                    drawContent()
-                    drawRect(lit)
-                }
-                .enabled(!disabled)
-        ) {
-            CompositionLocalProvider(
-                LocalClickOnRelease provides true,
-                LocalKeyboardReachable provides !disabled,
-                LocalAltered provides modified
-            ) {
-                key(setting) { setting.Gui() }
-            }
-        }
-    }
+	Tooltip(setting.description, Modifier.fillMaxWidth()) {
+		Box(
+			Modifier
+				.settingCell()
+				.bringIntoViewRequester(intoView)
+				.onGloballyPositioned { origin = it.positionInWindow() }
+				.pointerInput(pointer) {
+					awaitPointerEventScope {
+						while (true) {
+							val event = awaitPointerEvent(PointerEventPass.Initial)
+							val change = event.changes.first()
+							val inside = change.position.x in 0f..size.width.toFloat() && change.position.y in 0f..size.height.toFloat()
+							if (event.type == PointerEventType.Press && event.button == PointerButton.Secondary && modified) {
+								change.consume()
+								menu = (origin + change.position).round()
+								continue
+							}
+							when (event.type) {
+								PointerEventType.Enter -> pointer.hovered = true
+								PointerEventType.Exit -> pointer.hovered = false
+							}
+							val wasHeld = pointer.held
+							pointer.held = event.changes.any { it.pressed }
+							if (wasHeld && !pointer.held && inside) setting.clickListeners.forEach { it() }
+						}
+					}
+				}
+				.drawWithContent {
+					drawContent()
+					drawRect(lit)
+				}
+				.enabled(!disabled)
+		) {
+			CompositionLocalProvider(
+				LocalClickOnRelease provides true,
+				LocalKeyboardReachable provides !disabled,
+				LocalAltered provides modified
+			) {
+				key(setting) { setting.Gui() }
+			}
+		}
+	}
 
-    rememberLast(menu)?.let { position ->
-        key(position) {
-            ContextMenu(menu != null, position, onDismiss = { menu = null }) {
-                MenuItem("Reset") { setting.reset(silent = true) }
-            }
-        }
-    }
+	rememberLast(menu)?.let { position ->
+		key(position) {
+			ContextMenu(menu != null, position, onDismiss = { menu = null }) {
+				MenuItem("Reset") { setting.reset(silent = true) }
+			}
+		}
+	}
 }
 
 private class RowPointer(private val setting: Setting<*>) {
-    var hovered = false
-        set(value) {
-            if (field == value) return
-            field = value
-            setting.hoverListeners.forEach { it(value) }
-        }
+	var hovered = false
+		set(value) {
+			if (field == value) return
+			field = value
+			setting.hoverListeners.forEach { it(value) }
+		}
 
-    var held = false
-        set(value) {
-            if (field == value) return
-            field = value
-            setting.holdListeners.forEach { it(value) }
-        }
+	var held = false
+		set(value) {
+			if (field == value) return
+			field = value
+			setting.holdListeners.forEach { it(value) }
+		}
 }
 
 internal fun Modifier.settingCell(): Modifier =
-    composed {
-        fillMaxWidth()
-            .padding(vertical = Look.settingSpacing / 2)
-            .clip(RoundedCornerShape(Look.controlRounding))
-            .hoverHighlight(LambdaTheme.colors.hover)
-    }
+	composed {
+		fillMaxWidth()
+			.padding(vertical = Look.settingSpacing / 2)
+			.clip(RoundedCornerShape(Look.controlRounding))
+			.hoverHighlight(LambdaTheme.colors.hover)
+	}
 
 private fun Modifier.enabled(enabled: Boolean): Modifier =
-    if (enabled) this
-    else alpha(0.5f).pointerInput(Unit) {
-        awaitPointerEventScope {
-            while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach {
-                it.consume()
-            }
-        }
-    }
+	if (enabled) this
+	else alpha(0.5f).pointerInput(Unit) {
+		awaitPointerEventScope {
+			while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach {
+				it.consume()
+			}
+		}
+	}
 
 @Composable
 internal fun Labeled(
-    name: String,
-    modifier: Modifier = Modifier,
-    editor: @Composable RowScope.() -> Unit
+	name: String,
+	modifier: Modifier = Modifier,
+	editor: @Composable RowScope.() -> Unit
 ) = LabeledRow(name, modifier.padding(start = ROW_INSET), { AlteredDot() }, editor)
 
 @Composable
 internal fun AlteredDot(shadowed: Boolean = false) {
-    if (!LocalAltered.current) return
-    val colors = LambdaTheme.colors
-    Box(
-        Modifier.size(ALTERED_DOT).drawBehind {
-            val reach = ALTERED_SHADE.toPx()
-            if (shadowed) {
-                drawCircle(
-                    Brush.radialGradient(
-                        listOf(Color.Black.copy(alpha = ALTERED_SHADE_ALPHA), Color.Transparent),
-                        center,
-                        reach
-                    ),
-                    reach
-                )
-            }
-            drawCircle(colors.secondary)
-        }
-    )
+	if (!LocalAltered.current) return
+	val colors = LambdaTheme.colors
+	Box(
+		Modifier.size(ALTERED_DOT).drawBehind {
+			val reach = ALTERED_SHADE.toPx()
+			if (shadowed) {
+				drawCircle(
+					Brush.radialGradient(
+						listOf(Color.Black.copy(alpha = ALTERED_SHADE_ALPHA), Color.Transparent),
+						center,
+						reach
+					),
+					reach
+				)
+			}
+			drawCircle(colors.secondary)
+		}
+	)
 }

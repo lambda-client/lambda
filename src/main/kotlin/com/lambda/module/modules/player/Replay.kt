@@ -91,8 +91,8 @@ object Replay : Module(
     tag = ModuleTag.PLAYER,
     autoDisable = true
 ) {
-    private val HIGHLIGHT_COLOR = Color(130, 200, 255)
-    private val ACTION_COLOR = Color(225, 130, 225)
+	private val HIGHLIGHT_COLOR = Color(130, 200, 255)
+	private val ACTION_COLOR = Color(225, 130, 225)
 
     private val record by setting("Record", KeyCode.R)
         .onPress { handleRecord() }
@@ -204,11 +204,11 @@ object Replay : Module(
                             val index = recordings.indexOf(saving)
                             this@Replay.info(buildText {
                                 literal("Auto saved #")
-                                color(HIGHLIGHT_COLOR) { literal("$index") }
+								color(HIGHLIGHT_COLOR) { literal("$index") }
                                 literal(" of ")
-                                color(HIGHLIGHT_COLOR) { literal(saving.duration.toString()) }
+								color(HIGHLIGHT_COLOR) { literal(saving.duration.toString()) }
                                 literal(" at ")
-                                color(HIGHLIGHT_COLOR) { literal(saving.endPos.format(precision = 1)) }
+								color(HIGHLIGHT_COLOR) { literal(saving.endPos.format(precision = 1)) }
                                 playMessage(saving)
                                 saveMessage(saving)
                                 pruneMessage(saving)
@@ -226,9 +226,9 @@ object Replay : Module(
                             buffer = playback?.duplicate()
                             this@Replay.info(buildText {
                                 if (repeats > 0) {
-                                    color(HIGHLIGHT_COLOR) { literal("[$repeats / $loops]") }
+									color(HIGHLIGHT_COLOR) { literal("[$repeats / $loops]") }
                                 } else {
-                                    color(HIGHLIGHT_COLOR) { literal("[$repeats/∞]") }
+									color(HIGHLIGHT_COLOR) { literal("[$repeats/∞]") }
                                 }
                                 literal(" Replay looped.")
                             })
@@ -239,7 +239,7 @@ object Replay : Module(
                                 state = State.Inactive
                                 this@Replay.info(buildText {
                                     literal("Replay finished after ")
-                                    color(HIGHLIGHT_COLOR) { literal(playback?.duration.toString()) }
+									color(HIGHLIGHT_COLOR) { literal(playback?.duration.toString()) }
                                     literal(".")
                                 })
                                 return@listen
@@ -264,9 +264,9 @@ object Replay : Module(
 
         info(buildText {
             literal("Recording #${recordings.indexOf(deserialized)} ")
-            color(HIGHLIGHT_COLOR) { literal(file.nameWithoutExtension) }
+			color(HIGHLIGHT_COLOR) { literal(file.nameWithoutExtension) }
             literal(" loaded. Duration: ")
-            color(HIGHLIGHT_COLOR) { literal(deserialized.duration.toString()) }
+			color(HIGHLIGHT_COLOR) { literal(deserialized.duration.toString()) }
             playMessage(deserialized)
             pruneMessage(deserialized)
         })
@@ -295,9 +295,9 @@ object Replay : Module(
         playback = recording
         info(buildText {
             literal("Replaying recording #")
-            color(HIGHLIGHT_COLOR) { literal(index.toString()) }
+			color(HIGHLIGHT_COLOR) { literal(index.toString()) }
             literal(" of ")
-            color(HIGHLIGHT_COLOR) { literal(recording.duration.toString()) }
+			color(HIGHLIGHT_COLOR) { literal(recording.duration.toString()) }
         })
         return CommandResult.success()
     }
@@ -311,13 +311,13 @@ object Replay : Module(
         recordings.add(pruned)
         info(buildText {
             literal("Shortened recording #")
-            color(HIGHLIGHT_COLOR) { literal(recordings.indexOf(toShorten).toString()) }
+			color(HIGHLIGHT_COLOR) { literal(recordings.indexOf(toShorten).toString()) }
             literal(" of ")
-            color(HIGHLIGHT_COLOR) { literal(toShorten.duration.toString()) }
+			color(HIGHLIGHT_COLOR) { literal(toShorten.duration.toString()) }
             literal(" to new recording #")
-            color(HIGHLIGHT_COLOR) { literal(recordings.indexOf(pruned).toString()) }
+			color(HIGHLIGHT_COLOR) { literal(recordings.indexOf(pruned).toString()) }
             literal(" of ")
-            color(HIGHLIGHT_COLOR) { literal(pruned.duration.toString()) }
+			color(HIGHLIGHT_COLOR) { literal(pruned.duration.toString()) }
             playMessage(pruned)
             saveMessage(pruned)
         })
@@ -333,7 +333,7 @@ object Replay : Module(
                     buffer = it.duplicate()
                     info(buildText {
                         literal("Replaying most recent recording #${recordings.indexOf(it)}. Duration: ")
-                        color(HIGHLIGHT_COLOR) { literal(it.duration.toString()) }
+						color(HIGHLIGHT_COLOR) { literal(it.duration.toString()) }
                     })
                 } ?: run {
                     this@Replay.warn("No recording to replay.")
@@ -377,9 +377,9 @@ object Replay : Module(
         recordings.add(rec)
         this@Replay.info(buildText {
             literal("Stopped recording #")
-            color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(rec)}") }
+			color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(rec)}") }
             literal(" of ")
-            color(HIGHLIGHT_COLOR) { literal(rec.duration.toString()) }
+			color(HIGHLIGHT_COLOR) { literal(rec.duration.toString()) }
             literal(".")
             playMessage(rec)
             saveMessage(rec)
@@ -394,9 +394,9 @@ object Replay : Module(
                 recordings.add(checkRec)
                 this@Replay.info(buildText {
                     literal("Checkpoint #")
-                    color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(checkRec)}") }
+					color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(checkRec)}") }
                     literal(" created at ")
-                    color(HIGHLIGHT_COLOR) { literal(checkRec.endPos.format(precision = 0)) }
+					color(HIGHLIGHT_COLOR) { literal(checkRec.endPos.format(precision = 0)) }
                     literal(".")
                     playMessage(checkRec)
                     saveMessage(checkRec)
@@ -415,9 +415,9 @@ object Replay : Module(
         playMode = PlayMode.entries[(playMode.ordinal + 1) % PlayMode.entries.size]
         info(buildText {
             literal("Set play mode to ")
-            color(HIGHLIGHT_COLOR) { literal(playMode.name) }
+			color(HIGHLIGHT_COLOR) { literal(playMode.name) }
             literal(" (previously ")
-            color(HIGHLIGHT_COLOR) { literal(oldMode.name) }
+			color(HIGHLIGHT_COLOR) { literal(oldMode.name) }
             literal(")")
         })
     }
@@ -437,30 +437,30 @@ object Replay : Module(
 
             this@Replay.info(buildText {
                 literal("Saved recording #")
-                color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(recording)}") }
+				color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(recording)}") }
                 literal(" of ")
-                color(HIGHLIGHT_COLOR) { literal(recording.duration.toString()) }
+				color(HIGHLIGHT_COLOR) { literal(recording.duration.toString()) }
                 literal(" in file ")
-                color(HIGHLIGHT_COLOR) { literal(name) }
+				color(HIGHLIGHT_COLOR) { literal(name) }
                 val filePath = file.toPath().pathString
                 hoverEvent(HoverEvents.showText(buildText {
                     literal("Open file ")
-                    color(HIGHLIGHT_COLOR) { literal(filePath) }
+					color(HIGHLIGHT_COLOR) { literal(filePath) }
                 })) {
                     clickEvent(ClickEvents.openFile(filePath)) {
                         literal(" [")
-                        color(ACTION_COLOR) { literal("OPEN FILE") }
+						color(ACTION_COLOR) { literal("OPEN FILE") }
                         literal("]")
                     }
                 }
                 val parentPath = file.parentFile.toPath().pathString
                 hoverEvent(HoverEvents.showText(buildText {
                     literal("Open folder ")
-                    color(HIGHLIGHT_COLOR) { literal(parentPath) }
+					color(HIGHLIGHT_COLOR) { literal(parentPath) }
                 })) {
                     clickEvent(ClickEvents.openFile(parentPath)) {
                         literal(" [")
-                        color(ACTION_COLOR) { literal("OPEN FOLDER") }
+						color(ACTION_COLOR) { literal("OPEN FOLDER") }
                         literal("]")
                     }
                 }
@@ -471,12 +471,12 @@ object Replay : Module(
     private fun TextBuilder.playMessage(recording: Recording) {
         hoverEvent(HoverEvents.showText(buildText {
             literal("Click to replay recording #")
-            color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(recording)}") }
+			color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(recording)}") }
             literal(".")
         })) {
             clickEvent(ClickEvents.suggestCommand(";replay play ${recordings.indexOf(recording)}")) {
                 literal(" [")
-                color(ACTION_COLOR) {
+				color(ACTION_COLOR) {
                     literal("PLAY")
                 }
                 literal("]")
@@ -489,17 +489,17 @@ object Replay : Module(
 
         hoverEvent(HoverEvents.showText(buildText {
             literal(" Recording can be shortened by ")
-            color(HIGHLIGHT_COLOR) {
+			color(HIGHLIGHT_COLOR) {
                 literal(recording.pruneTimesave.toString())
             }
             literal(" by removing idles and cyclic paths.")
         })) {
             clickEvent(ClickEvents.suggestCommand(";replay prune ${recordings.indexOf(recording)}")) {
                 literal(" [")
-                color(ACTION_COLOR) {
+				color(ACTION_COLOR) {
                     literal("PRUNE ")
                 }
-                color(HIGHLIGHT_COLOR) {
+				color(HIGHLIGHT_COLOR) {
                     literal("${recording.pruneTimesave}")
                 }
                 literal("]")
@@ -510,12 +510,12 @@ object Replay : Module(
     private fun TextBuilder.saveMessage(recording: Recording) {
         hoverEvent(HoverEvents.showText(buildText {
             literal("Click to save recording #")
-            color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(recording)}") }
+			color(HIGHLIGHT_COLOR) { literal("${recordings.indexOf(recording)}") }
             literal(".")
         })) {
             clickEvent(ClickEvents.suggestCommand(";replay save ${recordings.indexOf(recording)} ${getTime(fileFormatter).sanitizeForFilename()}")) {
                 literal(" [")
-                color(ACTION_COLOR) { literal("SAVE") }
+				color(ACTION_COLOR) { literal("SAVE") }
                 literal("]")
             }
         }
@@ -535,7 +535,7 @@ object Replay : Module(
         }
         this@Replay.info(buildText {
             literal("Postprocessing finished. Shortened recording by ")
-            color(HIGHLIGHT_COLOR) { literal((duration - pruned.duration).toString()) }
+			color(HIGHLIGHT_COLOR) { literal((duration - pruned.duration).toString()) }
             literal(".")
         })
         return pruned

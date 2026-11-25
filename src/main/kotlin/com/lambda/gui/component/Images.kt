@@ -38,27 +38,27 @@ import kotlin.math.roundToInt
 
 @Composable
 fun rememberTexture(path: String): ImageBitmap =
-    remember(path) {
-        path.stream
-            .use { Image.makeFromEncoded(it.readAllBytes()) }
-            .toComposeImageBitmap()
-    }
+	remember(path) {
+		path.stream
+			.use { Image.makeFromEncoded(it.readAllBytes()) }
+			.toComposeImageBitmap()
+	}
 
 @Composable
 fun ItemIcon(stack: ItemStack, size: Dp, modifier: Modifier = Modifier) {
-    val slot = remember { ItemAtlas.Slot() }
-    val density = LocalDensity.current
-    val pixels =
-        with(density) {
-            ItemAtlas.ITEM * (size.toPx() / ItemAtlas.ITEM).roundToInt().coerceAtLeast(1)
-        }
-    SideEffect {
-        slot.stack = stack
-        slot.size = pixels
-    }
-    DisposableEffect(slot) {
-        ItemAtlas.add(slot)
-        onDispose { ItemAtlas.remove(slot) }
-    }
-    Spacer(modifier.size(with(density) { pixels.toDp() }).drawBehind { drawItem(slot) })
+	val slot = remember { ItemAtlas.Slot() }
+	val density = LocalDensity.current
+	val pixels =
+		with(density) {
+			ItemAtlas.ITEM * (size.toPx() / ItemAtlas.ITEM).roundToInt().coerceAtLeast(1)
+		}
+	SideEffect {
+		slot.stack = stack
+		slot.size = pixels
+	}
+	DisposableEffect(slot) {
+		ItemAtlas.add(slot)
+		onDispose { ItemAtlas.remove(slot) }
+	}
+	Spacer(modifier.size(with(density) { pixels.toDp() }).drawBehind { drawItem(slot) })
 }

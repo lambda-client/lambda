@@ -55,7 +55,7 @@ class LongSetting(
 	override var step: Long = 1,
 	unit: String
 ) : NumericSetting<Long>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
-    override fun convert(number: BigDecimal) = number.setScale(0, RoundingMode.HALF_UP).toLong()
+	override fun convert(number: BigDecimal) = number.setScale(0, RoundingMode.HALF_UP).toLong()
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(long(name, range.start, range.endInclusive)) { parameter ->

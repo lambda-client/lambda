@@ -128,8 +128,8 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     modulePriority: Int = 0,
     defaultKeybind: Bind = Bind.EMPTY,
-    autoDisable: Boolean = false,
-    val alwaysEnabled: Boolean = false,
+	autoDisable: Boolean = false,
+	val alwaysEnabled: Boolean = false,
 ) : Nameable, Muteable, OwnerPriority, Config(name, ModuleCategory),
     IMutableAutomationConfig by MutableAutomationConfig()
 {
@@ -149,11 +149,11 @@ abstract class Module(
     val drawSetting = boolSetting("Draw", true, "Draws the module in the module list hud element") { false }
     val showInClickGui = boolSetting("Show In ClickGui", true, "Shows the module in the ClickGui layout") { false }
 
-    var isEnabled: Boolean
-        get() = alwaysEnabled || isEnabledSetting.value
-        private set(value) {
-            isEnabledSetting.value = value
-        }
+	var isEnabled: Boolean
+		get() = alwaysEnabled || isEnabledSetting.value
+		private set(value) {
+			isEnabledSetting.value = value
+		}
     val isDisabled get() = !isEnabled
 
     val keybind by keybindSetting
@@ -164,8 +164,8 @@ abstract class Module(
         get() = !isEnabled && !alwaysListening
 
     init {
-        onEnableUnsafe { if (ClientConfig.clientSounds) LambdaSound.ModuleOn.play() }
-        onDisableUnsafe { if (ClientConfig.clientSounds) LambdaSound.ModuleOff.play() }
+		onEnableUnsafe { if (ClientConfig.clientSounds) LambdaSound.ModuleOn.play() }
+		onDisableUnsafe { if (ClientConfig.clientSounds) LambdaSound.ModuleOff.play() }
 
         listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
         listen<ClientEvent.Startup> { if (autoDisable) disable() }
@@ -177,21 +177,21 @@ abstract class Module(
 
     @ModuleDsl
     fun enable() {
-        if (alwaysEnabled) return
+		if (alwaysEnabled) return
         ModuleEvent.Enabled(this@Module).post()
         isEnabled = true
     }
 
     @ModuleDsl
     fun disable() {
-        if (alwaysEnabled) return
+		if (alwaysEnabled) return
         ModuleEvent.Disabled(this@Module).post()
         isEnabled = false
     }
 
     @ModuleDsl
     fun toggle() {
-        if (alwaysEnabled) return
+		if (alwaysEnabled) return
         ModuleEvent.Toggle(this@Module, !isEnabled).post()
         if (isEnabled) disable() else enable()
     }

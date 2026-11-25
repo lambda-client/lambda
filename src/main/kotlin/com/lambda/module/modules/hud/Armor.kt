@@ -36,47 +36,47 @@ import net.minecraft.entity.EquipmentSlot
 
 @Suppress("unused")
 object Armor : HudModule(
-    name = "Armor",
-    description = "Shows the armor you are wearing, as it looks in your inventory",
-    tag = ModuleTag.HUD,
+	name = "Armor",
+	description = "Shows the armor you are wearing, as it looks in your inventory",
+	tag = ModuleTag.HUD,
 ) {
-    private enum class Layout(override val displayName: String) : NamedEnum {
-        Horizontal("Horizontal"),
-        Vertical("Vertical"),
-    }
+	private enum class Layout(override val displayName: String) : NamedEnum {
+		Horizontal("Horizontal"),
+		Vertical("Vertical"),
+	}
 
-    private val layout by enumSetting("Layout", Layout.Horizontal)
-    private val iconSize by floatSetting("Icon Size", 16f, 8f..64f, 1f, "Items are drawn at the nearest whole multiple of their 16 pixels, as Minecraft draws them")
+	private val layout by enumSetting("Layout", Layout.Horizontal)
+	private val iconSize by floatSetting("Icon Size", 16f, 8f..64f, 1f, "Items are drawn at the nearest whole multiple of their 16 pixels, as Minecraft draws them")
 
-    private val slots =
-        listOf(
-            EquipmentSlot.HEAD,
-            EquipmentSlot.CHEST,
-            EquipmentSlot.LEGS,
-            EquipmentSlot.FEET
-        )
+	private val slots =
+		listOf(
+			EquipmentSlot.HEAD,
+			EquipmentSlot.CHEST,
+			EquipmentSlot.LEGS,
+			EquipmentSlot.FEET
+		)
 
-    @Composable
-    override fun Content() {
-        val worn by observeSafe { slots.map(player::getEquippedStack).filterNot { it.isEmpty } }
-        val layout by observe { layout }
-        val size by observe { iconSize.dp }
+	@Composable
+	override fun Content() {
+		val worn by observeSafe { slots.map(player::getEquippedStack).filterNot { it.isEmpty } }
+		val layout by observe { layout }
+		val size by observe { iconSize.dp }
 
-        val pieces = worn.orEmpty()
-        if (pieces.isEmpty()) {
-            HudText("No armor")
-            return
-        }
-        val spacing = Arrangement.spacedBy(size / 8)
-        when (layout) {
-            Layout.Horizontal ->
-                Row(horizontalArrangement = spacing) {
-                    pieces.forEach { ItemIcon(it, size) }
-                }
-            Layout.Vertical ->
-                Column(verticalArrangement = spacing) {
-                    pieces.forEach { ItemIcon(it, size) }
-                }
-        }
-    }
+		val pieces = worn.orEmpty()
+		if (pieces.isEmpty()) {
+			HudText("No armor")
+			return
+		}
+		val spacing = Arrangement.spacedBy(size / 8)
+		when (layout) {
+			Layout.Horizontal ->
+				Row(horizontalArrangement = spacing) {
+					pieces.forEach { ItemIcon(it, size) }
+				}
+			Layout.Vertical ->
+				Column(verticalArrangement = spacing) {
+					pieces.forEach { ItemIcon(it, size) }
+				}
+		}
+	}
 }

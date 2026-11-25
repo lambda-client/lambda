@@ -31,19 +31,19 @@ object Watermark : HudModule(
     name = "Watermark",
     tag = ModuleTag.HUD,
     enabledByDefault = true,
-    defaultScale = 0.45f,
-    defaultAnchorX = 0.005f,
-    defaultAnchorY = 0.009f,
+	defaultScale = 0.45f,
+	defaultAnchorX = 0.005f,
+	defaultAnchorY = 0.0089f,
 ) {
-    private const val LOGO_SCALE = 0.05f
+	private const val LOGO_SCALE = 0.05f
 
-    @Composable
-    override fun Content() {
-        val logo = rememberTexture("textures/lambda.png")
-        Image(
-            logo,
-            "Lambda",
-            Modifier.size((logo.width * LOGO_SCALE).dp, (logo.height * LOGO_SCALE).dp)
-        )
+	@Composable
+	override fun Content() {
+		val logo = rememberTexture("textures/lambda.png")
+		Image(
+			logo,
+			"Lambda",
+			Modifier.size((logo.width * LOGO_SCALE).dp, (logo.height * LOGO_SCALE).dp)
+		)
     }
 }

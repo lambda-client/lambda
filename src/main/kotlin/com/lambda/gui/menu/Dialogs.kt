@@ -62,150 +62,150 @@ import net.minecraft.util.Util
 
 @Composable
 internal fun ConfigDialog(config: Config, onDismiss: () -> Unit) {
-    val maxHeight =
-        with(LocalDensity.current) {
-            LocalWindowInfo.current.containerSize.height.toDp()
-        } * 0.7f
-    Dialog(onDismiss) { dismiss ->
-        ConfigSettings(config, maxHeight, dismiss, Modifier.width(240.dp))
-    }
+	val maxHeight =
+		with(LocalDensity.current) {
+			LocalWindowInfo.current.containerSize.height.toDp()
+		} * 0.7f
+	Dialog(onDismiss) { dismiss ->
+		ConfigSettings(config, maxHeight, dismiss, Modifier.width(240.dp))
+	}
 }
 
 @Composable
 internal fun NewAutomationConfigDialog(onDismiss: () -> Unit) {
-    var name by remember { mutableStateOf("") }
-    val isAvailable = name.isNotBlank() && ConfigLoader.configs.none { it.name == name }
+	var name by remember { mutableStateOf("") }
+	val isAvailable = name.isNotBlank() && ConfigLoader.configs.none { it.name == name }
 
-    fun create(dismiss: () -> Unit) {
-        if (!isAvailable) return
-        UserAutomationConfig(name)
-        dismiss()
-    }
+	fun create(dismiss: () -> Unit) {
+		if (!isAvailable) return
+		UserAutomationConfig(name)
+		dismiss()
+	}
 
-    Dialog(onDismiss) { dismiss ->
-        Column(Modifier.width(180.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("New Automation Config", style = Type.title)
-            TextInput(
-                name,
-                { name = it },
-                Modifier.fillMaxWidth(),
-                placeholder = "Name",
-                focused = true
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Spacer(Modifier.weight(1f))
-                Button("Cancel", onClick = dismiss)
-                Button("Create", enabled = isAvailable) { create(dismiss) }
-            }
-        }
-    }
+	Dialog(onDismiss) { dismiss ->
+		Column(Modifier.width(180.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+			Text("New Automation Config", style = Type.title)
+			TextInput(
+				name,
+				{ name = it },
+				Modifier.fillMaxWidth(),
+				placeholder = "Name",
+				focused = true
+			)
+			Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+				Spacer(Modifier.weight(1f))
+				Button("Cancel", onClick = dismiss)
+				Button("Create", enabled = isAvailable) { create(dismiss) }
+			}
+		}
+	}
 }
 
 @Composable
 internal fun AboutDialog(onDismiss: () -> Unit) {
-    val colors = LambdaTheme.colors
-    val facts by
-        observe {
-            val settings =
-                ConfigLoader.configCategories.sumOf { category ->
-                    category.configs.sumOf { config ->
-                        var count = 0
-                        config.settingLayers.forEachEntry { _, _ -> count++ }
-                        count
-                    }
-                }
-            listOfNotNull(
-                "Version: ${Lambda.VERSION}",
-                "Development Environment".takeIf { Lambda.isDebug },
-                "Runtime: ${Loader.runtime}",
-                "Modules: ${ModuleRegistry.modules.size}",
-                "Commands: ${CommandRegistry.commands.size}",
-                "Settings: $settings",
-                "Synchronous listeners: ${EventFlow.syncListeners.size}",
-                "Concurrent listeners: ${EventFlow.concurrentListeners.size}",
-            )
-        }
-    val authors =
-        remember {
-            FabricLoader.getInstance()
-                .getModContainer("lambda")
-                .orElseThrow().metadata.authors
-                .flatMap { it.name.split(",") }
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-        }
+	val colors = LambdaTheme.colors
+	val facts by
+		observe {
+			val settings =
+				ConfigLoader.configCategories.sumOf { category ->
+					category.configs.sumOf { config ->
+						var count = 0
+						config.settingLayers.forEachEntry { _, _ -> count++ }
+						count
+					}
+				}
+			listOfNotNull(
+				"Version: ${Lambda.VERSION}",
+				"Development Environment".takeIf { Lambda.isDebug },
+				"Runtime: ${Loader.runtime}",
+				"Modules: ${ModuleRegistry.modules.size}",
+				"Commands: ${CommandRegistry.commands.size}",
+				"Settings: $settings",
+				"Synchronous listeners: ${EventFlow.syncListeners.size}",
+				"Concurrent listeners: ${EventFlow.concurrentListeners.size}",
+			)
+		}
+	val authors =
+		remember {
+			FabricLoader.getInstance()
+				.getModContainer("lambda")
+				.orElseThrow().metadata.authors
+				.flatMap { it.name.split(",") }
+				.map { it.trim() }
+				.filter { it.isNotEmpty() }
+		}
 
-    Dialog(onDismiss) { dismiss ->
-        Column(Modifier.width(240.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Image(
-                bitmap = rememberTexture("textures/lambda_text_color.png"),
-                contentDescription = "Lambda",
-                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-            )
-            facts.forEach { Text(it) }
-            Text("Authors", Modifier.padding(top = 6.dp), style = Type.title)
-            authors.forEach { Text("•  $it") }
-            Text(
-                "Thanks to all community members",
-                Modifier.padding(top = 2.dp),
-                colors.onSurfaceVariant
-            )
-            Row(
-                Modifier.fillMaxWidth().padding(top = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Button("Copy Diagnostics") { mc.keyboard.clipboard = gatherDiagnostics() }
-                Button("View License") {
-                    Util.getOperatingSystem().open("$REPO_URL/blob/master/LICENSE.md")
-                }
-                Spacer(Modifier.weight(1f))
-                Button("Close", onClick = dismiss)
-            }
-        }
-    }
+	Dialog(onDismiss) { dismiss ->
+		Column(Modifier.width(240.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+			Image(
+				bitmap = rememberTexture("textures/lambda_text_color.png"),
+				contentDescription = "Lambda",
+				modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+			)
+			facts.forEach { Text(it) }
+			Text("Authors", Modifier.padding(top = 6.dp), style = Type.title)
+			authors.forEach { Text("•  $it") }
+			Text(
+				"Thanks to all community members",
+				Modifier.padding(top = 2.dp),
+				colors.onSurfaceVariant
+			)
+			Row(
+				Modifier.fillMaxWidth().padding(top = 6.dp),
+				horizontalArrangement = Arrangement.spacedBy(4.dp)
+			) {
+				Button("Copy Diagnostics") { mc.keyboard.clipboard = gatherDiagnostics() }
+				Button("View License") {
+					Util.getOperatingSystem().open("$REPO_URL/blob/master/LICENSE.md")
+				}
+				Spacer(Modifier.weight(1f))
+				Button("Close", onClick = dismiss)
+			}
+		}
+	}
 }
 
 @Composable
 internal fun LoaderPromptDialog(prompt: AutoUpdater.Prompt) {
-    if (!LocalShown.current && prompt == AutoUpdater.Prompt.FirstLaunch) return
-    val colors = LambdaTheme.colors
-    Dialog(onDismiss = { AutoUpdater.answerPrompt(accepted = false) }) {
-        Column(Modifier.width(260.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            when (prompt) {
-                AutoUpdater.Prompt.Uninstall -> {
-                    Text("Uninstall Lambda Loader?", style = Type.title)
-                    Text("This will close the client automatically once the uninstall is finished.")
-                }
-                AutoUpdater.Prompt.FirstLaunch, AutoUpdater.Prompt.Install -> {
-                    Text("Switch to Lambda Loader?", style = Type.title)
-                    Text("Lambda Loader replaces this version-specific Lambda jar with a lightweight bootstrap that keeps Lambda up to date.")
-                    Text("•  Automatic updates on launch\n•  No manual jar replacement")
-                    Text("If you choose to switch, Lambda will install the loader and close the game so changes apply on next start.")
-                    Text(
-                        "You can change this later from the AutoUpdater module.",
-                        color = colors.onSurfaceVariant
-                    )
-                }
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Centered.VERTICALLY
-            ) {
-                Button(
-                    label = when (prompt) {
-                        AutoUpdater.Prompt.FirstLaunch -> "Keep Current Jar"
-                        else -> "Cancel"
-                    },
-                    modifier = Modifier.weight(1f)
-                ) { AutoUpdater.answerPrompt(accepted = false) }
-                Button(
-                    label =
-                        if (prompt == AutoUpdater.Prompt.Uninstall) "Uninstall"
-                        else "Switch To Loader",
-                    modifier = Modifier.weight(1f)
-                ) { AutoUpdater.answerPrompt(accepted = true) }
-            }
-        }
-    }
+	if (!LocalShown.current && prompt == AutoUpdater.Prompt.FirstLaunch) return
+	val colors = LambdaTheme.colors
+	Dialog(onDismiss = { AutoUpdater.answerPrompt(accepted = false) }) {
+		Column(Modifier.width(260.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+			when (prompt) {
+				AutoUpdater.Prompt.Uninstall -> {
+					Text("Uninstall Lambda Loader?", style = Type.title)
+					Text("This will close the client automatically once the uninstall is finished.")
+				}
+				AutoUpdater.Prompt.FirstLaunch, AutoUpdater.Prompt.Install -> {
+					Text("Switch to Lambda Loader?", style = Type.title)
+					Text("Lambda Loader replaces this version-specific Lambda jar with a lightweight bootstrap that keeps Lambda up to date.")
+					Text("•  Automatic updates on launch\n•  No manual jar replacement")
+					Text("If you choose to switch, Lambda will install the loader and close the game so changes apply on next start.")
+					Text(
+						"You can change this later from the AutoUpdater module.",
+						color = colors.onSurfaceVariant
+					)
+				}
+			}
+			Row(
+				Modifier.fillMaxWidth().padding(top = 4.dp),
+				horizontalArrangement = Arrangement.spacedBy(4.dp),
+				verticalAlignment = Centered.VERTICALLY
+			) {
+				Button(
+					label = when (prompt) {
+						AutoUpdater.Prompt.FirstLaunch -> "Keep Current Jar"
+						else -> "Cancel"
+					},
+					modifier = Modifier.weight(1f)
+				) { AutoUpdater.answerPrompt(accepted = false) }
+				Button(
+					label =
+						if (prompt == AutoUpdater.Prompt.Uninstall) "Uninstall"
+						else "Switch To Loader",
+					modifier = Modifier.weight(1f)
+				) { AutoUpdater.answerPrompt(accepted = true) }
+			}
+		}
+	}
 }

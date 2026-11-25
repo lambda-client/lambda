@@ -48,8 +48,8 @@ class ColorSetting(
     visibility: () -> Boolean,
     defaultValue: Color
 ) : Setting<Color>(name, description, defaultValue, layer, config, visibility) {
-    @Composable
-    override fun Gui() = ColorPicker(this)
+	@Composable
+	override fun Gui() = ColorPicker(this)
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer("Red", 0, 255)) { red ->

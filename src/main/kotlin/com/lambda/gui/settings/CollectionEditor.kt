@@ -70,178 +70,178 @@ private const val WARM_UP_ENTRIES = 64
 
 @Composable
 internal fun <R : Any> CollectionButton(setting: CollectionSetting<R>) {
-    val count by observe { setting.value.size }
-    var editing by remember { mutableStateOf(false) }
+	val count by observe { setting.value.size }
+	var editing by remember { mutableStateOf(false) }
 
-    Labeled(setting.name) {
-        Chip(onClick = { editing = true }) {
-            Text("$count selected", Modifier.weight(1f, fill = false), maxLines = 1)
-            Ellipsis()
-        }
-    }
-    if (editing) CollectionWindow(setting) { editing = false }
+	Labeled(setting.name) {
+		Chip(onClick = { editing = true }) {
+			Text("$count selected", Modifier.weight(1f, fill = false), maxLines = 1)
+			Ellipsis()
+		}
+	}
+	if (editing) CollectionWindow(setting) { editing = false }
 }
 
 @Composable
 private fun <R : Any> CollectionWindow(
-    setting: CollectionSetting<R>,
-    onDismiss: () -> Unit
+	setting: CollectionSetting<R>,
+	onDismiss: () -> Unit
 ) {
-    val selected by observe { setting.value.toSet() }
-    val entries =
-        remember(setting.immutableCollection) {
-            setting.immutableCollection.map {
-                Entry(it, setting.label(it), setting.icon(it))
-            }
-        }
-    var query by remember { mutableStateOf("") }
-    val matching =
-        remember(entries, query) {
-            entries.filter { it.label.contains(query.trim(), ignoreCase = true) }
-        }
-    val (chosen, available) =
-        remember(matching, selected) { matching.partition { it.item in selected } }
+	val selected by observe { setting.value.toSet() }
+	val entries =
+		remember(setting.immutableCollection) {
+			setting.immutableCollection.map {
+				Entry(it, setting.label(it), setting.icon(it))
+			}
+		}
+	var query by remember { mutableStateOf("") }
+	val matching =
+		remember(entries, query) {
+			entries.filter { it.label.contains(query.trim(), ignoreCase = true) }
+		}
+	val (chosen, available) =
+		remember(matching, selected) { matching.partition { it.item in selected } }
 
-    Dialog(onDismiss) {
-        Column(Modifier.width(360.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(setting.name)
-            Row(
-                verticalAlignment = Centered.VERTICALLY,
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                TextInput(
-                    query,
-                    { query = it },
-                    Modifier.weight(1f),
-                    placeholder = "Search ${setting.name}",
-                    focused = true
-                )
-                Button("Invert", Modifier.height(Look.rowHeight)) {
-                    setting.invertSelection()
-                }
-            }
-            Row(
-                Modifier.height(220.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                Pane("Available (${available.size})", available, Modifier.weight(1f)) {
-                    setting.select(it)
-                }
-                Pane("Selected (${chosen.size})", chosen, Modifier.weight(1f)) {
-                    setting.deselect(it)
-                }
-            }
-        }
-    }
+	Dialog(onDismiss) {
+		Column(Modifier.width(360.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+			Text(setting.name)
+			Row(
+				verticalAlignment = Centered.VERTICALLY,
+				horizontalArrangement = Arrangement.spacedBy(3.dp)
+			) {
+				TextInput(
+					query,
+					{ query = it },
+					Modifier.weight(1f),
+					placeholder = "Search ${setting.name}",
+					focused = true
+				)
+				Button("Invert", Modifier.height(Look.rowHeight)) {
+					setting.invertSelection()
+				}
+			}
+			Row(
+				Modifier.height(220.dp),
+				horizontalArrangement = Arrangement.spacedBy(3.dp)
+			) {
+				Pane("Available (${available.size})", available, Modifier.weight(1f)) {
+					setting.select(it)
+				}
+				Pane("Selected (${chosen.size})", chosen, Modifier.weight(1f)) {
+					setting.deselect(it)
+				}
+			}
+		}
+	}
 }
 
 @Composable
 internal fun BlockPicker(setting: BlockSetting) {
-    val block by observe { setting.value }
-    var picking by remember { mutableStateOf(false) }
+	val block by observe { setting.value }
+	var picking by remember { mutableStateOf(false) }
 
-    Labeled(setting.name) {
-        Chip(onClick = { picking = true }) {
-            Box(Modifier.size(ICON_SIZE)) {
-                ItemIcon(ItemStack(block.asItem()), ICON_SIZE)
-            }
-            Text(
-                BlockSerializer.stringify(block),
-                Modifier.weight(1f, fill = false),
-                maxLines = 1
-            )
-            Ellipsis()
-        }
-    }
-    if (!picking) return
+	Labeled(setting.name) {
+		Chip(onClick = { picking = true }) {
+			Box(Modifier.size(ICON_SIZE)) {
+				ItemIcon(ItemStack(block.asItem()), ICON_SIZE)
+			}
+			Text(
+				BlockSerializer.stringify(block),
+				Modifier.weight(1f, fill = false),
+				maxLines = 1
+			)
+			Ellipsis()
+		}
+	}
+	if (!picking) return
 
-    val entries =
-        remember {
-            Registries.BLOCK.map {
-                Entry(it, BlockSerializer.stringify(it), ItemStack(it.asItem()))
-            }
-        }
-    var query by remember { mutableStateOf("") }
-    val matching =
-        remember(query) {
-            entries.filter { it.label.contains(query.trim(), ignoreCase = true) }
-        }
-    Dialog(onDismiss = { picking = false }) { dismiss ->
-        Column(Modifier.width(200.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(setting.name)
-            TextInput(
-                query,
-                { query = it },
-                Modifier.fillMaxWidth(),
-                placeholder = "Search blocks",
-                focused = true
-            )
-            Pane("Blocks (${matching.size})", matching, Modifier.height(220.dp)) {
-                setting.value = it
-                dismiss()
-            }
-        }
-    }
+	val entries =
+		remember {
+			Registries.BLOCK.map {
+				Entry(it, BlockSerializer.stringify(it), ItemStack(it.asItem()))
+			}
+		}
+	var query by remember { mutableStateOf("") }
+	val matching =
+		remember(query) {
+			entries.filter { it.label.contains(query.trim(), ignoreCase = true) }
+		}
+	Dialog(onDismiss = { picking = false }) { dismiss ->
+		Column(Modifier.width(200.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+			Text(setting.name)
+			TextInput(
+				query,
+				{ query = it },
+				Modifier.fillMaxWidth(),
+				placeholder = "Search blocks",
+				focused = true
+			)
+			Pane("Blocks (${matching.size})", matching, Modifier.height(220.dp)) {
+				setting.value = it
+				dismiss()
+			}
+		}
+	}
 }
 
 @Composable
 internal fun PickerWarmUp() {
-    val entries =
-        remember {
-            Registries.BLOCK.take(WARM_UP_ENTRIES).map {
-                Entry(it, BlockSerializer.stringify(it), ItemStack(it.asItem()))
-            }
-        }
-    Column(Modifier.width(200.dp)) {
-        TextInput("", {}, Modifier.fillMaxWidth())
-        Pane("", entries, Modifier.height(220.dp)) {}
-    }
+	val entries =
+		remember {
+			Registries.BLOCK.take(WARM_UP_ENTRIES).map {
+				Entry(it, BlockSerializer.stringify(it), ItemStack(it.asItem()))
+			}
+		}
+	Column(Modifier.width(200.dp)) {
+		TextInput("", {}, Modifier.fillMaxWidth())
+		Pane("", entries, Modifier.height(220.dp)) {}
+	}
 }
 
 private class Entry<R>(val item: R, val label: String, val icon: ItemStack?)
 
 @Composable
 private fun <R> Pane(
-    title: String,
-    entries: List<Entry<R>>,
-    modifier: Modifier,
-    onClick: (R) -> Unit
+	title: String,
+	entries: List<Entry<R>>,
+	modifier: Modifier,
+	onClick: (R) -> Unit
 ) {
-    val colors = LambdaTheme.colors
-    Column(modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(title, color = colors.onSurfaceVariant, style = Type.label)
-        val list = rememberLazyListState()
-        Box(
-            Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(Look.controlRounding))
-                .background(colors.input)
-        ) {
-            LazyColumn(
-                state = list,
-                modifier = Modifier.fillMaxSize().wheelScrollable(list)
-            ) {
-                items(entries) { entry ->
-                    Row(
-                        verticalAlignment = Centered.VERTICALLY,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = Look.rowHeight)
-                            .hoverHighlight(colors.controlSelected)
-                            .mouseClickable { onClick(entry.item) }
-                            .padding(horizontal = 4.dp)
-                    ) {
-                        if (entry.icon != null) Box(Modifier.size(ICON_SIZE)) {
-                            ItemIcon(entry.icon, ICON_SIZE)
-                        }
-                        Text(entry.label, color = colors.onControl, maxLines = 1)
-                    }
-                }
-            }
-            if (list.canScrollForward || list.canScrollBackward) {
-                Scrollbar(rememberScrollbarAdapter(list), Modifier.matchParentSize())
-            }
-        }
-    }
+	val colors = LambdaTheme.colors
+	Column(modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+		Text(title, color = colors.onSurfaceVariant, style = Type.label)
+		val list = rememberLazyListState()
+		Box(
+			Modifier
+				.fillMaxSize()
+				.clip(RoundedCornerShape(Look.controlRounding))
+				.background(colors.input)
+		) {
+			LazyColumn(
+				state = list,
+				modifier = Modifier.fillMaxSize().wheelScrollable(list)
+			) {
+				items(entries) { entry ->
+					Row(
+						verticalAlignment = Centered.VERTICALLY,
+						horizontalArrangement = Arrangement.spacedBy(3.dp),
+						modifier = Modifier
+							.fillMaxWidth()
+							.heightIn(min = Look.rowHeight)
+							.hoverHighlight(colors.controlSelected)
+							.mouseClickable { onClick(entry.item) }
+							.padding(horizontal = 4.dp)
+					) {
+						if (entry.icon != null) Box(Modifier.size(ICON_SIZE)) {
+							ItemIcon(entry.icon, ICON_SIZE)
+						}
+						Text(entry.label, color = colors.onControl, maxLines = 1)
+					}
+				}
+			}
+			if (list.canScrollForward || list.canScrollBackward) {
+				Scrollbar(rememberScrollbarAdapter(list), Modifier.matchParentSize())
+			}
+		}
+	}
 }

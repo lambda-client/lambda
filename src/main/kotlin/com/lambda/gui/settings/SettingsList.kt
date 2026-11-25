@@ -73,115 +73,115 @@ import com.lambda.gui.theme.Type
 
 @Composable
 fun SettingsList(layer: EntryLayer<Setting<*>>) {
-    when (layer) {
-        is EntryLayer.Single -> {
-            val setting = layer.entry
-            val visible by observe { setting.visibility() }
-            Expandable(visible) { SettingRow(setting) }
-        }
+	when (layer) {
+		is EntryLayer.Single -> {
+			val setting = layer.entry
+			val visible by observe { setting.visibility() }
+			Expandable(visible) { SettingRow(setting) }
+		}
 
-        is EntryLayer.Multiple -> {
-            val hasVisibleSettings by observe { layer.hasVisibleSettings() }
-            if (!hasVisibleSettings) return
+		is EntryLayer.Multiple -> {
+			val hasVisibleSettings by observe { layer.hasVisibleSettings() }
+			if (!hasVisibleSettings) return
 
-            val tabs = layer.layers.filterIsInstance<EntryLayer.Tab<Setting<*>>>()
-            when {
-                layer.multipleType == MultipleLayerType.Group ->
-                    Section(
-                        layer.name,
-                        revealed = Reveal.setting?.let(layer::holds) == true
-                    ) {
-                        Children(layer)
-                    }
-                else ->
-                    Column(Modifier.fillMaxWidth()) {
-                        layer.layers.filter { it !is EntryLayer.Tab }.forEach { SettingsList(it) }
-                        if (tabs.isNotEmpty()) Tabs(tabs)
-                    }
-            }
-        }
-    }
+			val tabs = layer.layers.filterIsInstance<EntryLayer.Tab<Setting<*>>>()
+			when {
+				layer.multipleType == MultipleLayerType.Group ->
+					Section(
+						layer.name,
+						revealed = Reveal.setting?.let(layer::holds) == true
+					) {
+						Children(layer)
+					}
+				else ->
+					Column(Modifier.fillMaxWidth()) {
+						layer.layers.filter { it !is EntryLayer.Tab }.forEach { SettingsList(it) }
+						if (tabs.isNotEmpty()) Tabs(tabs)
+					}
+			}
+		}
+	}
 }
 
 @Composable
 private fun Children(layer: EntryLayer.Multiple<Setting<*>>) =
-    layer.layers.forEach { SettingsList(it) }
+	layer.layers.forEach { SettingsList(it) }
 
 @Composable
 private fun Tabs(tabs: List<EntryLayer.Tab<Setting<*>>>) {
-    val shown by observe { tabs.filter { it.hasVisibleSettings() } }
-    if (shown.isEmpty()) return
-    var selectedName by remember { mutableStateOf(shown.first().name) }
-    val selected = shown.firstOrNull { it.name == selectedName } ?: shown.first()
-    val revealed = Reveal.setting
-    LaunchedEffect(revealed) {
-        if (revealed != null) {
-            shown.firstOrNull { it.holds(revealed) }?.let { selectedName = it.name }
-        }
-    }
+	val shown by observe { tabs.filter { it.hasVisibleSettings() } }
+	if (shown.isEmpty()) return
+	var selectedName by remember { mutableStateOf(shown.first().name) }
+	val selected = shown.firstOrNull { it.name == selectedName } ?: shown.first()
+	val revealed = Reveal.setting
+	LaunchedEffect(revealed) {
+		if (revealed != null) {
+			shown.firstOrNull { it.holds(revealed) }?.let { selectedName = it.name }
+		}
+	}
 
-    Column(Modifier.fillMaxWidth().padding(top = 1.dp)) {
-        TabPicker(shown.map { it.name }, selected.name) { selectedName = it }
-        AnimatedContent(
-            targetState = selected,
-            modifier = Modifier.fillMaxWidth(),
-            transitionSpec = { pageTurn(towardsEnd = shown.indexOf(targetState) > shown.indexOf(initialState)) },
-        ) { tab ->
-            Column(Modifier.fillMaxWidth().padding(vertical = 1.dp)) { Children(tab) }
-        }
-    }
+	Column(Modifier.fillMaxWidth().padding(top = 1.dp)) {
+		TabPicker(shown.map { it.name }, selected.name) { selectedName = it }
+		AnimatedContent(
+			targetState = selected,
+			modifier = Modifier.fillMaxWidth(),
+			transitionSpec = { pageTurn(towardsEnd = shown.indexOf(targetState) > shown.indexOf(initialState)) },
+		) { tab ->
+			Column(Modifier.fillMaxWidth().padding(vertical = 1.dp)) { Children(tab) }
+		}
+	}
 }
 
 @Composable
 private fun TabPicker(names: List<String>, selected: String, onSelect: (String) -> Unit) {
-    val colors = LambdaTheme.colors
-    val menu = remember { MenuState() }
-    var band by remember { mutableStateOf(IntSize.Zero) }
-    val choice = names.size > 1
+	val colors = LambdaTheme.colors
+	val menu = remember { MenuState() }
+	var band by remember { mutableStateOf(IntSize.Zero) }
+	val choice = names.size > 1
 
-    Box(Modifier.fillMaxWidth().onSizeChanged { band = it }) {
-        ContentColor(colors.onHeader) {
-            Row(
-                verticalAlignment = Centered.VERTICALLY,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = Look.rowHeight + 2.dp)
-                    .clip(RoundedCornerShape(topStart = Look.windowRounding, topEnd = Look.windowRounding))
-                    .background(colors.header)
-                    .then(
-                        if (!choice) Modifier
-                        else {
-                            Modifier
-                                .hoverHighlight(colors.onHeader.copy(alpha = 0.12f))
-                                .mouseClickable(onClick = menu::toggle)
-                        }
-                    )
-                    .padding(horizontal = 6.dp)
-            ) {
-                Text(selected, Modifier.weight(1f), style = Type.title, maxLines = 1)
-                if (choice) Chevron(90f)
-            }
-        }
-        Menu(
-            menu.isOpen,
-            onDismiss = menu::dismiss,
-            unfoldFrom = IntSize(band.width, 0),
-            attached = true
-        ) {
-            names.forEach { name ->
-                MenuItem(name, selected = name == selected) {
-                    if (name != selected) onSelect(name)
-                }
-            }
-        }
-    }
+	Box(Modifier.fillMaxWidth().onSizeChanged { band = it }) {
+		ContentColor(colors.onHeader) {
+			Row(
+				verticalAlignment = Centered.VERTICALLY,
+				horizontalArrangement = Arrangement.spacedBy(4.dp),
+				modifier = Modifier
+					.fillMaxWidth()
+					.heightIn(min = Look.rowHeight + 2.dp)
+					.clip(RoundedCornerShape(topStart = Look.windowRounding, topEnd = Look.windowRounding))
+					.background(colors.header)
+					.then(
+						if (!choice) Modifier
+						else {
+							Modifier
+								.hoverHighlight(colors.onHeader.copy(alpha = 0.12f))
+								.mouseClickable(onClick = menu::toggle)
+						}
+					)
+					.padding(horizontal = 6.dp)
+			) {
+				Text(selected, Modifier.weight(1f), style = Type.title, maxLines = 1)
+				if (choice) Chevron(90f)
+			}
+		}
+		Menu(
+			menu.isOpen,
+			onDismiss = menu::dismiss,
+			unfoldFrom = IntSize(band.width, 0),
+			attached = true
+		) {
+			names.forEach { name ->
+				MenuItem(name, selected = name == selected) {
+					if (name != selected) onSelect(name)
+				}
+			}
+		}
+	}
 }
 
 internal fun AnimatedContentTransitionScope<*>.pageTurn(towardsEnd: Boolean): ContentTransform {
-    val millis = Motion.pageMillis
-    val slide = tween<IntOffset>(millis)
-    return (fadeIn(tween(millis)) + slideInHorizontally(slide) { if (towardsEnd) it / 5 else -it / 5 })
-        .togetherWith(fadeOut(tween(millis / 2)) + slideOutHorizontally(slide) { if (towardsEnd) -it / 5 else it / 5 })
-        .using(SizeTransform(clip = true) { _, _ -> tween(millis) })
+	val millis = Motion.pageMillis
+	val slide = tween<IntOffset>(millis)
+	return (fadeIn(tween(millis)) + slideInHorizontally(slide) { if (towardsEnd) it / 5 else -it / 5 })
+		.togetherWith(fadeOut(tween(millis / 2)) + slideOutHorizontally(slide) { if (towardsEnd) -it / 5 else it / 5 })
+		.using(SizeTransform(clip = true) { _, _ -> tween(millis) })
 }

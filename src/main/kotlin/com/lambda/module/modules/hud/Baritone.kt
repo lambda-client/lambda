@@ -32,18 +32,18 @@ object Baritone : HudModule(
     description = "Look inside of Baritones head",
     tag = ModuleTag.HUD,
 ) {
-    @Composable
-    override fun Content() {
-        val status by observe { status() }
-        HudText(status)
-    }
+	@Composable
+	override fun Content() {
+		val status by observe { status() }
+		HudText(status)
+	}
 
-    private fun status(): String {
-        if (!BaritoneHandler.baritoneAvailable) return "Baritone is not loaded"
-        return when (val goal = BaritoneHandler.primary?.customGoalProcess?.goal) {
-            null -> "No Baritone Process Running"
-            is BuildGoal -> "Lambda Simulation: ${goal.sim}"
-            else -> "Baritone: $goal"
-        }
+	private fun status(): String {
+		if (!BaritoneHandler.baritoneAvailable) return "Baritone is not loaded"
+		return when (val goal = BaritoneHandler.primary?.customGoalProcess?.goal) {
+			null -> "No Baritone Process Running"
+			is BuildGoal -> "Lambda Simulation: ${goal.sim}"
+			else -> "Baritone: $goal"
+		}
     }
 }

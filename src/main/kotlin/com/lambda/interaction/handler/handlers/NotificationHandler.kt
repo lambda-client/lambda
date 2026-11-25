@@ -32,40 +32,40 @@ import com.lambda.gui.theme.NotificationLimit
 import java.awt.Color
 
 object NotificationHandler : Loadable {
-    private const val MAX_KEPT = 40
+	private const val MAX_KEPT = 40
 
-    private val kept = mutableStateListOf<Notification>()
-    val notifications: List<Notification> get() = kept
+	private val kept = mutableStateListOf<Notification>()
+	val notifications: List<Notification> get() = kept
 
-    init {
-        listenUnsafe<ComposeEvent.Hud.Post> { event ->
-            if (kept.isNotEmpty()) event.content { Notifications() }
-        }
-    }
+	init {
+		listenUnsafe<ComposeEvent.Hud.Post> { event ->
+			if (kept.isNotEmpty()) event.content { Notifications() }
+		}
+	}
 
-    override fun load() = "Loaded Notification Handler"
+	override fun load() = "Loaded Notification Handler"
 
-    fun notify(title: String, message: String = "", accent: Color? = null) =
-        mc.execute {
-            val notification = Notification(title, message, accent)
-            kept += notification
-            if (kept.size > MAX_KEPT) kept.removeRange(0, kept.size - MAX_KEPT)
-            if (GuiConfig.notificationLimit == NotificationLimit.Count) {
-                kept.filterNot { it.dismissed }
-                    .dropLast(GuiConfig.maxNotifications)
-                    .forEach { it.dismissed = true }
-            }
-            RenderThread.after((GuiConfig.notificationSeconds * 1000).toLong()) {
-                notification.dismissed = true
-            }
-        }
+	fun notify(title: String, message: String = "", accent: Color? = null) =
+		mc.execute {
+			val notification = Notification(title, message, accent)
+			kept += notification
+			if (kept.size > MAX_KEPT) kept.removeRange(0, kept.size - MAX_KEPT)
+			if (GuiConfig.notificationLimit == NotificationLimit.Count) {
+				kept.filterNot { it.dismissed }
+					.dropLast(GuiConfig.maxNotifications)
+					.forEach { it.dismissed = true }
+			}
+			RenderThread.after((GuiConfig.notificationSeconds * 1000).toLong()) {
+				notification.dismissed = true
+			}
+		}
 
-    fun remove(notification: Notification) {
-        kept -= notification
-    }
+	fun remove(notification: Notification) {
+		kept -= notification
+	}
 
-    class Notification(val title: String, val message: String, val accent: Color?) {
-        var dismissed by mutableStateOf(false)
-            internal set
-    }
+	class Notification(val title: String, val message: String, val accent: Color?) {
+		var dismissed by mutableStateOf(false)
+			internal set
+	}
 }

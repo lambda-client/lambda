@@ -28,8 +28,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = Actuals_skikoKt.class, remap = false)
 public class ComposeDelayMixin {
-    @Inject(method = "postDelayed", at = @At("HEAD"), cancellable = true, require = 1)
-    private static void delayOnRenderThread(long delayMillis, Function0<Unit> block, CallbackInfoReturnable<Object> cir) {
-        cir.setReturnValue(RenderThread.after(delayMillis, block));
-    }
+	@Inject(method = "postDelayed", at = @At("HEAD"), cancellable = true, require = 1)
+	private static void delayOnRenderThread(long delayMillis, Function0<Unit> block, CallbackInfoReturnable<Object> cir) {
+		cir.setReturnValue(RenderThread.after(delayMillis, block));
+	}
 }

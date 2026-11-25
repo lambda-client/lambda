@@ -195,7 +195,7 @@ public class MinecraftClientMixin {
 
     @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)
     void updateWindowTitle(CallbackInfo ci) {
-        if (!GuiConfig.getSetLambdaWindowTitle()) return;
+		if (!GuiConfig.getSetLambdaWindowTitle()) return;
         WindowUtils.setLambdaTitle();
         ci.cancel();
     }

@@ -55,8 +55,8 @@ class IntegerSetting(
 	override var step: Int = 1,
 	unit: String
 ) : NumericSetting<Int>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
-    override fun convert(number: BigDecimal) =
-        number.setScale(0, RoundingMode.HALF_UP).toInt()
+	override fun convert(number: BigDecimal) =
+		number.setScale(0, RoundingMode.HALF_UP).toInt()
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer(name, range.start, range.endInclusive)) { parameter ->

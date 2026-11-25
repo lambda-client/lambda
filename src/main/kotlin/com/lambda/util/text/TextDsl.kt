@@ -218,7 +218,7 @@ inline fun TextBuilder.color(color: Color?, action: TextBuilder.() -> Unit) {
 
 @TextDsl
 fun TextBuilder.highlighted(value: String) {
-    color(ClientConfig.highlightColor) {
+	color(ClientConfig.highlightColor) {
         literal(value)
     }
 }

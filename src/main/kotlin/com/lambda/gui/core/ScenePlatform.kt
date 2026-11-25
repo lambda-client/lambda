@@ -39,51 +39,51 @@ import java.awt.datatransfer.Transferable
 
 @OptIn(InternalComposeUiApi::class)
 internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
-    private val window =
-        object : WindowInfo {
-            override val isWindowFocused get() = true
-            override var containerSize by mutableStateOf(IntSize.Zero)
-            override var containerDpSize by mutableStateOf(DpSize.Zero)
-        }
-    var cursor: Cursor? = null
+	private val window =
+		object : WindowInfo {
+			override val isWindowFocused get() = true
+			override var containerSize by mutableStateOf(IntSize.Zero)
+			override var containerDpSize by mutableStateOf(DpSize.Zero)
+		}
+	var cursor: Cursor? = null
 
-    override val windowInfo: WindowInfo get() = window
+	override val windowInfo: WindowInfo get() = window
 
-    fun resize(size: IntSize, density: Float) {
-        window.containerSize = size
-        window.containerDpSize = DpSize((size.width / density).dp, (size.height / density).dp)
-    }
+	fun resize(size: IntSize, density: Float) {
+		window.containerSize = size
+		window.containerDpSize = DpSize((size.width / density).dp, (size.height / density).dp)
+	}
 
-    override fun setPointerIcon(pointerIcon: PointerIcon) {
-        cursor =
-            when (pointerIcon) {
-                PointerIcon.Text -> StandardCursors.IBEAM
-                PointerIcon.Hand -> StandardCursors.POINTING_HAND
-                PointerIcon.Crosshair -> StandardCursors.CROSSHAIR
-                ResizeVerticalIcon -> StandardCursors.RESIZE_NS
-                else -> null
-            }
-    }
+	override fun setPointerIcon(pointerIcon: PointerIcon) {
+		cursor =
+			when (pointerIcon) {
+				PointerIcon.Text -> StandardCursors.IBEAM
+				PointerIcon.Hand -> StandardCursors.POINTING_HAND
+				PointerIcon.Crosshair -> StandardCursors.CROSSHAIR
+				ResizeVerticalIcon -> StandardCursors.RESIZE_NS
+				else -> null
+			}
+	}
 }
 
 object ResizeVerticalIcon : PointerIcon
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal object GameClipboard : Clipboard {
-    @Suppress("OVERRIDE_DEPRECATION")
-    override val nativeClipboard: Any get() = this
+	@Suppress("OVERRIDE_DEPRECATION")
+	override val nativeClipboard: Any get() = this
 
-    override suspend fun getClipEntry(): ClipEntry? =
-        mc.keyboard.clipboard.takeIf { it.isNotEmpty() }?.let {
-            ClipEntry(StringSelection(it))
-        }
+	override suspend fun getClipEntry(): ClipEntry? =
+		mc.keyboard.clipboard.takeIf { it.isNotEmpty() }?.let {
+			ClipEntry(StringSelection(it))
+		}
 
-    override suspend fun setClipEntry(clipEntry: ClipEntry?) {
-        val transferable = clipEntry?.nativeClipEntry as? Transferable
-        mc.keyboard.clipboard =
-            transferable
-                ?.takeIf { it.isDataFlavorSupported(DataFlavor.stringFlavor) }
-                ?.getTransferData(DataFlavor.stringFlavor) as? String
-                ?: ""
-    }
+	override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+		val transferable = clipEntry?.nativeClipEntry as? Transferable
+		mc.keyboard.clipboard =
+			transferable
+				?.takeIf { it.isDataFlavorSupported(DataFlavor.stringFlavor) }
+				?.getTransferData(DataFlavor.stringFlavor) as? String
+				?: ""
+	}
 }

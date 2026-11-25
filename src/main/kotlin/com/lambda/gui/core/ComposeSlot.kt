@@ -25,16 +25,16 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ComposeEvent
 
 internal class ComposeSlot(private val event: () -> ComposeEvent) {
-    private var contents by mutableStateOf(emptyList<@Composable () -> Unit>())
-    val isEmpty get() = contents.isEmpty()
+	private var contents by mutableStateOf(emptyList<@Composable () -> Unit>())
+	val isEmpty get() = contents.isEmpty()
 
-    fun collect(active: Boolean = true) {
-        val collected =
-            if (active) event().post().contents
-            else emptyList()
-        if (collected != contents) contents = collected
-    }
+	fun collect(active: Boolean = true) {
+		val collected =
+			if (active) event().post().contents
+			else emptyList()
+		if (collected != contents) contents = collected
+	}
 
-    @Composable
-    fun Content() = contents.forEach { it() }
+	@Composable
+	fun Content() = contents.forEach { it() }
 }

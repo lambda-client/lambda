@@ -50,42 +50,42 @@ private val FOCUS_MARK = 1.dp
 val LocalKeyboardReachable = compositionLocalOf { true }
 
 internal object KeyboardFocus {
-    var visible by mutableStateOf(false)
+	var visible by mutableStateOf(false)
 
-    private val layers = ArrayList<FocusManager>()
+	private val layers = ArrayList<FocusManager>()
 
-    fun move(direction: FocusDirection) = layers.lastOrNull()?.moveFocus(direction) == true
+	fun move(direction: FocusDirection) = layers.lastOrNull()?.moveFocus(direction) == true
 
-    @Composable
-    fun Layer() {
-        val manager = LocalFocusManager.current
-        DisposableEffect(manager) {
-            layers += manager
-            onDispose { layers -= manager }
-        }
-    }
+	@Composable
+	fun Layer() {
+		val manager = LocalFocusManager.current
+		DisposableEffect(manager) {
+			layers += manager
+			onDispose { layers -= manager }
+		}
+	}
 }
 
 fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier =
-    composed {
-        if (!LocalKeyboardReachable.current) return@composed Modifier
-        var focused by remember { mutableStateOf(false) }
-        val handle by rememberUpdatedState(onKey)
-        val mark = LambdaTheme.colors.onSurface
-        onFocusChanged { focused = it.isFocused }
-            .onKeyEvent { it.type == KeyEventType.KeyDown && KeyboardFocus.visible && handle(it) }
-            .focusable()
-            .drawWithContent {
-                drawContent()
-                if (!focused || !KeyboardFocus.visible) return@drawWithContent
-                val width = FOCUS_MARK.toPx()
-                drawRect(
-                    mark,
-                    Offset(width / 2, width / 2),
-                    Size(size.width - width, size.height - width),
-                    style = Stroke(width)
-                )
-            }
-    }
+	composed {
+		if (!LocalKeyboardReachable.current) return@composed Modifier
+		var focused by remember { mutableStateOf(false) }
+		val handle by rememberUpdatedState(onKey)
+		val mark = LambdaTheme.colors.onSurface
+		onFocusChanged { focused = it.isFocused }
+			.onKeyEvent { it.type == KeyEventType.KeyDown && KeyboardFocus.visible && handle(it) }
+			.focusable()
+			.drawWithContent {
+				drawContent()
+				if (!focused || !KeyboardFocus.visible) return@drawWithContent
+				val width = FOCUS_MARK.toPx()
+				drawRect(
+					mark,
+					Offset(width / 2, width / 2),
+					Size(size.width - width, size.height - width),
+					style = Stroke(width)
+				)
+			}
+	}
 
 internal val KeyEvent.isActivation get() = key == Key.Enter || key == Key.Spacebar

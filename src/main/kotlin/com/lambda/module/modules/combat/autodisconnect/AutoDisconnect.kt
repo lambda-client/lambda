@@ -659,9 +659,9 @@ object AutoDisconnect : Module(
                         buildText {
                             text(effect.effectType.value().name)
                             if (effect.amplifier > 0) literal(" ${effect.amplifier + 1}")
-                            color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
-                                literal(" (${effectDuration(effect)})")
-                            }
+							color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
+								literal(" (${effectDuration(effect)})")
+							}
                         }
                     )
                 }
@@ -748,7 +748,7 @@ object AutoDisconnect : Module(
         val customName = stack.get(DataComponentTypes.CUSTOM_NAME)
         if (customName != null) {
             text(stack.itemName)
-            color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
+			color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
                 literal(" (")
                 text(customName)
                 literal(")")
@@ -758,13 +758,13 @@ object AutoDisconnect : Module(
         }
 
         if (stack.isDamageable) {
-            color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
-                literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})")
-            }
+			color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
+				literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})")
+			}
         }
 
         if (stack.maxCount > 1) {
-            color(GuiConfig.palette.onSurfaceVariant.toAwt()) { literal(" (${stack.count})") }
+			color(GuiConfig.palette.onSurfaceVariant.toAwt()) { literal(" (${stack.count})") }
         }
 
         if (selected) {

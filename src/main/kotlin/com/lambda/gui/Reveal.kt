@@ -34,51 +34,51 @@ import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleTag
 
 internal object Reveal {
-    private const val MILLIS = 1800L
+	private const val MILLIS = 1800L
 
-    var module: Module? by mutableStateOf(null)
-        private set
-    var setting: Setting<*>? by mutableStateOf(null)
-        private set
+	var module: Module? by mutableStateOf(null)
+		private set
+	var setting: Setting<*>? by mutableStateOf(null)
+		private set
 
-    fun show(config: Config, setting: Setting<*>? = null) {
-        val owner = owner(config)
-        module = owner
-        this.setting = setting
-        when (owner) {
-            is HudModule -> LambdaGui.open(LambdaGui.Screen.HudEditor)
-            is Module -> uncover(owner)
-            else -> ClickGuiState.dialog = ClickGuiDialog.Settings(config)
-        }
-    }
+	fun show(config: Config, setting: Setting<*>? = null) {
+		val owner = owner(config)
+		module = owner
+		this.setting = setting
+		when (owner) {
+			is HudModule -> LambdaGui.open(LambdaGui.Screen.HudEditor)
+			is Module -> uncover(owner)
+			else -> ClickGuiState.dialog = ClickGuiDialog.Settings(config)
+		}
+	}
 
-    @Composable
-    fun Expiry() {
-        val module = module
-        val setting = setting
-        LaunchedEffect(module, setting) {
-            if (module == null && setting == null) return@LaunchedEffect
-            awaitFrames(MILLIS)
-            this@Reveal.module = null
-            this@Reveal.setting = null
-        }
-    }
+	@Composable
+	fun Expiry() {
+		val module = module
+		val setting = setting
+		LaunchedEffect(module, setting) {
+			if (module == null && setting == null) return@LaunchedEffect
+			awaitFrames(MILLIS)
+			this@Reveal.module = null
+			this@Reveal.setting = null
+		}
+	}
 
-    private fun owner(config: Config): Module? = config as? Module
-        ?: config.takeIf { it !== AutomationConfig.DEFAULT }
-            ?.let {
-                ModuleRegistry.modules.firstOrNull { module ->
-                    module.automationConfig === config
-                }
-            }
+	private fun owner(config: Config): Module? = config as? Module
+		?: config.takeIf { it !== AutomationConfig.DEFAULT }
+			?.let {
+				ModuleRegistry.modules.firstOrNull { module ->
+					module.automationConfig === config
+				}
+			}
 
-    private fun uncover(module: Module) {
-        val tag = module.tag
-        if (tag == ModuleTag.DEBUG) ClickGuiState.developerMode =
-            true else ModuleTag.shownTags += tag
-        module.showInClickGui.value = true
-        GuiConfig.windows[tag.name]?.takeIf { it.collapsed }?.let {
-            GuiConfig.windows += tag.name to it.copy(collapsed = false)
-        }
-    }
+	private fun uncover(module: Module) {
+		val tag = module.tag
+		if (tag == ModuleTag.DEBUG) ClickGuiState.developerMode =
+			true else ModuleTag.shownTags += tag
+		module.showInClickGui.value = true
+		GuiConfig.windows[tag.name]?.takeIf { it.collapsed }?.let {
+			GuiConfig.windows += tag.name to it.copy(collapsed = false)
+		}
+	}
 }

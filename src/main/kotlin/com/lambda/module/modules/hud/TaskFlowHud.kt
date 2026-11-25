@@ -31,9 +31,9 @@ object TaskFlowHud : HudModule(
     name = "TaskFlowHud",
     tag = ModuleTag.HUD,
 ) {
-    @Composable
-    override fun Content() {
-        val tasks by observe { RootTask.taskTree(ClientConfig.showInvisibleTasks) }
-        HudText(tasks)
+	@Composable
+	override fun Content() {
+		val tasks by observe { RootTask.taskTree(ClientConfig.showInvisibleTasks) }
+		HudText(tasks)
     }
 }

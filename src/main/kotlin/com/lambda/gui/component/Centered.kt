@@ -21,10 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 
 internal object Centered {
-    private const val RISE = -0.004f
+	private const val RISE = -0.004f
 
-    val VERTICALLY: Alignment.Vertical = BiasAlignment.Vertical(RISE)
-    val START: Alignment = BiasAlignment(-1f, RISE)
-    val END: Alignment = BiasAlignment(1f, RISE)
-    val BOTH: Alignment = BiasAlignment(0f, RISE)
+	val VERTICALLY: Alignment.Vertical = BiasAlignment.Vertical(RISE)
+	val START: Alignment = BiasAlignment(-1f, RISE)
+	val END: Alignment = BiasAlignment(1f, RISE)
+	val BOTH: Alignment = BiasAlignment(0f, RISE)
 }

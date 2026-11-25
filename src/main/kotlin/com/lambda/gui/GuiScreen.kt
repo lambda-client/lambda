@@ -36,120 +36,122 @@ import net.minecraft.text.Text
 import org.lwjgl.glfw.GLFW
 
 object GuiScreen : Screen(Text.of("Lambda")), CursorOverrideProvider {
-    private var parent: Screen? = null
+	private var parent: Screen? = null
 
-    private val backgroundScreens =
-        listOf(
-            TitleScreen::class.java,
-            MultiplayerScreen::class.java,
-            AutoDisconnectScreen::class.java,
-        )
+	private val backgroundScreens =
+		listOf(
+			TitleScreen::class.java,
+			MultiplayerScreen::class.java,
+			AutoDisconnectScreen::class.java,
+		)
 
-    fun canOpenOver(screen: Screen?) =
-        screen == null || backgroundScreens.any { it.isInstance(screen) }
+	val isOverScreen get() = parent != null
 
-    internal fun show() {
-        parent = mc.currentScreen
-        (parent as? OverlayBackgroundScreen)?.onOverlaidByGui()
-        mc.setScreen(this)
-    }
+	fun canOpenOver(screen: Screen?) =
+		screen == null || backgroundScreens.any { it.isInstance(screen) }
 
-    override fun close() {
-        val previous = parent
-        parent = null
-        mc.setScreen(previous)
-    }
+	internal fun show() {
+		parent = mc.currentScreen
+		(parent as? OverlayBackgroundScreen)?.onOverlaidByGui()
+		mc.setScreen(this)
+	}
 
-    override fun removed() {
-        KeybindSetting.stopRecording()
-        LambdaGui.onScreenRemoved()
-    }
+	override fun close() {
+		val previous = parent
+		parent = null
+		mc.setScreen(previous)
+	}
 
-    override fun shouldPause() = false
+	override fun removed() {
+		KeybindSetting.stopRecording()
+		LambdaGui.onScreenRemoved()
+	}
 
-    override fun render(
-        context: DrawContext,
-        mouseX: Int,
-        mouseY: Int,
-        deltaTicks: Float
-    ) = Unit
+	override fun shouldPause() = false
 
-    override fun renderBackground(
-        context: DrawContext,
-        mouseX: Int,
-        mouseY: Int,
-        delta: Float
-    ) {
-        val parent = parent
-        if (parent != null) {
-            parent.renderBackground(context, -1, -1, delta)
-            parent.render(context, -1, -1, delta)
-            context.drawDeferredElements()
-        }
-    }
+	override fun render(
+		context: DrawContext,
+		mouseX: Int,
+		mouseY: Int,
+		deltaTicks: Float
+	) = Unit
 
-    override fun resize(width: Int, height: Int) {
-        super.resize(width, height)
-        parent?.resize(width, height)
-    }
+	override fun renderBackground(
+		context: DrawContext,
+		mouseX: Int,
+		mouseY: Int,
+		delta: Float
+	) {
+		val parent = parent
+		if (parent != null) {
+			parent.renderBackground(context, -1, -1, delta)
+			parent.render(context, -1, -1, delta)
+			context.drawDeferredElements()
+		}
+	}
 
-    override fun getCursorOverride(mouseX: Int, mouseY: Int): Cursor? = LambdaGui.cursor
+	override fun resize(width: Int, height: Int) {
+		super.resize(width, height)
+		parent?.resize(width, height)
+	}
 
-    override fun mouseMoved(mouseX: Double, mouseY: Double) {
-        LambdaGui.input?.move(scenePosition(mouseX, mouseY))
-    }
+	override fun getCursorOverride(mouseX: Int, mouseY: Int): Cursor? = LambdaGui.cursor
 
-    override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
-        val position = scenePosition(click.x(), click.y())
-        TextFocus.press(position)
-        LambdaGui.input?.run {
-            move(position)
-            button(click.button(), true, click.modifiers())
-        }
-        return true
-    }
+	override fun mouseMoved(mouseX: Double, mouseY: Double) {
+		LambdaGui.input?.move(scenePosition(mouseX, mouseY))
+	}
 
-    override fun mouseReleased(click: Click): Boolean {
-        LambdaGui.input?.run {
-            move(scenePosition(click.x(), click.y()))
-            button(click.button(), false, click.modifiers())
-        }
-        return true
-    }
+	override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
+		val position = scenePosition(click.x(), click.y())
+		TextFocus.press(position)
+		LambdaGui.input?.run {
+			move(position)
+			button(click.button(), true, click.modifiers())
+		}
+		return true
+	}
 
-    override fun mouseScrolled(
-        mouseX: Double,
-        mouseY: Double,
-        horizontalAmount: Double,
-        verticalAmount: Double
-    ): Boolean {
-        LambdaGui.input?.scroll(horizontalAmount, verticalAmount)
-        return true
-    }
+	override fun mouseReleased(click: Click): Boolean {
+		LambdaGui.input?.run {
+			move(scenePosition(click.x(), click.y()))
+			button(click.button(), false, click.modifiers())
+		}
+		return true
+	}
 
-    override fun keyPressed(input: KeyInput): Boolean {
-        if (LambdaGui.input?.key(input.key(), true, input.modifiers()) == true) return true
-        if (input.key() == GLFW.GLFW_KEY_F && input.modifiers() and GLFW.GLFW_MOD_CONTROL != 0) {
-            ClickGuiState.focusSearch = LambdaGui.screen == LambdaGui.Screen.ClickGui
-            return true
-        }
-        if (input.isEscape && LambdaGui.onEscape?.invoke() != true) LambdaGui.back()
-        return true
-    }
+	override fun mouseScrolled(
+		mouseX: Double,
+		mouseY: Double,
+		horizontalAmount: Double,
+		verticalAmount: Double
+	): Boolean {
+		LambdaGui.input?.scroll(horizontalAmount, verticalAmount)
+		return true
+	}
 
-    override fun keyReleased(input: KeyInput): Boolean {
-        LambdaGui.input?.key(input.key(), false, input.modifiers())
-        return true
-    }
+	override fun keyPressed(input: KeyInput): Boolean {
+		if (LambdaGui.input?.key(input.key(), true, input.modifiers()) == true) return true
+		if (input.key() == GLFW.GLFW_KEY_F && input.modifiers() and GLFW.GLFW_MOD_CONTROL != 0) {
+			ClickGuiState.focusSearch = LambdaGui.screen == LambdaGui.Screen.ClickGui
+			return true
+		}
+		if (input.isEscape && LambdaGui.onEscape?.invoke() != true) LambdaGui.back()
+		return true
+	}
 
-    override fun charTyped(input: CharInput): Boolean {
-        LambdaGui.input?.type(input.codepoint())
-        return true
-    }
+	override fun keyReleased(input: KeyInput): Boolean {
+		LambdaGui.input?.key(input.key(), false, input.modifiers())
+		return true
+	}
 
-    private fun scenePosition(x: Double, y: Double): Offset {
-        val scale = mc.window.scaleFactor
-        return Offset((x * scale).toFloat(), (y * scale).toFloat())
-    }
+	override fun charTyped(input: CharInput): Boolean {
+		LambdaGui.input?.type(input.codepoint())
+		return true
+	}
+
+	private fun scenePosition(x: Double, y: Double): Offset {
+		val scale = mc.window.scaleFactor
+		return Offset((x * scale).toFloat(), (y * scale).toFloat())
+	}
 
 }

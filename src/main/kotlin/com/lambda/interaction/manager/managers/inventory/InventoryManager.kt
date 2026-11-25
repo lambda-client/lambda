@@ -75,7 +75,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 		super.load()
 
         listen<TickEvent.Post>({ Int.MIN_VALUE }) {
-            if (ClientConfig.avoidInventoryDesync) indexInventoryChanges()
+			if (ClientConfig.avoidInventoryDesync) indexInventoryChanges()
             actionsThisTick = 0
             activeRequest = null
             actions = mutableListOf()

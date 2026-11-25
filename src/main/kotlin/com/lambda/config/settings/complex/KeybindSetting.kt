@@ -128,12 +128,12 @@ class KeybindSetting(
         get() = muteable?.isMuted == true && !alwaysListening
 
     init {
-        listenUnsafe<ButtonEvent.Keyboard.Press>(alwaysListen = true) { event ->
-            if (recorder === this) record(event) else if (!isMuted) onButtonEvent(event)
-        }
-        listenUnsafe<ButtonEvent.Mouse.Click>(alwaysListen = true) { event ->
-            if (recorder === this) record(event) else if (!isMuted) onButtonEvent(event)
-        }
+		listenUnsafe<ButtonEvent.Keyboard.Press>(alwaysListen = true) { event ->
+			if (recorder === this) record(event) else if (!isMuted) onButtonEvent(event)
+		}
+		listenUnsafe<ButtonEvent.Mouse.Click>(alwaysListen = true) { event ->
+			if (recorder === this) record(event) else if (!isMuted) onButtonEvent(event)
+		}
     }
 
     private fun onButtonEvent(event: ButtonEvent) {
@@ -155,68 +155,68 @@ class KeybindSetting(
         }
     }
 
-    @Composable
-    override fun Gui() {
-        val colors = LambdaTheme.colors
-        val bind by observe { value }
-        val recording = recorder === this
+	@Composable
+	override fun Gui() {
+		val colors = LambdaTheme.colors
+		val bind by observe { value }
+		val recording = recorder === this
 
-        Labeled(name) {
-            Tooltip("Click, then press a key or mouse button. Backspace unbinds, Escape cancels.") {
-                Box(
-                    contentAlignment = Centered.BOTH,
-                    modifier = Modifier
-                        .height(Look.rowHeight)
-                        .clip(RoundedCornerShape(Look.controlRounding))
-                        .background(if (recording) colors.secondary else colors.control)
-                        .mouseClickable {
-                            val stoppedHere = stopped === this@KeybindSetting && stoppedBy == Press.id
-                            if (!stoppedHere) recorder = this@KeybindSetting
+		Labeled(name) {
+			Tooltip("Click, then press a key or mouse button. Backspace unbinds, Escape cancels.") {
+				Box(
+					contentAlignment = Centered.BOTH,
+					modifier = Modifier
+						.height(Look.rowHeight)
+						.clip(RoundedCornerShape(Look.controlRounding))
+						.background(if (recording) colors.secondary else colors.control)
+						.mouseClickable {
+							val stoppedHere = stopped === this@KeybindSetting && stoppedBy == Press.id
+							if (!stoppedHere) recorder = this@KeybindSetting
                         }
-                        .padding(horizontal = 4.dp)
-                ) {
-                    Text(
-                        text = if (recording) "Press a key" else bind.name,
-                        color = if (recording) colors.onSecondary else colors.onControl,
-                        maxLines = 1,
-                    )
+						.padding(horizontal = 4.dp)
+				) {
+					Text(
+						text = if (recording) "Press a key" else bind.name,
+						color = if (recording) colors.onSecondary else colors.onControl,
+						maxLines = 1,
+					)
                 }
             }
         }
-    }
+	}
 
-    private fun record(event: ButtonEvent.Keyboard.Press) {
-        event.cancel()
-        val isModifier = event.keyCode in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER
-        if (event.isRepeated || event.isPressed == isModifier) return
-        when (val key = event.translated) {
-            KeyCode.Unbound -> return
-            KeyCode.Escape -> Unit
-            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
-            else -> value = Bind(key.code, if (isModifier) 0 else event.modifiers, -1)
+	private fun record(event: ButtonEvent.Keyboard.Press) {
+		event.cancel()
+		val isModifier = event.keyCode in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER
+		if (event.isRepeated || event.isPressed == isModifier) return
+		when (val key = event.translated) {
+			KeyCode.Unbound -> return
+			KeyCode.Escape -> Unit
+			KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
+			else -> value = Bind(key.code, if (isModifier) 0 else event.modifiers, -1)
         }
-        recorder = null
-    }
+		recorder = null
+	}
 
-    private fun record(event: ButtonEvent.Mouse.Click) {
-        if (!event.isPressed) return
-        recorder = null
-        stopped = this
-        stoppedBy = Press.id + 1
-        if (event.button == GLFW_MOUSE_BUTTON_LEFT) return
-        event.cancel()
-        value = Bind(0, event.modifiers, event.button)
-    }
+	private fun record(event: ButtonEvent.Mouse.Click) {
+		if (!event.isPressed) return
+		recorder = null
+		stopped = this
+		stoppedBy = Press.id + 1
+		if (event.button == GLFW_MOUSE_BUTTON_LEFT) return
+		event.cancel()
+		value = Bind(0, event.modifiers, event.button)
+	}
 
-    companion object {
-        private var recorder: KeybindSetting? by mutableStateOf(null)
-        private var stopped: KeybindSetting? = null
-        private var stoppedBy = 0L
+	companion object {
+		private var recorder: KeybindSetting? by mutableStateOf(null)
+		private var stopped: KeybindSetting? = null
+		private var stoppedBy = 0L
 
-        internal val isRecording get() = recorder != null
+		internal val isRecording get() = recorder != null
 
-        internal fun stopRecording() {
-            recorder = null
+		internal fun stopRecording() {
+			recorder = null
         }
     }
 
@@ -229,22 +229,22 @@ class KeybindSetting(
             }
             optional(boolean("mouse button")) { isMouseButton ->
                 executeWithResult {
-                    val isMouse = isMouseButton != null && isMouseButton().value()
-                    val bind =
-                        if (isMouse) {
-                            val num =
-                                try {
-                                    nameArg().value().toInt()
-                                } catch (_: NumberFormatException) {
-                                    return@executeWithResult failure("${nameArg().value()} doesn't match with a mouse button")
-                                }
-                            Bind(0, 0, mouse = num)
-                        } else {
-                            try {
-                                Bind(KeyCode.valueOf(nameArg().value()).code, 0)
-                            } catch (_: IllegalArgumentException) {
-                                return@executeWithResult failure("${nameArg().value()} doesn't match with a bind")
-                            }
+					val isMouse = isMouseButton != null && isMouseButton().value()
+					val bind =
+						if (isMouse) {
+							val num =
+								try {
+									nameArg().value().toInt()
+								} catch (_: NumberFormatException) {
+									return@executeWithResult failure("${nameArg().value()} doesn't match with a mouse button")
+								}
+							Bind(0, 0, mouse = num)
+						} else {
+							try {
+								Bind(KeyCode.valueOf(nameArg().value()).code, 0)
+							} catch (_: IllegalArgumentException) {
+								return@executeWithResult failure("${nameArg().value()} doesn't match with a bind")
+							}
                         }
 
                     trySetValue(bind)

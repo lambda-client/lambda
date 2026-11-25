@@ -30,9 +30,9 @@ object AccountName : HudModule(
     description = "Displays the current accounts name",
     tag = ModuleTag.HUD
 ) {
-    @Composable
-    override fun Content() {
-        val name by observeSafe { player.name.string }
-        name?.let { HudText(it) }
+	@Composable
+	override fun Content() {
+		val name by observeSafe { player.name.string }
+		name?.let { HudText(it) }
     }
 }

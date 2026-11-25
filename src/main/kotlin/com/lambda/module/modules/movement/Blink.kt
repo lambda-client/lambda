@@ -49,7 +49,7 @@ object Blink : Module(
     description = "Holds packets",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val BOX_COLOR = Color(130, 200, 255)
+	private val BOX_COLOR = Color(130, 200, 255)
 
     private var delay by intSetting("Delay", 500, 50..10000, 10)
     private val shiftVelocity by boolSetting("Shift velocity", true)
@@ -75,7 +75,7 @@ object Blink : Module(
         }
 
         immediateRenderer("Blink Immediate Renderer") {
-            val color = BOX_COLOR
+			val color = BOX_COLOR
             box(box.update(lastBox).box(mc.tickDelta) ?: return@immediateRenderer) {
                 colors(color.setAlpha(0.3), color)
             }

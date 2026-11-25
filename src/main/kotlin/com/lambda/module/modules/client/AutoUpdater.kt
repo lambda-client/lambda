@@ -44,10 +44,10 @@ object AutoUpdater : Module(
 
     private var loaderPromptHandled by property(false)
 
-    internal enum class Prompt { FirstLaunch, Install, Uninstall }
+	internal enum class Prompt { FirstLaunch, Install, Uninstall }
 
-    internal var prompt: Prompt? = null
-        private set
+	internal var prompt: Prompt? = null
+		private set
     private var firstLaunchStateInitialized = false
 
     private const val MAVEN_URL = "https://maven.lambda-client.org"
@@ -62,40 +62,40 @@ object AutoUpdater : Module(
     }
 
     init {
-        onEnableUnsafe { prompt = Prompt.Install.takeIf { LambdaGui.screen != null && prompt != Prompt.Uninstall } }
-        onDisableUnsafe { prompt = Prompt.Uninstall.takeIf { LambdaGui.screen != null && prompt != Prompt.Install } }
-    }
+		onEnableUnsafe { prompt = Prompt.Install.takeIf { LambdaGui.screen != null && prompt != Prompt.Uninstall } }
+		onDisableUnsafe { prompt = Prompt.Uninstall.takeIf { LambdaGui.screen != null && prompt != Prompt.Install } }
+	}
 
-    internal fun onGuiOpened() {
-        if (firstLaunchStateInitialized) return
-        firstLaunchStateInitialized = true
+	internal fun onGuiOpened() {
+		if (firstLaunchStateInitialized) return
+		firstLaunchStateInitialized = true
 
-        if (FabricLoader.getInstance().isModLoaded("lambda-loader")) {
-            loaderPromptHandled = true
-            if (!isEnabled) enable()
-            return
-        }
-        if (!loaderPromptHandled) prompt = Prompt.FirstLaunch
-    }
+		if (FabricLoader.getInstance().isModLoaded("lambda-loader")) {
+			loaderPromptHandled = true
+			if (!isEnabled) enable()
+			return
+		}
+		if (!loaderPromptHandled) prompt = Prompt.FirstLaunch
+	}
 
-    internal fun answerPrompt(accepted: Boolean) {
-        when (prompt) {
-            Prompt.FirstLaunch -> {
-                loaderPromptHandled = true
-                prompt = null
-                if (accepted) installLoader()
+	internal fun answerPrompt(accepted: Boolean) {
+		when (prompt) {
+			Prompt.FirstLaunch -> {
+				loaderPromptHandled = true
+				prompt = null
+				if (accepted) installLoader()
             }
-            Prompt.Install ->
-                if (accepted) {
-                    prompt = null
-                    installLoader()
-                } else disable()
-            Prompt.Uninstall ->
-                if (accepted) {
-                    prompt = null
-                    installClient()
-                } else enable()
-            null -> Unit
+			Prompt.Install ->
+				if (accepted) {
+					prompt = null
+					installLoader()
+				} else disable()
+			Prompt.Uninstall ->
+				if (accepted) {
+					prompt = null
+					installClient()
+				} else enable()
+			null -> Unit
         }
     }
 

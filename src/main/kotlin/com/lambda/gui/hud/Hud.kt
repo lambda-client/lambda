@@ -37,7 +37,10 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.categories.HudCategory
@@ -60,95 +63,89 @@ private val HUD_TEXT_SHADOW = Color.Black.copy(alpha = 0.75f)
 private val ELEMENT_PADDING = 1.dp
 
 object HudConfig : Loadable, Config("HUD", HudCategory) {
-    val showInScreens by boolSetting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The HUD editor always shows them.")
-    val textColor by colorSetting("Text Color", java.awt.Color.WHITE, "Colour of HUD text")
-    val scale by floatSetting("Scale", 1f, 0.5f..3f, 0.05f, "Size of HUD text")
+	val showInScreens by boolSetting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The HUD editor always shows them.")
+	val textColor by colorSetting("Text Color", java.awt.Color.WHITE, "Colour of HUD text")
+	val scale by floatSetting("Scale", 1f, 0.5f..3f, 0.05f, "Size of HUD text")
 }
 
 internal object Hud {
-    val modules: List<HudModule> by lazy { ModuleRegistry.modules.filterIsInstance<HudModule>() }
+	val modules: List<HudModule> by lazy { ModuleRegistry.modules.filterIsInstance<HudModule>() }
 
-    val enabled: List<HudModule>
-        get() = modules.filter { it.isEnabled }
+	val enabled: List<HudModule>
+		get() = modules.filter { it.isEnabled }
 
-    val shown: List<HudModule>
-        get() {
-            val screen = mc.currentScreen
-            val covered = screen != null && screen !is GuiScreen && !HudConfig.showInScreens
-            return if (mc.world == null || mc.options.hudHidden || covered) emptyList()
-            else enabled
-        }
+	val shown: List<HudModule>
+		get() {
+			val screen = mc.currentScreen
+			val covered = screen != null && screen !is GuiScreen && !HudConfig.showInScreens
+			return if (mc.world == null || mc.options.hudHidden || covered) emptyList()
+			else enabled
+		}
 }
 
 @Composable
 internal fun HudLayer(editor: HudEditorState? = null) {
-    val shown by observe {
-        if (editor != null) Hud.enabled
-        else Hud.shown
-    }
-    Box(Modifier.fillMaxSize()) {
-        shown.forEach { hud ->
-            key(hud) { HudElement(hud, editor) }
-        }
-    }
+	val shown by observe {
+		if (editor != null) Hud.enabled
+		else Hud.shown
+	}
+	Box(Modifier.fillMaxSize()) {
+		shown.forEach { hud ->
+			key(hud) { HudElement(hud, editor) }
+		}
+	}
 }
 
 @Composable
 private fun HudElement(hud: HudModule, editor: HudEditorState?) {
-    val anchor by observe { Offset(hud.anchorX, hud.anchorY) }
-    val background by observe { hud.backgroundColor.value.toCompose() }
-    val scale by observe { hud.scale }
-    var empty by remember { mutableStateOf(false) }
-    if (editor != null) DisposableEffect(hud) {
-        onDispose { editor.bounds -= hud }
-    }
+	val pinned by observe { Offset(hud.anchorX, hud.anchorY) }
+	val anchor by observe { hud.anchor }
+	val background by observe { hud.backgroundColor.value.toCompose() }
+	val scale by observe { hud.scale }
+	var empty by remember { mutableStateOf(false) }
+	if (editor != null) DisposableEffect(hud) {
+		onDispose { editor.bounds -= hud }
+	}
 
-    val density = LocalDensity.current
-    val scaled = remember(density, scale) { Density(density.density * scale, density.fontScale) }
-    Box(
-        Modifier
-            .layout { measurable, constraints ->
-                val placeable =
-                    measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
-                val roomX = (constraints.maxWidth - placeable.width).coerceAtLeast(0)
-                val roomY = (constraints.maxHeight - placeable.height).coerceAtLeast(0)
-                val dragged = editor?.shownPosition(hud)
-                layout(constraints.maxWidth, constraints.maxHeight) {
-                    placeable.place(
-                        (dragged?.x ?: (roomX * anchor.x))
-                            .roundToInt()
-                            .coerceIn(0, roomX),
-                        (dragged?.y ?: (roomY * anchor.y))
-                            .roundToInt()
-                            .coerceIn(0, roomY)
-                    )
-                }
-            }
-            .then(if (editor != null) Modifier.hudEditable(hud, editor) else Modifier)
-            .clipToBounds()
-            .background(background)
-    ) {
-        CompositionLocalProvider(LocalDensity provides scaled) {
-            Box(Modifier.padding(ELEMENT_PADDING)) {
-                Box(Modifier.onSizeChanged { empty = it.width == 0 || it.height == 0 }) { hud.Content() }
-                if (editor != null && empty) HudText(hud.name, color = LambdaTheme.colors.onSurfaceVariant)
-            }
-        }
-    }
+	val density = LocalDensity.current
+	val scaled = remember(density, scale) { Density(density.density * scale, density.fontScale) }
+	Box(
+		Modifier
+			.layout { measurable, constraints ->
+				val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
+				val size = IntSize(placeable.width, placeable.height)
+				val screen = IntSize(constraints.maxWidth, constraints.maxHeight)
+				hud.shownSize = size
+				hud.shownScreen = screen
+				val point = IntOffset((screen.width * pinned.x).roundToInt(), (screen.height * pinned.y).roundToInt())
+				val topLeft = editor?.shownPosition(hud)?.round() ?: (point - anchor.offset(size))
+				layout(screen.width, screen.height) { placeable.place(topLeft) }
+			}
+			.then(if (editor != null) Modifier.hudEditable(hud, editor) else Modifier)
+			.clipToBounds()
+			.background(background)
+	) {
+		CompositionLocalProvider(LocalDensity provides scaled) {
+			Box(Modifier.padding(ELEMENT_PADDING)) {
+				Box(Modifier.onSizeChanged { empty = it.width == 0 || it.height == 0 }) { hud.Content() }
+				if (editor != null && empty) HudText(hud.name, color = LambdaTheme.colors.onSurfaceVariant)
+			}
+		}
+	}
 }
 
 @Composable
 fun HudText(text: String, modifier: Modifier = Modifier, color: Color? = null) {
-    val hudColor by observe { HudConfig.textColor.toCompose() }
-    val scale by observe { HudConfig.scale }
-    val size = Type.body.fontSize * scale
-    Text(
-        text,
-        modifier,
-        color ?: hudColor,
-        Type.body.copy(
-            fontSize = size,
-            lineHeight = size * 1.25f
-        ).shadowed(HUD_TEXT_SHADOW)
-    )
+	val hudColor by observe { HudConfig.textColor.toCompose() }
+	val scale by observe { HudConfig.scale }
+	val size = Type.body.fontSize * scale
+	Text(
+		text,
+		modifier,
+		color ?: hudColor,
+		Type.body.copy(
+			fontSize = size,
+			lineHeight = size * 1.25f
+		).shadowed(HUD_TEXT_SHADOW)
+	)
 }

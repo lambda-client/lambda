@@ -73,34 +73,34 @@ class StringSetting(
     var multiline: Boolean = false,
 ) : Setting<String>(name, description, defaultValue, layer, config, visibility) {
 
-    @Composable
-    override fun Gui() {
-        val value by observe { value }
-        if (multiline) Column(
-            Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(1.dp)
-        ) {
-            Row(
-                Modifier.padding(start = ROW_INSET, top = 1.dp),
-                Arrangement.spacedBy(ALTERED_GAP),
-                Centered.VERTICALLY
-            ) {
-                AlteredDot()
-                Text(name, maxLines = 1)
-            }
-            TextInput(
-                value,
-                { this@StringSetting.value = it },
-                Modifier.fillMaxWidth(),
-                singleLine = false
-            )
-        }
-        else Labeled(name) {
-            TextInput(
-                value,
-                { this@StringSetting.value = it },
-                Modifier.width(TEXT_FIELD_WIDTH)
-            )
+	@Composable
+	override fun Gui() {
+		val value by observe { value }
+		if (multiline) Column(
+			Modifier.fillMaxWidth(),
+			verticalArrangement = Arrangement.spacedBy(1.dp)
+		) {
+			Row(
+				Modifier.padding(start = ROW_INSET, top = 1.dp),
+				Arrangement.spacedBy(ALTERED_GAP),
+				Centered.VERTICALLY
+			) {
+				AlteredDot()
+				Text(name, maxLines = 1)
+			}
+			TextInput(
+				value,
+				{ this@StringSetting.value = it },
+				Modifier.fillMaxWidth(),
+				singleLine = false
+			)
+		}
+		else Labeled(name) {
+			TextInput(
+				value,
+				{ this@StringSetting.value = it },
+				Modifier.width(TEXT_FIELD_WIDTH)
+			)
         }
     }
 

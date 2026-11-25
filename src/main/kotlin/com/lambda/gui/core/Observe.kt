@@ -33,29 +33,29 @@ internal val LocalObservations = staticCompositionLocalOf<Observations> { error(
 
 @Composable
 fun <T> observe(read: () -> T): State<T> {
-    val observations = LocalObservations.current
-    val observation = remember { Observation(read) }
-    observation.read = read
-    DisposableEffect(observations) {
-        observations.active += observation
-        onDispose { observations.active -= observation }
-    }
-    return observation.state
+	val observations = LocalObservations.current
+	val observation = remember { Observation(read) }
+	observation.read = read
+	DisposableEffect(observations) {
+		observations.active += observation
+		onDispose { observations.active -= observation }
+	}
+	return observation.state
 }
 
 @Composable
 fun <T> observeSafe(read: SafeContext.() -> T): State<T?> = observe { runSafe(read) }
 
 internal class Observation<T>(var read: () -> T) {
-    val state = mutableStateOf(read())
+	val state = mutableStateOf(read())
 
-    fun refresh() {
-        state.value = read()
-    }
+	fun refresh() {
+		state.value = read()
+	}
 }
 
 internal class Observations {
-    val active = ArrayList<Observation<*>>()
+	val active = ArrayList<Observation<*>>()
 
-    fun refresh() = active.forEach { it.refresh() }
+	fun refresh() = active.forEach { it.refresh() }
 }

@@ -23,6 +23,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.Config
 import com.lambda.config.ConfigLoader
 import com.lambda.config.entries.Setting
+import com.lambda.gui.GuiScreen
 import com.lambda.gui.Reveal
 import com.lambda.gui.clickgui.ClickGuiState
 import com.lambda.module.HudModule
@@ -33,116 +34,120 @@ import com.lambda.util.StringUtils.levenshteinDistance
 import net.minecraft.client.gui.screen.ChatScreen
 
 internal object Search {
-    sealed interface Result {
-        val name: String
+	sealed interface Result {
+		val name: String
 
-        val origin: String
+		val origin: String
 
-        fun choose()
+		fun choose()
 
-        class OfModule(val module: Module) : Result {
-            override val name get() = module.name
-            override val origin =
-                if (module is HudModule) "HUD element"
-                else "${module.tag.name} module"
-            override fun choose() = Reveal.show(module)
-        }
+		class OfModule(val module: Module) : Result {
+			override val name get() = module.name
+			override val origin =
+				if (module is HudModule) "HUD element"
+				else "${module.tag.name} module"
+			override fun choose() = Reveal.show(module)
+		}
 
-        class OfSetting(
-            val setting: Setting<*>,
-            val config: Config,
-            path: List<String>
-        ) : Result {
-            override val name get() = setting.name
-            override val origin = (listOf(config.name) + path).joinToString(" \u00bb ")
-            override fun choose() = Reveal.show(config, setting)
-        }
+		class OfSetting(
+			val setting: Setting<*>,
+			val config: Config,
+			path: List<String>
+		) : Result {
+			override val name get() = setting.name
+			override val origin = (listOf(config.name) + path).joinToString(" \u00bb ")
+			override fun choose() = Reveal.show(config, setting)
+		}
 
-        class OfCommand(val command: LambdaCommand) : Result {
-            override val name = "${CommandRegistry.prefix}${command.name}"
-            override val origin = "Command"
-            override fun choose() = mc.setScreen(ChatScreen("${CommandRegistry.prefix}${command.name} ", true))
-        }
-    }
+		class OfCommand(val command: LambdaCommand) : Result {
+			override val name = "${CommandRegistry.prefix}${command.name}"
+			override val origin = "Command"
+			override fun choose() = mc.setScreen(ChatScreen("${CommandRegistry.prefix}${command.name} ", true))
+		}
+	}
 
-    private const val MAX_RESULTS = 30
+	private const val MAX_RESULTS = 30
 
-    private const val MODULE_BONUS = 300
-    private const val HUD_MODULE_BONUS = 270
-    private const val COMMAND_BONUS = 200
+	private const val MODULE_BONUS = 300
+	private const val HUD_MODULE_BONUS = 270
+	private const val COMMAND_BONUS = 200
 
-    fun find(query: String): List<Result> {
-        if (query.isEmpty()) return emptyList()
-        val needle = query.lowercase()
-        return rank(needle, lenient = false).ifEmpty { rank(needle, lenient = true) }
-            .sortedByDescending { it.second }
-            .take(MAX_RESULTS)
-            .map { it.first }
-    }
+	private val chatReachable get() = mc.world != null && !GuiScreen.isOverScreen
 
-    private fun rank(query: String, lenient: Boolean): List<Pair<Result, Int>> =
-        buildList {
-            fun consider(result: () -> Result, bonus: Int, vararg names: String) {
-                val score = names.maxOf { score(query, it.lowercase(), lenient) }
-                if (score > 0) add(result() to score + bonus)
-            }
+	fun find(query: String): List<Result> {
+		if (query.isEmpty()) return emptyList()
+		val needle = query.lowercase()
+		return rank(needle, lenient = false).ifEmpty { rank(needle, lenient = true) }
+			.sortedByDescending { it.second }
+			.take(MAX_RESULTS)
+			.map { it.first }
+	}
 
-            fun hidden(config: Any) =
-                config is Module &&
-                        config.tag == ModuleTag.DEBUG &&
-                        !ClickGuiState.developerMode
+	private fun rank(query: String, lenient: Boolean): List<Pair<Result, Int>> =
+		buildList {
+			fun consider(result: () -> Result, bonus: Int, vararg names: String) {
+				val score = names.maxOf { score(query, it.lowercase(), lenient) }
+				if (score > 0) add(result() to score + bonus)
+			}
 
-            ModuleRegistry.modules.forEach { module ->
-                if (hidden(module)) return@forEach
-                consider(
-                    { Result.OfModule(module) },
-                    if (module is HudModule) HUD_MODULE_BONUS else MODULE_BONUS,
-                    module.name,
-                    module.tag.name
-                )
-            }
-            CommandRegistry.commands.forEach { command ->
-                consider(
-                    { Result.OfCommand(command) },
-                    COMMAND_BONUS,
-                    command.name,
-                    *command.aliases.toTypedArray()
-                )
-            }
-            ConfigLoader.configCategories.forEach { category ->
-                category.configs.forEach { config ->
-                    if (hidden(config)) return@forEach
-                    config.settingLayers.forEachEntry { path, single ->
-                        val setting = single.entry
-                        if (setting.visibility()) {
-                            consider(
-                                {
-                                    Result.OfSetting(
-                                        setting,
-                                        config,
-                                        path.map { it.name }
-                                    )
-                                },
-                                0,
-                                setting.name
-                            )
-                        }
-                    }
-                }
-            }
-        }
+			fun hidden(config: Any) =
+				config is Module &&
+						config.tag == ModuleTag.DEBUG &&
+						!ClickGuiState.developerMode
 
-    private fun score(query: String, target: String, lenient: Boolean): Int {
-        if (target.isEmpty()) return 0
-        if (target == query) return 200
-        if (target.startsWith(query)) return 100 + query.length * 50 / target.length
-        if (target.contains(query)) return 50 + query.length * 40 / target.length
+			ModuleRegistry.modules.forEach { module ->
+				if (hidden(module)) return@forEach
+				consider(
+					{ Result.OfModule(module) },
+					if (module is HudModule) HUD_MODULE_BONUS else MODULE_BONUS,
+					module.name,
+					module.tag.name
+				)
+			}
+			if (chatReachable) {
+				CommandRegistry.commands.forEach { command ->
+					consider(
+						{ Result.OfCommand(command) },
+						COMMAND_BONUS,
+						command.name,
+						*command.aliases.toTypedArray()
+					)
+				}
+			}
+			ConfigLoader.configCategories.forEach { category ->
+				category.configs.forEach { config ->
+					if (hidden(config)) return@forEach
+					config.settingLayers.forEachEntry { path, single ->
+						val setting = single.entry
+						if (setting.visibility()) {
+							consider(
+								{
+									Result.OfSetting(
+										setting,
+										config,
+										path.map { it.name }
+									)
+								},
+								0,
+								setting.name
+							)
+						}
+					}
+				}
+			}
+		}
 
-        val distance = query.levenshteinDistance(target)
-        val allowed =
-            if (lenient) (query.length / 2).coerceIn(2, 6)
-            else (query.length / 3).coerceIn(1, 4)
-        return if (distance <= allowed) (50 - distance * 10).coerceAtLeast(1)
-        else 0
-    }
+	private fun score(query: String, target: String, lenient: Boolean): Int {
+		if (target.isEmpty()) return 0
+		if (target == query) return 200
+		if (target.startsWith(query)) return 100 + query.length * 50 / target.length
+		if (target.contains(query)) return 50 + query.length * 40 / target.length
+
+		val distance = query.levenshteinDistance(target)
+		val allowed =
+			if (lenient) (query.length / 2).coerceIn(2, 6)
+			else (query.length / 3).coerceIn(1, 4)
+		return if (distance <= allowed) (50 - distance * 10).coerceAtLeast(1)
+		else 0
+	}
 }

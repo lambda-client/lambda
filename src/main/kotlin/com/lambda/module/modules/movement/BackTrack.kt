@@ -63,7 +63,7 @@ object BackTrack : Module(
     description = "Gives reach advantage by delaying your packets",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val BOX_COLOR = Color(130, 200, 255)
+	private val BOX_COLOR = Color(130, 200, 255)
 
     private val outbound by boolSetting("Outbound", true)
     private val mode by enumSetting("Mode", Mode.Fixed)
@@ -177,7 +177,7 @@ object BackTrack : Module(
         immediateRenderer("BackTrack Immediate Renderer") {
             val target = target ?: return@immediateRenderer
 
-            val c1 = BOX_COLOR
+			val c1 = BOX_COLOR
             val c2 = Color.RED
             val p = target.hurtTime / 10.0
             val c = lerp(p, c1, c2)

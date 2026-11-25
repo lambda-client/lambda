@@ -28,7 +28,7 @@ object Loader {
     private val started = System.currentTimeMillis()
 
     val runtime: String
-        get() = "${((System.currentTimeMillis() - started) / 1000).seconds}"
+		get() = "${((System.currentTimeMillis() - started) / 1000).seconds}"
 
     private val loadables = getInstances<Loadable>()
 

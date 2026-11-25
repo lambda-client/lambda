@@ -153,7 +153,7 @@ object CommunicationUtils {
             if (command.usage.isNotBlank()) {
                 literal("\n")
                 literal("Usage: ")
-                color(GuiConfig.palette.primary.toAwt()) {
+				color(GuiConfig.palette.primary.toAwt()) {
                     literal(command.usage)
                 }
             }
@@ -161,7 +161,7 @@ object CommunicationUtils {
                 literal("\n")
                 literal("Aliases: ")
                 joinToText(command.aliases) {
-                    color(GuiConfig.palette.primary.toAwt()) {
+					color(GuiConfig.palette.primary.toAwt()) {
                         literal(it)
                     }
                 }
@@ -180,7 +180,7 @@ object CommunicationUtils {
                 literal("\n")
             }
             literal("Keybind: ")
-            color(GuiConfig.palette.primary.toAwt()) {
+			color(GuiConfig.palette.primary.toAwt()) {
                 if (module.keybind.key != 0 || module.keybind.mouse > -1) {
                     literal(module.keybind.name)
                 } else {

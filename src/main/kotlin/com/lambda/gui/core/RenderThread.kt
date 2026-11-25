@@ -28,16 +28,16 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.milliseconds
 
 object RenderThread : CoroutineDispatcher() {
-    private val scope = CoroutineScope(this + SupervisorJob())
+	private val scope = CoroutineScope(this + SupervisorJob())
 
-    override fun isDispatchNeeded(context: CoroutineContext) = !mc.isOnThread
+	override fun isDispatchNeeded(context: CoroutineContext) = !mc.isOnThread
 
-    override fun dispatch(context: CoroutineContext, block: Runnable) = mc.send(block)
+	override fun dispatch(context: CoroutineContext, block: Runnable) = mc.send(block)
 
-    @JvmStatic
-    fun after(millis: Long, block: () -> Unit): Job =
-        scope.launch {
-            delay(millis.milliseconds)
-            block()
-        }
+	@JvmStatic
+	fun after(millis: Long, block: () -> Unit): Job =
+		scope.launch {
+			delay(millis.milliseconds)
+			block()
+		}
 }

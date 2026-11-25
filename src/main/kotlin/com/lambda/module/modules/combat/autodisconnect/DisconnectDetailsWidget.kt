@@ -268,10 +268,10 @@ class DisconnectDetailsWidget(
         const val HOVER_PADDING = 2
         const val HOVER_RADIUS = 1
 
-        val COLOR_TEXT get() = GuiConfig.palette.onSurface.toArgb()
-        val COLOR_BACKGROUND get() = GuiConfig.palette.panel.toArgb()
-        val COLOR_BORDER get() = GuiConfig.palette.border.toArgb()
-        val COLOR_HOVER_BACKGROUND get() = GuiConfig.palette.controlSelected.toArgb()
-        val COLOR_HEADER get() = COLOR_TEXT
+		val COLOR_TEXT get() = GuiConfig.palette.onSurface.toArgb()
+		val COLOR_BACKGROUND get() = GuiConfig.palette.panel.toArgb()
+		val COLOR_BORDER get() = GuiConfig.palette.border.toArgb()
+		val COLOR_HOVER_BACKGROUND get() = GuiConfig.palette.controlSelected.toArgb()
+		val COLOR_HEADER get() = COLOR_TEXT
     }
 }

@@ -35,111 +35,111 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 internal object Snap {
-    private const val MIN_GRID_STEP = 4f
-    private val GRID_COLOR = Color.White.copy(alpha = 0.11f)
+	private const val MIN_GRID_STEP = 4f
+	private val GRID_COLOR = Color.White.copy(alpha = 0.11f)
 
-    data class Guides(val x: Float?, val y: Float?) {
-        companion object {
-            val NONE = Guides(null, null)
-        }
-    }
+	data class Guides(val x: Float?, val y: Float?) {
+		companion object {
+			val NONE = Guides(null, null)
+		}
+	}
 
-    data class Result(val position: Offset, val guides: Guides)
+	data class Result(val position: Offset, val guides: Guides)
 
-    private class Target(val shift: Float, val guide: Float?)
+	private class Target(val shift: Float, val guide: Float?)
 
-    val isActive: Boolean
-        get() =
-            GuiConfig.snapEnabled &&
-                    (GuiConfig.snapKey == Bind.EMPTY || GuiConfig.snapKey.isSatisfied())
+	val isActive: Boolean
+		get() =
+			GuiConfig.snapEnabled &&
+					(GuiConfig.snapKey == Bind.EMPTY || GuiConfig.snapKey.isSatisfied())
 
-    private fun gridStep(density: Density) =
-        with(density) { max(MIN_GRID_STEP, GuiConfig.gridSize.dp.toPx()) }
+	private fun gridStep(density: Density) =
+		with(density) { max(MIN_GRID_STEP, GuiConfig.gridSize.dp.toPx()) }
 
-    fun free(element: Rect, area: Rect) =
-        Result(element.topLeft.keptIn(area, element.size), Guides.NONE)
+	fun free(element: Rect, area: Rect) =
+		Result(element.topLeft.keptIn(area, element.size), Guides.NONE)
 
-    fun snap(
-        element: Rect,
-        others: Collection<Rect>,
-        area: Rect,
-        density: Density,
-        spacing: Float = 0f
-    ): Result =
-        with(density) {
-            fun axis(start: (Rect) -> Float, end: (Rect) -> Float): Target {
-                fun center(rect: Rect) = (start(rect) + end(rect)) / 2
-                val from = start(element)
-                val size = end(element) - from
-                fun startAt(at: Float, guide: Float? = at) = Target(at - from, guide)
-                fun endAt(at: Float, guide: Float? = at) = Target(at - size - from, guide)
-                fun centerAt(at: Float, guide: Float? = at) = Target(at - size / 2 - from, guide)
+	fun snap(
+		element: Rect,
+		others: Collection<Rect>,
+		area: Rect,
+		density: Density,
+		spacing: Float = 0f
+	): Result =
+		with(density) {
+			fun axis(start: (Rect) -> Float, end: (Rect) -> Float): Target {
+				fun center(rect: Rect) = (start(rect) + end(rect)) / 2
+				val from = start(element)
+				val size = end(element) - from
+				fun startAt(at: Float, guide: Float? = at) = Target(at - from, guide)
+				fun endAt(at: Float, guide: Float? = at) = Target(at - size - from, guide)
+				fun centerAt(at: Float, guide: Float? = at) = Target(at - size / 2 - from, guide)
 
-                val neighbours =
-                    buildList {
-                        if (GuiConfig.snapToEdges) {
-                            others.forEach { other ->
-                                add(startAt(start(other)))
-                                add(endAt(end(other)))
-                                add(startAt(end(other) + spacing, end(other) + spacing / 2))
-                                add(endAt(start(other) - spacing, start(other) - spacing / 2))
-                            }
-                        }
-                        if (GuiConfig.snapToCenters) others.forEach { add(centerAt(center(it))) }
-                    }
-                val middle = center(area)
-                val screenCenter =
-                    listOf(
-                        startAt(middle),
-                        centerAt(middle),
-                        endAt(middle)
-                    ).takeIf { GuiConfig.snapToScreenCenter }.orEmpty()
-                val step = gridStep(density)
-                fun onGrid(line: Float) = (line / step).roundToInt() * step
-                val grid =
-                    listOf(
-                        startAt(onGrid(from), null),
-                        centerAt(onGrid(from + size / 2), null),
-                        endAt(onGrid(from + size), null),
-                    ).takeIf { GuiConfig.snapToGrid }.orEmpty()
+				val neighbours =
+					buildList {
+						if (GuiConfig.snapToEdges) {
+							others.forEach { other ->
+								add(startAt(start(other)))
+								add(endAt(end(other)))
+								add(startAt(end(other) + spacing, end(other) + spacing / 2))
+								add(endAt(start(other) - spacing, start(other) - spacing / 2))
+							}
+						}
+						if (GuiConfig.snapToCenters) others.forEach { add(centerAt(center(it))) }
+					}
+				val middle = center(area)
+				val screenCenter =
+					listOf(
+						startAt(middle),
+						centerAt(middle),
+						endAt(middle)
+					).takeIf { GuiConfig.snapToScreenCenter }.orEmpty()
+				val step = gridStep(density)
+				fun onGrid(line: Float) = (line / step).roundToInt() * step
+				val grid =
+					listOf(
+						startAt(onGrid(from), null),
+						centerAt(onGrid(from + size / 2), null),
+						endAt(onGrid(from + size), null),
+					).takeIf { GuiConfig.snapToGrid }.orEmpty()
 
-                return listOf(
-                    neighbours to GuiConfig.snapDistanceElement.dp.toPx(),
-                    screenCenter to GuiConfig.snapDistanceScreen.dp.toPx(),
-                    grid to GuiConfig.snapDistanceGrid.dp.toPx(),
-                ).firstNotNullOfOrNull { (targets, reach) ->
-                    targets.minByOrNull { abs(it.shift) }?.takeIf { abs(it.shift) <= reach }
-                } ?: Target(0f, null)
-            }
+				return listOf(
+					neighbours to GuiConfig.snapDistanceElement.dp.toPx(),
+					screenCenter to GuiConfig.snapDistanceScreen.dp.toPx(),
+					grid to GuiConfig.snapDistanceGrid.dp.toPx(),
+				).firstNotNullOfOrNull { (targets, reach) ->
+					targets.minByOrNull { abs(it.shift) }?.takeIf { abs(it.shift) <= reach }
+				} ?: Target(0f, null)
+			}
 
-            val x = axis({ it.left }, { it.right })
-            val y = axis({ it.top }, { it.bottom })
-            Result((element.topLeft + Offset(x.shift, y.shift)).keptIn(area, element.size), Guides(x.guide, y.guide))
-        }
+			val x = axis({ it.left }, { it.right })
+			val y = axis({ it.top }, { it.bottom })
+			Result((element.topLeft + Offset(x.shift, y.shift)).keptIn(area, element.size), Guides(x.guide, y.guide))
+		}
 
-    fun Modifier.snapLines(drop: () -> Result?): Modifier =
-        drawWithContent {
-            val guides = drop()?.guides.takeIf { GuiConfig.showSnapLines }
-            if (guides != null && isActive && GuiConfig.snapToGrid) drawGrid()
-            drawContent()
-            if (guides != null) {
-                val color = GuiConfig.snapLineColor.toCompose()
-                guides.x?.let { drawLine(color, Offset(it, 0f), Offset(it, size.height), Stroke.HairlineWidth) }
-                guides.y?.let { drawLine(color, Offset(0f, it), Offset(size.width, it), Stroke.HairlineWidth) }
-            }
-        }
+	fun Modifier.snapLines(drop: () -> Result?): Modifier =
+		drawWithContent {
+			val guides = drop()?.guides.takeIf { GuiConfig.showSnapLines }
+			if (guides != null && isActive && GuiConfig.snapToGrid) drawGrid()
+			drawContent()
+			if (guides != null) {
+				val color = GuiConfig.snapLineColor.toCompose()
+				guides.x?.let { drawLine(color, Offset(it, 0f), Offset(it, size.height), Stroke.HairlineWidth) }
+				guides.y?.let { drawLine(color, Offset(0f, it), Offset(size.width, it), Stroke.HairlineWidth) }
+			}
+		}
 
-    private fun DrawScope.drawGrid() {
-        val step = gridStep(this)
-        generateSequence(0f) { it + step }.takeWhile { it <= size.width }
-            .forEach { drawLine(GRID_COLOR, Offset(it, 0f), Offset(it, size.height), Stroke.HairlineWidth) }
-        generateSequence(0f) { it + step }.takeWhile { it <= size.height }
-            .forEach { drawLine(GRID_COLOR, Offset(0f, it), Offset(size.width, it), Stroke.HairlineWidth) }
-    }
+	private fun DrawScope.drawGrid() {
+		val step = gridStep(this)
+		generateSequence(0f) { it + step }.takeWhile { it <= size.width }
+			.forEach { drawLine(GRID_COLOR, Offset(it, 0f), Offset(it, size.height), Stroke.HairlineWidth) }
+		generateSequence(0f) { it + step }.takeWhile { it <= size.height }
+			.forEach { drawLine(GRID_COLOR, Offset(0f, it), Offset(size.width, it), Stroke.HairlineWidth) }
+	}
 
-    private fun Offset.keptIn(area: Rect, element: Size) =
-        Offset(
-            x.coerceIn(area.left, max(area.left, area.right - element.width)),
-            y.coerceIn(area.top, max(area.top, area.bottom - element.height))
-        )
+	private fun Offset.keptIn(area: Rect, element: Size) =
+		Offset(
+			x.coerceIn(area.left, max(area.left, area.right - element.width)),
+			y.coerceIn(area.top, max(area.top, area.bottom - element.height))
+		)
 }

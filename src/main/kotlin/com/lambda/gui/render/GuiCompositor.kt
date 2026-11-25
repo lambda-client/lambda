@@ -30,117 +30,117 @@ import java.awt.Color
 import java.util.*
 
 internal object GuiCompositor {
-    data class Effects(
-        val blur: Float = 0f,
-        val glow: Float = 0f,
-        val glowIntensity: Float = 0f,
-        val glowColorA: Color = Color.WHITE,
-        val glowColorB: Color = Color.WHITE,
-        val dim: Float = 0f,
-    ) {
-        companion object {
-            val NONE = Effects()
-        }
-    }
+	data class Effects(
+		val blur: Float = 0f,
+		val glow: Float = 0f,
+		val glowIntensity: Float = 0f,
+		val glowColorA: Color = Color.WHITE,
+		val glowColorB: Color = Color.WHITE,
+		val dim: Float = 0f,
+	) {
+		companion object {
+			val NONE = Effects()
+		}
+	}
 
-    private val backdrop by lazy { BlurPyramid("Lambda GUI backdrop") }
-    private val glow by lazy { BlurPyramid("Lambda GUI glow") }
-    private var glowView: GpuTextureView? = null
-    private var glowRadius = 0f
+	private val backdrop by lazy { BlurPyramid("Lambda GUI backdrop") }
+	private val glow by lazy { BlurPyramid("Lambda GUI glow") }
+	private var glowView: GpuTextureView? = null
+	private var glowRadius = 0f
 
-    private val uniformSize =
-        Std140SizeCalculator()
-            .putVec4()
-            .putVec4()
-            .putFloat()
-            .putFloat()
-            .putFloat()
-            .putFloat()
-            .align(16)
-            .get()
-    private val uniforms: GpuBuffer by lazy {
-        RenderSystem.getDevice().createBuffer(
-            { "Lambda GUI effects" },
-            GpuBuffer.USAGE_UNIFORM or GpuBuffer.USAGE_COPY_DST,
-            uniformSize.toLong()
-        )
-    }
+	private val uniformSize =
+		Std140SizeCalculator()
+			.putVec4()
+			.putVec4()
+			.putFloat()
+			.putFloat()
+			.putFloat()
+			.putFloat()
+			.align(16)
+			.get()
+	private val uniforms: GpuBuffer by lazy {
+		RenderSystem.getDevice().createBuffer(
+			{ "Lambda GUI effects" },
+			GpuBuffer.USAGE_UNIFORM or GpuBuffer.USAGE_COPY_DST,
+			uniformSize.toLong()
+		)
+	}
 
-    fun composite(
-        gui: GpuTextureView,
-        width: Int,
-        height: Int,
-        guiChanged: Boolean,
-        effects: Effects
-    ) {
-        val screen = mc.framebuffer.colorAttachmentView ?: return
-        val linear = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
-        val nearest = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
+	fun composite(
+		gui: GpuTextureView,
+		width: Int,
+		height: Int,
+		guiChanged: Boolean,
+		effects: Effects
+	) {
+		val screen = mc.framebuffer.colorAttachmentView ?: return
+		val linear = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
+		val nearest = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
 
-        if (effects.blur <= 0f && effects.glow <= 0f && effects.dim <= 0f) {
-            glowView = null
-            return blit(gui)
-        }
+		if (effects.blur <= 0f && effects.glow <= 0f && effects.dim <= 0f) {
+			glowView = null
+			return blit(gui)
+		}
 
-        val backdropView =
-            if (effects.blur > 0f) backdrop.blur(screen, width, height, effects.blur)
-            else gui
-        if (effects.glow <= 0f) glowView = null
-        else if (guiChanged || glowView == null || glowRadius != effects.glow) {
-            glowView = glow.blur(gui, width, height, effects.glow)
-            glowRadius = effects.glow
-        }
+		val backdropView =
+			if (effects.blur > 0f) backdrop.blur(screen, width, height, effects.blur)
+			else gui
+		if (effects.glow <= 0f) glowView = null
+		else if (guiChanged || glowView == null || glowRadius != effects.glow) {
+			glowView = glow.blur(gui, width, height, effects.glow)
+			glowRadius = effects.glow
+		}
 
-        writeUniforms(effects)
-        RenderSystem.getDevice().createCommandEncoder()
-            .createRenderPass({ "Lambda GUI" }, screen, OptionalInt.empty())
-            .use { pass ->
-                pass.setPipeline(LambdaRenderPipelines.GUI_COMPOSITE)
-                pass.bindTexture("GuiSampler", gui, nearest)
-                pass.bindTexture("BackdropSampler", backdropView, linear)
-                pass.bindTexture("GlowSampler", glowView ?: gui, linear)
-                pass.setUniform("GuiEffects", uniforms)
-                pass.draw(0, 3)
-            }
-    }
+		writeUniforms(effects)
+		RenderSystem.getDevice().createCommandEncoder()
+			.createRenderPass({ "Lambda GUI" }, screen, OptionalInt.empty())
+			.use { pass ->
+				pass.setPipeline(LambdaRenderPipelines.GUI_COMPOSITE)
+				pass.bindTexture("GuiSampler", gui, nearest)
+				pass.bindTexture("BackdropSampler", backdropView, linear)
+				pass.bindTexture("GlowSampler", glowView ?: gui, linear)
+				pass.setUniform("GuiEffects", uniforms)
+				pass.draw(0, 3)
+			}
+	}
 
-    fun blit(layer: GpuTextureView) {
-        val screen = mc.framebuffer.colorAttachmentView ?: return
-        val nearest = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
-        RenderSystem.getDevice().createCommandEncoder()
-            .createRenderPass({ "Lambda GUI" }, screen, OptionalInt.empty())
-            .use { pass ->
-                pass.setPipeline(LambdaRenderPipelines.GUI_BLIT)
-                pass.bindTexture("InSampler", layer, nearest)
-                pass.draw(0, 3)
-            }
-    }
+	fun blit(layer: GpuTextureView) {
+		val screen = mc.framebuffer.colorAttachmentView ?: return
+		val nearest = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
+		RenderSystem.getDevice().createCommandEncoder()
+			.createRenderPass({ "Lambda GUI" }, screen, OptionalInt.empty())
+			.use { pass ->
+				pass.setPipeline(LambdaRenderPipelines.GUI_BLIT)
+				pass.bindTexture("InSampler", layer, nearest)
+				pass.draw(0, 3)
+			}
+	}
 
-    private fun writeUniforms(effects: Effects) {
-        MemoryStack.stackPush().use { stack ->
-            val data =
-                Std140Builder.onStack(stack, uniformSize)
-                    .putColor(effects.glowColorA)
-                    .putColor(effects.glowColorB)
-                    .putFloat(if (effects.glow > 0f) effects.glowIntensity else 0f)
-                    .putFloat(if (effects.blur > 0f) 1f else 0f)
-                    .putFloat((System.currentTimeMillis() % GLOW_CYCLE_MILLIS) / 1000f)
-                    .putFloat(effects.dim)
-                    .get()
-            RenderSystem.getDevice().createCommandEncoder().writeToBuffer(
-                uniforms.slice(),
-                data
-            )
-        }
-    }
+	private fun writeUniforms(effects: Effects) {
+		MemoryStack.stackPush().use { stack ->
+			val data =
+				Std140Builder.onStack(stack, uniformSize)
+					.putColor(effects.glowColorA)
+					.putColor(effects.glowColorB)
+					.putFloat(if (effects.glow > 0f) effects.glowIntensity else 0f)
+					.putFloat(if (effects.blur > 0f) 1f else 0f)
+					.putFloat((System.currentTimeMillis() % GLOW_CYCLE_MILLIS) / 1000f)
+					.putFloat(effects.dim)
+					.get()
+			RenderSystem.getDevice().createCommandEncoder().writeToBuffer(
+				uniforms.slice(),
+				data
+			)
+		}
+	}
 
-    private fun Std140Builder.putColor(color: Color) =
-        putVec4(
-            color.red / 255f,
-            color.green / 255f,
-            color.blue / 255f,
-            color.alpha / 255f
-        )
+	private fun Std140Builder.putColor(color: Color) =
+		putVec4(
+			color.red / 255f,
+			color.green / 255f,
+			color.blue / 255f,
+			color.alpha / 255f
+		)
 
-    private const val GLOW_CYCLE_MILLIS = 3_141_592L
+	private const val GLOW_CYCLE_MILLIS = 3_141_592L
 }

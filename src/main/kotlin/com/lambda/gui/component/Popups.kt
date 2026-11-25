@@ -113,15 +113,15 @@ import kotlin.math.max
 
 @OptIn(ExperimentalComposeUiApi::class)
 private val FLOATING =
-    PopupProperties(
-        focusable = true,
-        dismissOnBackPress = true,
-        dismissOnClickOutside = true,
-        clippingEnabled = true,
-        usePlatformDefaultWidth = false,
-        usePlatformInsets = true,
-        consumePointerInputOutside = false,
-    )
+	PopupProperties(
+		focusable = true,
+		dismissOnBackPress = true,
+		dismissOnClickOutside = true,
+		clippingEnabled = true,
+		usePlatformDefaultWidth = false,
+		usePlatformInsets = true,
+		consumePointerInputOutside = false,
+	)
 
 private val SLACK = 4.dp
 private const val DIALOG_ZOOM = 0.85f
@@ -134,677 +134,677 @@ val LocalPopupHost = compositionLocalOf<PopupHost?> { null }
 
 @Composable
 private fun ScenePopup(
-    popupPositionProvider: PopupPositionProvider,
-    onDismissRequest: (() -> Unit)? = null,
-    properties: PopupProperties = PopupProperties(),
-    onKeyEvent: ((KeyEvent) -> Boolean)? = null,
-    content: @Composable () -> Unit,
+	popupPositionProvider: PopupPositionProvider,
+	onDismissRequest: (() -> Unit)? = null,
+	properties: PopupProperties = PopupProperties(),
+	onKeyEvent: ((KeyEvent) -> Boolean)? = null,
+	content: @Composable () -> Unit,
 ) =
-    Popup(popupPositionProvider, onDismissRequest, properties, onKeyEvent = onKeyEvent) {
-        CompositionLocalProvider(LocalClipboard provides GameClipboard, content = content)
-    }
+	Popup(popupPositionProvider, onDismissRequest, properties, onKeyEvent = onKeyEvent) {
+		CompositionLocalProvider(LocalClipboard provides GameClipboard, content = content)
+	}
 
 enum class MenuPlacement {
-    Below,
+	Below,
 
-    Beside,
+	Beside,
 }
 
 @Stable
 class MenuState {
-    var isOpen by mutableStateOf(false)
-        private set
-    private var dismissedBy = -1L
+	var isOpen by mutableStateOf(false)
+		private set
+	private var dismissedBy = -1L
 
-    fun dismiss() {
-        isOpen = false
-        dismissedBy = Press.id
-    }
+	fun dismiss() {
+		isOpen = false
+		dismissedBy = Press.id
+	}
 
-    fun toggle() {
-        if (dismissedBy != Press.id) isOpen = true
-    }
+	fun toggle() {
+		if (dismissedBy != Press.id) isOpen = true
+	}
 
-    fun open() {
-        isOpen = true
-    }
+	fun open() {
+		isOpen = true
+	}
 }
 
 @Composable
 fun Menu(
-    open: Boolean,
-    onDismiss: () -> Unit,
-    placement: MenuPlacement = MenuPlacement.Below,
-    unfoldFrom: IntSize = IntSize.Zero,
-    attached: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit,
+	open: Boolean,
+	onDismiss: () -> Unit,
+	placement: MenuPlacement = MenuPlacement.Below,
+	unfoldFrom: IntSize = IntSize.Zero,
+	attached: Boolean = false,
+	content: @Composable ColumnScope.() -> Unit,
 ) {
-    MenuPopup(
-        open,
-        remember(placement) { UnfoldingPosition(placement::place) },
-        onDismiss,
-        unfoldFrom,
-        attached,
-        content
-    )
+	MenuPopup(
+		open,
+		remember(placement) { UnfoldingPosition(placement::place) },
+		onDismiss,
+		unfoldFrom,
+		attached,
+		content
+	)
 }
 
 private fun MenuPlacement.place(anchor: IntRect, window: IntSize, popup: IntSize) =
-    when (this) {
-        MenuPlacement.Below ->
-            IntOffset(
-                anchor.left,
-                if (anchor.bottom + popup.height <= window.height ||
-                    anchor.top - popup.height < 0
-                ) {
-                    anchor.bottom
-                }
-                else anchor.top - popup.height
-            )
-        MenuPlacement.Beside ->
-            IntOffset(
-                if (anchor.right + popup.width <= window.width) anchor.right
-                else anchor.left - popup.width,
-                anchor.top
-            )
-    }
+	when (this) {
+		MenuPlacement.Below ->
+			IntOffset(
+				anchor.left,
+				if (anchor.bottom + popup.height <= window.height ||
+					anchor.top - popup.height < 0
+				) {
+					anchor.bottom
+				}
+				else anchor.top - popup.height
+			)
+		MenuPlacement.Beside ->
+			IntOffset(
+				if (anchor.right + popup.width <= window.width) anchor.right
+				else anchor.left - popup.width,
+				anchor.top
+			)
+	}
 
 @Composable
 fun Popout(
-    open: Boolean,
-    onDismiss: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
+	open: Boolean,
+	onDismiss: () -> Unit,
+	content: @Composable ColumnScope.() -> Unit
 ) {
-    val position = remember { UnfoldingPosition(MenuPlacement.Beside::place) }
-    FloatingPanel(
-        open,
-        position,
-        onDismiss,
-        RoundedCornerShape(Look.panelRounding)
-    ) { panel ->
-        Column(panel.padding(3.dp), content = content)
-    }
+	val position = remember { UnfoldingPosition(MenuPlacement.Beside::place) }
+	FloatingPanel(
+		open,
+		position,
+		onDismiss,
+		RoundedCornerShape(Look.panelRounding)
+	) { panel ->
+		Column(panel.padding(3.dp), content = content)
+	}
 }
 
 @Composable
 fun ContextMenu(
-    open: Boolean,
-    position: IntOffset,
-    onDismiss: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
+	open: Boolean,
+	position: IntOffset,
+	onDismiss: () -> Unit,
+	content: @Composable ColumnScope.() -> Unit
 ) =
-    MenuPopup(
-        open,
-        remember(position) { UnfoldingPosition { _, _, _ -> position } },
-        onDismiss,
-        IntSize.Zero,
-        false,
-        content
-    )
+	MenuPopup(
+		open,
+		remember(position) { UnfoldingPosition { _, _, _ -> position } },
+		onDismiss,
+		IntSize.Zero,
+		false,
+		content
+	)
 
 @Composable
 fun <T : Any> rememberLast(value: T?): T? {
-    val last = remember { LastValue<T>() }
-    if (value != null) last.value = value
-    return last.value
+	val last = remember { LastValue<T>() }
+	if (value != null) last.value = value
+	return last.value
 }
 
 private class LastValue<T : Any> {
-    var value: T? = null
+	var value: T? = null
 }
 
 @Composable
 private fun MenuPopup(
-    open: Boolean,
-    position: UnfoldingPosition,
-    onDismiss: () -> Unit,
-    unfoldFrom: IntSize,
-    attached: Boolean,
-    content: @Composable ColumnScope.() -> Unit,
+	open: Boolean,
+	position: UnfoldingPosition,
+	onDismiss: () -> Unit,
+	unfoldFrom: IntSize,
+	attached: Boolean,
+	content: @Composable ColumnScope.() -> Unit,
 ) {
-    val open = open && LocalMenuOpen.current
-    val dismissAll = LocalMenuDismiss.current ?: onDismiss
-    val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    val interactions = remember { MutableInteractionSource() }
-    val hovered by interactions.collectIsHoveredAsState()
-    val shape =
-        when {
-            !attached -> RoundedCornerShape(Look.menuRounding)
-            position.upwards -> RoundedCornerShape(topStart = Look.menuRounding, topEnd = Look.menuRounding)
-            else -> RoundedCornerShape(bottomStart = Look.menuRounding, bottomEnd = Look.menuRounding)
-        }
-    FloatingPanel(open, position, onDismiss, shape, unfoldFrom) { panel ->
-        CompositionLocalProvider(
-            LocalMenuDismiss provides dismissAll,
-            LocalMenuOpen provides open,
-            LocalMenuHovered provides hovered
-        ) {
-            ScrollColumn(
-                modifier = Modifier
-                    .hoverable(interactions)
-                    .heightIn(max = screenHeight)
-                    .width(IntrinsicSize.Max)
-                    .widthIn(min = maxOf(80.dp, with(LocalDensity.current) { unfoldFrom.width.toDp() }))
-                    .then(panel)
-                    .clip(shape),
-                content = content
-            )
-        }
-    }
+	val open = open && LocalMenuOpen.current
+	val dismissAll = LocalMenuDismiss.current ?: onDismiss
+	val screenHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+	val interactions = remember { MutableInteractionSource() }
+	val hovered by interactions.collectIsHoveredAsState()
+	val shape =
+		when {
+			!attached -> RoundedCornerShape(Look.menuRounding)
+			position.upwards -> RoundedCornerShape(topStart = Look.menuRounding, topEnd = Look.menuRounding)
+			else -> RoundedCornerShape(bottomStart = Look.menuRounding, bottomEnd = Look.menuRounding)
+		}
+	FloatingPanel(open, position, onDismiss, shape, unfoldFrom) { panel ->
+		CompositionLocalProvider(
+			LocalMenuDismiss provides dismissAll,
+			LocalMenuOpen provides open,
+			LocalMenuHovered provides hovered
+		) {
+			ScrollColumn(
+				modifier = Modifier
+					.hoverable(interactions)
+					.heightIn(max = screenHeight)
+					.width(IntrinsicSize.Max)
+					.widthIn(min = maxOf(80.dp, with(LocalDensity.current) { unfoldFrom.width.toDp() }))
+					.then(panel)
+					.clip(shape),
+				content = content
+			)
+		}
+	}
 }
 
 class PopupHost {
-    var closing by mutableStateOf(false)
+	var closing by mutableStateOf(false)
 
-    var bounds by mutableStateOf(Rect.Zero)
-        private set
+	var bounds by mutableStateOf(Rect.Zero)
+		private set
 
-    var full = Rect.Zero
-        private set
+	var full = Rect.Zero
+		private set
 
-    fun place(bounds: Rect) {
-        this.bounds = bounds
-        if (!closing) full = bounds
-    }
+	fun place(bounds: Rect) {
+		this.bounds = bounds
+		if (!closing) full = bounds
+	}
 }
 
 private fun Modifier.swallowedBy(host: PopupHost?): Modifier =
-    if (host == null) this
-    else composed {
-        var origin by remember { mutableStateOf(Offset.Zero) }
-        onGloballyPositioned { origin = it.positionInWindow() }.drawWithContent {
-            if (!host.closing) return@drawWithContent drawContent()
-            val full = host.full
-            val left = host.bounds
-            val slack = SLACK.toPx()
-            val dx =
-                when {
-                    origin.x >= full.right - slack -> left.right - full.right
-                    origin.x + size.width <= full.left + slack -> left.left - full.left
-                    else -> null
-                }
-            val dy =
-                when {
-                    origin.y >= full.bottom - slack -> left.bottom - full.bottom
-                    origin.y + size.height <= full.top + slack -> left.top - full.top
-                    else -> null
-                }
-            val far = 10_000f
-            clipRect(
-                if (dx == null) left.left - origin.x else -far,
-                if (dy == null) left.top - origin.y else -far,
-                if (dx == null) left.right - origin.x else far,
-                if (dy == null) left.bottom - origin.y else far,
-            ) {
-                translate(dx ?: 0f, dy ?: 0f) { this@drawWithContent.drawContent() }
-            }
-        }
-    }
+	if (host == null) this
+	else composed {
+		var origin by remember { mutableStateOf(Offset.Zero) }
+		onGloballyPositioned { origin = it.positionInWindow() }.drawWithContent {
+			if (!host.closing) return@drawWithContent drawContent()
+			val full = host.full
+			val left = host.bounds
+			val slack = SLACK.toPx()
+			val dx =
+				when {
+					origin.x >= full.right - slack -> left.right - full.right
+					origin.x + size.width <= full.left + slack -> left.left - full.left
+					else -> null
+				}
+			val dy =
+				when {
+					origin.y >= full.bottom - slack -> left.bottom - full.bottom
+					origin.y + size.height <= full.top + slack -> left.top - full.top
+					else -> null
+				}
+			val far = 10_000f
+			clipRect(
+				if (dx == null) left.left - origin.x else -far,
+				if (dy == null) left.top - origin.y else -far,
+				if (dx == null) left.right - origin.x else far,
+				if (dy == null) left.bottom - origin.y else far,
+			) {
+				translate(dx ?: 0f, dy ?: 0f) { this@drawWithContent.drawContent() }
+			}
+		}
+	}
 
 @Composable
 private fun FloatingPanel(
-    open: Boolean,
-    position: UnfoldingPosition,
-    onDismiss: () -> Unit,
-    shape: Shape,
-    unfoldFrom: IntSize = IntSize.Zero,
-    content: @Composable (panel: Modifier) -> Unit,
+	open: Boolean,
+	position: UnfoldingPosition,
+	onDismiss: () -> Unit,
+	shape: Shape,
+	unfoldFrom: IntSize = IntSize.Zero,
+	content: @Composable (panel: Modifier) -> Unit,
 ) {
-    if (!LocalShown.current) {
-        if (open) SideEffect(onDismiss)
-        return
-    }
-    val folding = LambdaGui.foldsClosed
-    val visibility = remember { MutableTransitionState(false) }
-    visibility.targetState = open && !folding
-    if (!open && visibility.isIdle && !visibility.currentState) return
+	if (!LocalShown.current) {
+		if (open) SideEffect(onDismiss)
+		return
+	}
+	val folding = LambdaGui.foldsClosed
+	val visibility = remember { MutableTransitionState(false) }
+	visibility.targetState = open && !folding
+	if (!open && visibility.isIdle && !visibility.currentState) return
 
-    val host = LocalPopupHost.current
-    if (host != null && host.closing && open) SideEffect(onDismiss)
-    val own = remember { PopupHost() }
-    SideEffect { own.closing = !open || folding }
+	val host = LocalPopupHost.current
+	if (host != null && host.closing && open) SideEffect(onDismiss)
+	val own = remember { PopupHost() }
+	SideEffect { own.closing = !open || folding }
 
-    val colors = LambdaTheme.colors
-    ScenePopup(
-        popupPositionProvider = position,
-        onDismissRequest = { if (open) onDismiss() },
-        properties = FLOATING,
-        onKeyEvent = { open && it.dismissOnEscape(onDismiss) },
-    ) {
-        if (open) KeyboardFocus.Layer()
-        ContentColor(colors.onSurface) {
-            AnimatedVisibility(
-                visibleState = visibility,
-                modifier = Modifier
-                    .swallowedBy(host)
-                    .onGloballyPositioned { own.place(it.boundsInWindow()) }
-                    .guiPresence(position.anchor)
-                    .dropShadow(shape, close = true)
-                    .window(colors.panel, colors.border, shape),
-                enter = expandIn(Motion.panels, position.corner) { it.coerceAtMost(unfoldFrom) },
-                exit =
-                    shrinkOut(
-                        if (folding) Motion.guiFold
-                        else Motion.panels,
-                        position.corner
-                    ) { it.coerceAtMost(unfoldFrom) },
-            ) {
-                CompositionLocalProvider(LocalPopupHost provides own) {
-                    content(Modifier.onSizeChanged { position.unfolded = it })
-                }
-            }
-        }
-    }
+	val colors = LambdaTheme.colors
+	ScenePopup(
+		popupPositionProvider = position,
+		onDismissRequest = { if (open) onDismiss() },
+		properties = FLOATING,
+		onKeyEvent = { open && it.dismissOnEscape(onDismiss) },
+	) {
+		if (open) KeyboardFocus.Layer()
+		ContentColor(colors.onSurface) {
+			AnimatedVisibility(
+				visibleState = visibility,
+				modifier = Modifier
+					.swallowedBy(host)
+					.onGloballyPositioned { own.place(it.boundsInWindow()) }
+					.guiPresence(position.anchor)
+					.dropShadow(shape, close = true)
+					.window(colors.panel, colors.border, shape),
+				enter = expandIn(Motion.panels, position.corner) { it.coerceAtMost(unfoldFrom) },
+				exit =
+					shrinkOut(
+						if (folding) Motion.guiFold
+						else Motion.panels,
+						position.corner
+					) { it.coerceAtMost(unfoldFrom) },
+			) {
+				CompositionLocalProvider(LocalPopupHost provides own) {
+					content(Modifier.onSizeChanged { position.unfolded = it })
+				}
+			}
+		}
+	}
 }
 
 private class UnfoldingPosition(
-    private val position: (anchor: IntRect, window: IntSize, popup: IntSize) -> IntOffset,
+	private val position: (anchor: IntRect, window: IntSize, popup: IntSize) -> IntOffset,
 ) : PopupPositionProvider {
-    var unfolded = IntSize.Zero
+	var unfolded = IntSize.Zero
 
-    private var leftwards by mutableStateOf(false)
+	private var leftwards by mutableStateOf(false)
 
-    var upwards by mutableStateOf(false)
-        private set
+	var upwards by mutableStateOf(false)
+		private set
 
-    val anchor
-        get() =
-            TransformOrigin(
-                if (leftwards) 1f else 0f,
-                if (upwards) 1f else 0f
-            )
+	val anchor
+		get() =
+			TransformOrigin(
+				if (leftwards) 1f else 0f,
+				if (upwards) 1f else 0f
+			)
 
-    val corner
-        get() =
-            when {
-                upwards ->
-                    if (leftwards) Alignment.BottomEnd
-                    else Alignment.BottomStart
-                else ->
-                    if (leftwards) Alignment.TopEnd
-                    else Alignment.TopStart
-            }
+	val corner
+		get() =
+			when {
+				upwards ->
+					if (leftwards) Alignment.BottomEnd
+					else Alignment.BottomStart
+				else ->
+					if (leftwards) Alignment.TopEnd
+					else Alignment.TopStart
+			}
 
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize,
-    ): IntOffset {
-        val full =
-            IntSize(
-                max(unfolded.width, popupContentSize.width),
-                max(unfolded.height, popupContentSize.height)
-            )
-        val wanted = position(anchorBounds, windowSize, full)
-        leftwards = wanted.x + full.width <= anchorBounds.left
-        upwards = wanted.y + full.height <= anchorBounds.top
-        val x = wanted.x.coerceIn(0, (windowSize.width - full.width).coerceAtLeast(0))
-        val y = wanted.y.coerceIn(0, (windowSize.height - full.height).coerceAtLeast(0))
-        return IntOffset(
-            if (leftwards) x + full.width - popupContentSize.width else x,
-            if (upwards) y + full.height - popupContentSize.height else y
-        )
-    }
+	override fun calculatePosition(
+		anchorBounds: IntRect,
+		windowSize: IntSize,
+		layoutDirection: LayoutDirection,
+		popupContentSize: IntSize,
+	): IntOffset {
+		val full =
+			IntSize(
+				max(unfolded.width, popupContentSize.width),
+				max(unfolded.height, popupContentSize.height)
+			)
+		val wanted = position(anchorBounds, windowSize, full)
+		leftwards = wanted.x + full.width <= anchorBounds.left
+		upwards = wanted.y + full.height <= anchorBounds.top
+		val x = wanted.x.coerceIn(0, (windowSize.width - full.width).coerceAtLeast(0))
+		val y = wanted.y.coerceIn(0, (windowSize.height - full.height).coerceAtLeast(0))
+		return IntOffset(
+			if (leftwards) x + full.width - popupContentSize.width else x,
+			if (upwards) y + full.height - popupContentSize.height else y
+		)
+	}
 }
 
 @Composable
 fun Suggestions(
-    open: Boolean,
-    onDismiss: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
+	open: Boolean,
+	onDismiss: () -> Unit,
+	content: @Composable ColumnScope.() -> Unit
 ) {
-    if (!LocalShown.current) {
-        if (open) SideEffect(onDismiss)
-        return
-    }
-    val folding = LambdaGui.foldsClosed
-    val visibility = remember { MutableTransitionState(false) }
-    visibility.targetState = open && !folding
-    if (!open && visibility.isIdle && !visibility.currentState) return
+	if (!LocalShown.current) {
+		if (open) SideEffect(onDismiss)
+		return
+	}
+	val folding = LambdaGui.foldsClosed
+	val visibility = remember { MutableTransitionState(false) }
+	visibility.targetState = open && !folding
+	if (!open && visibility.isIdle && !visibility.currentState) return
 
-    val colors = LambdaTheme.colors
-    val shape = RoundedCornerShape(Look.menuRounding)
-    val screenHeight =
-        with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    ScenePopup(
-        popupPositionProvider = remember {
-            positionProvider { anchor, window, popup ->
-                val centred = anchor.left + (anchor.width - popup.width) / 2
-                IntOffset(
-                    centred.coerceIn(0, (window.width - popup.width).coerceAtLeast(0)),
-                    anchor.bottom
-                )
-            }
-        },
-        onDismissRequest = { if (open) onDismiss() },
-        properties = PopupProperties(focusable = false),
-    ) {
-        ContentColor(colors.onSurface) {
-            AnimatedVisibility(
-                visibleState = visibility,
-                modifier = Modifier
-                    .guiPresence(SUGGESTIONS_ANCHOR)
-                    .dropShadow(shape)
-                    .window(colors.panel, colors.border, shape),
-                enter = expandVertically(Motion.panels, Alignment.Top),
-                exit =
-                    shrinkVertically(
-                        if (folding) Motion.guiFold
-                        else Motion.panels,
-                        Alignment.Top
-                    ),
-            ) {
-                ScrollColumn(
-                    modifier = Modifier
-                        .heightIn(max = screenHeight * 0.6f)
-                        .width(IntrinsicSize.Max)
-                        .animateContentSize(Motion.panels),
-                    content = content
-                )
-            }
-        }
-    }
+	val colors = LambdaTheme.colors
+	val shape = RoundedCornerShape(Look.menuRounding)
+	val screenHeight =
+		with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+	ScenePopup(
+		popupPositionProvider = remember {
+			positionProvider { anchor, window, popup ->
+				val centred = anchor.left + (anchor.width - popup.width) / 2
+				IntOffset(
+					centred.coerceIn(0, (window.width - popup.width).coerceAtLeast(0)),
+					anchor.bottom
+				)
+			}
+		},
+		onDismissRequest = { if (open) onDismiss() },
+		properties = PopupProperties(focusable = false),
+	) {
+		ContentColor(colors.onSurface) {
+			AnimatedVisibility(
+				visibleState = visibility,
+				modifier = Modifier
+					.guiPresence(SUGGESTIONS_ANCHOR)
+					.dropShadow(shape)
+					.window(colors.panel, colors.border, shape),
+				enter = expandVertically(Motion.panels, Alignment.Top),
+				exit =
+					shrinkVertically(
+						if (folding) Motion.guiFold
+						else Motion.panels,
+						Alignment.Top
+					),
+			) {
+				ScrollColumn(
+					modifier = Modifier
+						.heightIn(max = screenHeight * 0.6f)
+						.width(IntrinsicSize.Max)
+						.animateContentSize(Motion.panels),
+					content = content
+				)
+			}
+		}
+	}
 }
 
 @Composable
 fun MenuItem(
-    label: String,
-    enabled: Boolean = true,
-    checked: Boolean? = null,
-    selected: Boolean = false,
-    hint: String? = null,
-    onHover: (hovered: Boolean) -> Unit = {},
-    onClick: () -> Unit,
+	label: String,
+	enabled: Boolean = true,
+	checked: Boolean? = null,
+	selected: Boolean = false,
+	hint: String? = null,
+	onHover: (hovered: Boolean) -> Unit = {},
+	onClick: () -> Unit,
 ) {
-    val colors = LambdaTheme.colors
-    val dismiss = LocalMenuDismiss.current
-    val interactions = remember { MutableInteractionSource() }
-    val hovered by interactions.collectIsHoveredAsState()
-    val currentOnHover by rememberUpdatedState(onHover)
-    LaunchedEffect(hovered) { currentOnHover(hovered) }
-    DisposableEffect(Unit) {
-        onDispose { currentOnHover(false) }
-    }
-    Row(
-        verticalAlignment = Centered.VERTICALLY,
-        modifier = Modifier
-            .fillMaxWidth()
-            .hoverable(interactions)
-            .background(if (selected) colors.controlSelected else Color.Transparent)
-            .then(
-                if (!enabled) Modifier
-                else Modifier.hoverHighlight(colors.controlSelected).mouseClickable {
-                    onClick()
-                    if (checked == null) dismiss?.invoke()
-                }
-            )
-            .padding(horizontal = 5.dp, vertical = 1.dp)
-    ) {
-        if (checked != null) Checkmark(checked, Modifier.padding(end = 3.dp))
-        val color =
-            when {
-                !enabled -> colors.onSurfaceVariant
-                selected -> colors.secondary
-                else -> colors.onSurface
-            }
-        Text(label, Modifier.weight(1f), color, maxLines = 1)
-        if (hint != null) {
-            Text(
-                hint,
-                Modifier.padding(start = 12.dp),
-                colors.onSurfaceVariant,
-                Type.label,
-                maxLines = 1
-            )
-        }
-    }
+	val colors = LambdaTheme.colors
+	val dismiss = LocalMenuDismiss.current
+	val interactions = remember { MutableInteractionSource() }
+	val hovered by interactions.collectIsHoveredAsState()
+	val currentOnHover by rememberUpdatedState(onHover)
+	LaunchedEffect(hovered) { currentOnHover(hovered) }
+	DisposableEffect(Unit) {
+		onDispose { currentOnHover(false) }
+	}
+	Row(
+		verticalAlignment = Centered.VERTICALLY,
+		modifier = Modifier
+			.fillMaxWidth()
+			.hoverable(interactions)
+			.background(if (selected) colors.controlSelected else Color.Transparent)
+			.then(
+				if (!enabled) Modifier
+				else Modifier.hoverHighlight(colors.controlSelected).mouseClickable {
+					onClick()
+					if (checked == null) dismiss?.invoke()
+				}
+			)
+			.padding(horizontal = 5.dp, vertical = 1.dp)
+	) {
+		if (checked != null) Checkmark(checked, Modifier.padding(end = 3.dp))
+		val color =
+			when {
+				!enabled -> colors.onSurfaceVariant
+				selected -> colors.secondary
+				else -> colors.onSurface
+			}
+		Text(label, Modifier.weight(1f), color, maxLines = 1)
+		if (hint != null) {
+			Text(
+				hint,
+				Modifier.padding(start = 12.dp),
+				colors.onSurfaceVariant,
+				Type.label,
+				maxLines = 1
+			)
+		}
+	}
 }
 
 @Composable
 fun Submenu(
-    label: String,
-    enabled: Boolean = true,
-    content: @Composable ColumnScope.() -> Unit
+	label: String,
+	enabled: Boolean = true,
+	content: @Composable ColumnScope.() -> Unit
 ) {
-    val colors = LambdaTheme.colors
-    val interactions = remember { MutableInteractionSource() }
-    val hovered by interactions.collectIsHoveredAsState()
-    val menuHovered = LocalMenuHovered.current
-    val menu = remember { MenuState() }
-    val onHover by observe { GuiConfig.hoverSubmenus }
-    LaunchedEffect(hovered, menuHovered, onHover) {
-        when {
-            !onHover -> Unit
-            hovered -> menu.open()
-            menuHovered -> menu.dismiss()
-        }
-    }
-    Box {
-        Row(
-            verticalAlignment = Centered.VERTICALLY,
-            modifier = Modifier
-                .fillMaxWidth()
-                .hoverable(interactions, enabled)
-                .background(if (hovered || menu.isOpen) colors.controlSelected else Color.Transparent)
-                .mouseClickable(enabled) {
-                    if (onHover) menu.open()
-                    else menu.toggle()
-                }
-                .padding(horizontal = 5.dp, vertical = 1.dp)
-        ) {
-            Text(
-                label,
-                Modifier.weight(1f),
-                if (enabled) colors.onSurface else colors.onSurfaceVariant,
-                maxLines = 1
-            )
-            Chevron(0f, Modifier.padding(start = 12.dp), colors.onSurfaceVariant)
-        }
-        Menu(
-            menu.isOpen,
-            onDismiss = menu::dismiss,
-            MenuPlacement.Beside,
-            content = content
-        )
-    }
+	val colors = LambdaTheme.colors
+	val interactions = remember { MutableInteractionSource() }
+	val hovered by interactions.collectIsHoveredAsState()
+	val menuHovered = LocalMenuHovered.current
+	val menu = remember { MenuState() }
+	val onHover by observe { GuiConfig.hoverSubmenus }
+	LaunchedEffect(hovered, menuHovered, onHover) {
+		when {
+			!onHover -> Unit
+			hovered -> menu.open()
+			menuHovered -> menu.dismiss()
+		}
+	}
+	Box {
+		Row(
+			verticalAlignment = Centered.VERTICALLY,
+			modifier = Modifier
+				.fillMaxWidth()
+				.hoverable(interactions, enabled)
+				.background(if (hovered || menu.isOpen) colors.controlSelected else Color.Transparent)
+				.mouseClickable(enabled) {
+					if (onHover) menu.open()
+					else menu.toggle()
+				}
+				.padding(horizontal = 5.dp, vertical = 1.dp)
+		) {
+			Text(
+				label,
+				Modifier.weight(1f),
+				if (enabled) colors.onSurface else colors.onSurfaceVariant,
+				maxLines = 1
+			)
+			Chevron(0f, Modifier.padding(start = 12.dp), colors.onSurfaceVariant)
+		}
+		Menu(
+			menu.isOpen,
+			onDismiss = menu::dismiss,
+			MenuPlacement.Beside,
+			content = content
+		)
+	}
 }
 
 @Composable
 fun MenuLabel(label: String) =
-    Text(
-        label,
-        Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-        LambdaTheme.colors.onSurfaceVariant,
-        maxLines = 1
-    )
+	Text(
+		label,
+		Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+		LambdaTheme.colors.onSurfaceVariant,
+		maxLines = 1
+	)
 
 @Composable
 fun MenuHelp(text: String, label: String = "Help") {
-    val colors = LambdaTheme.colors
-    Tooltip(text, Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Centered.VERTICALLY,
-            modifier = Modifier
-                .fillMaxWidth()
-                .hoverHighlight(colors.raised)
-                .padding(horizontal = 5.dp, vertical = 1.dp)
-        ) {
-            Text(label, Modifier.weight(1f), colors.onSurfaceVariant, maxLines = 1)
-            Text(
-                "?",
-                Modifier.padding(start = 12.dp),
-                colors.onSurfaceVariant,
-                Type.label,
-                maxLines = 1
-            )
-        }
-    }
+	val colors = LambdaTheme.colors
+	Tooltip(text, Modifier.fillMaxWidth()) {
+		Row(
+			verticalAlignment = Centered.VERTICALLY,
+			modifier = Modifier
+				.fillMaxWidth()
+				.hoverHighlight(colors.raised)
+				.padding(horizontal = 5.dp, vertical = 1.dp)
+		) {
+			Text(label, Modifier.weight(1f), colors.onSurfaceVariant, maxLines = 1)
+			Text(
+				"?",
+				Modifier.padding(start = 12.dp),
+				colors.onSurfaceVariant,
+				Type.label,
+				maxLines = 1
+			)
+		}
+	}
 }
 
 @Composable
 fun MenuDivider() =
-    Spacer(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 3.dp, vertical = 1.dp)
-            .height(1.dp)
-            .background(LambdaTheme.colors.border)
-    )
+	Spacer(
+		Modifier
+			.fillMaxWidth()
+			.padding(horizontal = 3.dp, vertical = 1.dp)
+			.height(1.dp)
+			.background(LambdaTheme.colors.border)
+	)
 
 @Composable
 fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.(dismiss: () -> Unit) -> Unit) {
-    if (!LocalShown.current) {
-        if (onDismiss != null) SideEffect(onDismiss)
-        return
-    }
-    val colors = LambdaTheme.colors
-    val presence = LocalPresence.current
-    val shape = RoundedCornerShape(Look.panelRounding)
-    val opened = remember { Animatable(0f) }
-    var closing by remember { mutableStateOf(false) }
-    val currentOnDismiss by rememberUpdatedState(onDismiss)
-    val dismiss = { closing = currentOnDismiss != null }
-    LaunchedEffect(closing) {
-        if (closing) {
-            opened.animateTo(0f, Motion.dialogs)
-            currentOnDismiss?.invoke()
-        }
-        else opened.animateTo(1f, Motion.dialogs)
-    }
-    ScenePopup(
-        popupPositionProvider = remember {
-            positionProvider { _, _, _ -> IntOffset.Zero }
-        },
-        properties = PopupProperties(focusable = true),
-        onKeyEvent = { onDismiss != null && it.dismissOnEscape(dismiss) },
-    ) {
-        KeyboardFocus.Layer()
-        Box(Modifier.fillMaxSize(), Centered.BOTH) {
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .glass(Color.Black.copy(alpha = 0.35f), RectangleShape) { presence() * opened.value }
-                    .mouseClickable(keyboard = false, onClick = dismiss)
-            )
-            ContentColor(colors.onSurface) {
-                AnimatedVisibility(
-                    visible = !LambdaGui.foldsClosed,
-                    modifier = Modifier
-                        .graphicsLayer {
-                            val shown = opened.value
-                            alpha = shown
-                            scaleX = DIALOG_ZOOM + (1f - DIALOG_ZOOM) * shown
-                            scaleY = scaleX
-                        }
-                        .guiPresence()
-                        .window(colors.panel, colors.border, shape, floating = true),
-                    enter = expandVertically(Motion.guiFold),
-                    exit = shrinkVertically(Motion.guiFold),
-                ) {
-                    Box(Modifier.padding(6.dp)) { content(dismiss) }
-                }
-            }
-        }
-    }
+	if (!LocalShown.current) {
+		if (onDismiss != null) SideEffect(onDismiss)
+		return
+	}
+	val colors = LambdaTheme.colors
+	val presence = LocalPresence.current
+	val shape = RoundedCornerShape(Look.panelRounding)
+	val opened = remember { Animatable(0f) }
+	var closing by remember { mutableStateOf(false) }
+	val currentOnDismiss by rememberUpdatedState(onDismiss)
+	val dismiss = { closing = currentOnDismiss != null }
+	LaunchedEffect(closing) {
+		if (closing) {
+			opened.animateTo(0f, Motion.dialogs)
+			currentOnDismiss?.invoke()
+		}
+		else opened.animateTo(1f, Motion.dialogs)
+	}
+	ScenePopup(
+		popupPositionProvider = remember {
+			positionProvider { _, _, _ -> IntOffset.Zero }
+		},
+		properties = PopupProperties(focusable = true),
+		onKeyEvent = { onDismiss != null && it.dismissOnEscape(dismiss) },
+	) {
+		KeyboardFocus.Layer()
+		Box(Modifier.fillMaxSize(), Centered.BOTH) {
+			Box(
+				Modifier
+					.matchParentSize()
+					.glass(Color.Black.copy(alpha = 0.35f), RectangleShape) { presence() * opened.value }
+					.mouseClickable(keyboard = false, onClick = dismiss)
+			)
+			ContentColor(colors.onSurface) {
+				AnimatedVisibility(
+					visible = !LambdaGui.foldsClosed,
+					modifier = Modifier
+						.graphicsLayer {
+							val shown = opened.value
+							alpha = shown
+							scaleX = DIALOG_ZOOM + (1f - DIALOG_ZOOM) * shown
+							scaleY = scaleX
+						}
+						.guiPresence()
+						.window(colors.panel, colors.border, shape, floating = true),
+					enter = expandVertically(Motion.guiFold),
+					exit = shrinkVertically(Motion.guiFold),
+				) {
+					Box(Modifier.padding(6.dp)) { content(dismiss) }
+				}
+			}
+		}
+	}
 }
 
 @Composable
 fun Overlay(
-    position: (window: IntSize, size: IntSize) -> IntOffset,
-    content: @Composable () -> Unit
+	position: (window: IntSize, size: IntSize) -> IntOffset,
+	content: @Composable () -> Unit
 ) =
-    ScenePopup(
-        popupPositionProvider = positionProvider { _, window, size -> position(window, size) },
-        properties = PopupProperties(focusable = false),
-        content = content
-    )
+	ScenePopup(
+		popupPositionProvider = positionProvider { _, window, size -> position(window, size) },
+		properties = PopupProperties(focusable = false),
+		content = content
+	)
 
 @Composable
 fun Tooltip(
-    text: String,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
+	text: String,
+	modifier: Modifier = Modifier,
+	content: @Composable () -> Unit
 ) {
-    if (text.isBlank()) {
-        Box(modifier) { content() }
-        return
-    }
-    val colors = LambdaTheme.colors
-    var hovered by remember { mutableStateOf(false) }
-    var visible by remember { mutableStateOf(false) }
-    var pointer by remember { mutableStateOf(Offset.Zero) }
-    var bounds by remember { mutableStateOf(Rect.Zero) }
-    LaunchedEffect(hovered) {
-        if (!hovered) return@LaunchedEffect
-        awaitFrames(GuiConfig.tooltipDelay.toLong())
-        visible = true
-    }
+	if (text.isBlank()) {
+		Box(modifier) { content() }
+		return
+	}
+	val colors = LambdaTheme.colors
+	var hovered by remember { mutableStateOf(false) }
+	var visible by remember { mutableStateOf(false) }
+	var pointer by remember { mutableStateOf(Offset.Zero) }
+	var bounds by remember { mutableStateOf(Rect.Zero) }
+	LaunchedEffect(hovered) {
+		if (!hovered) return@LaunchedEffect
+		awaitFrames(GuiConfig.tooltipDelay.toLong())
+		visible = true
+	}
 
-    Box(
-        modifier
-            .onGloballyPositioned { bounds = it.boundsInWindow() }
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        when (event.type) {
-                            PointerEventType.Enter -> hovered = !event.buttons.areAnyPressed
-                            PointerEventType.Exit, PointerEventType.Press -> {
-                                hovered = false
-                                visible = false
-                            }
-                        }
-                        if (!visible) pointer = event.changes.first().position
-                    }
-                }
-            }
-    ) {
-        content()
-        if (visible && hovered && !LambdaGui.leaving) {
-            val below = with(LocalDensity.current) { 16.dp.roundToPx() }
-            ScenePopup(
-                popupPositionProvider = remember(pointer, bounds) {
-                    positionProvider { _, window, popup ->
-                        val at = (bounds.topLeft + pointer).round() + IntOffset(0, below)
-                        IntOffset(
-                            at.x.coerceIn(0, (window.width - popup.width).coerceAtLeast(0)),
-                            at.y.coerceIn(0, (window.height - popup.height).coerceAtLeast(0))
-                        )
-                    }
-                },
-                properties = PopupProperties(focusable = false),
-            ) {
-                Text(
-                    text = text,
-                    color = colors.onSurface,
-                    style = Type.label,
-                    modifier = Modifier
-                        .widthIn(max = 220.dp)
-                        .window(colors.panel, colors.border, RoundedCornerShape(Look.menuRounding))
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                )
-            }
-        }
-    }
+	Box(
+		modifier
+			.onGloballyPositioned { bounds = it.boundsInWindow() }
+			.pointerInput(Unit) {
+				awaitPointerEventScope {
+					while (true) {
+						val event = awaitPointerEvent(PointerEventPass.Initial)
+						when (event.type) {
+							PointerEventType.Enter -> hovered = !event.buttons.areAnyPressed
+							PointerEventType.Exit, PointerEventType.Press -> {
+								hovered = false
+								visible = false
+							}
+						}
+						if (!visible) pointer = event.changes.first().position
+					}
+				}
+			}
+	) {
+		content()
+		if (visible && hovered && !LambdaGui.leaving) {
+			val below = with(LocalDensity.current) { 16.dp.roundToPx() }
+			ScenePopup(
+				popupPositionProvider = remember(pointer, bounds) {
+					positionProvider { _, window, popup ->
+						val at = (bounds.topLeft + pointer).round() + IntOffset(0, below)
+						IntOffset(
+							at.x.coerceIn(0, (window.width - popup.width).coerceAtLeast(0)),
+							at.y.coerceIn(0, (window.height - popup.height).coerceAtLeast(0))
+						)
+					}
+				},
+				properties = PopupProperties(focusable = false),
+			) {
+				Text(
+					text = text,
+					color = colors.onSurface,
+					style = Type.label,
+					modifier = Modifier
+						.widthIn(max = 220.dp)
+						.window(colors.panel, colors.border, RoundedCornerShape(Look.menuRounding))
+						.padding(horizontal = 4.dp, vertical = 2.dp)
+				)
+			}
+		}
+	}
 }
 
 private fun KeyEvent.dismissOnEscape(onDismiss: () -> Unit): Boolean {
-    if (key != Key.Escape) return false
-    if (type == KeyEventType.KeyDown) onDismiss()
-    return true
+	if (key != Key.Escape) return false
+	if (type == KeyEventType.KeyDown) onDismiss()
+	return true
 }
 
 private fun positionProvider(
-    position: (anchor: IntRect, window: IntSize, popup: IntSize) -> IntOffset
+	position: (anchor: IntRect, window: IntSize, popup: IntSize) -> IntOffset
 ) =
-    object : PopupPositionProvider {
-        override fun calculatePosition(
-            anchorBounds: IntRect,
-            windowSize: IntSize,
-            layoutDirection: LayoutDirection,
-            popupContentSize: IntSize,
-        ) = position(anchorBounds, windowSize, popupContentSize)
-    }
+	object : PopupPositionProvider {
+		override fun calculatePosition(
+			anchorBounds: IntRect,
+			windowSize: IntSize,
+			layoutDirection: LayoutDirection,
+			popupContentSize: IntSize,
+		) = position(anchorBounds, windowSize, popupContentSize)
+	}
 
 private fun IntSize.coerceAtMost(other: IntSize) = IntSize(minOf(width, other.width), minOf(height, other.height))

@@ -44,43 +44,43 @@ import com.lambda.module.Module
 
 @Composable
 internal fun ConfigSettings(
-    config: Config,
-    maxHeight: Dp,
-    onDone: () -> Unit,
-    modifier: Modifier = Modifier
+	config: Config,
+	maxHeight: Dp,
+	onDone: () -> Unit,
+	modifier: Modifier = Modifier
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            "${config.name} Settings",
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            style = Type.title
-        )
-        if (config is Module) {
-            var page by remember(config) { mutableStateOf(PanelPage.Settings) }
-            Column(Modifier.heightIn(max = maxHeight)) {
-                ModuleSettings(config, page, { page = it }, rememberScrollState())
-            }
-        } else {
-            ScrollColumn(Modifier.heightIn(max = maxHeight)) {
-                SoftTextShadow {
-                    if (config is UserAutomationConfig) SettingRow(config.linkedModules)
-                    SettingsList(config.settingLayers)
-                }
-            }
-        }
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            if (config is UserAutomationConfig) {
-                Button("Delete") {
-                    config.delete()
-                    onDone()
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            if (config !is Module) Button("Reset") { config.resetSettings() }
-            Button("Done", onClick = onDone)
-        }
-    }
+	Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+		Text(
+			"${config.name} Settings",
+			Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+			style = Type.title
+		)
+		if (config is Module) {
+			var page by remember(config) { mutableStateOf(PanelPage.Settings) }
+			Column(Modifier.heightIn(max = maxHeight)) {
+				ModuleSettings(config, page, { page = it }, rememberScrollState())
+			}
+		} else {
+			ScrollColumn(Modifier.heightIn(max = maxHeight)) {
+				SoftTextShadow {
+					if (config is UserAutomationConfig) SettingRow(config.linkedModules)
+					SettingsList(config.settingLayers)
+				}
+			}
+		}
+		Row(
+			Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+			horizontalArrangement = Arrangement.spacedBy(4.dp)
+		) {
+			if (config is UserAutomationConfig) {
+				Button("Delete") {
+					config.delete()
+					onDone()
+				}
+			}
+			Spacer(Modifier.weight(1f))
+			if (config !is Module) Button("Reset") { config.resetSettings() }
+			Button("Done", onClick = onDone)
+		}
+	}
 }

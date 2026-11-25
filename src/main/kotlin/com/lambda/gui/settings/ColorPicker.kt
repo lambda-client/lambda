@@ -69,203 +69,203 @@ private val HUES = (0..6).map { Color.hsv(it * 60f % 360f, 1f, 1f) }
 
 @Composable
 internal fun ColorPicker(setting: ColorSetting) {
-    val color by observe { setting.value }
-    val picker = remember { MenuState() }
+	val color by observe { setting.value }
+	val picker = remember { MenuState() }
 
-    Labeled(setting.name, Modifier.mouseClickable(onClick = picker::toggle)) {
-        Box(Modifier.padding(end = 2.dp)) {
-            Spacer(
-                Modifier
-                    .size(20.dp, 9.dp)
-                    .clip(RoundedCornerShape(Look.boxRounding))
-                    .drawBehind {
-                        drawCheckerboard()
-                        drawRect(color.toCompose())
-                    }
-            )
-            Popout(picker.isOpen, onDismiss = picker::dismiss) {
-                Column(Modifier.width(PICKER_WIDTH)) {
-                    Picker(color) { setting.value = it }
-                }
-            }
-        }
-    }
+	Labeled(setting.name, Modifier.mouseClickable(onClick = picker::toggle)) {
+		Box(Modifier.padding(end = 2.dp)) {
+			Spacer(
+				Modifier
+					.size(20.dp, 9.dp)
+					.clip(RoundedCornerShape(Look.boxRounding))
+					.drawBehind {
+						drawCheckerboard()
+						drawRect(color.toCompose())
+					}
+			)
+			Popout(picker.isOpen, onDismiss = picker::dismiss) {
+				Column(Modifier.width(PICKER_WIDTH)) {
+					Picker(color) { setting.value = it }
+				}
+			}
+		}
+	}
 }
 
 @Composable
 private fun Picker(color: AwtColor, onColorChange: (AwtColor) -> Unit) {
-    val colors = LambdaTheme.colors
+	val colors = LambdaTheme.colors
 
-    var hsb by
-        remember {
-            mutableStateOf(AwtColor.RGBtoHSB(color.red, color.green, color.blue, null))
-        }
-    var adopted by remember { mutableStateOf(color) }
-    if (color != adopted) {
-        adopted = color
-        val shown = AwtColor.HSBtoRGB(hsb[0], hsb[1], hsb[2]) and 0xFFFFFF
-        if (shown != color.rgb and 0xFFFFFF) {
-            hsb = AwtColor.RGBtoHSB(color.red, color.green, color.blue, null)
-        }
-    }
+	var hsb by
+		remember {
+			mutableStateOf(AwtColor.RGBtoHSB(color.red, color.green, color.blue, null))
+		}
+	var adopted by remember { mutableStateOf(color) }
+	if (color != adopted) {
+		adopted = color
+		val shown = AwtColor.HSBtoRGB(hsb[0], hsb[1], hsb[2]) and 0xFFFFFF
+		if (shown != color.rgb and 0xFFFFFF) {
+			hsb = AwtColor.RGBtoHSB(color.red, color.green, color.blue, null)
+		}
+	}
 
-    fun pick(
-        hue: Float = hsb[0],
-        saturation: Float = hsb[1],
-        brightness: Float = hsb[2],
-        alpha: Int = color.alpha
-    ) {
-        hsb = floatArrayOf(hue, saturation, brightness)
-        val rgb = AwtColor.HSBtoRGB(hue, saturation, brightness)
-        onColorChange(AwtColor(rgb and 0xFFFFFF or (alpha shl 24), true))
-    }
+	fun pick(
+		hue: Float = hsb[0],
+		saturation: Float = hsb[1],
+		brightness: Float = hsb[2],
+		alpha: Int = color.alpha
+	) {
+		hsb = floatArrayOf(hue, saturation, brightness)
+		val rgb = AwtColor.HSBtoRGB(hue, saturation, brightness)
+		onColorChange(AwtColor(rgb and 0xFFFFFF or (alpha shl 24), true))
+	}
 
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Spacer(
-            Modifier
-                .fillMaxWidth()
-                .aspectRatio(1.4f)
-                .clip(RoundedCornerShape(Look.boxRounding))
-                .drawBehind {
-                    drawRect(Color.hsv(hsb[0] * 360f, 1f, 1f))
-                    drawRect(Brush.horizontalGradient(listOf(Color.White, Color.Transparent)))
-                    drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
-                    val center = Offset(hsb[1] * size.width, (1f - hsb[2]) * size.height)
-                    drawCircle(
-                        Color.Black,
-                        3.5.dp.toPx(),
-                        center,
-                        style = Stroke(1.dp.toPx())
-                    )
-                    drawCircle(
-                        Color.White,
-                        3.dp.toPx(),
-                        center,
-                        style = Stroke(1.dp.toPx())
-                    )
-                }
-                .scrubbable { position, size ->
-                    pick(
-                        saturation = (position.x / size.width).coerceIn(0f, 1f),
-                        brightness = 1f - (position.y / size.height).coerceIn(0f, 1f)
-                    )
-                }
-        )
-        Bar(hsb[0], onChange = { pick(hue = it) }) {
-            drawRect(Brush.horizontalGradient(HUES))
-        }
-        Bar(color.alpha / 255f, onChange = { pick(alpha = (it * 255).roundToInt()) }) {
-            drawCheckerboard()
-            drawRect(
-                Brush.horizontalGradient(
-                    listOf(Color.Transparent, color.toCompose().copy(alpha = 1f))
-                )
-            )
-        }
+	Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+		Spacer(
+			Modifier
+				.fillMaxWidth()
+				.aspectRatio(1.4f)
+				.clip(RoundedCornerShape(Look.boxRounding))
+				.drawBehind {
+					drawRect(Color.hsv(hsb[0] * 360f, 1f, 1f))
+					drawRect(Brush.horizontalGradient(listOf(Color.White, Color.Transparent)))
+					drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
+					val center = Offset(hsb[1] * size.width, (1f - hsb[2]) * size.height)
+					drawCircle(
+						Color.Black,
+						3.5.dp.toPx(),
+						center,
+						style = Stroke(1.dp.toPx())
+					)
+					drawCircle(
+						Color.White,
+						3.dp.toPx(),
+						center,
+						style = Stroke(1.dp.toPx())
+					)
+				}
+				.scrubbable { position, size ->
+					pick(
+						saturation = (position.x / size.width).coerceIn(0f, 1f),
+						brightness = 1f - (position.y / size.height).coerceIn(0f, 1f)
+					)
+				}
+		)
+		Bar(hsb[0], onChange = { pick(hue = it) }) {
+			drawRect(Brush.horizontalGradient(HUES))
+		}
+		Bar(color.alpha / 255f, onChange = { pick(alpha = (it * 255).roundToInt()) }) {
+			drawCheckerboard()
+			drawRect(
+				Brush.horizontalGradient(
+					listOf(Color.Transparent, color.toCompose().copy(alpha = 1f))
+				)
+			)
+		}
 
-        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            Channel("R", color.red) {
-                onColorChange(AwtColor(it, color.green, color.blue, color.alpha))
-            }
-            Channel("G", color.green) {
-                onColorChange(AwtColor(color.red, it, color.blue, color.alpha))
-            }
-            Channel("B", color.blue) {
-                onColorChange(AwtColor(color.red, color.green, it, color.alpha))
-            }
-            Channel("A", color.alpha) {
-                onColorChange(AwtColor(color.red, color.green, color.blue, it))
-            }
-        }
-        Row(
-            verticalAlignment = Centered.VERTICALLY,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text("Hex", color = colors.onSurfaceVariant, style = Type.label)
-            TextInput(
-                color.toHex(),
-                { text -> parseHex(text)?.let(onColorChange) },
-                Modifier.weight(1f),
-                style = Type.label
-            )
-        }
-    }
+		Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+			Channel("R", color.red) {
+				onColorChange(AwtColor(it, color.green, color.blue, color.alpha))
+			}
+			Channel("G", color.green) {
+				onColorChange(AwtColor(color.red, it, color.blue, color.alpha))
+			}
+			Channel("B", color.blue) {
+				onColorChange(AwtColor(color.red, color.green, it, color.alpha))
+			}
+			Channel("A", color.alpha) {
+				onColorChange(AwtColor(color.red, color.green, color.blue, it))
+			}
+		}
+		Row(
+			verticalAlignment = Centered.VERTICALLY,
+			horizontalArrangement = Arrangement.spacedBy(4.dp)
+		) {
+			Text("Hex", color = colors.onSurfaceVariant, style = Type.label)
+			TextInput(
+				color.toHex(),
+				{ text -> parseHex(text)?.let(onColorChange) },
+				Modifier.weight(1f),
+				style = Type.label
+			)
+		}
+	}
 }
 
 @Composable
 private fun Bar(
-    fraction: Float,
-    onChange: (Float) -> Unit,
-    background: DrawScope.() -> Unit
+	fraction: Float,
+	onChange: (Float) -> Unit,
+	background: DrawScope.() -> Unit
 ) {
-    Spacer(
-        Modifier
-            .fillMaxWidth()
-            .height(10.dp)
-            .clip(RoundedCornerShape(Look.boxRounding))
-            .drawBehind {
-                background()
-                val thumb = Size(4.dp.toPx(), size.height)
-                val left = Offset(fraction * (size.width - thumb.width), 0f)
-                val corner = CornerRadius(1.dp.toPx())
-                drawRoundRect(Color.White, left, thumb, corner)
-                drawRoundRect(
-                    Color.Black,
-                    left,
-                    thumb,
-                    corner,
-                    style = Stroke(0.5.dp.toPx())
-                )
-            }
-            .scrubbable { position, size ->
-                onChange((position.x / size.width).coerceIn(0f, 1f))
-            }
-    )
+	Spacer(
+		Modifier
+			.fillMaxWidth()
+			.height(10.dp)
+			.clip(RoundedCornerShape(Look.boxRounding))
+			.drawBehind {
+				background()
+				val thumb = Size(4.dp.toPx(), size.height)
+				val left = Offset(fraction * (size.width - thumb.width), 0f)
+				val corner = CornerRadius(1.dp.toPx())
+				drawRoundRect(Color.White, left, thumb, corner)
+				drawRoundRect(
+					Color.Black,
+					left,
+					thumb,
+					corner,
+					style = Stroke(0.5.dp.toPx())
+				)
+			}
+			.scrubbable { position, size ->
+				onChange((position.x / size.width).coerceIn(0f, 1f))
+			}
+	)
 }
 
 @Composable
 private fun RowScope.Channel(label: String, value: Int, onChange: (Int) -> Unit) {
-    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, color = LambdaTheme.colors.onSurfaceVariant, style = Type.label)
-        NumberInput(
-            value,
-            { it.toIntOrNull()?.coerceIn(0, 255) },
-            onChange,
-            Modifier.fillMaxWidth()
-        )
-    }
+	Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+		Text(label, color = LambdaTheme.colors.onSurfaceVariant, style = Type.label)
+		NumberInput(
+			value,
+			{ it.toIntOrNull()?.coerceIn(0, 255) },
+			onChange,
+			Modifier.fillMaxWidth()
+		)
+	}
 }
 
 private fun DrawScope.drawCheckerboard() {
-    val cell = 4.dp.toPx()
-    drawRect(Color(0xFFCCCCCC))
-    var row = 0
-    while (row * cell < size.height) {
-        var column = row % 2
-        while (column * cell < size.width) {
-            drawRect(
-                Color(0xFF999999),
-                Offset(column * cell, row * cell),
-                Size(cell, cell)
-            )
-            column += 2
-        }
-        row++
-    }
+	val cell = 4.dp.toPx()
+	drawRect(Color(0xFFCCCCCC))
+	var row = 0
+	while (row * cell < size.height) {
+		var column = row % 2
+		while (column * cell < size.width) {
+			drawRect(
+				Color(0xFF999999),
+				Offset(column * cell, row * cell),
+				Size(cell, cell)
+			)
+			column += 2
+		}
+		row++
+	}
 }
 
 private fun AwtColor.toHex() =
-    if (alpha == 255) "#%02X%02X%02X".format(red, green, blue)
-    else "#%02X%02X%02X%02X".format(red, green, blue, alpha)
+	if (alpha == 255) "#%02X%02X%02X".format(red, green, blue)
+	else "#%02X%02X%02X%02X".format(red, green, blue, alpha)
 
 private fun parseHex(text: String): AwtColor? {
-    val digits = text.removePrefix("#")
-    if (
-        digits.length != 6 && digits.length != 8 ||
-        digits.any { it.digitToIntOrNull(16) == null }
-    ) {
-        return null
-    }
-    val channels = digits.chunked(2).map { it.toIntOrNull(16) ?: return null }
-    return AwtColor(channels[0], channels[1], channels[2], channels.getOrElse(3) { 255 })
+	val digits = text.removePrefix("#")
+	if (
+		digits.length != 6 && digits.length != 8 ||
+		digits.any { it.digitToIntOrNull(16) == null }
+	) {
+		return null
+	}
+	val channels = digits.chunked(2).map { it.toIntOrNull(16) ?: return null }
+	return AwtColor(channels[0], channels[1], channels[2], channels.getOrElse(3) { 255 })
 }

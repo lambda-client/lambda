@@ -42,29 +42,29 @@ object ModuleList : HudModule(
         drawSetting.value = false
     }
 
-    @Composable
-    override fun Content() {
-        val entries by observe {
-            ModuleRegistry.modules
-                .filter { it.isEnabled && it.draw && !it.alwaysEnabled }
-                .map { it.name to it.keybind.takeIf { bind -> bind.key != 0 || bind.mouse != -1 } }
-                .filter { (_, bind) -> bind != null || !onlyBound }
-        }
-        val showKeybind by observe { showKeybind }
-        Column {
-            entries.forEach { (name, bind) ->
-                Row {
-                    HudText(name)
-                    if (showKeybind) {
-                        HudText(
-                            " [${(bind ?: Bind.EMPTY).name}]",
-                            color =
-                                if (bind != null) Color.Green
-                                else Color.Red
-                        )
-                    }
-                }
-            }
+	@Composable
+	override fun Content() {
+		val entries by observe {
+			ModuleRegistry.modules
+				.filter { it.isEnabled && it.draw && !it.alwaysEnabled }
+				.map { it.name to it.keybind.takeIf { bind -> bind.key != 0 || bind.mouse != -1 } }
+				.filter { (_, bind) -> bind != null || !onlyBound }
+		}
+		val showKeybind by observe { showKeybind }
+		Column {
+			entries.forEach { (name, bind) ->
+				Row {
+					HudText(name)
+					if (showKeybind) {
+						HudText(
+							" [${(bind ?: Bind.EMPTY).name}]",
+							color =
+								if (bind != null) Color.Green
+								else Color.Red
+						)
+					}
+				}
+			}
         }
     }
 }

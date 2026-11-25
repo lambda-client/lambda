@@ -29,26 +29,26 @@ import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(GuiRenderer.class)
 public class GuiRendererMixin {
-    @WrapOperation(method = "renderPreparedDraws", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;getFramebuffer()Lnet/minecraft/client/gl/Framebuffer;"), require = 1)
-    private Framebuffer drawIntoItemAtlas(MinecraftClient client, Operation<Framebuffer> original) {
-        Framebuffer atlas = ItemAtlas.getTarget();
-        return atlas != null ? atlas : original.call(client);
-    }
+	@WrapOperation(method = "renderPreparedDraws", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;getFramebuffer()Lnet/minecraft/client/gl/Framebuffer;"), require = 1)
+	private Framebuffer drawIntoItemAtlas(MinecraftClient client, Operation<Framebuffer> original) {
+		Framebuffer atlas = ItemAtlas.getTarget();
+		return atlas != null ? atlas : original.call(client);
+	}
 
-    @WrapOperation(method = "renderPreparedDraws", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/Window;getFramebufferWidth()I"), require = 1)
-    private int itemAtlasWidth(Window window, Operation<Integer> original) {
-        Framebuffer atlas = ItemAtlas.getTarget();
-        return atlas != null ? atlas.textureWidth : original.call(window);
-    }
+	@WrapOperation(method = "renderPreparedDraws", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/Window;getFramebufferWidth()I"), require = 1)
+	private int itemAtlasWidth(Window window, Operation<Integer> original) {
+		Framebuffer atlas = ItemAtlas.getTarget();
+		return atlas != null ? atlas.textureWidth : original.call(window);
+	}
 
-    @WrapOperation(method = "renderPreparedDraws", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/Window;getFramebufferHeight()I"), require = 1)
-    private int itemAtlasHeight(Window window, Operation<Integer> original) {
-        Framebuffer atlas = ItemAtlas.getTarget();
-        return atlas != null ? atlas.textureHeight : original.call(window);
-    }
+	@WrapOperation(method = "renderPreparedDraws", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/Window;getFramebufferHeight()I"), require = 1)
+	private int itemAtlasHeight(Window window, Operation<Integer> original) {
+		Framebuffer atlas = ItemAtlas.getTarget();
+		return atlas != null ? atlas.textureHeight : original.call(window);
+	}
 
-    @WrapOperation(method = {"renderPreparedDraws", "getWindowScaleFactor"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/Window;getScaleFactor()I"), require = 1)
-    private int itemAtlasScale(Window window, Operation<Integer> original) {
-        return ItemAtlas.getTarget() != null ? ItemAtlas.getScale() : original.call(window);
-    }
+	@WrapOperation(method = {"renderPreparedDraws", "getWindowScaleFactor"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/Window;getScaleFactor()I"), require = 1)
+	private int itemAtlasScale(Window window, Operation<Integer> original) {
+		return ItemAtlas.getTarget() != null ? ItemAtlas.getScale() : original.call(window);
+	}
 }

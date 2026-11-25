@@ -21,20 +21,20 @@ import androidx.compose.runtime.Composable
 import com.lambda.event.Event
 
 sealed class ComposeEvent : Event {
-    private val added = mutableListOf<@Composable () -> Unit>()
-    val contents: List<@Composable () -> Unit> get() = added
+	private val added = mutableListOf<@Composable () -> Unit>()
+	val contents: List<@Composable () -> Unit> get() = added
 
-    fun content(content: @Composable () -> Unit) {
-        added += content
-    }
+	fun content(content: @Composable () -> Unit) {
+		added += content
+	}
 
-    sealed class Hud : ComposeEvent() {
-        class Pre : Hud()
-        class Post : Hud()
-    }
+	sealed class Hud : ComposeEvent() {
+		class Pre : Hud()
+		class Post : Hud()
+	}
 
-    sealed class Gui : ComposeEvent() {
-        class Pre : Gui()
-        class Post : Gui()
-    }
+	sealed class Gui : ComposeEvent() {
+		class Pre : Gui()
+		class Post : Gui()
+	}
 }

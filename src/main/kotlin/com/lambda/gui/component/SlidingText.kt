@@ -52,54 +52,54 @@ private const val BACK_MILLIS = 250
 
 @Composable
 fun SlidingText(
-    text: String,
-    modifier: Modifier = Modifier,
-    color: Color = LocalContentColor.current,
-    style: TextStyle = Type.body,
+	text: String,
+	modifier: Modifier = Modifier,
+	color: Color = LocalContentColor.current,
+	style: TextStyle = Type.body,
 ) {
-    var overflow by remember { mutableIntStateOf(0) }
-    val interactions = remember { MutableInteractionSource() }
-    val hovered by interactions.collectIsHoveredAsState()
-    val pixelsPerSecond = with(LocalDensity.current) { SLIDE_SPEED.toPx() }
+	var overflow by remember { mutableIntStateOf(0) }
+	val interactions = remember { MutableInteractionSource() }
+	val hovered by interactions.collectIsHoveredAsState()
+	val pixelsPerSecond = with(LocalDensity.current) { SLIDE_SPEED.toPx() }
 
-    val slide = remember { Animatable(0f) }
-    LaunchedEffect(hovered, overflow) {
-        if (!hovered || overflow == 0) {
-            slide.animateTo(0f, tween(BACK_MILLIS))
-            return@LaunchedEffect
-        }
-        val outMillis = (overflow / pixelsPerSecond * 1000).roundToInt().coerceAtLeast(BACK_MILLIS)
-        withContext(Motion.UNSCALED) {
-            slide.animateTo(
-                targetValue = 0f,
-                animationSpec = infiniteRepeatable(
-                    keyframes {
-                        durationMillis = REST_MILLIS + outMillis + END_REST_MILLIS + BACK_MILLIS
-                        0f at REST_MILLIS using LinearEasing
-                        1f at REST_MILLIS + outMillis
-                        1f at REST_MILLIS + outMillis + END_REST_MILLIS
-                    }
-                )
-            )
-        }
-    }
+	val slide = remember { Animatable(0f) }
+	LaunchedEffect(hovered, overflow) {
+		if (!hovered || overflow == 0) {
+			slide.animateTo(0f, tween(BACK_MILLIS))
+			return@LaunchedEffect
+		}
+		val outMillis = (overflow / pixelsPerSecond * 1000).roundToInt().coerceAtLeast(BACK_MILLIS)
+		withContext(Motion.UNSCALED) {
+			slide.animateTo(
+				targetValue = 0f,
+				animationSpec = infiniteRepeatable(
+					keyframes {
+						durationMillis = REST_MILLIS + outMillis + END_REST_MILLIS + BACK_MILLIS
+						0f at REST_MILLIS using LinearEasing
+						1f at REST_MILLIS + outMillis
+						1f at REST_MILLIS + outMillis + END_REST_MILLIS
+					}
+				)
+			)
+		}
+	}
 
-    Text(
-        text = text,
-        color = color,
-        style = style,
-        softWrap = false,
-        modifier = modifier
-            .hoverable(interactions)
-            .clipToBounds()
-            .layout { measurable, constraints ->
-                val placeable = measurable.measure(constraints.copy(maxWidth = Constraints.Infinity))
-                overflow =
-                    if (constraints.hasBoundedWidth) (placeable.width - constraints.maxWidth).coerceAtLeast(0)
-                    else 0
-                layout(placeable.width - overflow, placeable.height) {
-                    placeable.place(-(slide.value * overflow).roundToInt(), 0)
-                }
-            }
-    )
+	Text(
+		text = text,
+		color = color,
+		style = style,
+		softWrap = false,
+		modifier = modifier
+			.hoverable(interactions)
+			.clipToBounds()
+			.layout { measurable, constraints ->
+				val placeable = measurable.measure(constraints.copy(maxWidth = Constraints.Infinity))
+				overflow =
+					if (constraints.hasBoundedWidth) (placeable.width - constraints.maxWidth).coerceAtLeast(0)
+					else 0
+				layout(placeable.width - overflow, placeable.height) {
+					placeable.place(-(slide.value * overflow).roundToInt(), 0)
+				}
+			}
+	)
 }

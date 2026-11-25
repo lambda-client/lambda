@@ -71,9 +71,9 @@ object Speedometer : HudModule(
         speedUnit.convertFromMinecraft(vecDelta.length())
     }
 
-    @Composable
-    override fun Content() {
-        val text by observe { "Speed: %.2f %s".format(speed, speedUnit.unitName) }
-        HudText(text)
+	@Composable
+	override fun Content() {
+		val text by observe { "Speed: %.2f %s".format(speed, speedUnit.unitName) }
+		HudText(text)
     }
 }

@@ -26,10 +26,13 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -43,142 +46,208 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
+import com.lambda.Lambda.mc
 import com.lambda.gui.theme.LambdaTheme
 import com.lambda.gui.theme.Look
 import com.lambda.gui.theme.Type
 
 internal object TextFocus {
-    private val fields = mutableListOf<Field>()
+	private val fields = mutableListOf<Field>()
 
-    val isTyping get() = fields.isNotEmpty()
+	val isTyping get() = fields.isNotEmpty()
 
-    fun press(position: Offset) = fields.filter { position !in it.bounds }.forEach { it.release() }
+	fun press(position: Offset) =
+		fields.filter { !it.pinned && position !in it.bounds }.forEach { it.release() }
 
-    fun add(field: Field) = fields.add(field)
-    fun remove(field: Field) = fields.remove(field)
+	fun add(field: Field) = fields.add(field)
+	fun remove(field: Field) = fields.remove(field)
 
-    class Field(val release: () -> Unit) {
-        var bounds = Rect.Zero
-    }
+	class Field(val release: () -> Unit) {
+		var bounds = Rect.Zero
+		var pinned = false
+	}
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TextInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    singleLine: Boolean = true,
-    placeholder: String = "",
-    style: TextStyle = Type.body,
-    focused: Boolean = false,
-    onDone: (() -> Unit)? = null,
+	value: String,
+	onValueChange: (String) -> Unit,
+	modifier: Modifier = Modifier,
+	singleLine: Boolean = true,
+	placeholder: String = "",
+	style: TextStyle = Type.body,
+	focused: Boolean = false,
+	onDone: (() -> Unit)? = null,
 ) {
-    val colors = LambdaTheme.colors
-    var field by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
-    var adopted by remember { mutableStateOf(value) }
-    if (value != adopted) {
-        adopted = value
-        if (value != field.text) field = TextFieldValue(value, TextRange(value.length))
-    }
+	val colors = LambdaTheme.colors
+	var field by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
+	var adopted by remember { mutableStateOf(value) }
+	if (value != adopted) {
+		adopted = value
+		if (value != field.text) field = TextFieldValue(value, TextRange(value.length))
+	}
 
-    val focus = remember { FocusRequester() }
-    var hadFocus by remember { mutableStateOf(false) }
-    var hasFocus by remember { mutableStateOf(false) }
-    if (focused) LaunchedEffect(Unit) { focus.requestFocus() }
-    val focusManager = LocalFocusManager.current
-    val typing = remember(focusManager) { TextFocus.Field { focusManager.clearFocus() } }
-    if (hasFocus) DisposableEffect(typing) {
-        TextFocus.add(typing)
-        onDispose { TextFocus.remove(typing) }
-    }
+	val focus = remember { FocusRequester() }
+	var hadFocus by remember { mutableStateOf(false) }
+	var hasFocus by remember { mutableStateOf(false) }
+	if (focused) LaunchedEffect(Unit) { focus.requestFocus() }
+	val focusManager = LocalFocusManager.current
+	val typing = remember(focusManager) { TextFocus.Field { focusManager.clearFocus() } }
+	if (hasFocus) DisposableEffect(typing) {
+		TextFocus.add(typing)
+		onDispose { TextFocus.remove(typing) }
+	}
 
-    BasicTextField(
-        value = field,
-        onValueChange = {
-            val edited = it.text != field.text
-            field = it
-            if (edited) onValueChange(it.text)
-        },
-        enabled = LocalKeyboardReachable.current,
-        singleLine = singleLine,
-        textStyle = style.copy(color = colors.onControl),
-        cursorBrush = SolidColor(colors.onControl),
-        modifier = modifier
-            .heightIn(min = Look.rowHeight)
-            .clip(RoundedCornerShape(Look.controlRounding))
-            .background(colors.input)
-            .onGloballyPositioned { typing.bounds = it.boundsInWindow() }
-            .focusRequester(focus)
-            .onFocusChanged {
-                hasFocus = it.isFocused
-                if (it.isFocused) hadFocus = true
-                else if (hadFocus) onDone?.invoke()
-            }
-            .onPreviewKeyEvent { event ->
-                if (
-                    onDone == null ||
-                    (event.key != Key.Enter && event.key != Key.Escape)
-                ) {
-                    false
-                }
-                else {
-                    if (event.type == KeyEventType.KeyDown) onDone()
-                    true
-                }
-            }
-            .padding(horizontal = 3.dp, vertical = 1.dp),
-        decorationBox = { innerTextField ->
-            Box(contentAlignment = Centered.START) {
-                if (field.text.isEmpty()) {
-                    Text(
-                        placeholder,
-                        color = colors.onSurfaceVariant,
-                        style = style,
-                        maxLines = 1
-                    )
-                }
-                innerTextField()
-            }
-        }
-    )
+	val reachable = LocalKeyboardReachable.current
+	var origin by remember { mutableStateOf(Offset.Zero) }
+	var menu by remember { mutableStateOf<IntOffset?>(null) }
+	SideEffect { typing.pinned = menu != null }
+	fun edit(to: TextFieldValue) {
+		val edited = to.text != field.text
+		field = to
+		if (edited) onValueChange(to.text)
+	}
+
+	BasicTextField(
+		value = field,
+		onValueChange = ::edit,
+		enabled = reachable,
+		singleLine = singleLine,
+		textStyle = style.copy(color = colors.onControl),
+		cursorBrush = SolidColor(colors.onControl),
+		modifier = modifier
+			.heightIn(min = Look.rowHeight)
+			.clip(RoundedCornerShape(Look.controlRounding))
+			.background(colors.input)
+			.onGloballyPositioned {
+				typing.bounds = it.boundsInWindow()
+				origin = it.positionInWindow()
+			}
+			.pointerInput(reachable) {
+				awaitPointerEventScope {
+					while (true) {
+						val event = awaitPointerEvent(PointerEventPass.Initial)
+						if (event.type != PointerEventType.Press || event.button != PointerButton.Secondary) continue
+						val change = event.changes.first()
+						change.consume()
+						if (!reachable) continue
+						focus.requestFocus()
+						menu = (origin + change.position).round()
+					}
+				}
+			}
+			.focusRequester(focus)
+			.onFocusChanged {
+				hasFocus = it.isFocused
+				if (it.isFocused) hadFocus = true
+				else if (hadFocus) onDone?.invoke()
+			}
+			.onPreviewKeyEvent { event ->
+				if (
+					onDone == null ||
+					(event.key != Key.Enter && event.key != Key.Escape)
+				) {
+					false
+				}
+				else {
+					if (event.type == KeyEventType.KeyDown) onDone()
+					true
+				}
+			}
+			.padding(horizontal = 3.dp, vertical = 1.dp),
+		decorationBox = { innerTextField ->
+			Box(contentAlignment = Centered.START) {
+				if (field.text.isEmpty()) {
+					Text(
+						placeholder,
+						color = colors.onSurfaceVariant,
+						style = style,
+						maxLines = 1
+					)
+				}
+				innerTextField()
+			}
+		}
+	)
+
+	rememberLast(menu)?.let { position ->
+		key(position) {
+			ContextMenu(menu != null, position, onDismiss = { menu = null }) {
+				val selected = !field.selection.collapsed
+				MenuItem("Cut", enabled = selected) {
+					mc.keyboard.clipboard = field.selected
+					edit(field.replacingSelection(""))
+				}
+				MenuItem("Copy", enabled = selected) { mc.keyboard.clipboard = field.selected }
+				MenuItem("Paste", enabled = mc.keyboard.clipboard.isNotEmpty()) {
+					val pasted = mc.keyboard.clipboard
+					edit(
+						field.replacingSelection(
+							if (singleLine) pasted.filterNot { it == '\n' || it == '\r' }
+							else pasted
+						)
+					)
+				}
+				MenuItem("Select All", enabled = field.text.isNotEmpty()) {
+					field = field.copy(selection = TextRange(0, field.text.length))
+				}
+			}
+		}
+	}
 }
+
+private val TextFieldValue.selected get() = text.substring(selection.min, selection.max)
+
+private fun TextFieldValue.replacingSelection(with: String) =
+	TextFieldValue(
+		text.replaceRange(selection.min, selection.max, with),
+		TextRange(selection.min + with.length)
+	)
 
 @Composable
 fun <T : Any> NumberInput(
-    value: T,
-    parse: (String) -> T?,
-    onCommit: (T) -> Unit,
-    modifier: Modifier = Modifier,
-    focused: Boolean = false,
-    onDone: () -> Unit = {},
+	value: T,
+	parse: (String) -> T?,
+	onCommit: (T) -> Unit,
+	modifier: Modifier = Modifier,
+	focused: Boolean = false,
+	onDone: () -> Unit = {},
 ) {
-    var draft by remember { mutableStateOf<String?>(null) }
-    fun finish(commit: Boolean) {
-        val typed = draft
-        draft = null
-        if (commit && typed != null) {
-            parse(typed.trim())?.takeIf { it != value }?.let(onCommit)
-        }
-        onDone()
-    }
-    TextInput(
-        value = draft ?: value.toString(),
-        onValueChange = { draft = it },
-        modifier = modifier.onPreviewKeyEvent { event ->
-            if (event.key != Key.Escape) false
-            else {
-                if (event.type == KeyEventType.KeyDown) finish(commit = false)
-                true
-            }
-        },
-        focused = focused,
-        onDone = { finish(commit = true) },
-    )
+	var draft by remember { mutableStateOf<String?>(null) }
+	fun finish(commit: Boolean) {
+		val typed = draft
+		draft = null
+		if (commit && typed != null) {
+			parse(typed.trim())?.takeIf { it != value }?.let(onCommit)
+		}
+		onDone()
+	}
+	TextInput(
+		value = draft ?: value.toString(),
+		onValueChange = { draft = it },
+		modifier = modifier.onPreviewKeyEvent { event ->
+			if (event.key != Key.Escape) false
+			else {
+				if (event.type == KeyEventType.KeyDown) finish(commit = false)
+				true
+			}
+		},
+		focused = focused,
+		onDone = { finish(commit = true) },
+	)
 }

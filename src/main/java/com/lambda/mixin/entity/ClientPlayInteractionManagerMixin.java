@@ -120,7 +120,7 @@ public class ClientPlayInteractionManagerMixin {
 
     @ModifyExpressionValue(method = "clickSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/screen/ScreenHandler;getRevision()I"))
     private int modifyClickSlotRevision(int originalRevision) {
-        return ClientConfig.INSTANCE.getAvoidInventoryDesync() ? -1 : originalRevision;
+		return ClientConfig.INSTANCE.getAvoidInventoryDesync() ? -1 : originalRevision;
     }
 
     /**

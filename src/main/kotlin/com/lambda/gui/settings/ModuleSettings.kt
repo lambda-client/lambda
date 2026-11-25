@@ -63,168 +63,168 @@ import com.lambda.module.modules.client.AutoUpdater
 import kotlinx.coroutines.launch
 
 internal enum class PanelPage(val title: String) {
-    Settings("Settings"),
-    Module("Module"),
-    Automation("Automation"),
+	Settings("Settings"),
+	Module("Module"),
+	Automation("Automation"),
 }
 
 @Composable
 internal fun ColumnScope.ModuleSettings(
-    module: Module,
-    selected: PanelPage,
-    onSelect: (PanelPage) -> Unit,
-    scroll: ScrollState?
+	module: Module,
+	selected: PanelPage,
+	onSelect: (PanelPage) -> Unit,
+	scroll: ScrollState?
 ) {
-    val pages = pagesOf(module)
-    val page = selected.takeIf { it in pages } ?: PanelPage.Settings
-    val revealed = Reveal.setting.takeIf { Reveal.module === module }
-    LaunchedEffect(revealed) {
-        if (revealed != null) onSelect(pageOf(module, revealed))
-    }
-    val scope = rememberCoroutineScope()
+	val pages = pagesOf(module)
+	val page = selected.takeIf { it in pages } ?: PanelPage.Settings
+	val revealed = Reveal.setting.takeIf { Reveal.module === module }
+	LaunchedEffect(revealed) {
+		if (revealed != null) onSelect(pageOf(module, revealed))
+	}
+	val scope = rememberCoroutineScope()
 
-    SoftTextShadow {
-        if (pages.size > 1) PageStrip(pages, page) {
-            onSelect(it)
-            if (scroll != null) scope.launch { scroll.scrollTo(0) }
-        }
-        val turned =
-            @Composable {
-                AnimatedContent(
-                    targetState = page,
-                    modifier = Modifier.fillMaxWidth(),
-                    transitionSpec = { pageTurn(towardsEnd = targetState > initialState) }
-                ) { shown ->
-                    Column(Modifier.fillMaxWidth()) {
-                        when (shown) {
-                            PanelPage.Settings -> SettingsPage(module)
-                            PanelPage.Module -> ModulePage(module)
-                            PanelPage.Automation -> AutomationPage(module)
-                        }
-                    }
-                }
-            }
-        if (scroll != null) ScrollColumn(Modifier.weight(1f, fill = false), scroll) { turned() }
-        else turned()
-    }
+	SoftTextShadow {
+		if (pages.size > 1) PageStrip(pages, page) {
+			onSelect(it)
+			if (scroll != null) scope.launch { scroll.scrollTo(0) }
+		}
+		val turned =
+			@Composable {
+				AnimatedContent(
+					targetState = page,
+					modifier = Modifier.fillMaxWidth(),
+					transitionSpec = { pageTurn(towardsEnd = targetState > initialState) }
+				) { shown ->
+					Column(Modifier.fillMaxWidth()) {
+						when (shown) {
+							PanelPage.Settings -> SettingsPage(module)
+							PanelPage.Module -> ModulePage(module)
+							PanelPage.Automation -> AutomationPage(module)
+						}
+					}
+				}
+			}
+		if (scroll != null) ScrollColumn(Modifier.weight(1f, fill = false), scroll) { turned() }
+		else turned()
+	}
 }
 
 private fun pagesOf(module: Module): List<PanelPage> =
-    when {
-        module == AutoUpdater -> listOf(PanelPage.Settings)
-        module.automationConfig === AutomationConfig.DEFAULT ->
-            listOf(PanelPage.Settings, PanelPage.Module)
-        else -> PanelPage.entries
-    }
+	when {
+		module == AutoUpdater -> listOf(PanelPage.Settings)
+		module.automationConfig === AutomationConfig.DEFAULT ->
+			listOf(PanelPage.Settings, PanelPage.Module)
+		else -> PanelPage.entries
+	}
 
 private fun pageOf(module: Module, setting: Setting<*>): PanelPage =
-    when {
-        module.automationConfig !== AutomationConfig.DEFAULT &&
-                module.automationConfig.settingLayers.holds(setting) -> PanelPage.Automation
-        setting in moduleSettings(module) -> PanelPage.Module
-        else -> PanelPage.Settings
-    }
+	when {
+		module.automationConfig !== AutomationConfig.DEFAULT &&
+				module.automationConfig.settingLayers.holds(setting) -> PanelPage.Automation
+		setting in moduleSettings(module) -> PanelPage.Module
+		else -> PanelPage.Settings
+	}
 
 private fun moduleSettings(module: Module): List<Setting<*>> =
-    listOfNotNull(
-        module.keybindSetting.takeUnless { module.alwaysEnabled },
-        module.prioritySetting,
-        module.disableOnReleaseSetting.takeUnless { module.alwaysEnabled },
-        module.drawSetting.takeUnless { module.alwaysEnabled },
-    )
+	listOfNotNull(
+		module.keybindSetting.takeUnless { module.alwaysEnabled },
+		module.prioritySetting,
+		module.disableOnReleaseSetting.takeUnless { module.alwaysEnabled },
+		module.drawSetting.takeUnless { module.alwaysEnabled },
+	)
 
 @Composable
 private fun PageStrip(
-    pages: List<PanelPage>,
-    selected: PanelPage,
-    onSelect: (PanelPage) -> Unit
+	pages: List<PanelPage>,
+	selected: PanelPage,
+	onSelect: (PanelPage) -> Unit
 ) {
-    val colors = LambdaTheme.colors
-    Row(Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
-        pages.forEach { page ->
-            val isSelected = page == selected
-            val line by animateColorAsState(if (isSelected) colors.secondary else colors.raised)
-            Box(
-                contentAlignment = Centered.BOTH,
-                modifier = Modifier
-                    .weight(page.title.length + 2f)
-                    .height(Look.rowHeight + 1.dp)
-                    .hoverHighlight(colors.raised)
-                    .mouseClickable { onSelect(page) }
-                    .drawBehind {
-                        val thickness = 1.dp.toPx()
-                        drawRect(
-                            line,
-                            Offset(0f, size.height - thickness),
-                            Size(size.width, thickness)
-                        )
-                    }
-                    .padding(horizontal = 4.dp)
-            ) {
-                Text(
-                    page.title,
-                    color = if (isSelected) colors.onSurface else colors.onSurfaceVariant,
-                    maxLines = 1,
-                    softWrap = false
-                )
-            }
-        }
-    }
+	val colors = LambdaTheme.colors
+	Row(Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
+		pages.forEach { page ->
+			val isSelected = page == selected
+			val line by animateColorAsState(if (isSelected) colors.secondary else colors.raised)
+			Box(
+				contentAlignment = Centered.BOTH,
+				modifier = Modifier
+					.weight(page.title.length + 2f)
+					.height(Look.rowHeight + 1.dp)
+					.hoverHighlight(colors.raised)
+					.mouseClickable { onSelect(page) }
+					.drawBehind {
+						val thickness = 1.dp.toPx()
+						drawRect(
+							line,
+							Offset(0f, size.height - thickness),
+							Size(size.width, thickness)
+						)
+					}
+					.padding(horizontal = 4.dp)
+			) {
+				Text(
+					page.title,
+					color = if (isSelected) colors.onSurface else colors.onSurfaceVariant,
+					maxLines = 1,
+					softWrap = false
+				)
+			}
+		}
+	}
 }
 
 @Composable
 private fun SettingsPage(module: Module) {
-    val any by observe { module.settingLayers.hasVisibleSettings() }
-    if (any) SettingsList(module.settingLayers)
-    else {
-        Box(
-            Modifier.fillMaxWidth().padding(vertical = 4.dp),
-            contentAlignment = Centered.BOTH
-        ) {
-            Text("No settings", color = LambdaTheme.colors.onSurfaceVariant)
-        }
-    }
+	val any by observe { module.settingLayers.hasVisibleSettings() }
+	if (any) SettingsList(module.settingLayers)
+	else {
+		Box(
+			Modifier.fillMaxWidth().padding(vertical = 4.dp),
+			contentAlignment = Centered.BOTH
+		) {
+			Text("No settings", color = LambdaTheme.colors.onSurfaceVariant)
+		}
+	}
 }
 
 @Composable
 private fun AutomationPage(module: Module) {
-    val linked by observe { module.backingAutomationConfig }
-    CompositionLocalProvider(LocalClickOnRelease provides true) {
-        AutomationConfigSelector(module, linked)
-    }
-    key(linked) { SettingsList(module.automationConfig.settingLayers) }
+	val linked by observe { module.backingAutomationConfig }
+	CompositionLocalProvider(LocalClickOnRelease provides true) {
+		AutomationConfigSelector(module, linked)
+	}
+	key(linked) { SettingsList(module.automationConfig.settingLayers) }
 }
 
 @Composable
 private fun ModulePage(module: Module) {
-    moduleSettings(module).forEach { SettingRow(it) }
-    Tooltip(
-        "Resets all settings for this module to their default values",
-        Modifier.fillMaxWidth()
-    ) {
-        CompositionLocalProvider(LocalClickOnRelease provides true) {
-            Button("Reset", Modifier.settingCell().height(Look.rowHeight)) {
-                module.resetSettings()
-            }
-        }
-    }
+	moduleSettings(module).forEach { SettingRow(it) }
+	Tooltip(
+		"Resets all settings for this module to their default values",
+		Modifier.fillMaxWidth()
+	) {
+		CompositionLocalProvider(LocalClickOnRelease provides true) {
+			Button("Reset", Modifier.settingCell().height(Look.rowHeight)) {
+				module.resetSettings()
+			}
+		}
+	}
 }
 
 @Composable
 private fun AutomationConfigSelector(module: Module, linked: AutomationConfig) {
-    val options by observe {
-        listOf(module.defaultAutomationConfig) +
-                UserAutomationCategory.configs.filterIsInstance<AutomationConfig>()
-    }
-    Dropdown(
-        label = "Linked Config",
-        options = options,
-        selected = linked,
-        optionLabel = { it.name },
-        modifier = Modifier.settingCell().padding(start = ROW_INSET),
-    ) { selected ->
-        (module.backingAutomationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(module.name)
-        (selected as? UserAutomationConfig)?.linkedModules?.value?.add(module.name)
-        module.automationConfig = selected
-    }
+	val options by observe {
+		listOf(module.defaultAutomationConfig) +
+				UserAutomationCategory.configs.filterIsInstance<AutomationConfig>()
+	}
+	Dropdown(
+		label = "Linked Config",
+		options = options,
+		selected = linked,
+		optionLabel = { it.name },
+		modifier = Modifier.settingCell().padding(start = ROW_INSET),
+	) { selected ->
+		(module.backingAutomationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(module.name)
+		(selected as? UserAutomationConfig)?.linkedModules?.value?.add(module.name)
+		module.automationConfig = selected
+	}
 }
