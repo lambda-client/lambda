@@ -22,6 +22,8 @@ import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Config
 import com.lambda.config.ConfigLoader
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.config.entries.Setting
 import com.lambda.gui.GuiScreen
 import com.lambda.gui.Reveal
@@ -66,11 +68,13 @@ internal object Search {
 		}
 	}
 
-	private const val MAX_RESULTS = 30
-
 	private const val MODULE_BONUS = 300
 	private const val HUD_MODULE_BONUS = 270
 	private const val COMMAND_BONUS = 200
+
+	private const val OWN_PLACE = 0
+	private const val SHARED_AUTOMATION_PLACE = 1
+	private const val MODULE_AUTOMATION_PLACE = 2
 
 	private val chatReachable get() = mc.world != null && !GuiScreen.isOverScreen
 
@@ -78,16 +82,24 @@ internal object Search {
 		if (query.isEmpty()) return emptyList()
 		val needle = query.lowercase()
 		return rank(needle, lenient = false).ifEmpty { rank(needle, lenient = true) }
-			.sortedByDescending { it.second }
-			.take(MAX_RESULTS)
-			.map { it.first }
+			.sortedWith(compareByDescending<Ranked> { it.score }.thenBy { it.place })
+			.map { it.result }
 	}
 
-	private fun rank(query: String, lenient: Boolean): List<Pair<Result, Int>> =
+	private class Ranked(val result: Result, val score: Int, val place: Int)
+
+	private fun place(config: Config) =
+		when {
+			config !is AutomationConfig -> OWN_PLACE
+			config === AutomationConfig.DEFAULT || config is UserAutomationConfig -> SHARED_AUTOMATION_PLACE
+			else -> MODULE_AUTOMATION_PLACE
+		}
+
+	private fun rank(query: String, lenient: Boolean): List<Ranked> =
 		buildList {
-			fun consider(result: () -> Result, bonus: Int, vararg names: String) {
+			fun consider(result: () -> Result, bonus: Int, place: Int, vararg names: String) {
 				val score = names.maxOf { score(query, it.lowercase(), lenient) }
-				if (score > 0) add(result() to score + bonus)
+				if (score > 0) add(Ranked(result(), score + bonus, place))
 			}
 
 			fun hidden(config: Any) =
@@ -100,6 +112,7 @@ internal object Search {
 				consider(
 					{ Result.OfModule(module) },
 					if (module is HudModule) HUD_MODULE_BONUS else MODULE_BONUS,
+					OWN_PLACE,
 					module.name,
 					module.tag.name
 				)
@@ -109,6 +122,7 @@ internal object Search {
 					consider(
 						{ Result.OfCommand(command) },
 						COMMAND_BONUS,
+						OWN_PLACE,
 						command.name,
 						*command.aliases.toTypedArray()
 					)
@@ -129,6 +143,7 @@ internal object Search {
 									)
 								},
 								0,
+								place(config),
 								setting.name
 							)
 						}

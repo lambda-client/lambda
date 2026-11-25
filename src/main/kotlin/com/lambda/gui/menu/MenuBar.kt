@@ -31,9 +31,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -114,6 +114,8 @@ import java.util.*
 internal val MENU_BAR_HEIGHT = 15.dp
 private val ICON_SIZE = 9.dp
 private val SEARCH_WIDTH = 150.dp
+private val RESULTS_WIDTH = 260.dp
+private val RESULT_GAP = 10.dp
 
 @Composable
 internal fun MenuBar(modifier: Modifier = Modifier) {
@@ -204,6 +206,10 @@ private fun SearchField(modifier: Modifier = Modifier) {
 	val open = listed && query.isNotBlank()
 	val shown = rememberLast(results.takeIf { open }).orEmpty()
 	var marked by remember(results) { mutableStateOf(0) }
+	val list = rememberLazyListState()
+	LaunchedEffect(results, marked) {
+		if (open) list.reveal(marked)
+	}
 
 	fun choose(result: Search.Result) {
 		query = ""
@@ -248,9 +254,9 @@ private fun SearchField(modifier: Modifier = Modifier) {
 			modifier = Modifier.width(SEARCH_WIDTH).focusRequester(field),
 			placeholder = "Search modules and settings",
 		)
-		Suggestions(open, onDismiss = { listed = false }) {
-			if (shown.isEmpty()) MenuLabel("Nothing found")
-			shown.forEachIndexed { index, result ->
+		Suggestions(open, onDismiss = { listed = false }, RESULTS_WIDTH, list) {
+			if (shown.isEmpty()) item { MenuLabel("Nothing found") }
+			itemsIndexed(shown) { index, result ->
 				ResultRow(
 					result,
 					marked = index == marked,
@@ -263,6 +269,20 @@ private fun SearchField(modifier: Modifier = Modifier) {
 	}
 }
 
+private suspend fun LazyListState.reveal(index: Int) {
+	val rows = layoutInfo.visibleItemsInfo
+	val height = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+	val row = rows.firstOrNull { it.index == index }
+	val rowHeight = (row ?: rows.firstOrNull())?.size ?: 0
+	val first = rows.firstOrNull()?.index ?: 0
+	when {
+		row == null && index < first -> scrollToItem(index)
+		row == null -> scrollToItem(index, rowHeight - height)
+		row.offset < 0 -> scrollToItem(index)
+		row.offset + row.size > height -> scrollToItem(index, rowHeight - height)
+	}
+}
+
 @Composable
 private fun ResultRow(
 	result: Search.Result,
@@ -271,17 +291,11 @@ private fun ResultRow(
 	onClick: () -> Unit
 ) {
 	val colors = LambdaTheme.colors
-	val intoView = remember { BringIntoViewRequester() }
-	LaunchedEffect(marked) {
-		if (marked) intoView.bringIntoView()
-	}
 	val point by rememberUpdatedState(onPoint)
 	Row(
 		verticalAlignment = Centered.VERTICALLY,
 		modifier = Modifier
 			.fillMaxWidth()
-			.widthIn(min = SEARCH_WIDTH)
-			.bringIntoViewRequester(intoView)
 			.background(if (marked) colors.controlSelected else Color.Transparent)
 			.pointerInput(Unit) {
 				awaitPointerEventScope {
@@ -294,13 +308,15 @@ private fun ResultRow(
 			.padding(horizontal = 5.dp, vertical = 1.dp)
 	) {
 		Text(result.name, maxLines = 1)
-		Spacer(Modifier.weight(1f).widthIn(min = 10.dp))
-		Text(
-			result.origin,
-			color = colors.onSurfaceVariant,
-			style = Type.label,
-			maxLines = 1
-		)
+		Spacer(Modifier.width(RESULT_GAP))
+		Box(Modifier.weight(1f), contentAlignment = Centered.END) {
+			Text(
+				result.origin,
+				color = colors.onSurfaceVariant,
+				style = Type.label,
+				maxLines = 1
+			)
+		}
 	}
 }
 

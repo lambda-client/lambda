@@ -43,6 +43,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -88,6 +93,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -452,7 +458,9 @@ private class UnfoldingPosition(
 fun Suggestions(
 	open: Boolean,
 	onDismiss: () -> Unit,
-	content: @Composable ColumnScope.() -> Unit
+	width: Dp,
+	list: LazyListState = rememberLazyListState(),
+	content: LazyListScope.() -> Unit
 ) {
 	if (!LocalShown.current) {
 		if (open) SideEffect(onDismiss)
@@ -495,13 +503,21 @@ fun Suggestions(
 						Alignment.Top
 					),
 			) {
-				ScrollColumn(
-					modifier = Modifier
+				Box(
+					Modifier
+						.width(width)
 						.heightIn(max = screenHeight * 0.6f)
-						.width(IntrinsicSize.Max)
-						.animateContentSize(Motion.panels),
-					content = content
-				)
+						.animateContentSize(Motion.panels)
+				) {
+					LazyColumn(
+						state = list,
+						modifier = Modifier.fillMaxWidth().wheelScrollable(list),
+						content = content
+					)
+					if (list.canScrollForward || list.canScrollBackward) {
+						Scrollbar(rememberScrollbarAdapter(list), Modifier.matchParentSize())
+					}
+				}
 			}
 		}
 	}
