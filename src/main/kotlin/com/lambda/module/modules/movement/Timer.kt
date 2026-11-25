@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -28,7 +29,7 @@ object Timer : Module(
     description = "Modify client tick speed.",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val timer by setting("Timer", 1.0, 0.0..10.0, 0.01)
+    private val timer by doubleSetting("Timer", 1.0, 0.0..10.0, 0.01)
 
     init {
         listen<ClientEvent.TimerUpdate> {

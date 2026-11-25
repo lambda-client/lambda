@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.hud
 
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.intSetting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import com.lambda.event.events.RenderEvent
@@ -34,8 +36,8 @@ object Fps : HudModule(
 	description = "Displays your games frames per second",
 	tag = ModuleTag.HUD
 ) {
-	val average by setting("Average", true)
-	val updateDelay by setting("Update Delay", 50, 0..1000, 1, "Time between updating the fps value")
+	val average by boolSetting("Average", true)
+	val updateDelay by intSetting("Update Delay", 50, 0..1000, 1, "Time between updating the fps value")
 
 	val frames = LimitedDecayQueue<Unit>(Int.MAX_VALUE, 1.seconds.inWholeMilliseconds)
 	var lastUpdated = System.currentTimeMillis()

@@ -27,6 +27,10 @@ import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import com.lambda.brigadier.CommandResult
 import com.lambda.config.blocks.RotationConfig
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.setting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.MovementEvent
@@ -99,11 +103,11 @@ object Replay : Module(
     private val check by setting("Set Checkpoint", KeyCode.V, description = "Create a checkpoint while recording.")
         .onPress { handleCheckpoint() }
 
-    private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = " repeats")
-    private val velocityCheck by setting("Velocity check", true, description = "Check if the player is moving before starting a recording.")
-    private val cancelOnDeviation by setting("Cancel on deviation", true)
-    private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
-    private val lockCamera by setting("Lock Camera", true)
+    private val loops by intSetting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = " repeats")
+    private val velocityCheck by boolSetting("Velocity check", true, description = "Check if the player is moving before starting a recording.")
+    private val cancelOnDeviation by boolSetting("Cancel on deviation", true)
+    private val deviationThreshold by doubleSetting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
+    private val lockCamera by boolSetting("Lock Camera", true)
 
     override val rotationConfig = object : RotationConfig.Instant(RotationMode.Sync) {
         override val rotationMode = if (lockCamera) RotationMode.Lock else RotationMode.Sync

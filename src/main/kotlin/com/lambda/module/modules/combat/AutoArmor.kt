@@ -20,7 +20,11 @@ package com.lambda.module.modules.combat
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
 import com.lambda.config.hideBlockExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -53,15 +57,15 @@ object AutoArmor : Module(
 	description = "Automatically equips armor",
 	tag = ModuleTag.COMBAT
 ) {
-	var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
-	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
+	var elytraPriority by boolSetting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
+	private val toggleElytraPriority by bindSetting("Toggle Elytra Priority", Bind.EMPTY)
 		.onPress { elytraPriority = !elytraPriority }
-	private val minDurabilityPercentage by setting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
-	private val headProtection by setting("Preferred Head Protection", Protection.Protection)
-	private val chestProtection by setting("Preferred Chest Protection", Protection.Protection)
-	private val legProtection by setting("Preferred Leg Protection", Protection.BlastProtection)
-	private val feetProtection by setting("Preferred Feet Protection", Protection.Protection)
-	private val ignoreBinding by setting("Ignore Binding", true, "Ignores curse of binding armor pieces")
+	private val minDurabilityPercentage by intSetting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
+	private val headProtection by enumSetting("Preferred Head Protection", Protection.Protection)
+	private val chestProtection by enumSetting("Preferred Chest Protection", Protection.Protection)
+	private val legProtection by enumSetting("Preferred Leg Protection", Protection.BlastProtection)
+	private val feetProtection by enumSetting("Preferred Feet Protection", Protection.Protection)
+	private val ignoreBinding by boolSetting("Ignore Binding", true, "Ignores curse of binding armor pieces")
 
 	private var tickedThisTick = false
 

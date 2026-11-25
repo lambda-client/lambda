@@ -25,7 +25,12 @@ import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.hide
 import com.lambda.config.hideBlock
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
+import com.lambda.config.settings.numeric.intSetting
+import com.lambda.config.settings.stringSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
@@ -120,44 +125,44 @@ object StashMover : Module(
 		Drop("Drop")
 	}
 
-	@Tab(GENERAL_TAB) private val role: Role by setting("Role", Role.MoverBot)
+	@Tab(GENERAL_TAB) private val role: Role by enumSetting("Role", Role.MoverBot)
 		.onValueChange { _, _ -> clearModule() }
-	@Tab(GENERAL_TAB) private val pearlBotName by setting("PearlBot Name", "Steve") { role == Role.MoverBot }
-	@Tab(GENERAL_TAB) private val moverBotName by setting("MoverBot Name", "Steve") { role == Role.PearlBot }
-	@Tab(GENERAL_TAB) private val dropOffMode by setting("Drop-Off Mode", DropOffMode.Chests) { role == Role.MoverBot }
-	@Tab(GENERAL_TAB) private var chestPullSelMode: Boolean by setting("Chest Pull Sel Mode", false, "Enables the mode to select the stash containers you want to move items from") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val pearlBotName by stringSetting("PearlBot Name", "Steve") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val moverBotName by stringSetting("MoverBot Name", "Steve") { role == Role.PearlBot }
+	@Tab(GENERAL_TAB) private val dropOffMode by enumSetting("Drop-Off Mode", DropOffMode.Chests) { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private var chestPullSelMode: Boolean by boolSetting("Chest Pull Sel Mode", false, "Enables the mode to select the stash containers you want to move items from") { role == Role.MoverBot }
 		.onValueChange { _, to -> if (to) { chestPutSelMode = false; StashMover.info("Enabled chest pull selection mode!") } }
-	@Tab(GENERAL_TAB) private var chestPutSelMode: Boolean by setting("Chest Put Sel Mode", false, "Enables the mod to select the stash containers you want to move items into") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private var chestPutSelMode: Boolean by boolSetting("Chest Put Sel Mode", false, "Enables the mod to select the stash containers you want to move items into") { role == Role.MoverBot }
 		.onValueChange { _, to -> if (to) { chestPullSelMode = false; StashMover.info("Enabled chest put selection mode!") } }
-	@Tab(GENERAL_TAB) private val pearlMsgTimeout by setting("Pearl Msg Timeout", 100, 0..1500, 1, "Ticks before messaging the pearl bot again", "ticks") { role == Role.MoverBot }
-	@Tab(GENERAL_TAB) private val pearlButtonTimeout by setting("Pearl Button Timeout", 100, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }
-	@Tab(GENERAL_TAB) private val killRespawnTimeout by setting("Kill/Respawn Timeout", 100, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }
-	@Tab(GENERAL_TAB) private val actionDelay by setting("Action Delay", 3, 0..20, 1, "The delay after performing one action, before the next") { role == Role.MoverBot }
-	@Tab(GENERAL_TAB) private val useEnderChest by setting("Use Ender Chest", false, "Uses the ender chest to move more items at once. (Ender chests are included in the pull/put selections)") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val pearlMsgTimeout by intSetting("Pearl Msg Timeout", 100, 0..1500, 1, "Ticks before messaging the pearl bot again", "ticks") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val pearlButtonTimeout by intSetting("Pearl Button Timeout", 100, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val killRespawnTimeout by intSetting("Kill/Respawn Timeout", 100, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val actionDelay by intSetting("Action Delay", 3, 0..20, 1, "The delay after performing one action, before the next") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val useEnderChest by boolSetting("Use Ender Chest", false, "Uses the ender chest to move more items at once. (Ender chests are included in the pull/put selections)") { role == Role.MoverBot }
 		.onValueChange { _, to ->
 			if (!to) {
 				putEnderChests.clear()
 				pullEnderChests.clear()
 			}
 		}
-	@Tab(GENERAL_TAB) private val breakEmptyPullContainers by setting("Break Empty Pull Containers", false, "Breaks empty pull containers after taking their items") { role == Role.MoverBot }
-	@Tab(GENERAL_TAB) private val disconnectOnFinish by setting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }
-	@Tab(GENERAL_TAB) private val disconnectOnFail by setting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }
-	@Tab(GENERAL_TAB) private val startStop by setting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role")
+	@Tab(GENERAL_TAB) private val breakEmptyPullContainers by boolSetting("Break Empty Pull Containers", false, "Breaks empty pull containers after taking their items") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val disconnectOnFinish by boolSetting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val disconnectOnFail by boolSetting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val startStop by bindSetting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role")
 		.onPress { event -> event.cancel(); startStop() }
-	@Tab(GENERAL_TAB) private val pauseUnpause by setting("Pause/Unpause", Bind.EMPTY, "Pauses and unpauses the selected role")
+	@Tab(GENERAL_TAB) private val pauseUnpause by bindSetting("Pause/Unpause", Bind.EMPTY, "Pauses and unpauses the selected role")
 		.onPress { event -> event.cancel(); pauseUnpause() }
-	@Tab(COMMAND_BINDS_TAB) private val indexSelectedContainers by setting("Index Selected Containers", Bind.EMPTY, "Indexes the selected containers to pull/push items from/to") { role == Role.MoverBot }
+	@Tab(COMMAND_BINDS_TAB) private val indexSelectedContainers by bindSetting("Index Selected Containers", Bind.EMPTY, "Indexes the selected containers to pull/push items from/to") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); indexSelectedContainers() }
-	@Tab(COMMAND_BINDS_TAB) private val removeSelectedContainers by setting("Remove Selected Containers", Bind.EMPTY, "Removes the selected containers from being pull/pushed from/to") { role == Role.MoverBot }
+	@Tab(COMMAND_BINDS_TAB) private val removeSelectedContainers by bindSetting("Remove Selected Containers", Bind.EMPTY, "Removes the selected containers from being pull/pushed from/to") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); removeSelectedContainers() }
-	@Tab(COMMAND_BINDS_TAB) private val setItemThrowPosAndRotation by setting("Set Item Throw", Bind.EMPTY, "Sets the item throw position and rotation. (This is usually set to throw into hoppers to pickup the items)") { role == Role.MoverBot }
+	@Tab(COMMAND_BINDS_TAB) private val setItemThrowPosAndRotation by bindSetting("Set Item Throw", Bind.EMPTY, "Sets the item throw position and rotation. (This is usually set to throw into hoppers to pickup the items)") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); setItemThrow() }
-	@Tab(COMMAND_BINDS_TAB) private val setPearlButtonPos by setting("Set Pearl Button Pos", Bind.EMPTY, "Sets the button used to dispense a pearl for the player") { role == Role.MoverBot }
+	@Tab(COMMAND_BINDS_TAB) private val setPearlButtonPos by bindSetting("Set Pearl Button Pos", Bind.EMPTY, "Sets the button used to dispense a pearl for the player") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); setPearlButtonPos() }
-	@Tab(COMMAND_BINDS_TAB) private val setPearlThrowPosAndRotation by setting("Set Pearl Throw", Bind.EMPTY, "Sets the pearl throw position and rotation. (This is best if you throw somewhat sideways into a line of bubble columns)") { role == Role.MoverBot }
+	@Tab(COMMAND_BINDS_TAB) private val setPearlThrowPosAndRotation by bindSetting("Set Pearl Throw", Bind.EMPTY, "Sets the pearl throw position and rotation. (This is best if you throw somewhat sideways into a line of bubble columns)") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); setPearlThrow() }
-	@Tab(COMMAND_BINDS_TAB) private val setPearlBotButton by setting("Set PearlBot Button", Bind.EMPTY, "Sets the button position for the pearl bot to press to load the mover bot") { role == Role.PearlBot }
+	@Tab(COMMAND_BINDS_TAB) private val setPearlBotButton by bindSetting("Set PearlBot Button", Bind.EMPTY, "Sets the button position for the pearl bot to press to load the mover bot") { role == Role.PearlBot }
 		.onPress { event -> event.cancel(); setPearlBotButton() }
 
 	private var sel1: BlockPos? = null

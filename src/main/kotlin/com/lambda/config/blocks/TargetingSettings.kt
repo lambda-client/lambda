@@ -20,6 +20,10 @@ package com.lambda.config.blocks
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.config.hide
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
@@ -58,7 +62,7 @@ abstract class TargetingSettings(
 	 * The range within which entities can be targeted. This value is config and constrained
 	 * between 1.0 and [maxRange].
 	 */
-	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05)
+	override val targetingRange by c.doubleSetting("Targeting Range", defaultRange, 1.0..maxRange, 0.05)
     override val targets by c.configBlock(EntitySelectionSettings(c))
 	    .withEdits(c) { hide(::self, ::enableBlockEntities, ::blockEntities) }
 
@@ -86,22 +90,22 @@ abstract class TargetingSettings(
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */
-        val fov by c.setting("FOV Limit", 180, 5..180, 1) { priority == Priority.Fov }
+        val fov by c.intSetting("FOV Limit", 180, 5..180, 1) { priority == Priority.Fov }
 
         /**
          * The priority used to determine which entity is targeted. Configurable with default set to [Priority.Distance].
          */
-        val priority by c.setting("Priority", Priority.Distance)
+        val priority by c.enumSetting("Priority", Priority.Distance)
 
 	    /**
 	     * Whether to target named entities that are not players.
 	     */
-	    val targetNamed by c.setting("Target Named Entities", false)
+	    val targetNamed by c.boolSetting("Target Named Entities", false)
 	    /**
 	     * Whether to target tamed entities.
 	     */
-		val targetTamed by c.setting("Target Tamed Entities", false)
-		val owned by c.setting("Owned", false) { targetTamed }
+		val targetTamed by c.boolSetting("Target Tamed Entities", false)
+		val owned by c.boolSetting("Owned", false) { targetTamed }
 
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.

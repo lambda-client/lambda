@@ -18,6 +18,9 @@
 package com.lambda.module.modules.movement
 
 import baritone.api.pathing.goals.GoalXZ
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.blockPosSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -40,12 +43,12 @@ object AutoSpiral : Module(
 	var iterator: BlockPosIterators.SpiralIterator2d? = null
 	var currentWaypoint: BlockPos? = null
 
-	var spiralSpacing by setting("Spiral Spacing", 128, 16..1024, description = "The distance between each loop of the spiral")
-	var waypointTriggerDistance by setting("Waypoint Trigger Distance", 4, 2..64, description = "The distance to the waypoint at which a new waypoint is generated. Put in 50-60 range when in the Nether.")
-	var setCenterOnEnable by setting("Set Center On Enable", true, description = "Whether to set the center of the spiral to your current position when enabling the module.")
-	var setBaritoneGoal by setting("Set Baritone Goal", true, description = "Whether to set Baritone's goal to the current waypoint. Mostly so you can see where the next waypoint is.")
+	var spiralSpacing by intSetting("Spiral Spacing", 128, 16..1024, description = "The distance between each loop of the spiral")
+	var waypointTriggerDistance by intSetting("Waypoint Trigger Distance", 4, 2..64, description = "The distance to the waypoint at which a new waypoint is generated. Put in 50-60 range when in the Nether.")
+	var setCenterOnEnable by boolSetting("Set Center On Enable", true, description = "Whether to set the center of the spiral to your current position when enabling the module.")
+	var setBaritoneGoal by boolSetting("Set Baritone Goal", true, description = "Whether to set Baritone's goal to the current waypoint. Mostly so you can see where the next waypoint is.")
 
-	var center by setting("Center", BlockPos.ORIGIN, description = "Center position for the spiral")
+	var center by blockPosSetting("Center", BlockPos.ORIGIN, description = "Center position for the spiral")
 
 	init {
 		onEnable {

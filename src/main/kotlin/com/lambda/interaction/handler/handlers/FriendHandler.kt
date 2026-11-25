@@ -24,6 +24,7 @@ import com.lambda.command.commands.FriendCommand
 import com.lambda.config.Config
 import com.lambda.config.categories.FriendCategory
 import com.lambda.config.serializers.FriendNames
+import com.lambda.config.settings.collections.collectionSetting
 import com.lambda.core.Loadable
 import com.lambda.network.mojang.getProfile
 import com.lambda.network.mojang.getProfilesByIds
@@ -46,7 +47,7 @@ object FriendHandler : Config(
     "friends",
 	FriendCategory
 ), Loadable {
-    val friends by setting("friends", emptySet<UUID>(), serialize = true)
+    val friends by collectionSetting("friends", emptySet<UUID>(), serialize = true)
 
     private val nameCacheFile by lazy { FolderRegistry.cache.resolve("friend-names.json").toFile() }
     private val cachedProfiles = ConcurrentHashMap<UUID, GameProfile>()

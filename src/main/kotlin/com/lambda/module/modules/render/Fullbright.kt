@@ -18,6 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -31,7 +32,7 @@ object Fullbright : Module(
     description = "Makes everything brighter",
     tag = ModuleTag.RENDER,
 ) {
-    @JvmStatic val nightVision by setting("Night Vision", false, description = "Use client-side night vision for better compatibility with shaders")
+    @JvmStatic val nightVision by boolSetting("Night Vision", false, description = "Use client-side night vision for better compatibility with shaders")
         .onValueChange { _, to -> if (isEnabled) setNightVision(to) }
 
     private val instance = StatusEffectInstance(StatusEffects.NIGHT_VISION, -1, 1, false, false)

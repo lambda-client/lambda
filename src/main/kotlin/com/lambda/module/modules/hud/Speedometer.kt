@@ -19,6 +19,8 @@ package com.lambda.module.modules.hud
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -34,8 +36,8 @@ object Speedometer : HudModule(
     description = "Displays player speed",
     tag = ModuleTag.HUD
 ) {
-    var speedUnit by setting("Speed Unit", SpeedUnit.MetersPerSecond)
-    var onlyHorizontal by setting("Horizontal Speed", false, description = "Only consider horizontal movement for speed calculation")
+    var speedUnit by enumSetting("Speed Unit", SpeedUnit.MetersPerSecond)
+    var onlyHorizontal by boolSetting("Horizontal Speed", false, description = "Only consider horizontal movement for speed calculation")
 
     var previousPos: Vec3d = Vec3d.ZERO
     var currentPos: Vec3d = Vec3d.ZERO

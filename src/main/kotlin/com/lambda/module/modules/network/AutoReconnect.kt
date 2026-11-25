@@ -18,6 +18,8 @@
 package com.lambda.module.modules.network
 
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import net.minecraft.client.gui.screen.Screen
@@ -33,8 +35,8 @@ object AutoReconnect : Module(
     description = "Automatically reconnects to the last server or world after disconnecting",
     tag = ModuleTag.NETWORK,
 ) {
-    val delay by setting("Delay", 5.0, 0.5..60.0, 0.5, unit = "s", description = "Time in seconds before automatically reconnecting.")
-    val singleplayer by setting("Singleplayer", false, description = "Whether to auto-reconnect to singleplayer worlds.")
+    val delay by doubleSetting("Delay", 5.0, 0.5..60.0, 0.5, unit = "s", description = "Time in seconds before automatically reconnecting.")
+    val singleplayer by boolSetting("Singleplayer", false, description = "Whether to auto-reconnect to singleplayer worlds.")
 
     @JvmStatic
     var lastReconnectTarget: ReconnectTarget? = null

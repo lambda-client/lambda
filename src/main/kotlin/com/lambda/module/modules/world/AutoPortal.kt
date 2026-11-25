@@ -24,7 +24,11 @@ import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
 import com.lambda.config.hideBlock
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -82,7 +86,7 @@ object AutoPortal : Module(
 	private const val FILL_GROUP = "Fill"
 	private const val OUTLINE_GROUP = "Outline"
 
-	private val previewPlace by setting("Preview Place", Bind.EMPTY, "The keybind to preview the portal placement and subsequentially place the portal")
+	private val previewPlace by bindSetting("Preview Place", Bind.EMPTY, "The keybind to preview the portal placement and subsequentially place the portal")
 		.onPress { preview = true }
 		.onRelease {
 			preview = false
@@ -106,20 +110,20 @@ object AutoPortal : Module(
 				.onCompletion { buildTask = null }
 				.start()
 		}
-	private val corners by setting("Corners", false)
-	private val light by setting("Light", true, "Attempts to automatically light the portal after building")
-	private val walkIn by setting("Walk In", true, "Automatically paths into the portal with baritone") { light }
-	private val inventory by setting("Inventory", true, "Allows access to the players inventory when retrieving a flint and steel for lighting the portal")
-	private val forwardOffset by setting("Forward Offset", 3, 0..10)
-	private val sidewaysOffset by setting("Sideways Offset", 0, -5..5)
-	private val yOffset by setting("Y Offset", 0, -5..5)
-	private val lockToGround by setting("Lock To Ground", true)
-	private val allowUpwardShift by setting("Allow Upward Shift", true, "Allows shifting the portal up to find ground when it would be placed inside blocks") { lockToGround }
+	private val corners by boolSetting("Corners", false)
+	private val light by boolSetting("Light", true, "Attempts to automatically light the portal after building")
+	private val walkIn by boolSetting("Walk In", true, "Automatically paths into the portal with baritone") { light }
+	private val inventory by boolSetting("Inventory", true, "Allows access to the players inventory when retrieving a flint and steel for lighting the portal")
+	private val forwardOffset by intSetting("Forward Offset", 3, 0..10)
+	private val sidewaysOffset by intSetting("Sideways Offset", 0, -5..5)
+	private val yOffset by intSetting("Y Offset", 0, -5..5)
+	private val lockToGround by boolSetting("Lock To Ground", true)
+	private val allowUpwardShift by boolSetting("Allow Upward Shift", true, "Allows shifting the portal up to find ground when it would be placed inside blocks") { lockToGround }
 
-	@Group(RENDER_GROUP) private val renders by setting("Renders", true)
-	@Group(RENDER_GROUP) private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }
-	@Group(RENDER_GROUP) private val depthTest by setting("Depth Test", false) { renders }
-	@Group(RENDER_GROUP, FILL_GROUP) private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }
+	@Group(RENDER_GROUP) private val renders by boolSetting("Renders", true)
+	@Group(RENDER_GROUP) private val interpolate by boolSetting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }
+	@Group(RENDER_GROUP) private val depthTest by boolSetting("Depth Test", false) { renders }
+	@Group(RENDER_GROUP, FILL_GROUP) private val fillAlpha by doubleSetting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }
 	@Group(RENDER_GROUP, OUTLINE_GROUP) private val outlineConfig by configBlock(WorldLineSettings(this))
 		.withEdits {
 			hide(::startColor, ::endColor)

@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import com.lambda.config.Tab
 import com.lambda.config.blocks.FormatterSettings
 import com.lambda.config.editSetting
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.gui.core.observeSafe
@@ -41,9 +42,9 @@ object Coordinates : HudModule(
 	description = "Show your coordinates",
 	tag = ModuleTag.HUD,
 ) {
-	private val showDimension by setting("Show Dimension Name", true)
-	private val showBiome by setting("Show Biome Name", true)
-	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
+	private val showDimension by boolSetting("Show Dimension Name", true)
+	private val showBiome by boolSetting("Show Biome Name", true)
+	private val showCurrentDimensionOnly by boolSetting("Show Current Dimension Only", true)
 
 	private const val CURRENT_DIMENSION_TAB = "Current Dimension"
 	@Tab(CURRENT_DIMENSION_TAB) private val formatter by configBlock(FormatterSettings(this))

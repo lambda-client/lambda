@@ -19,9 +19,21 @@ package com.lambda.config.settings.collections
 
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.serializers.FluidSerializer
 import net.minecraft.fluid.Fluid
+import net.minecraft.registry.Registries
+
+@ConfigEntryDsl
+@JvmName("collectionSetting3")
+fun Config.fluidCollectionSetting(
+	name: String,
+	defaultValue: Collection<Fluid>,
+	immutableCollection: Collection<Fluid> = Registries.FLUID.toList(),
+	description: String = "",
+	visibility: () -> Boolean = { true }
+) = setting(name) { layer -> FluidCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
 
 class FluidCollectionSetting(
 	name: String,

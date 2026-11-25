@@ -28,6 +28,7 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.component.Dropdown
@@ -38,6 +39,14 @@ import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.extension.displayValue
 import net.minecraft.command.CommandRegistryAccess
+
+@ConfigEntryDsl
+fun <T : Enum<T>> Config.enumSetting(
+    name: String,
+    defaultValue: T,
+    description: String = "",
+    visibility: () -> Boolean = { true }
+) = setting(name) { layer -> EnumSetting(name, description, this, layer, visibility, defaultValue) }
 
 class EnumSetting<T : Enum<T>>(
     name: String,

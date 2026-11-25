@@ -19,6 +19,8 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
@@ -43,8 +45,8 @@ object ToolSaver : Module(
 	description = "Moves tools from your hotbar into your inventory when they get too damaged",
 	ModuleTag.PLAYER
 ) {
-	private val minDurabilityPercentage by setting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
-	private val replace by setting("Replace", true, "Replaces the tool with the one of the same kind")
+	private val minDurabilityPercentage by intSetting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
+	private val replace by boolSetting("Replace", true, "Replaces the tool with the one of the same kind")
 
 	init {
 		setDefaultAutomationConfig()

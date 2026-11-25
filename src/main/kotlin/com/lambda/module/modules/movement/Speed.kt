@@ -20,6 +20,9 @@ package com.lambda.module.modules.movement
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
@@ -51,18 +54,18 @@ object Speed : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     @JvmStatic
-    val mode by setting("Mode", Mode.GrimStrafe)
+    val mode by enumSetting("Mode", Mode.GrimStrafe)
         .onValueChange { _, _ -> resetNcp() }
 
     // Grim
-    private val diagonal by setting("Diagonal", true) { mode == Mode.GrimStrafe }
-    private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.7, 0.01) { mode == Mode.GrimStrafe }
+    private val diagonal by boolSetting("Diagonal", true) { mode == Mode.GrimStrafe }
+    private val grimBoatBoost by doubleSetting("Boat Boost", 0.4, 0.0..1.7, 0.01) { mode == Mode.GrimStrafe }
 
     // NCP
-    private val strict by setting("Strict", true) { mode == Mode.NcpStrafe }
-    private val lowerJump by setting("Lower Jump", true) { mode == Mode.NcpStrafe }
-    private val ncpAutoJump by setting("Auto Jump", false) { mode == Mode.NcpStrafe }
-    private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NcpStrafe }
+    private val strict by boolSetting("Strict", true) { mode == Mode.NcpStrafe }
+    private val lowerJump by boolSetting("Lower Jump", true) { mode == Mode.NcpStrafe }
+    private val ncpAutoJump by boolSetting("Auto Jump", false) { mode == Mode.NcpStrafe }
+    private val ncpTimerBoost by doubleSetting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NcpStrafe }
 
     // NCP state variables
     const val NCP_BASE_SPEED = 0.2873

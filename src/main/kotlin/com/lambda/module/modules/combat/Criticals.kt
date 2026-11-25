@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.combat
 
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -46,7 +47,7 @@ object Criticals : Module(
         Grim
     }
 
-    private val mode by setting("Mode", Mode.Grim)
+    private val mode by enumSetting("Mode", Mode.Grim)
 
     init {
         listen<PlayerEvent.Attack.Entity> {

@@ -21,6 +21,9 @@ import com.lambda.config.Group
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -54,13 +57,13 @@ object LineLock : Module(
 
 	private const val ADVANCED_GROUP = "Advanced"
 
-	private val renderLine by setting("Render Line", true, "Render the axis line the yaw is snapping to")
-	private val lineColor by setting("Line Color", Color(0, 255, 0, 255)) { renderLine }
+	private val renderLine by boolSetting("Render Line", true, "Render the axis line the yaw is snapping to")
+	private val lineColor by colorSetting("Line Color", Color(0, 255, 0, 255)) { renderLine }
 
-	@Group(ADVANCED_GROUP) private val correctionSmoothness by setting("Correction Smoothness", 5.0, 0.0..10.0, 0.1, "Scales how far ahead down the axis to aim by your speed; higher curves back onto the line more gently")
-	@Group(ADVANCED_GROUP) private val yawSnapIncrement by setting("Yaw Snap Increment", 45.0, 1.0..90.0, 1.0, "Snap the locked axis to the nearest multiple of this heading, in degrees")
-	@Group(ADVANCED_GROUP) private val onLineThreshold by setting("On Line Threshold", 0.1, 0.0..1.0, 0.01, "How close to the line counts as \"on it\" before holding the snapped yaw")
-	@Group(ADVANCED_GROUP) private val minLookahead by setting("Min Lookahead", 2.0, 0.0..10.0, 0.1, "Floor for the look-ahead distance so steering stays stable at low speed")
+	@Group(ADVANCED_GROUP) private val correctionSmoothness by doubleSetting("Correction Smoothness", 5.0, 0.0..10.0, 0.1, "Scales how far ahead down the axis to aim by your speed; higher curves back onto the line more gently")
+	@Group(ADVANCED_GROUP) private val yawSnapIncrement by doubleSetting("Yaw Snap Increment", 45.0, 1.0..90.0, 1.0, "Snap the locked axis to the nearest multiple of this heading, in degrees")
+	@Group(ADVANCED_GROUP) private val onLineThreshold by doubleSetting("On Line Threshold", 0.1, 0.0..1.0, 0.01, "How close to the line counts as \"on it\" before holding the snapped yaw")
+	@Group(ADVANCED_GROUP) private val minLookahead by doubleSetting("Min Lookahead", 2.0, 0.0..10.0, 0.1, "Floor for the look-ahead distance so steering stays stable at low speed")
 
 	private var startingYaw = 0.0
 	private var lineOrigin: Vec3d = Vec3d.ZERO

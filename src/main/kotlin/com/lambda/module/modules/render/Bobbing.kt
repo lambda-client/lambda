@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 
@@ -25,6 +26,6 @@ object Bobbing : Module(
 	description = "Modifies vanilla view bobbing when the player walks or runs",
 	tag = ModuleTag.RENDER
 ) {
-	val magnitude by setting("Magnitude", 1.0, 0.0..2.0, 0.01)
-	val speed by setting("Speed", 1.0, 0.0..2.0, 0.01)
+	val magnitude by doubleSetting("Magnitude", 1.0, 0.0..2.0, 0.01)
+	val speed by doubleSetting("Speed", 1.0, 0.0..2.0, 0.01)
 }

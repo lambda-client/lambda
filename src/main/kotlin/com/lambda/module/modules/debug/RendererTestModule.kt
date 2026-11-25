@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.debug
 
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.ItemLighting
@@ -170,7 +171,7 @@ object TickedRendererTest : Module(
 	description = "Test module for TickedRenderer",
 	tag = ModuleTag.DEBUG,
 ) {
-	private val throughWalls by setting("Through Walls", true)
+	private val throughWalls by boolSetting("Through Walls", true)
 
 	init {
 		tickedRenderer("TickedRendererTest", depthTest = { !throughWalls }) {
@@ -277,7 +278,7 @@ object ImmediateRendererTest : Module(
 	description = "Test module for ImmediateRenderer",
 	tag = ModuleTag.DEBUG,
 ) {
-	private val throughWalls by setting("Through Walls", true)
+	private val throughWalls by boolSetting("Through Walls", true)
 
 	init {
 		immediateRenderer("ImmediateRendererTest", depthTest = { !throughWalls }) {

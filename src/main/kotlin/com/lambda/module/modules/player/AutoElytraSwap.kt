@@ -19,6 +19,8 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.container.containers.ArmorContainer
@@ -45,8 +47,8 @@ object AutoElytraSwap : Module(
 	description = "Automatically equips an elytra when attempting to glide, and removes it afterward",
 	tag = ModuleTag.PLAYER
 ) {
-	@JvmStatic val elytraFlyOnly by setting("ElytraFly Only", false, "Only swaps the chest piece when the ElytraFly module is enabled and gliding")
-	val glideDelay by setting("Glide Delay", 0, 0..20, 1, "The delay, in ticks, between swapping to elytra, and starting to glide", unit = " ticks")
+	@JvmStatic val elytraFlyOnly by boolSetting("ElytraFly Only", false, "Only swaps the chest piece when the ElytraFly module is enabled and gliding")
+	val glideDelay by intSetting("Glide Delay", 0, 0..20, 1, "The delay, in ticks, between swapping to elytra, and starting to glide", unit = " ticks")
 
 	init {
 		setDefaultAutomationConfig()

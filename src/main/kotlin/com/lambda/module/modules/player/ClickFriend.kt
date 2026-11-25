@@ -18,6 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.interaction.handler.handlers.FriendHandler.befriend
@@ -39,10 +40,10 @@ object ClickFriend : Module(
     tag = ModuleTag.PLAYER,
     modulePriority = 100
 ) {
-    private val friendBind: Bind by setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
+    private val friendBind: Bind by bindSetting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
         .onPress { if (!unfriendBind.isSatisfied()) if (checkSetFriend(true)) it.cancel() }
 
-    private val unfriendBind: Bind by setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
+    private val unfriendBind: Bind by bindSetting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
         .onPress { if (!friendBind.isSatisfied()) if (checkSetFriend(false)) it.cancel() }
 
     private fun SafeContext.checkSetFriend(friend: Boolean): Boolean {

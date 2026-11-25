@@ -74,6 +74,26 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 import org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT
 
+@ConfigEntryDsl
+fun Config.bindSetting(
+    name: String,
+    defaultValue: Bind,
+    description: String = "",
+    alwaysListening: Boolean = false,
+    screenCheck: Boolean = true,
+    visibility: () -> Boolean = { true }
+) = setting(name) { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
+
+@ConfigEntryDsl
+fun Config.setting(
+    name: String,
+    defaultValue: KeyCode,
+    description: String = "",
+    alwaysListening: Boolean = false,
+    screenCheck: Boolean = true,
+    visibility: () -> Boolean = { true }
+) = setting(name) { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
+
 class KeybindSetting(
     name: String,
     description: String,

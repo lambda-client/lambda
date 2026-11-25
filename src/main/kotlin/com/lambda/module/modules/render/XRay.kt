@@ -19,8 +19,11 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.config.entries.onValueChange
+import com.lambda.config.settings.collections.blockCollectionSetting
+import com.lambda.config.settings.collections.fluidCollectionSetting
 import com.lambda.config.settings.collections.onDeselect
 import com.lambda.config.settings.collections.onSelect
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.context.SafeContext
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -49,11 +52,11 @@ object XRay : Module(
 
 	val fluids = BlockUtils.FLUIDS - Fluids.EMPTY
 
-	@JvmStatic val opacity by setting("Opacity", 40, 1..100, 1, "Opacity of the non x-rayed blocks, (automatically overridden as 0 when running Sodium)").onValueChange(::reload)
-	@JvmStatic val blockSelection by setting("Block Selection", defaultBlocks, Registries.BLOCK - setOf(Blocks.WATER, Blocks.LAVA), description = "Block selection that will be shown (whitelist) or hidden (blacklist)")
+	@JvmStatic val opacity by intSetting("Opacity", 40, 1..100, 1, "Opacity of the non x-rayed blocks, (automatically overridden as 0 when running Sodium)").onValueChange(::reload)
+	@JvmStatic val blockSelection by blockCollectionSetting("Block Selection", defaultBlocks, Registries.BLOCK - setOf(Blocks.WATER, Blocks.LAVA), description = "Block selection that will be shown (whitelist) or hidden (blacklist)")
 		.onSelect { _ -> reload(null, null, null) }
 		.onDeselect { _ -> reload(null, null, null) }
-	@JvmStatic val fluidSelection by setting("Fluid Selection", fluids, fluids, description = "Fluids that will be shown when x-raying")
+	@JvmStatic val fluidSelection by fluidCollectionSetting("Fluid Selection", fluids, fluids, description = "Fluids that will be shown when x-raying")
 		.onSelect { _ -> reload(null, null, null) }
 		.onDeselect { _ -> reload(null, null, null) }
 

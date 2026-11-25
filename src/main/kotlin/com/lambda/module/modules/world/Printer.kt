@@ -24,6 +24,11 @@ import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -64,20 +69,20 @@ object Printer : Module(
 	description = "Automatically prints schematics",
 	tag = ModuleTag.WORLD
 ) {
-	private val range by setting("Range", 5, 1..7, 1, description = "The range around the player to check for blocks to print")
-	private val air by setting("Air", false, description = "Consider breaking blocks in the world that are air in the schematic.\nNote: Breaking can also be disabled in the Automation Config.")
-	private val flattenMode by setting("Flatten Mode", FlattenMode.Standard, description = "Configures what blocks to break relative to the player's Y level")
-	private val flattenModeApply by setting("Flatten Apply Mode", FlattenModeApply.BreakOnly, description = "Configures whether the flatten mode applies to breaking, placing, or both") { flattenMode != FlattenMode.None }
-	private val baritoneSelection by setting("Baritone Selection", false, "Restricts block breaking and placing to your baritone selection")
-	private val inverseSelection by setting("Inverse Selection", false, "Break and place blocks outside of the baritone selection and ignores blocks inside") { baritoneSelection }
-	private val sneakLowersFlatten by setting("Sneak Lowers Flatten", false, "When enabled, sneaking will lower the flattening level by 1, allowing you to mine the block below you")
-	private val async by setting("Async", true, "Allows the simulation the 50 milliseconds between ticks where nothing changes to avoid lag. This causes a 1 tick wait between starting the module, and it performing actions")
+	private val range by intSetting("Range", 5, 1..7, 1, description = "The range around the player to check for blocks to print")
+	private val air by boolSetting("Air", false, description = "Consider breaking blocks in the world that are air in the schematic.\nNote: Breaking can also be disabled in the Automation Config.")
+	private val flattenMode by enumSetting("Flatten Mode", FlattenMode.Standard, description = "Configures what blocks to break relative to the player's Y level")
+	private val flattenModeApply by enumSetting("Flatten Apply Mode", FlattenModeApply.BreakOnly, description = "Configures whether the flatten mode applies to breaking, placing, or both") { flattenMode != FlattenMode.None }
+	private val baritoneSelection by boolSetting("Baritone Selection", false, "Restricts block breaking and placing to your baritone selection")
+	private val inverseSelection by boolSetting("Inverse Selection", false, "Break and place blocks outside of the baritone selection and ignores blocks inside") { baritoneSelection }
+	private val sneakLowersFlatten by boolSetting("Sneak Lowers Flatten", false, "When enabled, sneaking will lower the flattening level by 1, allowing you to mine the block below you")
+	private val async by boolSetting("Async", true, "Allows the simulation the 50 milliseconds between ticks where nothing changes to avoid lag. This causes a 1 tick wait between starting the module, and it performing actions")
 		.onValueChange { _, _ -> if (buildTask != null) startBuildTask() }
 
 	private const val RENDERS_GROUP = "Renders"
-	@Group(RENDERS_GROUP) private val reachCircle by setting("Reach Circle", false, "Draws a circle around the player, showing the range at which they can place blocks with Printer")
-	@Group(RENDERS_GROUP) private val reachCircleHeight by setting("Circle Height", 1.0, -5.0..8.0, 0.01, "The height at which it shows your reach") { reachCircle }
-	@Group(RENDERS_GROUP) private val reachCircleColor by setting("Circle Color", Color.GREEN) { reachCircle }
+	@Group(RENDERS_GROUP) private val reachCircle by boolSetting("Reach Circle", false, "Draws a circle around the player, showing the range at which they can place blocks with Printer")
+	@Group(RENDERS_GROUP) private val reachCircleHeight by doubleSetting("Circle Height", 1.0, -5.0..8.0, 0.01, "The height at which it shows your reach") { reachCircle }
+	@Group(RENDERS_GROUP) private val reachCircleColor by colorSetting("Circle Color", Color.GREEN) { reachCircle }
 	@Group(RENDERS_GROUP) private val reachCircleLineConfig by configBlock(WorldLineSettings(this))
 		.withEdits {
 			hideAllExcept(
@@ -89,7 +94,7 @@ object Printer : Module(
 				visibility { old -> { old() && reachCircle } }
 			}
 		}
-	@Group(RENDERS_GROUP) private val reachCircleDepthTest by setting("Depth Test", false) { reachCircle }
+	@Group(RENDERS_GROUP) private val reachCircleDepthTest by boolSetting("Depth Test", false) { reachCircle }
 
 	private var buildTask: Task<*>? = null
 

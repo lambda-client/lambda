@@ -19,6 +19,8 @@ package com.lambda.config.blocks
 
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.colorSetting
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
 import com.lambda.util.EntityUtils.EntityGroup
@@ -34,21 +36,21 @@ import net.minecraft.entity.player.PlayerEntity
 import java.awt.Color
 
 class EntityColorSettings(override val c: Config) : ConfigBlock, EntityColorsConfig {
-	override val useNaturalColors by c.setting("Use Natural Colors", false, "Uses an average color from the entities texture")
-	override val playerColor by c.setting("Player Color", Color(255, 50, 50)) { !useNaturalColors }
-	override val playerDistanceGradient by c.setting("Player Distance Gradient", true)
-	override val playerDistanceColorFar by c.setting("Player Far Color", Color.GREEN) { playerDistanceGradient }
-	override val playerDistanceColorClose by c.setting("Player Close Color", Color.RED) { playerDistanceGradient }
-	override val separateFriendColor by c.setting("Separate Friend Color", true) { useNaturalColors }
-	override val friendColor by c.setting("Friend Color", Color(0, 255, 255)) { !useNaturalColors || separateFriendColor }
-	override val mobColor by c.setting("Mob Color", Color(255, 70, 50)) { !useNaturalColors }
-	override val passiveColor by c.setting("Passive Color", Color(0, 255, 0)) { !useNaturalColors }
-	override val vehicleColor by c.setting("Vehicle Color", Color(200, 150, 100)) { !useNaturalColors }
-	override val projectileColor by c.setting("Projectile Color", Color(200, 200, 200)) { !useNaturalColors }
-	override val bossColor by c.setting("Boss Color", Color(255, 100, 0)) { !useNaturalColors }
-	override val decorationColor by c.setting("Decoration Color", Color(100, 100, 255)) { !useNaturalColors }
-	override val blockColor by c.setting("Block Color", Color(200, 200, 200)) { !useNaturalColors }
-	override val miscColor by c.setting("Misc Color", Color(255, 0, 255)) { !useNaturalColors }
+	override val useNaturalColors by c.boolSetting("Use Natural Colors", false, "Uses an average color from the entities texture")
+	override val playerColor by c.colorSetting("Player Color", Color(255, 50, 50)) { !useNaturalColors }
+	override val playerDistanceGradient by c.boolSetting("Player Distance Gradient", true)
+	override val playerDistanceColorFar by c.colorSetting("Player Far Color", Color.GREEN) { playerDistanceGradient }
+	override val playerDistanceColorClose by c.colorSetting("Player Close Color", Color.RED) { playerDistanceGradient }
+	override val separateFriendColor by c.boolSetting("Separate Friend Color", true) { useNaturalColors }
+	override val friendColor by c.colorSetting("Friend Color", Color(0, 255, 255)) { !useNaturalColors || separateFriendColor }
+	override val mobColor by c.colorSetting("Mob Color", Color(255, 70, 50)) { !useNaturalColors }
+	override val passiveColor by c.colorSetting("Passive Color", Color(0, 255, 0)) { !useNaturalColors }
+	override val vehicleColor by c.colorSetting("Vehicle Color", Color(200, 150, 100)) { !useNaturalColors }
+	override val projectileColor by c.colorSetting("Projectile Color", Color(200, 200, 200)) { !useNaturalColors }
+	override val bossColor by c.colorSetting("Boss Color", Color(255, 100, 0)) { !useNaturalColors }
+	override val decorationColor by c.colorSetting("Decoration Color", Color(100, 100, 255)) { !useNaturalColors }
+	override val blockColor by c.colorSetting("Block Color", Color(200, 200, 200)) { !useNaturalColors }
+	override val miscColor by c.colorSetting("Misc Color", Color(255, 0, 255)) { !useNaturalColors }
 
 	context(safeContext: SafeContext)
 	fun getColor(entity: Entity): Color {

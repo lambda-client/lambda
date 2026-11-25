@@ -22,6 +22,9 @@ import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
@@ -78,17 +81,17 @@ object Freecam : Module(
 	tag = ModuleTag.RENDER,
 	autoDisable = true,
 ) {
-	private val mode by setting("Mode", Mode.Free, "Freecam movement mode")
-	private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1, "Freecam movement speed", unit = "m/s") { mode == Mode.Free }
-	private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.") { mode == Mode.Free }
-	private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
-	private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode").onValueChange { _, it -> if (it == FreecamRotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
-	private val relative by setting("Relative", false, "Moves freecam relative to player position") { mode == Mode.Free }.onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
-	private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement") { mode == Mode.Free && relative }
+	private val mode by enumSetting("Mode", Mode.Free, "Freecam movement mode")
+	private val speed by doubleSetting("Speed", 0.5, 0.1..1.0, 0.1, "Freecam movement speed", unit = "m/s") { mode == Mode.Free }
+	private val sprint by doubleSetting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.") { mode == Mode.Free }
+	private val reach by doubleSetting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
+	private val rotateMode by enumSetting("Rotate Mode", FreecamRotationMode.None, "Rotation mode").onValueChange { _, it -> if (it == FreecamRotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
+	private val relative by boolSetting("Relative", false, "Moves freecam relative to player position") { mode == Mode.Free }.onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
+	private val keepYLevel by boolSetting("Keep Y Level", false, "Don't change the camera y-level on player movement") { mode == Mode.Free && relative }
 
 	// Follow Player settings
-	private val followMaxDistance by setting("String Length", 10.0, 2.0..50.0, 0.5, "Maximum distance before the string pulls the camera", unit = "m") { mode == Mode.FollowPlayer }
-	private val followTrackPlayer by setting("Track Player", false, "Keeps looking at the followed player") { mode == Mode.FollowPlayer }
+	private val followMaxDistance by doubleSetting("String Length", 10.0, 2.0..50.0, 0.5, "Maximum distance before the string pulls the camera", unit = "m") { mode == Mode.FollowPlayer }
+	private val followTrackPlayer by boolSetting("Track Player", false, "Keeps looking at the followed player") { mode == Mode.FollowPlayer }
 
 	private var lastPerspective = Perspective.FIRST_PERSON
 	private var lastPlayerPosition: Vec3d = Vec3d.ZERO

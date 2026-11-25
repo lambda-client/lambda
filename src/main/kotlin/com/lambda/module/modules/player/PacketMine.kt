@@ -26,6 +26,12 @@ import com.lambda.config.entries.disabled
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.collections.itemCollectionSetting
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.floatSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
@@ -60,26 +66,26 @@ object PacketMine : Module(
 	description = "automatically breaks blocks, and does it faster",
 	tag = ModuleTag.PLAYER
 ) {
-	private val ignoreWhenHolding by setting("Ignore When Holding", emptySet<Item>(), description = "These items won't initiate a break if held when attacking a block")
-	private val rebreakMode by setting("Rebreak Mode", RebreakMode.Manual, "The method used to re-break blocks after they've been broken once").disabled { !breakConfig.rebreak }
-	private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block")
-	private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }
-	private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once")
+	private val ignoreWhenHolding by itemCollectionSetting("Ignore When Holding", emptySet<Item>(), description = "These items won't initiate a break if held when attacking a block")
+	private val rebreakMode by enumSetting("Rebreak Mode", RebreakMode.Manual, "The method used to re-break blocks after they've been broken once").disabled { !breakConfig.rebreak }
+	private val breakRadius by intSetting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block")
+	private val flatten by boolSetting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }
+	private val queue by boolSetting("Queue", false, "Queues blocks to break so you can select multiple at once")
 		.onValueChange { _, to -> if (!to) queuePositions.clear() }
-	private val queueOrder by  setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }
+	private val queueOrder by  enumSetting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }
 
 	private const val REBREAK_RENDERS_GROUP = "ReBreak Renders"
 	private const val QUEUE_RENDERS_GROUP = "Queue Renders"
 
-	@Group(REBREAK_RENDERS_GROUP) private val renderRebreak by setting("Render Rebreak", true, "Displays what block is being checked for rebreak")
-	@Group(REBREAK_RENDERS_GROUP) private val rebreakColor by setting("Rebreak Color", Color.RED) { renderRebreak }
-	@Group(QUEUE_RENDERS_GROUP) private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued")
-	@Group(QUEUE_RENDERS_GROUP) private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }
-	@Group(QUEUE_RENDERS_GROUP) private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }
-	@Group(QUEUE_RENDERS_GROUP) private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }
-	@Group(QUEUE_RENDERS_GROUP) private val staticColor by setting("Color", Color(255, 0, 0, 60)) { renderQueue && !dynamicColor }
-	@Group(QUEUE_RENDERS_GROUP) private val startColor by setting("Start Color", Color(255, 255, 0, 60), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }
-	@Group(QUEUE_RENDERS_GROUP) private val endColor by setting("End Color", Color(255, 0, 0, 60), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }
+	@Group(REBREAK_RENDERS_GROUP) private val renderRebreak by boolSetting("Render Rebreak", true, "Displays what block is being checked for rebreak")
+	@Group(REBREAK_RENDERS_GROUP) private val rebreakColor by colorSetting("Rebreak Color", Color.RED) { renderRebreak }
+	@Group(QUEUE_RENDERS_GROUP) private val renderQueue by boolSetting("Render Queue", true, "Adds renders to signify what block positions are queued")
+	@Group(QUEUE_RENDERS_GROUP) private val renderSize by floatSetting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }
+	@Group(QUEUE_RENDERS_GROUP) private val renderMode by enumSetting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }
+	@Group(QUEUE_RENDERS_GROUP) private val dynamicColor by boolSetting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }
+	@Group(QUEUE_RENDERS_GROUP) private val staticColor by colorSetting("Color", Color(255, 0, 0, 60)) { renderQueue && !dynamicColor }
+	@Group(QUEUE_RENDERS_GROUP) private val startColor by colorSetting("Start Color", Color(255, 255, 0, 60), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }
+	@Group(QUEUE_RENDERS_GROUP) private val endColor by colorSetting("End Color", Color(255, 0, 0, 60), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }
 
 	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 

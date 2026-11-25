@@ -19,6 +19,7 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.withEdits
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
@@ -48,8 +49,8 @@ object InventoryTweaks : Module(
     name = "InventoryTweaks",
     tag = ModuleTag.PLAYER,
 ) {
-    private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
-    private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
+    private val instantShulker by boolSetting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
+    private val instantEChest by boolSetting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
 
     private val openContexts = LinkedList<OpenedContainerContext>()
     var lastOpenScreen: ScreenHandler? = null

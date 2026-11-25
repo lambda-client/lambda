@@ -20,6 +20,7 @@ package com.lambda.module.modules.combat
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.hideBlock
+import com.lambda.config.settings.collections.blockCollectionSetting
 import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -42,7 +43,7 @@ object Surround : Module(
 	description = "Surrounds your players feet with any given block",
 	tag = ModuleTag.COMBAT
 ) {
-	private val blocks by setting("Blocks", setOf(Blocks.OBSIDIAN, Blocks.ENDER_CHEST, Blocks.CRYING_OBSIDIAN))
+	private val blocks by blockCollectionSetting("Blocks", setOf(Blocks.OBSIDIAN, Blocks.ENDER_CHEST, Blocks.CRYING_OBSIDIAN))
 
 	private var task: Task<*>? = null
 

@@ -18,6 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.collections.collectionSetting
 import com.lambda.event.events.ModuleEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.handler.handlers.NotificationHandler
@@ -40,7 +41,7 @@ object ModuleNotifier : Module(
 	tag = ModuleTag.CLIENT,
 	enabledByDefault = true
 ) {
-	var notifyTarget by setting("Notify Target", setOf(NotifyTarget.Notification), NotifyTarget.entries.toSet(), description = "Where to send notifications when modules are toggled")
+	var notifyTarget by collectionSetting("Notify Target", setOf<NotifyTarget>(NotifyTarget.ActionBar), NotifyTarget.entries.toSet(), description = "Where to send notifications when modules are toggled")
 
 	enum class NotifyTarget(override val displayName: String, override val description: String) : Describable, NamedEnum {
 		Chat("Chat", "Sends a message to chat when a module is toggled"),

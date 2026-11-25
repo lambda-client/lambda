@@ -23,19 +23,23 @@ import com.lambda.config.blocks.ActionConfig.SortMode
 import com.lambda.config.blocks.BuildConfig.SwingType
 import com.lambda.config.blocks.InteractConfig.AirPlaceMode
 import com.lambda.config.blocks.InteractConfig.InteractConfirmationMode
+import com.lambda.config.settings.collections.collectionSetting
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 
 class InteractSettings(override val c: Config) : InteractConfig, ConfigBlock {
-    override val rotate by c.setting("Rotate For Interact", true, "Rotate towards block while placing")
-    override val airPlace by c.setting("Air Place", AirPlaceMode.Standard, "Allows for placing blocks without adjacent faces")
-    override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { airPlace.isEnabled }
-    override val sorter by c.setting("Interaction Sorter", SortMode.Tool, "The order in which placements are performed")
-    override val tickStageMask by c.setting("Interaction Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which place actions are performed", displayClassName = true)
-    override val interactConfirmationMode by c.setting("Interact Confirmation", InteractConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation")
-    override val interactDelay by c.setting("Interact Delay", 0, 0..3, 1, "Tick delay between interacting with another block")
-    override val interactionsPerTick by c.setting("Interactions Per Tick", 9, 1..60, 1, "Maximum instant block places per tick")
-    override val swing by c.setting("Swing On Interact", true, "Swings the players hand when placing")
-    override val swingType by c.setting("Interact Swing Type", SwingType.Vanilla, "The style of swing") { swing }
-    override val sounds by c.setting("Place Sounds", true, "Plays the placing sounds")
+    override val rotate by c.boolSetting("Rotate For Interact", true, "Rotate towards block while placing")
+    override val airPlace by c.enumSetting("Air Place", AirPlaceMode.Standard, "Allows for placing blocks without adjacent faces")
+    override val axisRotateSetting by c.boolSetting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { airPlace.isEnabled }
+    override val sorter by c.enumSetting("Interaction Sorter", SortMode.Tool, "The order in which placements are performed")
+    override val tickStageMask by c.collectionSetting("Interaction Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which place actions are performed", displayClassName = true)
+    override val interactConfirmationMode by c.enumSetting("Interact Confirmation", InteractConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation")
+    override val interactDelay by c.intSetting("Interact Delay", 0, 0..3, 1, "Tick delay between interacting with another block")
+    override val interactionsPerTick by c.intSetting("Interactions Per Tick", 9, 1..60, 1, "Maximum instant block places per tick")
+    override val swing by c.boolSetting("Swing On Interact", true, "Swings the players hand when placing")
+    override val swingType by c.enumSetting("Interact Swing Type", SwingType.Vanilla, "The style of swing") { swing }
+    override val sounds by c.boolSetting("Place Sounds", true, "Plays the placing sounds")
 }

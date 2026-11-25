@@ -22,6 +22,11 @@ import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.doubleSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.LineDashStyle
@@ -52,17 +57,17 @@ object LightLevels : Module(
 	private const val FILL_GROUP = "Fill"
 	private const val LINE_GROUP = "Line"
 
-	private val mode: Mode by setting("Mode", Mode.Chunked)
+	private val mode: Mode by enumSetting("Mode", Mode.Chunked)
 		.onValueChange { _, _ -> chunkedRenderer.clear(); refreshChunkedRenderer(this) }
-	private val minLightLevel by setting("Min Light Level", 0, 0..15).onValueChange(::refreshChunkedRenderer)
-	private val renderMode by setting("Render Mode", RenderMode.Square).onValueChange(::refreshChunkedRenderer)
-	private val areaMode by setting("Area Mode", AreaMode.Both, "Where to build renders around") { mode == Mode.Radius }
-	private val skyLightColor by setting("Sky Light Color", Color.YELLOW).onValueChange(::refreshChunkedRenderer)
-	private val blockLightColor by setting("Block Light Color", Color.RED).onValueChange(::refreshChunkedRenderer)
-	private val size by setting("Size", 14, 1..16).onValueChange(::refreshChunkedRenderer)
-	@Group(FILL_GROUP) private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
-	@Group(FILL_GROUP) private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.onValueChange(::refreshChunkedRenderer)
-	@Group(LINE_GROUP) private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
+	private val minLightLevel by intSetting("Min Light Level", 0, 0..15).onValueChange(::refreshChunkedRenderer)
+	private val renderMode by enumSetting("Render Mode", RenderMode.Square).onValueChange(::refreshChunkedRenderer)
+	private val areaMode by enumSetting("Area Mode", AreaMode.Both, "Where to build renders around") { mode == Mode.Radius }
+	private val skyLightColor by colorSetting("Sky Light Color", Color.YELLOW).onValueChange(::refreshChunkedRenderer)
+	private val blockLightColor by colorSetting("Block Light Color", Color.RED).onValueChange(::refreshChunkedRenderer)
+	private val size by intSetting("Size", 14, 1..16).onValueChange(::refreshChunkedRenderer)
+	@Group(FILL_GROUP) private val fill by boolSetting("Fill", false) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
+	@Group(FILL_GROUP) private val fillAlpha by doubleSetting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.onValueChange(::refreshChunkedRenderer)
+	@Group(LINE_GROUP) private val outline by boolSetting("Outline", true) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
 	@Group(LINE_GROUP) private val worldLineConfig by configBlock(WorldLineSettings(this))
 		.withEdits {
 			hide(::startColor, ::endColor)
@@ -71,9 +76,9 @@ object LightLevels : Module(
 				onValueChange(::refreshChunkedRenderer)
 			}
 		}
-	private val depthTest by setting("Depth Test", false, "Shows renders through terrain")
-	private val horizontalRange by setting("Horizontal Range", 16, 1..32) { mode == Mode.Radius }
-	private val verticalRange by setting("Vertical Range", 8, 1..32) { mode == Mode.Radius }
+	private val depthTest by boolSetting("Depth Test", false, "Shows renders through terrain")
+	private val horizontalRange by intSetting("Horizontal Range", 16, 1..32) { mode == Mode.Radius }
+	private val verticalRange by intSetting("Vertical Range", 8, 1..32) { mode == Mode.Radius }
 
 	private val chunkedRenderer = chunkedRenderer(
 		"LightLevels Chunked Renderer",

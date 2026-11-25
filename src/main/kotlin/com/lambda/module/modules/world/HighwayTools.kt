@@ -19,6 +19,10 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
+import com.lambda.config.settings.collections.blockCollectionSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.complex.blockSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
@@ -50,22 +54,22 @@ object HighwayTools : Module(
     description = "Auto highway builder",
     tag = ModuleTag.WORLD,
 ) {
-    private val height by setting("Height", 4, 2..10, 1)
-    private val width by setting("Width", 6, 1..30, 1)
-    private val pavement by setting("Pavement", Material.Block, "Material for the pavement")
-    private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }
-    private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { pavement != Material.None }
-    private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }
-    private val floor by setting("Floor", Material.None, "Material for the floor")
-    private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }
-    private val rightWall by setting("Right Wall", Material.None, "Build the right wall")
-    private val leftWall by setting("Left Wall", Material.None, "Build the left wall")
-    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block || leftWall == Material.Block }
-    private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling")
-    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }
-    private val replaceableSolids by setting("Replaceable Solids", setOf(Blocks.MAGMA_BLOCK, Blocks.SOUL_SAND))
-    private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)")
-    private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once")
+    private val height by intSetting("Height", 4, 2..10, 1)
+    private val width by intSetting("Width", 6, 1..30, 1)
+    private val pavement by enumSetting("Pavement", Material.Block, "Material for the pavement")
+    private val rimHeight by intSetting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }
+    private val cornerBlock by enumSetting("Corner", Corner.None, "Include corner blocks in the highway") { pavement != Material.None }
+    private val pavementMaterial by blockSetting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }
+    private val floor by enumSetting("Floor", Material.None, "Material for the floor")
+    private val floorMaterial by blockSetting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }
+    private val rightWall by enumSetting("Right Wall", Material.None, "Build the right wall")
+    private val leftWall by enumSetting("Left Wall", Material.None, "Build the left wall")
+    private val wallMaterial by blockSetting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block || leftWall == Material.Block }
+    private val ceiling by enumSetting("Ceiling", Material.None, "Material for the ceiling")
+    private val ceilingMaterial by blockSetting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }
+    private val replaceableSolids by blockCollectionSetting("Replaceable Solids", setOf(Blocks.MAGMA_BLOCK, Blocks.SOUL_SAND))
+    private val distance by intSetting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)")
+    private val sliceSize by intSetting("Slice Size", 3, 1..5, 1, "Number of slices to build at once")
 
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0

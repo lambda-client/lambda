@@ -19,6 +19,8 @@ package com.lambda.module
 
 import androidx.compose.runtime.Composable
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.gui.Layout
 import java.awt.Color
 
 abstract class HudModule(
@@ -28,9 +30,6 @@ abstract class HudModule(
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
-    defaultScale: Float = 1f,
-    defaultAnchorX: Float = DEFAULT_ANCHOR,
-    defaultAnchorY: Float? = null,
 ) : Module(
     name,
     description,
@@ -50,7 +49,6 @@ abstract class HudModule(
 
     private companion object {
         const val DEFAULT_ANCHOR = 0.01f
-
         const val DEFAULT_SPACING = 0.06f
         var created = 0
     }

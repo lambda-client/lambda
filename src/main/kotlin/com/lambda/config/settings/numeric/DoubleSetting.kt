@@ -22,11 +22,23 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import java.math.BigDecimal
+
+@ConfigEntryDsl
+fun Config.doubleSetting(
+	name: String,
+	defaultValue: Double,
+	range: ClosedRange<Double>,
+	step: Double = 1.0,
+	description: String = "",
+	unit: String = "",
+	visibility: () -> Boolean = { true }
+) = setting(name) { layer -> DoubleSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
 /**
  * @see [com.lambda.config.Config]

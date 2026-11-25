@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.debug
 
+import com.lambda.config.settings.complex.setting
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.util.BlockUtils.blockState

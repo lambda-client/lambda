@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.network
 
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.longSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -43,11 +45,11 @@ object PacketDelay : Module(
     description = "Delays packets client-bound & server-bound",
     tag = ModuleTag.NETWORK,
 ) {
-    private val mode by setting("Mode", Mode.Static, description = "How the delay is applied: Static queues packets until a flush; Pulse delays each packet individually.")
-    private val networkScope by setting("Network Scope", Direction.Both, description = "Which direction(s) to affect: inbound (server → you), outbound (you → server), or both.")
-    private val packetScope by setting("Packet Scope", PacketType.Any, description = "What packets to delay. Choose all packets or a specific packet type.")
-    private val inboundDelay by setting("Inbound Delay", 250L, 0L..5000L, 10L, unit = "ms", description = "Time to delay packets received from the server before processing.") { networkScope != Direction.Outbound }
-    private val outboundDelay by setting("Outbound Delay", 250L, 0L..5000L, 10L, unit = "ms", description = "Time to delay packets sent to the server before sending.") { networkScope != Direction.Inbound }
+    private val mode by enumSetting("Mode", Mode.Static, description = "How the delay is applied: Static queues packets until a flush; Pulse delays each packet individually.")
+    private val networkScope by enumSetting("Network Scope", Direction.Both, description = "Which direction(s) to affect: inbound (server → you), outbound (you → server), or both.")
+    private val packetScope by enumSetting("Packet Scope", PacketType.Any, description = "What packets to delay. Choose all packets or a specific packet type.")
+    private val inboundDelay by longSetting("Inbound Delay", 250L, 0L..5000L, 10L, unit = "ms", description = "Time to delay packets received from the server before processing.") { networkScope != Direction.Outbound }
+    private val outboundDelay by longSetting("Outbound Delay", 250L, 0L..5000L, 10L, unit = "ms", description = "Time to delay packets sent to the server before sending.") { networkScope != Direction.Inbound }
 
     private var outboundPool = ConcurrentLinkedDeque<ServerPacket>()
     private var inboundPool = ConcurrentLinkedDeque<ClientPacket>()

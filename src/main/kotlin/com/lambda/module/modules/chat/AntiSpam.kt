@@ -20,6 +20,8 @@ package com.lambda.module.modules.chat
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.config.Group
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.FriendHandler
@@ -46,15 +48,15 @@ object AntiSpam : Module(
 	tag = ModuleTag.CHAT,
 	modulePriority = 100
 ) {
-	private val fancyChats by setting("Replace Fancy Chat", false)
+	private val fancyChats by boolSetting("Replace Fancy Chat", false)
 
-	private val filterSelf by setting("Ignore Self", true)
-	private val filterFriends by setting("Ignore Friends", true)
-	private val filterSystem by setting("Filter System Messages", false)
-	private val filterDms by setting("Filter DMs", true)
+	private val filterSelf by boolSetting("Ignore Self", true)
+	private val filterFriends by boolSetting("Ignore Friends", true)
+	private val filterSystem by boolSetting("Filter System Messages", false)
+	private val filterDms by boolSetting("Filter DMs", true)
 
-	private val ignoreSystem by setting("Ignore System", false)
-	private val ignoreDms by setting("Ignore DMs", false)
+	private val ignoreSystem by boolSetting("Ignore System", false)
+	private val ignoreDms by boolSetting("Ignore DMs", false)
 
 	@Group("Slurs") private val detectSlurs by configBlock(ReplaceSettings("Slurs", this))
 	@Group("Swears") private val detectSwears by configBlock(ReplaceSettings("Swears", this))
@@ -121,8 +123,8 @@ object AntiSpam : Module(
 		override val c: Config,
 		actionStrategy: ActionStrategy = ActionStrategy.Replace
 	) : ConfigBlock {
-		val action by c.setting("$name Action Strategy", actionStrategy)
-		val replace by c.setting("$name Replace Strategy", ReplaceStrategy.CensorAll) { action == ActionStrategy.Replace }
+		val action by c.enumSetting("$name Action Strategy", actionStrategy)
+		val replace by c.enumSetting("$name Replace Strategy", ReplaceStrategy.CensorAll) { action == ActionStrategy.Replace }
 
 		val enabled: Boolean get() = action != ActionStrategy.None
 	}

@@ -22,6 +22,9 @@ import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RenderBuilder
@@ -48,17 +51,17 @@ object RadiusESP : Module(
 	private const val RENDER_GROUP = "Render"
 	private const val OUTLINE_GROUP = "Outline"
 
-	private val beacons by setting("Beacons", true).onValueChange(::rebuildMesh)
-	private val showMaxBeaconRange by setting("Show Max Beacon Range", true) { beacons }.onValueChange(::rebuildMesh)
-	private val spawners by setting("Spawners", true).onValueChange(::rebuildMesh)
+	private val beacons by boolSetting("Beacons", true).onValueChange(::rebuildMesh)
+	private val showMaxBeaconRange by boolSetting("Show Max Beacon Range", true) { beacons }.onValueChange(::rebuildMesh)
+	private val spawners by boolSetting("Spawners", true).onValueChange(::rebuildMesh)
 
-	@Group(RENDER_GROUP) private val beaconColor by setting("Beacon Color", Color(0, 255, 255, 255)) { beacons }.onValueChange(::rebuildMesh)
-	@Group(RENDER_GROUP) private val spawnerColor by setting("Spawner Color", Color(255, 0, 0, 255)) { spawners }.onValueChange(::rebuildMesh)
-	@Group(RENDER_GROUP) private var fill: Boolean by setting("Box Fill", true).onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP) private val beaconColor by colorSetting("Beacon Color", Color(0, 255, 255, 255)) { beacons }.onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP) private val spawnerColor by colorSetting("Spawner Color", Color(255, 0, 0, 255)) { spawners }.onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP) private var fill: Boolean by boolSetting("Box Fill", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) outline = true }
-	@Group(RENDER_GROUP) private var outline: Boolean by setting("Box Outline", true).onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP) private var outline: Boolean by boolSetting("Box Outline", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) fill = true }
-	@Group(RENDER_GROUP) private val fillAlpha by setting("Fill Alpha", 0.1, 0.0..1.0, 0.01).onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP) private val fillAlpha by doubleSetting("Fill Alpha", 0.1, 0.0..1.0, 0.01).onValueChange(::rebuildMesh)
 	@Group(RENDER_GROUP, OUTLINE_GROUP) private val worldLineConfig by configBlock(WorldLineSettings(this))
 		.withEdits {
 			hide(::startColor, ::endColor)

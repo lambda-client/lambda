@@ -21,6 +21,8 @@ import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.categories.LambdaCategory
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.stringSetting
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionResponse
@@ -46,10 +48,10 @@ object LambdaAPI : Config(
     "api",
     LambdaCategory
 ) {
-    val authServer by setting("Auth Server", "auth.lambda-client.org")
-    val apiUrl by setting("API Server", "https://api.lambda-client.org")
-    val apiVersion by setting("API Version", ApiVersion.V1)
-    val assets by setting("Assets", "https://raw.githubusercontent.com/beanbag44/lambda-assets/refs/heads/master")
+    val authServer by stringSetting("Auth Server", "auth.lambda-client.org")
+    val apiUrl by stringSetting("API Server", "https://api.lambda-client.org")
+    val apiVersion by enumSetting("API Version", ApiVersion.V1)
+    val assets by stringSetting("Assets", "https://raw.githubusercontent.com/beanbag44/lambda-assets/refs/heads/master")
 
     val mappings get() = "$assets/mappings" // Folder containing mappings for our dynamic serializer
     val capes get() = "$assets/capes" // Folder containing all the capes, add .txt to get the list of available capes

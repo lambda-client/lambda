@@ -23,6 +23,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lambda.gui.component.rememberTexture
+import com.lambda.config.settings.numeric.floatSetting
+import com.lambda.graphics.texture.TextureOwner.upload
+import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImGui
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 

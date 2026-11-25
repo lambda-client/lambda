@@ -28,6 +28,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
+import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.component.Button
@@ -42,6 +43,14 @@ import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
+
+@ConfigEntryDsl
+fun Config.blockPosSetting(
+	name: String,
+	defaultValue: BlockPos,
+	description: String = "",
+	visibility: () -> Boolean = { true }
+) = setting(name) { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
 
 class BlockPosSetting(
 	name: String,

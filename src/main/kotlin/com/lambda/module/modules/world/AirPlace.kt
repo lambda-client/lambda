@@ -21,7 +21,11 @@ import com.lambda.Lambda.mc
 import com.lambda.config.Group
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.bindSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.doubleSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
@@ -65,14 +69,14 @@ object AirPlace : Module(
 ) {
 	private const val RENDER_GROUP = "Renders"
 
-	private var distance by setting("Distance", 4.0, 1.0..7.0, 0.01)
-	private val distanceScrollBind by setting("Distance Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the given key and scroll to adjust distance")
+	private var distance by doubleSetting("Distance", 4.0, 1.0..7.0, 0.01)
+	private val distanceScrollBind by bindSetting("Distance Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the given key and scroll to adjust distance")
 	// Credit to THCFree for the rotation scroll idea
-	private val rotationScrollBind by setting("Rotation Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_ALT), "Allows you to hold the given key and scroll to adjust the rotation of the block you're placing")
+	private val rotationScrollBind by bindSetting("Rotation Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_ALT), "Allows you to hold the given key and scroll to adjust the rotation of the block you're placing")
 
-	@Group(RENDER_GROUP) private val renderState by setting("Render State", true)
-	@Group(RENDER_GROUP) private val lineColor by setting("Line Color", Color.WHITE)
-	@Group(RENDER_GROUP) private val stateAlpha by setting("State Alpha", 0.5, 0.01..1.0, 0.01)
+	@Group(RENDER_GROUP) private val renderState by boolSetting("Render State", true)
+	@Group(RENDER_GROUP) private val lineColor by colorSetting("Line Color", Color.WHITE)
+	@Group(RENDER_GROUP) private val stateAlpha by doubleSetting("State Alpha", 0.5, 0.01..1.0, 0.01)
 
 	private var placementPos: BlockPos? = null
 	private var backingState: BlockState? = null

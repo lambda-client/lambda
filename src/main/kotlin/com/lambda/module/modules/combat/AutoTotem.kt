@@ -19,6 +19,8 @@ package com.lambda.module.modules.combat
 
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -47,16 +49,16 @@ object AutoTotem : Module(
     tag = ModuleTag.COMBAT,
 	modulePriority = 100
 ) {
-	private val always by setting("Always", true, "Always attempt to keep a totem in offhand")
-	private val ignoreWhenHolding by setting("Ignore When Holding", false, "Ignore swapping to offhand when already holding a totem")
-	private val minimumHealth by setting("Min Health", 10, 6..36, 1, "Set the minimum health threshold to swap", unit = " half-hearts") { !always }
-    private val falls by setting("Falls", true, "Swap if the player will die of fall damage") { !always }
-    private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before swapping", unit = " blocks") { !always && falls }
-    private val crystals by setting("Crystals", true, "Swap if an End Crystal explosion would be lethal") { !always }
-    private val creeper by setting("Creepers", true, "Swap when an ignited Creeper is nearby") { !always }
-    private val players by setting("Players", false, "Swap if a nearby player is detected within the set distance") { !always }
-    private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players to swap") { !always && players }
-    private val friends by setting("Friends", false, "Exclude friends from triggering player-based swaps") { !always && players }
+	private val always by boolSetting("Always", true, "Always attempt to keep a totem in offhand")
+	private val ignoreWhenHolding by boolSetting("Ignore When Holding", false, "Ignore swapping to offhand when already holding a totem")
+	private val minimumHealth by intSetting("Min Health", 10, 6..36, 1, "Set the minimum health threshold to swap", unit = " half-hearts") { !always }
+    private val falls by boolSetting("Falls", true, "Swap if the player will die of fall damage") { !always }
+    private val fallDistance by intSetting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before swapping", unit = " blocks") { !always && falls }
+    private val crystals by boolSetting("Crystals", true, "Swap if an End Crystal explosion would be lethal") { !always }
+    private val creeper by boolSetting("Creepers", true, "Swap when an ignited Creeper is nearby") { !always }
+    private val players by boolSetting("Players", false, "Swap if a nearby player is detected within the set distance") { !always }
+    private val minPlayerDistance by intSetting("Player Distance", 64, 32..128, 4, "Set the distance to detect players to swap") { !always && players }
+    private val friends by boolSetting("Friends", false, "Exclude friends from triggering player-based swaps") { !always && players }
 
     init {
 		setDefaultAutomationConfig()

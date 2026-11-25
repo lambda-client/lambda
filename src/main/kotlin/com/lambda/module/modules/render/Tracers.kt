@@ -23,6 +23,8 @@ import com.lambda.config.blocks.EntityColorSettings
 import com.lambda.config.blocks.EntitySelectionSettings
 import com.lambda.config.blocks.ScreenLineSettings
 import com.lambda.config.hide
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.config.withEdits
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
@@ -48,8 +50,8 @@ object Tracers : Module(
 	private const val ENTITY_TAB = "Entities"
 	private const val COLORS_TAB = "Colors"
 
-	@Tab(GENERAL_TAB) private val target by setting("Target", TracerMode.Feet)
-	@Tab(GENERAL_TAB) private val stem by setting("Stem", true)
+	@Tab(GENERAL_TAB) private val target by enumSetting("Target", TracerMode.Feet)
+	@Tab(GENERAL_TAB) private val stem by boolSetting("Stem", true)
 
 	private const val FRIENDS_LINE_GROUP = "Friends"
 	private const val OTHERS_LINE_GROUP = "Others"
