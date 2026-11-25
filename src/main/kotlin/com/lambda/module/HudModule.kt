@@ -20,7 +20,7 @@ package com.lambda.module
 import androidx.compose.runtime.Composable
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.colorSetting
-import com.lambda.gui.Layout
+import com.lambda.config.settings.numeric.floatSetting
 import java.awt.Color
 
 abstract class HudModule(
@@ -30,6 +30,9 @@ abstract class HudModule(
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
+    defaultScale: Float = 1f,
+    defaultAnchorX: Float = DEFAULT_ANCHOR,
+    defaultAnchorY: Float? = null,
 ) : Module(
     name,
     description,
@@ -38,17 +41,18 @@ abstract class HudModule(
     enabledByDefault,
     defaultKeybind = defaultKeybind
 ) {
-    val backgroundColor = setting("Background Color", Color(0, 0, 0, 0))
-    val scale by setting("Scale", defaultScale, 0.25f..5f, 0.05f, "Size of this element, on top of the Scale in HUD Settings")
+    val backgroundColor = colorSetting("Background Color", Color(0, 0, 0, 0))
+    val scale by floatSetting("Scale", defaultScale, 0.25f..5f, 0.05f, "Size of this element, on top of the Scale in HUD Settings")
 
-    var anchorX by setting("HUD X", defaultAnchorX, 0f..1f, 0.001f) { false }
-    var anchorY by setting("HUD Y", defaultAnchorY ?: (DEFAULT_ANCHOR + DEFAULT_SPACING * created++).coerceAtMost(1f), 0f..1f, 0.001f) { false }
+    var anchorX by floatSetting("HUD X", defaultAnchorX, 0f..1f, 0.001f) { false }
+    var anchorY by floatSetting("HUD Y", defaultAnchorY ?: (DEFAULT_ANCHOR + DEFAULT_SPACING * created++).coerceAtMost(1f), 0f..1f, 0.001f) { false }
 
     @Composable
     abstract fun Content()
 
     private companion object {
         const val DEFAULT_ANCHOR = 0.01f
+
         const val DEFAULT_SPACING = 0.06f
         var created = 0
     }

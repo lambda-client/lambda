@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.categories.HudCategory
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.complex.colorSetting
+import com.lambda.config.settings.numeric.floatSetting
 import com.lambda.core.Loadable
 import com.lambda.gui.GuiScreen
 import com.lambda.gui.component.Text
@@ -57,9 +60,9 @@ private val HUD_TEXT_SHADOW = Color.Black.copy(alpha = 0.75f)
 private val ELEMENT_PADDING = 1.dp
 
 object HudConfig : Loadable, Config("HUD", HudCategory) {
-    val showInScreens by setting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The HUD editor always shows them.")
-    val textColor by setting("Text Color", java.awt.Color.WHITE, "Colour of HUD text")
-    val scale by setting("Scale", 1f, 0.5f..3f, 0.05f, "Size of HUD text")
+    val showInScreens by boolSetting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The HUD editor always shows them.")
+    val textColor by colorSetting("Text Color", java.awt.Color.WHITE, "Colour of HUD text")
+    val scale by floatSetting("Scale", 1f, 0.5f..3f, 0.05f, "Size of HUD text")
 }
 
 internal object Hud {

@@ -17,12 +17,6 @@
 
 package com.lambda.module.modules.hud
 
-import com.lambda.config.settings.comparable.boolSetting
-import com.lambda.config.settings.comparable.enumSetting
-import com.lambda.config.settings.numeric.floatSetting
-import com.lambda.config.settings.numeric.intSetting
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImVec2
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -36,6 +30,10 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import com.lambda.config.settings.comparable.boolSetting
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.floatSetting
+import com.lambda.config.settings.numeric.intSetting
 import com.lambda.gui.core.observe
 import com.lambda.gui.hud.HudConfig
 import com.lambda.gui.hud.HudText

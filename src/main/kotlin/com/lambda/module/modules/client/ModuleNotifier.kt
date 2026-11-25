@@ -41,7 +41,7 @@ object ModuleNotifier : Module(
 	tag = ModuleTag.CLIENT,
 	enabledByDefault = true
 ) {
-	var notifyTarget by collectionSetting("Notify Target", setOf<NotifyTarget>(NotifyTarget.ActionBar), NotifyTarget.entries.toSet(), description = "Where to send notifications when modules are toggled")
+	var notifyTarget by collectionSetting("Notify Target", setOf(NotifyTarget.Notification), NotifyTarget.entries.toSet(), description = "Where to send notifications when modules are toggled")
 
 	enum class NotifyTarget(override val displayName: String, override val description: String) : Describable, NamedEnum {
 		Chat("Chat", "Sends a message to chat when a module is toggled"),

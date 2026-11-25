@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
+import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.config.settings.numeric.floatSetting
 import com.lambda.gui.component.ItemIcon
 import com.lambda.gui.core.observe
 import com.lambda.gui.core.observeSafe
@@ -43,8 +45,8 @@ object Armor : HudModule(
         Vertical("Vertical"),
     }
 
-    private val layout by setting("Layout", Layout.Horizontal)
-    private val iconSize by setting("Icon Size", 16f, 8f..64f, 1f, "Items are drawn at the nearest whole multiple of their 16 pixels, as Minecraft draws them")
+    private val layout by enumSetting("Layout", Layout.Horizontal)
+    private val iconSize by floatSetting("Icon Size", 16f, 8f..64f, 1f, "Items are drawn at the nearest whole multiple of their 16 pixels, as Minecraft draws them")
 
     private val slots =
         listOf(

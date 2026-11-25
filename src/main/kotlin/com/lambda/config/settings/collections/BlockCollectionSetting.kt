@@ -23,6 +23,7 @@ import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.serializers.BlockSerializer
 import net.minecraft.block.Block
+import net.minecraft.item.ItemStack
 import net.minecraft.registry.Registries
 
 @ConfigEntryDsl
@@ -34,7 +35,6 @@ fun Config.blockCollectionSetting(
 	description: String = "",
 	visibility: () -> Boolean = { true }
 ) = setting(name) { layer -> BlockCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
-import net.minecraft.item.ItemStack
 
 class BlockCollectionSetting(
 	name: String,

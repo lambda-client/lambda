@@ -56,10 +56,9 @@ fun Config.stringSetting(
     name: String,
     defaultValue: String,
     multiline: Boolean = false,
-    flags: Int = ImGuiInputTextFlags.None,
     description: String = "",
     visibility: () -> Boolean = { true }
-) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
+) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline) }
 
 /**
  * @see [com.lambda.config.Config]

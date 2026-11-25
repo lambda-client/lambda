@@ -23,6 +23,7 @@ import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.serializers.ItemSerializer
 import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 import net.minecraft.registry.Registries
 
 @ConfigEntryDsl

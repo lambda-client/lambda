@@ -17,14 +17,12 @@
 
 package com.lambda.module.modules.hud
 
-import com.lambda.config.settings.comparable.boolSetting
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.flag.ImGuiCol
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.complex.Bind
 import com.lambda.gui.core.observe
 import com.lambda.gui.hud.HudText
