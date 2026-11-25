@@ -153,12 +153,11 @@ fun SettingRow(setting: Setting<*>) {
 				key(setting) { setting.Gui() }
 			}
 		}
-	}
-
-	rememberLast(menu)?.let { position ->
-		key(position) {
-			ContextMenu(menu != null, position, onDismiss = { menu = null }) {
-				MenuItem("Reset") { setting.reset(silent = true) }
+		rememberLast(menu)?.let { position ->
+			key(position) {
+				ContextMenu(menu != null, position, onDismiss = { menu = null }) {
+					MenuItem("Reset") { setting.reset(silent = true) }
+				}
 			}
 		}
 	}

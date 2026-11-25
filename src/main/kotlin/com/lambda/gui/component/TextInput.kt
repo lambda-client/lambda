@@ -181,34 +181,33 @@ fun TextInput(
 					)
 				}
 				innerTextField()
+				rememberLast(menu)?.let { position ->
+					key(position) {
+						ContextMenu(menu != null, position, onDismiss = { menu = null }) {
+							val selected = !field.selection.collapsed
+							MenuItem("Cut", enabled = selected) {
+								mc.keyboard.clipboard = field.selected
+								edit(field.replacingSelection(""))
+							}
+							MenuItem("Copy", enabled = selected) { mc.keyboard.clipboard = field.selected }
+							MenuItem("Paste", enabled = mc.keyboard.clipboard.isNotEmpty()) {
+								val pasted = mc.keyboard.clipboard
+								edit(
+									field.replacingSelection(
+										if (singleLine) pasted.filterNot { it == '\n' || it == '\r' }
+										else pasted
+									)
+								)
+							}
+							MenuItem("Select All", enabled = field.text.isNotEmpty()) {
+								field = field.copy(selection = TextRange(0, field.text.length))
+							}
+						}
+					}
+				}
 			}
 		}
 	)
-
-	rememberLast(menu)?.let { position ->
-		key(position) {
-			ContextMenu(menu != null, position, onDismiss = { menu = null }) {
-				val selected = !field.selection.collapsed
-				MenuItem("Cut", enabled = selected) {
-					mc.keyboard.clipboard = field.selected
-					edit(field.replacingSelection(""))
-				}
-				MenuItem("Copy", enabled = selected) { mc.keyboard.clipboard = field.selected }
-				MenuItem("Paste", enabled = mc.keyboard.clipboard.isNotEmpty()) {
-					val pasted = mc.keyboard.clipboard
-					edit(
-						field.replacingSelection(
-							if (singleLine) pasted.filterNot { it == '\n' || it == '\r' }
-							else pasted
-						)
-					)
-				}
-				MenuItem("Select All", enabled = field.text.isNotEmpty()) {
-					field = field.copy(selection = TextRange(0, field.text.length))
-				}
-			}
-		}
-	}
 }
 
 private val TextFieldValue.selected get() = text.substring(selection.min, selection.max)
