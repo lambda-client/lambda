@@ -57,13 +57,16 @@ import com.lambda.gui.theme.Type
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.math.toCompose
+import net.minecraft.client.gui.screen.Screen
 import kotlin.math.roundToInt
 
 private val HUD_TEXT_SHADOW = Color.Black.copy(alpha = 0.75f)
 private val ELEMENT_PADDING = 1.dp
+private const val VANILLA_PACKAGE = "net.minecraft."
 
 object HudConfig : Loadable, Config("HUD", HudCategory) {
-	val showInScreens by boolSetting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The HUD editor always shows them.")
+	val showInScreens by boolSetting("Show In Screens", true, "Keep HUD elements drawn while one of Minecraft's own screens (inventory, chat, pause menu, ...) is open. Screens added by other mods always hide them, and the HUD editor always shows them.")
+	val showInClickGui by boolSetting("Show In Click GUI", false, "Keep HUD elements drawn behind the click GUI while it is open")
 	val textColor by colorSetting("Text Color", java.awt.Color.WHITE, "Colour of HUD text")
 	val scale by floatSetting("Scale", 1f, 0.5f..3f, 0.05f, "Size of HUD text")
 }
@@ -74,10 +77,12 @@ internal object Hud {
 	val enabled: List<HudModule>
 		get() = modules.filter { it.isEnabled }
 
+	private val Screen.isVanilla get() = javaClass.name.startsWith(VANILLA_PACKAGE)
+
 	val shown: List<HudModule>
 		get() {
 			val screen = mc.currentScreen
-			val covered = screen != null && screen !is GuiScreen && !HudConfig.showInScreens
+			val covered = screen != null && screen !is GuiScreen && !(HudConfig.showInScreens && screen.isVanilla)
 			return if (mc.world == null || mc.options.hudHidden || covered) emptyList()
 			else enabled
 		}

@@ -20,6 +20,8 @@ package com.lambda.module.modules.client
 import com.lambda.Lambda.mc
 import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.comparable.enumSetting
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaGui
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -50,6 +52,7 @@ object AutoUpdater : Module(
 		private set
     private var firstLaunchStateInitialized = false
 
+	private const val LOADER_ID = "lambda-loader"
     private const val MAVEN_URL = "https://maven.lambda-client.org"
     private const val LOADER_STABLE_META = "$MAVEN_URL/stable/com/lambda/lambda-loader/maven-metadata.xml"
     private const val LOADER_DEV_META = "$MAVEN_URL/dev/com/lambda/lambda-loader/maven-metadata.xml"
@@ -61,16 +64,25 @@ object AutoUpdater : Module(
         Dev
     }
 
-    init {
-		onEnableUnsafe { prompt = Prompt.Install.takeIf { LambdaGui.screen != null && prompt != Prompt.Uninstall } }
-		onDisableUnsafe { prompt = Prompt.Uninstall.takeIf { LambdaGui.screen != null && prompt != Prompt.Install } }
+	private val usesLoader get() = FabricLoader.getInstance().isModLoaded(LOADER_ID)
+
+	init {
+		onEnableUnsafe {
+			prompt = Prompt.Install.takeIf { LambdaGui.screen != null && prompt != Prompt.Uninstall && !usesLoader }
+		}
+		onDisableUnsafe {
+			prompt = Prompt.Uninstall.takeIf { LambdaGui.screen != null && prompt != Prompt.Install && usesLoader }
+		}
+		listenUnsafe<ClientEvent.Shutdown>(alwaysListen = true) {
+			if (usesLoader) loaderPromptHandled = true
+		}
 	}
 
 	internal fun onGuiOpened() {
 		if (firstLaunchStateInitialized) return
 		firstLaunchStateInitialized = true
 
-		if (FabricLoader.getInstance().isModLoaded("lambda-loader")) {
+		if (usesLoader) {
 			loaderPromptHandled = true
 			if (!isEnabled) enable()
 			return
@@ -137,7 +149,7 @@ object AutoUpdater : Module(
                     return@runIO
                 }
 
-                val loaderJarPath = getModJarPath("lambda-loader")
+                val loaderJarPath = getModJarPath(LOADER_ID)
                 if (debug) debug("Lambda loader JAR path: $loaderJarPath")
 
                 val jarFile = loaderJarPath.toFile()

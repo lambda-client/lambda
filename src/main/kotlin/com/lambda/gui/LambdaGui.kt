@@ -55,7 +55,9 @@ import com.lambda.gui.core.LocalShown
 import com.lambda.gui.core.Observations
 import com.lambda.gui.core.SceneHost
 import com.lambda.gui.core.SceneInput
+import com.lambda.gui.core.observe
 import com.lambda.gui.hud.Hud
+import com.lambda.gui.hud.HudConfig
 import com.lambda.gui.hud.HudEditor
 import com.lambda.gui.hud.HudLayer
 import com.lambda.gui.render.GuiCompositor
@@ -125,6 +127,8 @@ object LambdaGui : Loadable {
 		get() = GuiConfig.animations &&
 				GuiConfig.openAnimation &&
 				GuiTransition.Unfold in GuiConfig.openStyle
+	private val showsHudLayer
+		get() = screen == null || (screen == Screen.ClickGui && HudConfig.showInClickGui)
 	private val showsClickGui
 		get() = screen == Screen.ClickGui || leaving
 	internal val foldsClosed
@@ -227,7 +231,7 @@ object LambdaGui : Loadable {
 		aboveHud.collect()
 		beneathGui.collect(showsGui)
 		aboveGui.collect(showsGui)
-		val showsHud = !beneathHud.isEmpty || !aboveHud.isEmpty || (screen == null && Hud.shown.isNotEmpty())
+		val showsHud = !beneathHud.isEmpty || !aboveHud.isEmpty || (showsHudLayer && Hud.shown.isNotEmpty())
 		if (!showsGui && !showsHud && settled) return
 		layered = showsGui && showsHud
 
@@ -323,7 +327,8 @@ object LambdaGui : Loadable {
 
 				Underlay {
 					beneathHud.Content()
-					if (screen == null) HudLayer()
+					val hudShown by observe { showsHudLayer }
+					if (hudShown) HudLayer()
 					aboveHud.Content()
 				}
 				beneathGui.Content()
