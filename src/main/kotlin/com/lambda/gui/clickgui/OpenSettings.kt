@@ -31,6 +31,7 @@ import com.lambda.module.Module
 internal class SettingsPanelState(val module: Module) {
 	var page by mutableStateOf(PanelPage.Settings)
 	var extension by mutableStateOf(0.dp)
+	var widening by mutableStateOf(0.dp)
 	var row by mutableStateOf(Rect.Zero)
 	var placed by mutableStateOf(false)
 	var unfolding by mutableStateOf(false)

@@ -61,12 +61,15 @@ internal class ScenePlatform : PlatformContext by PlatformContext.Empty() {
 				PointerIcon.Hand -> StandardCursors.POINTING_HAND
 				PointerIcon.Crosshair -> StandardCursors.CROSSHAIR
 				ResizeVerticalIcon -> StandardCursors.RESIZE_NS
+				ResizeHorizontalIcon -> StandardCursors.RESIZE_EW
 				else -> null
 			}
 	}
 }
 
 object ResizeVerticalIcon : PointerIcon
+
+object ResizeHorizontalIcon : PointerIcon
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal object GameClipboard : Clipboard {

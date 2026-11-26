@@ -29,14 +29,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
@@ -46,6 +49,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -79,6 +83,7 @@ import com.lambda.gui.component.dropShadow
 import com.lambda.gui.component.mouseDraggable
 import com.lambda.gui.component.window
 import com.lambda.gui.core.LocalShown
+import com.lambda.gui.core.ResizeHorizontalIcon
 import com.lambda.gui.core.ResizeVerticalIcon
 import com.lambda.gui.core.awaitFrames
 import com.lambda.gui.menu.MENU_BAR_HEIGHT
@@ -124,6 +129,7 @@ internal fun SettingsPanel(
 	val screen = LocalWindowInfo.current.containerSize
 	var size by remember { mutableStateOf(IntSize.Zero) }
 	var unfolded by remember { mutableStateOf(0) }
+	var natural by remember { mutableIntStateOf(0) }
 
 	val scroll = rememberScrollState()
 	val screenHeight = with(density) { screen.height.toDp() }
@@ -147,6 +153,13 @@ internal fun SettingsPanel(
 	val fitsLeft = row.left + overlap - size.width >= 0
 	val flipped = !fitsRight && (fitsLeft || row.left > screen.width - row.right)
 	val lift = (top + unfolded - screen.height).coerceIn(0f, top - barBottom)
+	val widest = Look.settingsWidth + panel.widening
+	val beside =
+		with(density) {
+			if (flipped) (row.left + overlap).toDp()
+			else (screen.width - row.right + overlap).toDp()
+		}
+	val unmet = (with(density) { natural.toDp() } - Look.settingsWidth).coerceAtLeast(0.dp)
 
 	val shape =
 		RoundedCornerShape(
@@ -184,9 +197,9 @@ internal fun SettingsPanel(
 		) {
 			Box(
 				Modifier
-					.widthIn(MIN_PANEL_WIDTH, Look.settingsWidth)
+					.widthIn(MIN_PANEL_WIDTH, widest)
 					.heightIn(max = maxHeight)
-					.widthOfContent()
+					.widthOfContent { natural = it }
 					.onSizeChanged { size = it }
 			) {
 				CompositionLocalProvider(LocalPopupHost provides popups) {
@@ -215,6 +228,26 @@ internal fun SettingsPanel(
 								)
 						},
 						modifier = Modifier.align(Alignment.TopCenter)
+					)
+				}
+				if (unmet > panel.widening || panel.widening > 0.dp) {
+					SideGrip(
+						onDragStart = { panel.widening = panel.widening.coerceAtMost(unmet) },
+						onDrag = { right ->
+							val outwards =
+								if (flipped) -right
+								else right
+							panel.widening =
+								(panel.widening + outwards).coerceIn(
+									0.dp,
+									unmet
+										.coerceAtMost(beside - Look.settingsWidth)
+										.coerceAtLeast(0.dp)
+								)
+						},
+						modifier = Modifier
+							.matchParentSize()
+							.wrapContentWidth(if (flipped) Alignment.Start else Alignment.End)
 					)
 				}
 			}
@@ -263,22 +296,27 @@ internal fun InlineSettings(panel: SettingsPanelState, open: Boolean) {
 	}
 }
 
-internal fun Modifier.widthOfContent(): Modifier =
+internal fun Modifier.widthOfContent(onNatural: (Int) -> Unit = {}): Modifier =
 	composed {
 		val scope = rememberCoroutineScope()
 		var width by remember { mutableStateOf<Animatable<Float, AnimationVector1D>?>(null) }
+		var cap by remember { mutableIntStateOf(0) }
 		layout { measurable, constraints ->
-			val wanted =
-				measurable.maxIntrinsicWidth(constraints.maxHeight)
-					.coerceIn(constraints.minWidth, constraints.maxWidth).toFloat()
-			val current = width ?: Animatable(wanted).also { width = it }
+			val natural = measurable.maxIntrinsicWidth(constraints.maxHeight)
+			if (constraints.hasBoundedWidth) onNatural(natural)
+			val wanted = natural.coerceIn(constraints.minWidth, constraints.maxWidth).toFloat()
+			val resized = constraints.hasBoundedWidth && constraints.maxWidth != cap
+			if (resized) cap = constraints.maxWidth
+			val current = width?.takeUnless { resized } ?: Animatable(wanted).also { width = it }
 			if (current.targetValue != wanted) {
 				scope.launch { current.animateTo(wanted, WIDTH_CHANGE) }
 			}
 
 			val placeable =
 				measurable.measure(
-					Constraints.fixedWidth(current.value.roundToInt()).copy(
+					Constraints.fixedWidth(
+						current.value.roundToInt().coerceIn(constraints.minWidth, constraints.maxWidth)
+					).copy(
 						maxHeight = constraints.maxHeight
 					)
 				)
@@ -305,5 +343,27 @@ private fun Grip(
 			}
 	) {
 		Spacer(Modifier.size(16.dp, 1.dp).background(color, RoundedCornerShape(50)))
+	}
+}
+
+@Composable
+private fun SideGrip(
+	onDragStart: () -> Unit,
+	onDrag: (right: Dp) -> Unit,
+	modifier: Modifier = Modifier
+) {
+	val density = LocalDensity.current
+	val color = LambdaTheme.colors.onSurfaceVariant
+	Box(
+		contentAlignment = Centered.BOTH,
+		modifier = modifier
+			.fillMaxHeight()
+			.width(Look.panelPadding.coerceAtLeast(MIN_GRIP_HEIGHT))
+			.pointerHoverIcon(ResizeHorizontalIcon)
+			.mouseDraggable(onDragStart = onDragStart) { delta ->
+				onDrag(with(density) { delta.x.toDp() })
+			}
+	) {
+		Spacer(Modifier.size(1.dp, 16.dp).background(color, RoundedCornerShape(50)))
 	}
 }
