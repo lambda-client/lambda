@@ -363,7 +363,7 @@ private fun FloatingPanel(
 	val folding = LambdaGui.foldsClosed
 	val visibility = remember { MutableTransitionState(false) }
 	visibility.targetState = open && !folding
-	if (!open && visibility.isIdle && !visibility.currentState) return
+	if (!open && visibility.isIdle) return
 
 	val host = LocalPopupHost.current
 	if (host != null && host.closing && open) SideEffect(onDismiss)
@@ -469,7 +469,7 @@ fun Suggestions(
 	val folding = LambdaGui.foldsClosed
 	val visibility = remember { MutableTransitionState(false) }
 	visibility.targetState = open && !folding
-	if (!open && visibility.isIdle && !visibility.currentState) return
+	if (!open && visibility.isIdle) return
 
 	val colors = LambdaTheme.colors
 	val shape = RoundedCornerShape(Look.menuRounding)

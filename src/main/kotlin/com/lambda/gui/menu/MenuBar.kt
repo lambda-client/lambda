@@ -213,7 +213,6 @@ private fun SearchField(modifier: Modifier = Modifier) {
 
 	fun choose(result: Search.Result) {
 		query = ""
-		listed = false
 		focus.clearFocus()
 		result.choose()
 	}
@@ -224,7 +223,6 @@ private fun SearchField(modifier: Modifier = Modifier) {
 				event.type != KeyEventType.KeyDown -> false
 				event.key == Key.Escape && query.isNotEmpty() -> {
 					query = ""
-					listed = false
 					true
 				}
 				event.key == Key.Enter -> {

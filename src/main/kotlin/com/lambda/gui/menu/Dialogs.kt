@@ -76,12 +76,6 @@ internal fun NewAutomationConfigDialog(onDismiss: () -> Unit) {
 	var name by remember { mutableStateOf("") }
 	val isAvailable = name.isNotBlank() && ConfigLoader.configs.none { it.name == name }
 
-	fun create(dismiss: () -> Unit) {
-		if (!isAvailable) return
-		UserAutomationConfig(name)
-		dismiss()
-	}
-
 	Dialog(onDismiss) { dismiss ->
 		Column(Modifier.width(180.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
 			Text("New Automation Config", style = Type.title)
@@ -95,7 +89,10 @@ internal fun NewAutomationConfigDialog(onDismiss: () -> Unit) {
 			Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
 				Spacer(Modifier.weight(1f))
 				Button("Cancel", onClick = dismiss)
-				Button("Create", enabled = isAvailable) { create(dismiss) }
+				Button("Create", enabled = isAvailable) {
+					UserAutomationConfig(name)
+					dismiss()
+				}
 			}
 		}
 	}

@@ -24,7 +24,6 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -70,10 +69,9 @@ fun Modifier.keyboardFocusable(onKey: (KeyEvent) -> Boolean): Modifier =
 	composed {
 		if (!LocalKeyboardReachable.current) return@composed Modifier
 		var focused by remember { mutableStateOf(false) }
-		val handle by rememberUpdatedState(onKey)
 		val mark = LambdaTheme.colors.onSurface
 		onFocusChanged { focused = it.isFocused }
-			.onKeyEvent { it.type == KeyEventType.KeyDown && KeyboardFocus.visible && handle(it) }
+			.onKeyEvent { it.type == KeyEventType.KeyDown && KeyboardFocus.visible && onKey(it) }
 			.focusable()
 			.drawWithContent {
 				drawContent()

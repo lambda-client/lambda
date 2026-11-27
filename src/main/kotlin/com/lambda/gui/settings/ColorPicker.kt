@@ -266,6 +266,6 @@ private fun parseHex(text: String): AwtColor? {
 	) {
 		return null
 	}
-	val channels = digits.chunked(2).map { it.toIntOrNull(16) ?: return null }
+	val channels = digits.chunked(2).map { it.toInt(16) }
 	return AwtColor(channels[0], channels[1], channels[2], channels.getOrElse(3) { 255 })
 }

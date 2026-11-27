@@ -29,10 +29,9 @@ internal class ComposeSlot(private val event: () -> ComposeEvent) {
 	val isEmpty get() = contents.isEmpty()
 
 	fun collect(active: Boolean = true) {
-		val collected =
+		contents =
 			if (active) event().post().contents
 			else emptyList()
-		if (collected != contents) contents = collected
 	}
 
 	@Composable

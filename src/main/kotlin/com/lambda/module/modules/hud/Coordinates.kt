@@ -63,25 +63,17 @@ object Coordinates : HudModule(
 
 	private fun SafeContext.coordinates(): String {
 		val position = player.pos.format(formatter)
+		val otherDimension =
+			if (world.isNether) player.overworldCoord
+			else player.netherCoord
 		val otherDimensionPos =
-			if (world.isNether) {
-				player.overworldCoord.let { Vec2d(it.x, it.z) }.format(
-					formatter.locale,
-					formatter.separator,
-					"[",
-					"]",
-					formatter.precision
-				)
-			}
-			else {
-				player.netherCoord.let { Vec2d(it.x, it.z) }.format(
-					formatter.locale,
-					formatter.separator,
-					"[",
-					"]",
-					formatter.precision
-				)
-			}
+			Vec2d(otherDimension.x, otherDimension.z).format(
+				formatter.locale,
+				formatter.separator,
+				"[",
+				"]",
+				formatter.precision
+			)
 
 		val text =
 			if (showCurrentDimensionOnly) position

@@ -87,7 +87,6 @@ data class Palette(
 	val border: Color,
 	val textShadow: Color,
 ) {
-	val onPrimary = primary.contrast()
 	val onSecondary = secondary.contrast()
 	val trackFilled =
 		if (onControl.luminance() > 0.5f) primary

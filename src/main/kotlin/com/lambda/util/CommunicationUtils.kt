@@ -220,7 +220,6 @@ object CommunicationUtils {
                 literal("\n")
                 literal("Synchronous listeners: ${EventFlow.syncListeners.size}\n")
                 literal("Concurrent listeners: ${EventFlow.concurrentListeners.size}")
-
             })) {
                 styled(color) {
                     literal(Lambda.SYMBOL)

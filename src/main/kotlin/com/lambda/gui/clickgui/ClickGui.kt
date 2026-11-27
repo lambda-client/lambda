@@ -140,9 +140,7 @@ internal fun ClickGui() {
 		val screenWidth = with(density) { screen.width.toDp() }
 		val pitch =
 			(Look.windowWidth + Look.windowGap)
-				.coerceAtMost(
-					(screenWidth - Look.windowWidth) / (inRow - 1).coerceAtLeast(1)
-				)
+				.coerceAtMost((screenWidth - Look.windowWidth) / (inRow - 1).coerceAtLeast(1))
 				.coerceAtLeast(0.dp)
 		val rowWidth = Look.windowWidth + (pitch * (inRow - 1))
 		val rowStart = ((screenWidth - rowWidth) / 2).coerceAtLeast(0.dp)
@@ -207,8 +205,7 @@ internal fun ClickGui() {
 	when {
 		prompt != null -> LoaderPromptDialog(prompt)
 		dialog is ClickGuiDialog.About -> AboutDialog(closeDialog)
-		dialog is ClickGuiDialog.NewAutomationConfig ->
-			NewAutomationConfigDialog(closeDialog)
+		dialog is ClickGuiDialog.NewAutomationConfig -> NewAutomationConfigDialog(closeDialog)
 		dialog is ClickGuiDialog.Settings -> ConfigDialog(dialog.config, closeDialog)
 	}
 }

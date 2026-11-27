@@ -42,7 +42,6 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -157,7 +156,6 @@ internal fun CategoryWindow(
 				),
 			)
 		}
-	val currentPosition by rememberUpdatedState(shownPosition)
 	DisposableEffect(tag) {
 		onDispose { bounds -= tag }
 	}
@@ -199,14 +197,14 @@ internal fun CategoryWindow(
 				.mouseDraggable(
 					onDragStart = { dragged = bounds[tag]?.topLeft },
 					onDragEnd = {
-						if (dragged != null) place(currentPosition, collapsed)
+						if (dragged != null) place(shownPosition,collapsed)
 						dragged = null
 						onDrop(null)
 					},
 				) { delta -> dragged = dragged?.plus(delta) }
 				.mouseClickable(onRightClick = {
 					if (!collapsed) settings.close(modules)
-					place(currentPosition, !collapsed)
+					place(shownPosition,!collapsed)
 				})
 				.padding(horizontal = Look.modulePadding, vertical = 2.dp)
 		)
@@ -248,7 +246,6 @@ internal fun CategoryWindow(
 						module = module,
 						isEdited = settings.isOpen(module),
 						isLast = module === modules.last(),
-						pressedIn = !inline,
 						panel = settings.panelOf(module).takeUnless { inline },
 						onEdit = { settings.toggle(module) },
 					)
@@ -269,7 +266,6 @@ private fun ModuleRow(
 	module: Module,
 	isEdited: Boolean,
 	isLast: Boolean,
-	pressedIn: Boolean,
 	panel: SettingsPanelState?,
 	onEdit: () -> Unit
 ) {
@@ -285,7 +281,7 @@ private fun ModuleRow(
 		)
 	val pressed by
 		animateColorAsState(
-			if (isEdited && pressedIn) colors.inset.copy(alpha = colors.inset.alpha / 2)
+			if (isEdited && panel != null) colors.inset.copy(alpha = colors.inset.alpha / 2)
 			else Color.Transparent,
 			spring()
 		)

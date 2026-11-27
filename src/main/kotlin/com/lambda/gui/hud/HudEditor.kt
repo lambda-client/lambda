@@ -304,7 +304,7 @@ private fun ElementSettings(config: Config, open: Boolean, editor: HudEditorStat
 				.padding(Look.panelPadding)
 		) {
 			if (config is Module) {
-				var page by remember(config) { mutableStateOf(PanelPage.Settings) }
+				var page by remember { mutableStateOf(PanelPage.Settings) }
 				Column(
 					Modifier
 						.widthIn(MIN_PANEL_WIDTH, Look.settingsWidth)

@@ -111,8 +111,8 @@ internal class SceneInput(private val scene: ComposeScene) {
 		return KeyboardFocus.move(direction) || (direction != inOrder && KeyboardFocus.move(inOrder))
 	}
 
-	fun type(codePoint: Int): Boolean =
-		Character.toChars(codePoint).fold(false) { handled, char ->
+	fun type(codePoint: Int) =
+		Character.toChars(codePoint).forEach { char ->
 			val typed =
 				AwtKeyEvent(
 					awtSource,
@@ -129,7 +129,7 @@ internal class SceneInput(private val scene: ComposeScene) {
 					codePoint = char.code,
 					nativeEvent = typed
 				)
-			) || handled
+			)
 		}
 
 	fun release() {

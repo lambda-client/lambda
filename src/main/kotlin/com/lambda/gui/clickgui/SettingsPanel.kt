@@ -119,7 +119,7 @@ internal fun SettingsPanel(
 	val popups = remember { PopupHost() }
 	SideEffect { popups.closing = !wanted }
 	visibility.targetState = wanted
-	if (!open && visibility.isIdle && !visibility.currentState) {
+	if (!open && visibility.isIdle) {
 		SideEffect(onClosed)
 		return
 	}
