@@ -163,8 +163,7 @@ fun TextInput(
 					(event.key != Key.Enter && event.key != Key.Escape)
 				) {
 					false
-				}
-				else {
+				} else {
 					if (event.type == KeyEventType.KeyDown) onDone()
 					true
 				}

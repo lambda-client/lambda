@@ -94,8 +94,7 @@ class StringSetting(
 				Modifier.fillMaxWidth(),
 				singleLine = false
 			)
-		}
-		else Labeled(name) {
+		} else Labeled(name) {
 			TextInput(
 				value,
 				{ this@StringSetting.value = it },

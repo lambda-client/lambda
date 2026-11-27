@@ -204,8 +204,7 @@ private fun MenuPlacement.place(anchor: IntRect, window: IntSize, popup: IntSize
 					anchor.top - popup.height < 0
 				) {
 					anchor.bottom
-				}
-				else anchor.top - popup.height
+				} else anchor.top - popup.height
 			)
 		MenuPlacement.Beside ->
 			IntOffset(
@@ -685,8 +684,7 @@ fun Dialog(onDismiss: (() -> Unit)?, content: @Composable BoxScope.(dismiss: () 
 		if (closing) {
 			opened.animateTo(0f, Motion.dialogs)
 			currentOnDismiss?.invoke()
-		}
-		else opened.animateTo(1f, Motion.dialogs)
+		} else opened.animateTo(1f, Motion.dialogs)
 	}
 	ScenePopup(
 		popupPositionProvider = remember {

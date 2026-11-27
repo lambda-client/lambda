@@ -158,8 +158,7 @@ internal class HudEditorState(snapping: State<Boolean>) {
 					Rect(Offset.Zero, screen),
 					density
 				)
-			}
-			else Snap.free(element, Rect(Offset.Zero, screen))
+			} else Snap.free(element, Rect(Offset.Zero, screen))
 		}
 
 	fun shownPosition(hud: HudModule) = drop?.position.takeIf { dragged == hud }
@@ -319,8 +318,7 @@ private fun ElementSettings(config: Config, open: Boolean, editor: HudEditorStat
 					)
 					ModuleSettings(config, page, { page = it }, rememberScrollState())
 				}
-			}
-			else ConfigSettings(config, maxHeight, onDone = { editor.configure(null) }, Modifier.width(CONFIG_WIDTH))
+			} else ConfigSettings(config, maxHeight, onDone = { editor.configure(null) }, Modifier.width(CONFIG_WIDTH))
 		}
 	}
 }

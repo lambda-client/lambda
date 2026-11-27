@@ -229,8 +229,7 @@ object AutoDisconnect : Module(
                 .firstNotNullOfOrNull { reason ->
                     if (reason.enabled() && (!reason.smartToggle() || reason.armed) && reason.generateReason(this) != null) {
                         reason
-                    }
-                    else null
+                    } else null
                 }
             if (matchingReason != null) {
                 val reasonText = matchingReason.generateReason(this) ?: buildText { literal("Reason lost to the abyss") }

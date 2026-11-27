@@ -136,8 +136,7 @@ internal fun CategoryWindow(
 					density,
 					with(density) { Look.windowGap.toPx() }
 				)
-			}
-			else Snap.free(window, area)
+			} else Snap.free(window, area)
 		}
 	if (drop != null) SideEffect { onDrop(drop) }
 	val shownPosition =
