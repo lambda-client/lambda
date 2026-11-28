@@ -25,9 +25,10 @@ import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 @ConfigEntryDsl
 fun Config.intSetting(
@@ -54,9 +55,8 @@ class IntegerSetting(
 	override var step: Int = 1,
 	unit: String
 ) : NumericSetting<Int>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
-    override fun ImGuiBuilder.buildSlider() {
-        slider("##$name", ::value, range.start, range.endInclusive, "")
-    }
+	override fun convert(number: BigDecimal) =
+		number.setScale(0, RoundingMode.HALF_UP).toInt()
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer(name, range.start, range.endInclusive)) { parameter ->

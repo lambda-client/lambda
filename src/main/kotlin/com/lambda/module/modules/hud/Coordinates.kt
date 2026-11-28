@@ -17,15 +17,18 @@
 
 package com.lambda.module.modules.hud
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import com.lambda.config.Tab
 import com.lambda.config.blocks.FormatterSettings
 import com.lambda.config.editSetting
 import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.withEdits
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.context.SafeContext
+import com.lambda.gui.core.observeSafe
+import com.lambda.gui.hud.HudText
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.FormattingUtils.format
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.isNether
@@ -52,26 +55,36 @@ object Coordinates : HudModule(
 //		::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
 //	}
 
-	override fun ImGuiBuilder.buildLayout() {
-		runSafe {
-			val position = player.pos.format(formatter)
-			val otherDimensionPos = // ToDo: The system has forced my hand, too bad!. We need to find a way to allow duplicate setting names.
-				if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
-				else player.netherCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
+	@Composable
+	override fun Content() {
+		val coordinates by observeSafe { coordinates() }
+		coordinates?.let { HudText(it) }
+	}
 
-			val text =
-				if (showCurrentDimensionOnly) position
-				else "$position $otherDimensionPos"
+	private fun SafeContext.coordinates(): String {
+		val position = player.pos.format(formatter)
+		val otherDimension =
+			if (world.isNether) player.overworldCoord
+			else player.netherCoord
+		val otherDimensionPos =
+			Vec2d(otherDimension.x, otherDimension.z).format(
+				formatter.locale,
+				formatter.separator,
+				"[",
+				"]",
+				formatter.precision
+			)
 
-			val withDimension =
-				if (showDimension) "$text ${world.dimensionName}"
-				else text
+		val text =
+			if (showCurrentDimensionOnly) position
+			else "$position $otherDimensionPos"
 
-			val withBiome =
-				if (showBiome) "$withDimension in ${beautifyBiome(world.getBiome(player.blockPos).idAsString)}"
-				else withDimension
-			textCopyable(withBiome)
-		}
+		val withDimension =
+			if (showDimension) "$text ${world.dimensionName}"
+			else text
+
+		return if (showBiome) "$withDimension in ${beautifyBiome(world.getBiome(player.blockPos).idAsString)}"
+		else withDimension
 	}
 
 	fun beautifyBiome(biome: String): String = biome

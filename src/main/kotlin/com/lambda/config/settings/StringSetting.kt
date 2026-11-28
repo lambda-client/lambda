@@ -19,6 +19,16 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -29,8 +39,15 @@ import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.flag.ImGuiInputTextFlags
+import com.lambda.gui.component.Centered
+import com.lambda.gui.component.Text
+import com.lambda.gui.component.TextInput
+import com.lambda.gui.core.observe
+import com.lambda.gui.settings.ALTERED_GAP
+import com.lambda.gui.settings.AlteredDot
+import com.lambda.gui.settings.Labeled
+import com.lambda.gui.settings.ROW_INSET
+import com.lambda.gui.settings.TEXT_FIELD_WIDTH
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -39,10 +56,9 @@ fun Config.stringSetting(
     name: String,
     defaultValue: String,
     multiline: Boolean = false,
-    flags: Int = ImGuiInputTextFlags.None,
     description: String = "",
     visibility: () -> Boolean = { true }
-) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
+) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline) }
 
 /**
  * @see [com.lambda.config.Config]
@@ -55,15 +71,36 @@ class StringSetting(
     defaultValue: String,
     visibility: () -> Boolean,
     var multiline: Boolean = false,
-    var flags: Int = ImGuiInputTextFlags.None,
 ) : Setting<String>(name, description, defaultValue, layer, config, visibility) {
-    override fun ImGuiBuilder.buildLayout() {
-        if (multiline) {
-            inputTextMultiline(name, ::value, flags = flags)
-        } else {
-            inputText(name, ::value, flags)
+
+	@Composable
+	override fun Gui() {
+		val value by observe { value }
+		if (multiline) Column(
+			Modifier.fillMaxWidth(),
+			verticalArrangement = Arrangement.spacedBy(1.dp)
+		) {
+			Row(
+				Modifier.padding(start = ROW_INSET, top = 1.dp),
+				Arrangement.spacedBy(ALTERED_GAP),
+				Centered.VERTICALLY
+			) {
+				AlteredDot()
+				Text(name, maxLines = 1)
+			}
+			TextInput(
+				value,
+				{ this@StringSetting.value = it },
+				Modifier.fillMaxWidth(),
+				singleLine = false
+			)
+		} else Labeled(name) {
+			TextInput(
+				value,
+				{ this@StringSetting.value = it },
+				Modifier.width(TEXT_FIELD_WIDTH)
+			)
         }
-        lambdaTooltip(description)
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
@@ -79,10 +116,4 @@ class StringSetting(
 @ConfigEditorD5l
 fun SettingEditBuilder<String>.multiline(multiline: Boolean) {
     (entries as Collection<StringSetting>).forEach { it.multiline = multiline }
-}
-
-@Suppress("unchecked_cast")
-@ConfigEditorD5l
-fun SettingEditBuilder<String>.flags(flags: Int) {
-    (entries as Collection<StringSetting>).forEach { it.flags = flags }
 }

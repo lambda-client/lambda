@@ -20,13 +20,9 @@ package com.lambda.module.modules.client
 import com.lambda.Lambda.mc
 import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.comparable.enumSetting
-import com.lambda.event.events.GuiEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.LambdaScreen
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.gui.dsl.ImGuiBuilder.popupModal
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.flag.ImGuiWindowFlags
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.gui.LambdaGui
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.threading.runIO
@@ -50,11 +46,13 @@ object AutoUpdater : Module(
 
     private var loaderPromptHandled by property(false)
 
-    @JvmStatic var showFirstLaunchModal = false
-    @JvmStatic var showInstallModal = false
-    @JvmStatic var showUninstallModal = false
+	internal enum class Prompt { FirstLaunch, Install, Uninstall }
+
+	internal var prompt: Prompt? = null
+		private set
     private var firstLaunchStateInitialized = false
 
+	private const val LOADER_ID = "lambda-loader"
     private const val MAVEN_URL = "https://maven.lambda-client.org"
     private const val LOADER_STABLE_META = "$MAVEN_URL/stable/com/lambda/lambda-loader/maven-metadata.xml"
     private const val LOADER_DEV_META = "$MAVEN_URL/dev/com/lambda/lambda-loader/maven-metadata.xml"
@@ -66,102 +64,50 @@ object AutoUpdater : Module(
         Dev
     }
 
-    const val WINDOW_FLAGS =
-        ImGuiWindowFlags.AlwaysAutoResize or
-                ImGuiWindowFlags.NoMove or
-                ImGuiWindowFlags.NoResize or
-                ImGuiWindowFlags.NoScrollbar or
-                ImGuiWindowFlags.NoScrollWithMouse
+	private val usesLoader get() = FabricLoader.getInstance().isModLoaded(LOADER_ID)
 
-    init {
-        onEnableUnsafe {
-            if (mc.currentScreen is LambdaScreen && !showUninstallModal)
-                showInstallModal = true
-            showUninstallModal = false
-        }
+	init {
+		onEnableUnsafe {
+			prompt = Prompt.Install.takeIf { LambdaGui.screen != null && prompt != Prompt.Uninstall && !usesLoader }
+		}
+		onDisableUnsafe {
+			prompt = Prompt.Uninstall.takeIf { LambdaGui.screen != null && prompt != Prompt.Install && usesLoader }
+		}
+		listenUnsafe<ClientEvent.Shutdown>(alwaysListen = true) {
+			if (usesLoader) loaderPromptHandled = true
+		}
+	}
 
-        onDisableUnsafe {
-            if (mc.currentScreen is LambdaScreen && !showInstallModal)
-                showUninstallModal = true
-            showInstallModal = false
-        }
+	internal fun onGuiOpened() {
+		if (firstLaunchStateInitialized) return
+		firstLaunchStateInitialized = true
 
-        listen<GuiEvent.NewImguiFrame>(alwaysListen = true) {
-            initializeFirstLaunchStateIfNeeded()
+		if (usesLoader) {
+			loaderPromptHandled = true
+			if (!isEnabled) enable()
+			return
+		}
+		if (!loaderPromptHandled) prompt = Prompt.FirstLaunch
+	}
 
-            if (showFirstLaunchModal) {
-                if (mc.currentScreen !is LambdaScreen) return@listen
-
-                ImGui.openPopup("Loader Installation Wizard")
-                popupModal("Loader Installation Wizard", WINDOW_FLAGS) {
-                    renderLoaderInstallExplanation()
-
-                    val buttonWidth = (ImGui.getContentRegionAvailX() - ImGui.getStyle().itemSpacing.x) / 2f
-
-                    button("Switch To Loader", buttonWidth, 0f) {
-                        completeFirstLaunchPrompt()
-                        showInstallModal = false
-                        showUninstallModal = false
-                        installLoader()
-                    }
-
-                    sameLine()
-
-                    button("Keep Current Jar", buttonWidth, 0f) {
-                        completeFirstLaunchPrompt()
-                    }
-                }
-                return@listen
+	internal fun answerPrompt(accepted: Boolean) {
+		when (prompt) {
+			Prompt.FirstLaunch -> {
+				loaderPromptHandled = true
+				prompt = null
+				if (accepted) installLoader()
             }
-
-            showFirstLaunchModal = false
-
-            if (showInstallModal) {
-                ImGui.openPopup("Loader Installation Wizard")
-                popupModal("Loader Installation Wizard", WINDOW_FLAGS) {
-                    renderLoaderInstallExplanation()
-
-                    val buttonWidth = (ImGui.getContentRegionAvailX() - ImGui.getStyle().itemSpacing.x) / 2f
-
-                    button("Switch To Loader", buttonWidth, 0f) {
-                        installLoader()
-                        showInstallModal = false
-                    }
-
-                    sameLine()
-
-                    button("Cancel", buttonWidth, 0f) {
-                        disable()
-                    }
-                }
-                return@listen
-            }
-
-            showInstallModal = false
-
-            if (showUninstallModal) {
-                ImGui.openPopup("Uninstall Loader")
-                popupModal("Uninstall Loader", WINDOW_FLAGS) {
-                    text("Do you want to uninstall Lambda Loader?")
-                    separator()
-                    text("This will close the client automatically once the uninstall is finished.")
-                    spacing()
-
-                    button("Uninstall", 120f, 0f) {
-                        installClient()
-                        showUninstallModal = false
-                    }
-
-                    sameLine()
-
-                    button("Cancel", 120f, 0f) {
-                        enable()
-                    }
-                }
-                return@listen
-            }
-
-            showUninstallModal = false
+			Prompt.Install ->
+				if (accepted) {
+					prompt = null
+					installLoader()
+				} else disable()
+			Prompt.Uninstall ->
+				if (accepted) {
+					prompt = null
+					installClient()
+				} else enable()
+			null -> Unit
         }
     }
 
@@ -203,7 +149,7 @@ object AutoUpdater : Module(
                     return@runIO
                 }
 
-                val loaderJarPath = getModJarPath("lambda-loader")
+                val loaderJarPath = getModJarPath(LOADER_ID)
                 if (debug) debug("Lambda loader JAR path: $loaderJarPath")
 
                 val jarFile = loaderJarPath.toFile()
@@ -364,48 +310,5 @@ object AutoUpdater : Module(
         val fabricLoader = FabricLoader.getInstance()
         val modContainer = fabricLoader.getModContainer(modId)
         return modContainer.get().origin.paths[0].toAbsolutePath()
-    }
-
-    private fun initializeFirstLaunchStateIfNeeded() {
-        if (firstLaunchStateInitialized) return
-        firstLaunchStateInitialized = true
-
-        val usingLoader = FabricLoader.getInstance().isModLoaded("lambda-loader")
-        if (usingLoader) {
-            completeFirstLaunchPrompt()
-            if (!isEnabled) enable()
-            return
-        }
-
-        showFirstLaunchModal = !loaderPromptHandled
-    }
-
-    private fun ImGuiBuilder.renderLoaderInstallExplanation() {
-        text("Switch to Lambda Loader?")
-        separator()
-        spacing()
-        text("Lambda Loader replaces this version-specific Lambda jar")
-        text("with a lightweight bootstrap that keeps Lambda up to date.")
-        spacing()
-        text("Benefits:")
-        text("- Automatic updates on launch")
-        text("- No manual jar replacement")
-        spacing()
-        text("If you choose to switch, Lambda will install the loader")
-        text("and close the game so changes apply on next start.")
-        spacing()
-        separator()
-        text("You can change this later from the AutoUpdater module.")
-        spacing()
-    }
-
-    @JvmStatic
-    fun dismissFirstLaunchPrompt() {
-        completeFirstLaunchPrompt()
-    }
-
-    private fun completeFirstLaunchPrompt() {
-        loaderPromptHandled = true
-        showFirstLaunchModal = false
     }
 }

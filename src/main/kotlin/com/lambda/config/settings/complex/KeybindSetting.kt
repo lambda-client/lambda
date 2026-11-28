@@ -19,6 +19,18 @@
 
 package com.lambda.config.settings.complex
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import com.fasterxml.jackson.annotation.JsonIncludeProperties
 import com.lambda.Lambda.mc
 import com.lambda.brigadier.CommandResult.Companion.failure
@@ -37,12 +49,16 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.flag.ImGuiCol
-import com.lambda.imgui.flag.ImGuiHoveredFlags
-import com.lambda.imgui.flag.ImGuiMouseButton
+import com.lambda.gui.component.Centered
+import com.lambda.gui.component.Text
+import com.lambda.gui.component.Tooltip
+import com.lambda.gui.component.mouseClickable
+import com.lambda.gui.core.Press
+import com.lambda.gui.core.observe
+import com.lambda.gui.settings.Labeled
+import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Look
 import com.lambda.threading.runSafe
-import com.lambda.util.InputUtils
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.StringUtils.capitalize
@@ -56,6 +72,7 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
 import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
+import org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT
 
 @ConfigEntryDsl
 fun Config.bindSetting(
@@ -107,14 +124,16 @@ class KeybindSetting(
     private val releaseListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
     private val unsafeReleaseListeners = mutableListOf<(ButtonEvent) -> Unit>()
 
-    private var listening = false
-
     override val isMuted
         get() = muteable?.isMuted == true && !alwaysListening
 
     init {
-        listenUnsafe<ButtonEvent.Keyboard.Press> { event -> onButtonEvent(event) }
-        listenUnsafe<ButtonEvent.Mouse.Click> { event -> onButtonEvent(event) }
+		listenUnsafe<ButtonEvent.Keyboard.Press>(alwaysListen = true) { event ->
+			if (recorder === this) record(event) else if (!isMuted) onButtonEvent(event)
+		}
+		listenUnsafe<ButtonEvent.Mouse.Click>(alwaysListen = true) { event ->
+			if (recorder === this) record(event) else if (!isMuted) onButtonEvent(event)
+		}
     }
 
     private fun onButtonEvent(event: ButtonEvent) {
@@ -136,74 +155,68 @@ class KeybindSetting(
         }
     }
 
-    override fun ImGuiBuilder.buildLayout() {
-        text(name)
-        sameLine()
+	@Composable
+	override fun Gui() {
+		val colors = LambdaTheme.colors
+		val bind by observe { value }
+		val recording = recorder === this
 
-        val bind = value
-        val preview =
-            if (listening) "Press any key…"
-            else bind.name
-
-        withId("##Bind-${this@KeybindSetting.hashCode()}") {
-            if (listening) {
-                withStyleColor(ImGuiCol.Button, 0.20f, 0.50f, 1.00f, 1.00f) {
-                    withStyleColor(ImGuiCol.ButtonHovered, 0.25f, 0.60f, 1.00f, 1.00f) {
-                        withStyleColor(ImGuiCol.ButtonActive, 0.20f, 0.50f, 0.95f, 1.00f) {
-                            button(preview)
+		Labeled(name) {
+			Tooltip("Click, then press a key or mouse button. Backspace unbinds, Escape cancels.") {
+				Box(
+					contentAlignment = Centered.BOTH,
+					modifier = Modifier
+						.height(Look.rowHeight)
+						.clip(RoundedCornerShape(Look.controlRounding))
+						.background(if (recording) colors.secondary else colors.control)
+						.mouseClickable {
+							val stoppedHere = stopped === this@KeybindSetting && stoppedBy == Press.id
+							if (!stoppedHere) recorder = this@KeybindSetting
                         }
-                    }
+						.padding(horizontal = 4.dp)
+				) {
+					Text(
+						text = if (recording) "Press a key" else bind.name,
+						color = if (recording) colors.onSecondary else colors.onControl,
+						maxLines = 1,
+					)
                 }
-            } else {
-                button(preview) { listening = true }
             }
         }
+	}
 
-        lambdaTooltip {
-            if (!listening) description.ifBlank { "Click to set. Esc cancels. Backspace/Delete unbinds." }
-            else "Listening… Press a key to bind. Esc to cancel. Backspace/Delete to unbind."
+	private fun record(event: ButtonEvent.Keyboard.Press) {
+		event.cancel()
+		val isModifier = event.keyCode in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER
+		if (event.isRepeated || event.isPressed == isModifier) return
+		when (val key = event.translated) {
+			KeyCode.Unbound -> return
+			KeyCode.Escape -> Unit
+			KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
+			else -> value = Bind(key.code, if (isModifier) 0 else event.modifiers, -1)
         }
+		recorder = null
+	}
 
-        if (listening && !isAnyItemHovered && isMouseClicked(ImGuiMouseButton.Left)) {
-            listening = false
-        }
+	private fun record(event: ButtonEvent.Mouse.Click) {
+		if (!event.isPressed) return
+		recorder = null
+		stopped = this
+		stoppedBy = Press.id + 1
+		if (event.button == GLFW_MOUSE_BUTTON_LEFT) return
+		event.cancel()
+		value = Bind(0, event.modifiers, event.button)
+	}
 
-        sameLine()
-        withId("##Unbind-${this@KeybindSetting.hashCode()}") {
-            smallButton("Unbind") {
-                value = Bind.EMPTY
-                listening = false
-            }
-        }
-        onItemHover(ImGuiHoveredFlags.Stationary) {
-            lambdaTooltip("Clear binding")
-        }
+	companion object {
+		private var recorder: KeybindSetting? by mutableStateOf(null)
+		private var stopped: KeybindSetting? = null
+		private var stoppedBy = 0L
 
-        if (listening) {
-            InputUtils.newMouseEvent()
-                ?.let {
-                    value = Bind(0, it.modifiers, it.button)
-                    listening = false
-                    return
-                }
+		internal val isRecording get() = recorder != null
 
-            InputUtils.newKeyboardEvent()
-                ?.let {
-                    val isModKey = it.keyCode in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER
-
-                    // If a mod key is pressed first ignore it unless it was released without any other keys
-                    if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
-                        when (it.translated) {
-                            KeyCode.Escape -> {}
-                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
-                            else -> value = Bind(it.translated.code, it.modifiers, -1)
-                        }
-
-                        listening = false
-                    }
-
-                    return
-                }
+		internal fun stopRecording() {
+			recorder = null
         }
     }
 
@@ -216,22 +229,23 @@ class KeybindSetting(
             }
             optional(boolean("mouse button")) { isMouseButton ->
                 executeWithResult {
-                    val isMouse = if (isMouseButton != null) isMouseButton().value() else false
-                    var bind = Bind.EMPTY
-                    if (isMouse) {
-                        val num = try {
-                            nameArg().value().toInt()
-                        } catch (_: NumberFormatException) {
-                            return@executeWithResult failure("${nameArg().value()} doesn't match with a mouse button")
+					val isMouse = isMouseButton != null && isMouseButton().value()
+					val bind =
+						if (isMouse) {
+							val num =
+								try {
+									nameArg().value().toInt()
+								} catch (_: NumberFormatException) {
+									return@executeWithResult failure("${nameArg().value()} doesn't match with a mouse button")
+								}
+							Bind(0, 0, mouse = num)
+						} else {
+							try {
+								Bind(KeyCode.valueOf(nameArg().value()).code, 0)
+							} catch (_: IllegalArgumentException) {
+								return@executeWithResult failure("${nameArg().value()} doesn't match with a bind")
+							}
                         }
-                        bind = Bind(0, 0, mouse = num)
-                    } else {
-                        bind = try {
-                            Bind(KeyCode.valueOf(nameArg().value()).code, 0)
-                        } catch (_: IllegalArgumentException) {
-                            return@executeWithResult failure("${nameArg().value()} doesn't match with a bind")
-                        }
-                    }
 
                     trySetValue(bind)
                     return@executeWithResult success()
@@ -259,7 +273,6 @@ class KeybindSetting(
     fun onReleaseUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafeReleaseListeners.add(block) }
 }
 
-@Suppress("unused")
 @JsonIncludeProperties("key", "modifiers", "mouse")
 data class Bind(
     val key: Int,

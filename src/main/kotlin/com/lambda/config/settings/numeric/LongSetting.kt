@@ -25,10 +25,10 @@ import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.type.ImInt
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 @ConfigEntryDsl
 fun Config.longSetting(
@@ -55,15 +55,7 @@ class LongSetting(
 	override var step: Long = 1,
 	unit: String
 ) : NumericSetting<Long>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
-    override fun ImGuiBuilder.buildSlider() {
-        // FixMe: No worky for super large numbers
-        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        val currentIndex = ((value - range.start) / step).toInt()
-        val imInt = ImInt(currentIndex)
-        slider("##$name", imInt, 0, maxIndex, "") {
-            value = (range.start + imInt.get() * step).coerceIn(range)
-        }
-    }
+	override fun convert(number: BigDecimal) = number.setScale(0, RoundingMode.HALF_UP).toLong()
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(long(name, range.start, range.endInclusive)) { parameter ->

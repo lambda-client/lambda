@@ -22,13 +22,13 @@ import com.lambda.Lambda.LOG
 import com.lambda.util.CommunicationUtils.ascii
 import com.lambda.util.ReflectionUtils.getInstances
 import kotlin.system.measureTimeMillis
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 object Loader {
     private val started = System.currentTimeMillis()
 
     val runtime: String
-        get() = "${(System.currentTimeMillis() - started).milliseconds}"
+		get() = "${((System.currentTimeMillis() - started) / 1000).seconds}"
 
     private val loadables = getInstances<Loadable>()
 

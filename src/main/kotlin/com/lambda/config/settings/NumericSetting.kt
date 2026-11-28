@@ -17,18 +17,56 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.unit.dp
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.EntryCore
 import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.ImGui.calcTextSize
-import com.lambda.imgui.ImGui.dummy
-import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.gui.component.Centered
+import com.lambda.gui.component.KeyboardFocus
+import com.lambda.gui.component.NumberInput
+import com.lambda.gui.component.Text
+import com.lambda.gui.component.isActivation
+import com.lambda.gui.component.keyboardFocusable
+import com.lambda.gui.component.mouseClickable
+import com.lambda.gui.component.scrubbable
+import com.lambda.gui.core.observe
+import com.lambda.gui.settings.ALTERED_GAP
+import com.lambda.gui.settings.AlteredDot
+import com.lambda.gui.settings.ROW_INSET
+import com.lambda.gui.theme.LambdaTheme
+import com.lambda.gui.theme.Look
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.*
+import kotlin.math.abs
+
+private const val SAME = 1e-4
 
 /**
  * @see [com.lambda.config.Config]
@@ -51,50 +89,131 @@ abstract class NumericSetting<T>(
 		}
 
 	private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
+	private val lowest get() = range.start.decimal
+	private val highest get() = range.endInclusive.decimal
+	private val Number.decimal get() = BigDecimal(toString())
 
-	override fun toString() = "${formatter.format(value)}$unit"
+	var appliedOnRelease = false
 
-	/**
-	 * Subclasses must implement this to provide their specific slider widget.
-	 */
-	protected abstract fun ImGuiBuilder.buildSlider()
+	override fun isModified(core: EntryCore<T>) =
+		abs(core.value.toDouble() - core.defaultValue.toDouble()) > step.toDouble() * SAME
 
-	override fun ImGuiBuilder.buildLayout() {
-		val showReset = isModified
-		val resetButtonText = "R"
-		val valueString = this@NumericSetting.toString()
+	protected abstract fun convert(number: BigDecimal): T
 
-		buildSlider()
-		lambdaTooltip(description)
+	override fun toString() = format(value)
 
-		val itemRectMin = ImGui.getItemRectMin()
-		val itemRectMax = ImGui.getItemRectMax()
-		val textHeight = ImGui.getTextLineHeight()
-		val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
-		val labelWidth = calcTextSize(name).x
-		val valueWidth = calcTextSize(valueString).x
+	private fun format(value: T) = "${formatter.format(value)}$unit"
 
-		val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
-		val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
+	private fun parse(text: String): T? =
+		text.replace(',', '.').toBigDecimalOrNull()?.let { convert(it.coerceIn(lowest, highest)) }
 
-		windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), name)
-		if (labelEndPosX < valueStartPosX) {
-			windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
+	private fun fractionOf(value: T): Float {
+		val span = range.endInclusive.toDouble() - range.start.toDouble()
+		val fraction = ((value.toDouble() - range.start.toDouble()) / span).toFloat()
+		return if (span > 0 && !fraction.isNaN()) fraction.coerceIn(0f, 1f)
+		else 0f
+	}
+
+	private fun at(fraction: Float): T =
+		when {
+			fraction <= 0f -> range.start
+			fraction >= 1f -> range.endInclusive
+			else -> onGrid(lowest + ((highest - lowest) * fraction.toBigDecimal()), RoundingMode.HALF_UP)
 		}
 
-		sameLine(0.0f, style.itemSpacing.x)
-		if (showReset) {
-			button("$resetButtonText##$name") {
-				reset()
+	private fun stepped(by: Int): T =
+		onGrid(value.decimal, if (by < 0) RoundingMode.CEILING else RoundingMode.FLOOR, by)
+
+	private fun onGrid(target: BigDecimal, rounding: RoundingMode, offset: Int = 0): T {
+		val step = step.decimal
+		if (step.signum() <= 0) return convert(target.coerceIn(lowest, highest))
+		val steps = (target - lowest).divide(step, 0, rounding) + offset.toBigDecimal()
+		return convert((lowest + (step * steps)).coerceIn(lowest, highest))
+	}
+
+	@Composable
+	override fun Gui() {
+		val colors = LambdaTheme.colors
+		val current by observe { value }
+		var typing by remember { mutableStateOf(false) }
+		val bar = remember { FocusRequester() }
+		var refocus by remember { mutableStateOf(false) }
+
+		if (typing) {
+			NumberInput(
+				current,
+				::parse,
+				{ value = it },
+				Modifier.fillMaxWidth().padding(start = ROW_INSET),
+				focused = true
+			) {
+				typing = false
+				refocus = KeyboardFocus.visible
 			}
-			onItemHover {
-				tooltip { text("Reset to default") }
+			return
+		}
+		if (refocus) LaunchedEffect(Unit) {
+			bar.requestFocus()
+			refocus = false
+		}
+
+		var held by remember { mutableStateOf<T?>(null) }
+		val shown = held ?: current
+		val label = remember(shown, unit) { format(shown) }
+		val fraction by animateFloatAsState(fractionOf(shown))
+		Row(
+			verticalAlignment = Centered.VERTICALLY,
+			horizontalArrangement = Arrangement.spacedBy(8.dp),
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(start = ROW_INSET)
+				.heightIn(min = Look.rowHeight)
+				.clip(RoundedCornerShape(Look.controlRounding))
+				.background(colors.track)
+				.drawBehind {
+					drawRect(
+						colors.trackFilled,
+						size = Size(size.width * fraction, size.height)
+					)
+				}
+				.scrubbable(onEnd = {
+					held?.let { value = it }
+					held = null
+				}) { position, size ->
+					val dragged = at(position.x / size.width)
+					if (appliedOnRelease) held = dragged else value = dragged
+				}
+				.focusRequester(bar)
+				.keyboardFocusable { event ->
+					when {
+						event.key == Key.DirectionLeft -> value = stepped(-1)
+						event.key == Key.DirectionRight -> value = stepped(1)
+						event.isActivation -> typing = true
+						else -> return@keyboardFocusable false
+					}
+					true
+				}
+				.padding(horizontal = ROW_INSET)
+		) {
+			Row(
+				Modifier.weight(1f),
+				Arrangement.spacedBy(ALTERED_GAP),
+				Centered.VERTICALLY
+			) {
+				AlteredDot(shadowed = true)
+				Text(name, color = colors.onControl, maxLines = 1)
 			}
-		} else {
-			dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
+			Text(
+				text = label,
+				modifier = Modifier.mouseClickable(keyboard = false) { typing = true },
+				color = colors.onControl,
+				maxLines = 1,
+			)
 		}
 	}
 }
+
+fun <S : NumericSetting<*>> S.appliedOnRelease() = apply { appliedOnRelease = true }
 
 @Suppress("unchecked_cast")
 @ConfigEditorD5l

@@ -17,11 +17,14 @@
 
 package com.lambda.module.modules.hud
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.numeric.intSetting
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.gui.core.observe
+import com.lambda.gui.hud.HudText
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 import com.lambda.util.collections.LimitedDecayQueue
@@ -62,7 +65,9 @@ object Fps : HudModule(
 		}
 	}
 
-	override fun ImGuiBuilder.buildLayout() {
-		text("FPS: $fps")
+	@Composable
+	override fun Content() {
+		val fps by observe { fps }
+		HudText("FPS: $fps")
 	}
 }

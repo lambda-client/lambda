@@ -17,17 +17,32 @@
 
 package com.lambda.module.modules.hud
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import com.lambda.config.settings.comparable.boolSetting
 import com.lambda.config.settings.comparable.enumSetting
 import com.lambda.config.settings.numeric.floatSetting
 import com.lambda.config.settings.numeric.intSetting
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImVec2
+import com.lambda.gui.core.observe
+import com.lambda.gui.hud.HudConfig
+import com.lambda.gui.hud.HudText
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleTag
 import com.lambda.util.FormattingUtils.format
 import com.lambda.util.ServerTPSUtils
 import com.lambda.util.ServerTPSUtils.recentData
+import com.lambda.util.math.toCompose
 
 @Suppress("unused")
 object Tps : HudModule(
@@ -41,26 +56,44 @@ object Tps : HudModule(
 	private val graphWidth by floatSetting("Graph Width", 200f, 10f..500f, 1f)
 	private val graphStride by intSetting("Graph Stride", 1, 1..20, 1)
 
-	override fun ImGuiBuilder.buildLayout() {
-		val data = recentData(format)
+	@Composable
+	override fun Content() {
+		val format by observe { format }
+		val data by observe { recentData(format).toList() }
 		if (data.isEmpty()) {
-			text("No ${format.displayName} data yet")
+			HudText("No ${format.displayName} data yet")
 			return
 		}
-		val current = data.last()
-		val avg = data.average().toFloat()
+		val average = data.average().toFloat()
+		val showGraph by observe { showGraph }
 		if (!showGraph) {
-			text("${format.displayName}: ${avg.format()}${format.unit}")
+			HudText("${format.displayName}: ${average.format()}${format.unit}")
 			return
 		}
-		val overlay = "cur ${current.format()}${format.unit} | avg ${avg.format()}${format.unit}"
 
-		plotLines(
-			label = "##TPSPlot",
-			values = data,
-			overlayText = overlay,
-			graphSize = ImVec2(graphWidth, graphHeight),
-			stride = graphStride
-		)
+		val size by observe { DpSize(graphWidth.dp, graphHeight.dp) }
+		val stride by observe { graphStride }
+		val lineColor by observe { HudConfig.textColor.toCompose() }
+		Box(
+			Modifier.size(size).drawBehind { drawGraph(data, stride, lineColor) },
+			Alignment.TopCenter
+		) {
+			HudText("cur ${data.last().format()}${format.unit} | avg ${average.format()}${format.unit}")
+		}
+	}
+
+	private fun DrawScope.drawGraph(values: List<Float>, stride: Int, color: Color) {
+		drawRect(Color.Black.copy(alpha = 0.35f))
+		val points = values.filterIndexed { index, _ -> index % stride == 0 }
+		if (points.size < 2) return
+		val min = points.min()
+		val range = (points.max() - min).takeIf { it > 0f } ?: 1f
+		val path = Path()
+		points.forEachIndexed { index, value ->
+			val x = index * size.width / (points.size - 1)
+			val y = size.height - ((value - min) / range * size.height)
+			if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+		}
+		drawPath(path, color, style = Stroke(1.5.dp.toPx()))
 	}
 }

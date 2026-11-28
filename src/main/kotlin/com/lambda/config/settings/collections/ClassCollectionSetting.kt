@@ -20,7 +20,6 @@ package com.lambda.config.settings.collections
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.ReflectionUtils.className
 
 /**
@@ -46,5 +45,5 @@ class ClassCollectionSetting<T : Any>(
 	typeFactory.constructCollectionType(Collection::class.java, Any::class.java),
 	serialize = false,
 ) {
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.className }
+	override fun label(item: T) = item.className
 }

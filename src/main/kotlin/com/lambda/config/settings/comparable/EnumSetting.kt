@@ -17,6 +17,10 @@
 
 package com.lambda.config.settings.comparable
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.value
@@ -27,8 +31,10 @@ import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.Describable
+import com.lambda.gui.component.Dropdown
+import com.lambda.gui.core.observe
+import com.lambda.gui.settings.AlteredDot
+import com.lambda.gui.settings.ROW_INSET
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.extension.displayValue
@@ -50,24 +56,22 @@ class EnumSetting<T : Enum<T>>(
     visibility: () -> Boolean,
     defaultValue: T
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
-    override fun ImGuiBuilder.buildLayout() {
-        val values = value.enumValues
-        val currentDisplay = value.displayValue
-        val currentIndex = value.ordinal
+	val selectionHoverListeners = mutableListOf<(option: T?) -> Unit>()
+	val selectionClickListeners = mutableListOf<(option: T) -> Unit>()
 
-        combo("##$name", preview = "$name: $currentDisplay") {
-            values.forEachIndexed { idx, v ->
-                val isSelected = idx == currentIndex
-
-                selectable(v.displayValue, isSelected) {
-                    if (!isSelected) value = values[idx % values.size]
-                }
-
-                (v as? Describable)?.let { lambdaTooltip(it.description) }
-            }
-        }
-
-        lambdaTooltip(description)
+	@Composable
+	override fun Gui() {
+		val selected by observe { value }
+		Dropdown(
+			label = name,
+			options = selected.enumValues.asList(),
+			selected = selected,
+			optionLabel = { it.displayValue },
+			modifier = Modifier.padding(start = ROW_INSET),
+			leading = { AlteredDot() },
+			onOptionHover = { option -> selectionHoverListeners.forEach { it(option) } },
+			onOptionClick = { option -> selectionClickListeners.forEach { it(option) } },
+		) { value = it }
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
@@ -88,3 +92,9 @@ class EnumSetting<T : Enum<T>>(
     private val <T : Enum<T>> T.enumValues: Array<T>
         get() = declaringJavaClass.enumConstants
 }
+
+fun <S : EnumSetting<T>, T : Enum<T>> S.onSelectionHover(block: (option: T?) -> Unit) =
+	apply { selectionHoverListeners.add(block) }
+
+fun <S : EnumSetting<T>, T : Enum<T>> S.onSelectionClick(block: (option: T) -> Unit) =
+	apply { selectionClickListeners.add(block) }

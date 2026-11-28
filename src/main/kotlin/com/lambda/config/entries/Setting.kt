@@ -17,6 +17,7 @@
 
 package com.lambda.config.entries
 
+import androidx.compose.runtime.Composable
 import com.lambda.Lambda.mapper
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
@@ -33,7 +34,6 @@ import com.lambda.config.EntryLayer
 import com.lambda.config.MultipleLayerType
 import com.lambda.config.entries.Setting.ValueListener
 import com.lambda.context.SafeContext
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
@@ -118,8 +118,11 @@ abstract class Setting<T>(
 	open var value by this
 
 	val listeners = mutableListOf<ValueListener<T>>()
+	val hoverListeners = mutableListOf<(hovered: Boolean) -> Unit>()
+	val holdListeners = mutableListOf<(held: Boolean) -> Unit>()
+	val clickListeners = mutableListOf<() -> Unit>()
 
-	override val isModified get() = originalCore.value != originalCore.defaultValue
+	override fun isModified(core: EntryCore<T>) = core.value != core.defaultValue
 
 	override operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
 		val oldValue = core.value
@@ -131,19 +134,20 @@ abstract class Setting<T>(
 	}
 
 	fun reset(silent: Boolean = false) {
-		if (!silent && originalCore.value == originalCore.defaultValue) {
+		if (!silent && !isModified) {
 			ConfigCommand.info(notChangedMessage())
 			return
 		}
-		if (!silent) ConfigCommand.info(resetMessage(value, originalCore.defaultValue))
-		value = originalCore.defaultValue
+		if (!silent) ConfigCommand.info(resetMessage(value, core.defaultValue))
+		value = core.defaultValue
 	}
 
 	fun restoreOriginalCore() {
 		core = originalCore
 	}
 
-	abstract fun ImGuiBuilder.buildLayout()
+	@Composable
+	open fun Gui() {}
 
 	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(string("value as JSON")) { value ->
@@ -260,6 +264,18 @@ fun <S : Setting<T>, T> S.onValueSet(block: SafeContext.(from: T, to: T) -> Unit
 @ConfigEntryDsl
 fun <S : Setting<T>, T> S.onValueSetUnsafe(block: (from: T, to: T) -> Unit) =
 	apply { listeners.add(ValueListener(false, block)) }
+
+@ConfigEntryDsl
+fun <S : Setting<*>> S.onHover(block: (hovered: Boolean) -> Unit) =
+	apply { hoverListeners.add(block) }
+
+@ConfigEntryDsl
+fun <S : Setting<*>> S.onHold(block: (held: Boolean) -> Unit) =
+	apply { holdListeners.add(block) }
+
+@ConfigEntryDsl
+fun <S : Setting<*>> S.onClick(block: () -> Unit) =
+	apply { clickListeners.add(block) }
 
 @ConfigEntryDsl
 fun <S : Setting<T>, T> S.disabled(predicate: () -> Boolean) =

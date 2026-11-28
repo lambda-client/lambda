@@ -29,7 +29,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.GuiConfig
 import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -48,6 +48,7 @@ import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.item.ItemStackUtils.bundleStacks
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
+import com.lambda.util.math.toAwt
 import com.lambda.util.player.MovementUtils.moveDelta
 import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
 import com.lambda.util.player.SlotUtils.allStacks
@@ -228,8 +229,7 @@ object AutoDisconnect : Module(
                 .firstNotNullOfOrNull { reason ->
                     if (reason.enabled() && (!reason.smartToggle() || reason.armed) && reason.generateReason(this) != null) {
                         reason
-                    }
-                    else null
+                    } else null
                 }
             if (matchingReason != null) {
                 val reasonText = matchingReason.generateReason(this) ?: buildText { literal("Reason lost to the abyss") }
@@ -658,7 +658,9 @@ object AutoDisconnect : Module(
                         buildText {
                             text(effect.effectType.value().name)
                             if (effect.amplifier > 0) literal(" ${effect.amplifier + 1}")
-                            color(ClickGuiLayout.textDisabled) { literal(" (${effectDuration(effect)})") }
+							color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
+								literal(" (${effectDuration(effect)})")
+							}
                         }
                     )
                 }
@@ -745,7 +747,7 @@ object AutoDisconnect : Module(
         val customName = stack.get(DataComponentTypes.CUSTOM_NAME)
         if (customName != null) {
             text(stack.itemName)
-            color(ClickGuiLayout.textDisabled) {
+			color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
                 literal(" (")
                 text(customName)
                 literal(")")
@@ -755,11 +757,13 @@ object AutoDisconnect : Module(
         }
 
         if (stack.isDamageable) {
-            color(ClickGuiLayout.textDisabled) { literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})") }
+			color(GuiConfig.palette.onSurfaceVariant.toAwt()) {
+				literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})")
+			}
         }
 
         if (stack.maxCount > 1) {
-            color(ClickGuiLayout.textDisabled) { literal(" (${stack.count})") }
+			color(GuiConfig.palette.onSurfaceVariant.toAwt()) { literal(" (${stack.count})") }
         }
 
         if (selected) {

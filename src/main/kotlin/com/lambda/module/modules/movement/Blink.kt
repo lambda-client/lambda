@@ -26,7 +26,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.graphics.util.DynamicAABB
-import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.KillAura
@@ -42,6 +41,7 @@ import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedDeque
 
 object Blink : Module(
@@ -49,6 +49,8 @@ object Blink : Module(
     description = "Holds packets",
     tag = ModuleTag.MOVEMENT,
 ) {
+	private val BOX_COLOR = Color(130, 200, 255)
+
     private var delay by intSetting("Delay", 500, 50..10000, 10)
     private val shiftVelocity by boolSetting("Shift velocity", true)
     private val requiresAura by boolSetting("Requires Aura", false)
@@ -73,7 +75,7 @@ object Blink : Module(
         }
 
         immediateRenderer("Blink Immediate Renderer") {
-            val color = ClickGuiLayout.primaryColor
+			val color = BOX_COLOR
             box(box.update(lastBox).box(mc.tickDelta) ?: return@immediateRenderer) {
                 colors(color.setAlpha(0.3), color)
             }

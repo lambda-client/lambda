@@ -17,6 +17,7 @@
 
 package com.lambda.config.settings.complex
 
+import androidx.compose.runtime.Composable
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -26,7 +27,7 @@ import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.gui.settings.ColorPicker
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import java.awt.Color
@@ -47,10 +48,8 @@ class ColorSetting(
     visibility: () -> Boolean,
     defaultValue: Color
 ) : Setting<Color>(name, description, defaultValue, layer, config, visibility) {
-    override fun ImGuiBuilder.buildLayout() {
-        colorEdit(name, ::value)
-        lambdaTooltip(description)
-    }
+	@Composable
+	override fun Gui() = ColorPicker(this)
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer("Red", 0, 255)) { red ->

@@ -21,7 +21,7 @@ import com.lambda.Lambda.MOD_NAME
 import com.lambda.Lambda.SYMBOL
 import com.lambda.Lambda.VERSION
 import com.lambda.Lambda.mc
-import com.lambda.gui.components.ClickGuiLayout.lambdaTitleAppendixName
+import com.lambda.gui.GuiConfig.lambdaTitleAppendixName
 import net.minecraft.client.util.MacWindowUtil
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFWImage

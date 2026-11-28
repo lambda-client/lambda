@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.numeric
 
-
 import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -26,12 +25,9 @@ import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.type.ImInt
 import com.lambda.util.extension.CommandBuilder
-import com.lambda.util.math.MathUtils.roundToStep
 import net.minecraft.command.CommandRegistryAccess
-import kotlin.math.roundToInt
+import java.math.BigDecimal
 
 @ConfigEntryDsl
 fun Config.doubleSetting(
@@ -58,16 +54,7 @@ class DoubleSetting(
 	override var step: Double,
 	unit: String
 ) : NumericSetting<Double>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
-	override fun ImGuiBuilder.buildSlider() {
-		val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-		val currentIndex = ((value - range.start) / step).roundToInt()
-		val imInt = ImInt(currentIndex)
-		slider("##$name", imInt, 0, maxIndex, "") {
-			value = (range.start + imInt.get() * step)
-				.roundToStep(step)
-				.coerceIn(range)
-		}
-	}
+	override fun convert(number: BigDecimal) = number.toDouble()
 
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(double(name, range.start, range.endInclusive)) { parameter ->

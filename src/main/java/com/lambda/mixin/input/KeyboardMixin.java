@@ -27,16 +27,18 @@ import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(Keyboard.class)
 public class KeyboardMixin {
     @WrapMethod(method = "onKey")
     private void onKey(long window, int action, KeyInput input, Operation<Void> original) {
-        EventFlow.post(new ButtonEvent.Keyboard.Press(input.key(), input.scancode(), action, input.modifiers()));
+		if (EventFlow.post(new ButtonEvent.Keyboard.Press(input.key(), input.scancode(), action, input.modifiers())).isCanceled()) return;
         original.call(window, action, input);
         int key = input.key();
-        if (!InventoryMove.getShouldMove() || !InventoryMove.isKeyMovementRelated(key)) return;
+		if (!InventoryMove.isKeyMovementRelated(key)) return;
+		if (action != GLFW.GLFW_RELEASE && !InventoryMove.getShouldMove()) return;
         InputUtil.Key fromCode = InputUtil.fromKeyCode(input);
         KeyBinding.setKeyPressed(fromCode, action != 0);
     }

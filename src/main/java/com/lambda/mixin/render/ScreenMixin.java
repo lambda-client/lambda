@@ -17,8 +17,6 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.gui.components.QuickSearch;
-import com.lambda.module.modules.client.AutoUpdater;
 import com.lambda.module.modules.render.ContainerPreview;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -26,37 +24,13 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.KeyInput;
-import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Screen.class)
 public class ScreenMixin {
-    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
-    private void onKeyPressed(KeyInput input, CallbackInfoReturnable<Boolean> cir) {
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
-            if (QuickSearch.INSTANCE.isOpen()) {
-                QuickSearch.INSTANCE.close();
-                cir.setReturnValue(true);
-            } else if (AutoUpdater.getShowFirstLaunchModal()) {
-                AutoUpdater.dismissFirstLaunchPrompt();
-                cir.setReturnValue(true);
-            } else if (AutoUpdater.getShowInstallModal()) {
-                AutoUpdater.INSTANCE.disable();
-                AutoUpdater.setShowInstallModal(false);
-                cir.setReturnValue(true);
-            } else if (AutoUpdater.getShowUninstallModal()) {
-                AutoUpdater.INSTANCE.enable();
-                AutoUpdater.setShowUninstallModal(false);
-                cir.setReturnValue(true);
-            }
-        }
-    }
-
     @Inject(method = "renderInGameBackground", at = @At("HEAD"), cancellable = true)
     private void injectRenderInGameBackground(DrawContext context, CallbackInfo ci) {
         if (NoRender.INSTANCE.isEnabled() && NoRender.getNoGuiShadow()) ci.cancel();

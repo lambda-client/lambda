@@ -300,4 +300,61 @@ object LambdaRenderPipelines : Loadable {
 				)
 				.build()
 		)
+
+	private fun guiPass(
+		name: String,
+		fragmentShader: Identifier,
+		samplers: List<String>,
+		uniform: String? = null,
+		blend: BlendFunction? = null,
+	): RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder()
+				.withLocation(Identifier.of("lambda", "pipeline/$name"))
+				.withVertexShader("core/screenquad")
+				.withFragmentShader(fragmentShader)
+				.apply {
+					samplers.forEach { withSampler(it) }
+					uniform?.let { withUniform(it, UniformType.UNIFORM_BUFFER) }
+					blend?.let { withBlend(it) } ?: withoutBlend()
+				}
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES)
+				.build()
+		)
+
+	val GUI_BLIT =
+		guiPass(
+			"gui_blit",
+			Identifier.ofVanilla("core/blit_screen"),
+			samplers = listOf("InSampler"),
+			blend = BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA
+		)
+
+	val GUI_COMPOSITE =
+		guiPass(
+			"gui_composite",
+			Identifier.of("lambda", "core/gui_composite"),
+			samplers = listOf("GuiSampler", "BackdropSampler", "GlowSampler"),
+			uniform = "GuiEffects",
+			blend = BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA
+		)
+
+	val GUI_BLUR_DOWN =
+		guiPass(
+			"gui_blur_down",
+			Identifier.of("lambda", "core/gui_blur_down"),
+			samplers = listOf("InSampler"),
+			uniform = "BlurSpread"
+		)
+
+	val GUI_BLUR_UP =
+		guiPass(
+			"gui_blur_up",
+			Identifier.of("lambda", "core/gui_blur_up"),
+			samplers = listOf("InSampler"),
+			uniform = "BlurSpread"
+		)
 }

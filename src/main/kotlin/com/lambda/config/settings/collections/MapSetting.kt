@@ -22,7 +22,6 @@ import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
 import tools.jackson.databind.JavaType
 
 @ConfigEntryDsl
@@ -47,5 +46,4 @@ class MapSetting<K, V>(
 	defaultValue: MutableMap<K, V>,
 	val type: JavaType
 ) : Setting<MutableMap<K, V>>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {}
 }

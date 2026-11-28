@@ -29,7 +29,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DynamicAABB
-import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.KillAura
@@ -64,6 +63,8 @@ object BackTrack : Module(
     description = "Gives reach advantage by delaying your packets",
     tag = ModuleTag.MOVEMENT,
 ) {
+	private val BOX_COLOR = Color(130, 200, 255)
+
     private val outbound by boolSetting("Outbound", true)
     private val mode by enumSetting("Mode", Mode.Fixed)
     private val delay by intSetting("Delay", 500, 100..2000) { mode == Mode.Fixed }
@@ -176,7 +177,7 @@ object BackTrack : Module(
         immediateRenderer("BackTrack Immediate Renderer") {
             val target = target ?: return@immediateRenderer
 
-            val c1 = ClickGuiLayout.primaryColor
+			val c1 = BOX_COLOR
             val c2 = Color.RED
             val p = target.hurtTime / 10.0
             val c = lerp(p, c1, c2)

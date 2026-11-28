@@ -25,7 +25,7 @@ import com.lambda.config.Serializer
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
-import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.GuiConfig
 import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
 import net.fabricmc.api.ClientModInitializer
@@ -114,7 +114,7 @@ object Lambda : ClientModInitializer {
 		// We want the opengl context to be created
 		listenOnceUnsafe<ClientEvent.Startup>({ Int.MAX_VALUE }) {
 			LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
-			if (ClickGuiLayout.setLambdaWindowIcon) setLambdaWindowIcon()
+			if (GuiConfig.setLambdaWindowIcon) setLambdaWindowIcon()
 			true
 		}
 	}

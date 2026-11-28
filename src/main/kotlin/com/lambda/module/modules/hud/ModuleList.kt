@@ -17,13 +17,18 @@
 
 package com.lambda.module.modules.hud
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import com.lambda.config.settings.comparable.boolSetting
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.config.settings.complex.Bind
+import com.lambda.gui.core.observe
+import com.lambda.gui.hud.HudText
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleTag
-import java.awt.Color
 
 @Suppress("unused")
 object ModuleList : HudModule(
@@ -37,20 +42,29 @@ object ModuleList : HudModule(
         drawSetting.value = false
     }
 
-    override fun ImGuiBuilder.buildLayout() {
-        val enabled = ModuleRegistry.modules.filter { it.isEnabled && it.draw }
-
-        enabled.forEach {
-            val bound = it.keybind.key != 0 || it.keybind.mouse != -1
-            if (onlyBound && !bound) return@forEach
-            text(it.name)
-
-	        if (showKeybind) {
-		        val color = if (!bound) Color.RED else Color.GREEN
-
-		        sameLine()
-		        withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
-	        }
+	@Composable
+	override fun Content() {
+		val entries by observe {
+			ModuleRegistry.modules
+				.filter { it.isEnabled && it.draw && !it.alwaysEnabled }
+				.map { it.name to it.keybind.takeIf { bind -> bind.key != 0 || bind.mouse != -1 } }
+				.filter { (_, bind) -> bind != null || !onlyBound }
+		}
+		val showKeybind by observe { showKeybind }
+		Column {
+			entries.forEach { (name, bind) ->
+				Row {
+					HudText(name)
+					if (showKeybind) {
+						HudText(
+							" [${(bind ?: Bind.EMPTY).name}]",
+							color =
+								if (bind != null) Color.Green
+								else Color.Red
+						)
+					}
+				}
+			}
         }
     }
 }

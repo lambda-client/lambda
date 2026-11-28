@@ -17,11 +17,16 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.gui.component.Button
+import com.lambda.gui.theme.Look
 
 @ConfigEntryDsl
 fun <T : () -> R, R> Config.functionSetting(
@@ -39,8 +44,6 @@ class FunctionSetting<T : () -> R, R>(
 	layer: SettingEntryLayer<FunctionSetting<T, R>, T>,
 	visibility: () -> Boolean
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {
-        button(name) { value() }
-        lambdaTooltip(description)
-    }
+	@Composable
+	override fun Gui() = Button(name, Modifier.fillMaxWidth().height(Look.rowHeight)) { value() }
 }

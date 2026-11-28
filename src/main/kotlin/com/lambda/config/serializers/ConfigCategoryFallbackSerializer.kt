@@ -103,7 +103,7 @@ object MultipleFallbackSerializer : FallbackSerializer<EntryLayer.Multiple<*>>(E
 	override fun serialize(multiple: EntryLayer.Multiple<*>, gen: JsonGenerator, ctxt: SerializationContext) {
 		gen.writeStartObject()
 		multiple.layers.forEach { layer ->
-			if (layer is EntryLayer.Single<*> && !layer.entry.isModified) return@forEach
+			if (layer is EntryLayer.Single<*> && !layer.entry.isOriginalModified) return@forEach
 			val serialized = mapper.valueToTree<JsonNode>(layer)
 			if (serialized.isObject && serialized.isEmpty) return@forEach
 			gen.writePOJOProperty(layer.name, serialized)

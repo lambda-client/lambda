@@ -22,7 +22,6 @@ import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.serializers.FluidSerializer
-import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.fluid.Fluid
 import net.minecraft.registry.Registries
 
@@ -55,5 +54,5 @@ class FluidCollectionSetting(
 	typeFactory.constructCollectionType(MutableCollection::class.java, Fluid::class.java),
 	serialize = true,
 ) {
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { FluidSerializer.stringify(it) }
+	override fun label(item: Fluid) = FluidSerializer.stringify(item)
 }

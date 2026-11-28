@@ -17,6 +17,11 @@
 
 package com.lambda.config.settings.complex
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import com.lambda.Lambda.mc
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
@@ -26,8 +31,13 @@ import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.BlockUtils.blockPos
+import com.lambda.gui.component.Button
+import com.lambda.gui.component.NumberInput
+import com.lambda.gui.component.Tooltip
+import com.lambda.gui.core.observe
+import com.lambda.gui.settings.Labeled
+import com.lambda.gui.settings.NUMBER_FIELD_WIDTH
+import com.lambda.gui.theme.Look
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -50,18 +60,35 @@ class BlockPosSetting(
 	visibility: () -> Boolean,
 	defaultValue: BlockPos
 ) : Setting<BlockPos>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {
-		button("Set##$name") {
-			mc.crosshairTarget?.blockResult?.blockPos?.let {
-				value = it
-			} ?: info("No block under crosshair")
+	@Composable
+	override fun Gui() {
+		val pos by observe { value.toImmutable() }
+		Labeled(name) {
+			NumberInput(
+				pos.x,
+				String::toIntOrNull,
+				{ value = BlockPos(it, pos.y, pos.z) },
+				Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH)
+			)
+			NumberInput(
+				pos.y,
+				String::toIntOrNull,
+				{ value = BlockPos(pos.x, it, pos.z) },
+				Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH)
+			)
+			NumberInput(
+				pos.z,
+				String::toIntOrNull,
+				{ value = BlockPos(pos.x, pos.y, it) },
+				Modifier.weight(1f, fill = false).width(NUMBER_FIELD_WIDTH)
+			)
+			Tooltip("Use the block you are looking at") {
+				Button("Target", Modifier.height(Look.rowHeight)) {
+					mc.crosshairTarget?.blockResult?.blockPos?.let { value = it }
+						?: this@BlockPosSetting.info("No block under crosshair")
+				}
+			}
 		}
-		lambdaTooltip("Set the coordinates to the block you are currently looking at")
-		sameLine()
-		treeNode(name, id = name) {
-			inputVec3i("##$name", value) { value = it.blockPos }
-		}
-		lambdaTooltip(description)
 	}
 
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
