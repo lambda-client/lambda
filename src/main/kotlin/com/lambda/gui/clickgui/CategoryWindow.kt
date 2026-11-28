@@ -17,13 +17,12 @@
 
 package com.lambda.gui.clickgui
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.rememberTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +35,7 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -44,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -52,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -64,6 +66,7 @@ import com.lambda.gui.LambdaGui
 import com.lambda.gui.Reveal
 import com.lambda.gui.Snap
 import com.lambda.gui.component.Centered
+import com.lambda.gui.component.LocalKeyboardReachable
 import com.lambda.gui.component.ScrollColumn
 import com.lambda.gui.component.SlidingText
 import com.lambda.gui.component.Text
@@ -84,6 +87,7 @@ import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleTag
 import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 private val REACH = 40.dp
 private const val IN_ROW = 1.5f
@@ -212,9 +216,7 @@ internal fun CategoryWindow(
 		val folding = LambdaGui.foldsClosed
 		val unfolded =
 			remember(shown, LambdaGui.restarts) {
-				MutableTransitionState(
-					(folding || !LambdaGui.unfoldsOpen) && shown && !collapsed
-				)
+				MutableTransitionState((folding || !LambdaGui.unfoldsOpen) && shown && !collapsed)
 			}
 		unfolded.targetState = shown && !folding && !collapsed
 		val settled = unfolded.isIdle && unfolded.currentState
@@ -226,19 +228,24 @@ internal fun CategoryWindow(
 				it.settled = settled
 			}
 		}
-		AnimatedVisibility(
-			visibleState = unfolded,
-			enter = expandVertically(Motion.windows),
-			exit =
-				shrinkVertically(
-					if (folding) Motion.guiFold
-					else Motion.windows
-				),
-		) {
+		val unfold by
+			rememberTransition(unfolded).animateFloat({
+				if (folding) Motion.gui(1f)
+				else Motion.windows
+			}) {
+				if (it) 1f
+				else 0f
+			}
+		CompositionLocalProvider(LocalKeyboardReachable provides !collapsed) {
 			ScrollColumn(
-				Modifier.heightIn(
-					max = (screenHeight - shownPosition.y - 24.dp).coerceAtLeast(48.dp)
-				)
+				Modifier
+					.clipToBounds()
+					.layout { measurable, constraints ->
+						val placeable = measurable.measure(constraints)
+						val height = (placeable.height * unfold).roundToInt()
+						layout(placeable.width, height) { placeable.place(0, height - placeable.height) }
+					}
+					.heightIn(max = (screenHeight - shownPosition.y - 24.dp).coerceAtLeast(48.dp))
 			) {
 				modules.forEach { module ->
 					ModuleRow(

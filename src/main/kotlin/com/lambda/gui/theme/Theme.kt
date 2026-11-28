@@ -141,6 +141,7 @@ internal object Motion : MotionDurationScale {
 	private const val GUI_MILLIS = 180
 	private const val DIALOG_MILLIS = 140
 	private const val NOTIFICATION_MILLIS = 260
+	private const val UNFOLDED_WITHIN = 0.001f
 	private val UNFOLDING =
 		spring(
 			stiffness = Spring.StiffnessMedium,
@@ -165,8 +166,8 @@ internal object Motion : MotionDurationScale {
 		if (GuiConfig.animations) 1f / GuiConfig.animationSpeed
 		else 0f
 
-	val windows: FiniteAnimationSpec<IntSize>
-		get() = if (GuiConfig.windowAnimations) spring() else snap()
+	val windows: FiniteAnimationSpec<Float>
+		get() = if (GuiConfig.windowAnimations) spring(visibilityThreshold = UNFOLDED_WITHIN) else snap()
 	val panels: FiniteAnimationSpec<IntSize>
 		get() = if (GuiConfig.panelAnimations) UNFOLDING else snap()
 	val pageMillis
@@ -196,6 +197,7 @@ enum class NotificationSide(override val displayName: String) : NamedEnum {
 	Right("Right"),
 }
 
+@Suppress("unused")
 enum class NotificationFlow(override val displayName: String) : NamedEnum {
 	Up("Up"),
 	Down("Down"),
